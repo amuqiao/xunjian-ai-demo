@@ -108,6 +108,7 @@ route
 - `./scripts/dev.sh ports`
 - `./scripts/dev.sh migrate`
 - `./scripts/deploy.sh help`
+- `./scripts/deploy.sh up|down|status dev`
 - `./scripts/deploy.sh up|down|status local`
 - `./scripts/deploy.sh up|down|status compose-deps`
 - `./scripts/deploy.sh up|down|status compose-full`
@@ -117,7 +118,7 @@ route
 - `./scripts/tools.sh secret`
 - `./scripts/tools.sh env-url`
 
-`dev.sh` 当前提供本地 API 进程管理、端口扫描、环境检查、迁移和测试快捷入口。`deploy.sh` 当前提供三种基础部署模型：`local` 委托 `dev.sh`，`compose-deps` 管理 PostgreSQL / Redis，`compose-full` 管理 API / PostgreSQL / Redis，并通过 `start-api.sh` 作为 API 容器入口。`verify.sh check` 当前覆盖 env、syntax、registry、alembic、scripts 和 pytest；`postgres` 与 `migration-roundtrip` 是显式 PostgreSQL gate。`tools.sh` 当前提供无默认持久副作用的 secret 和 env URL 生成工具。
+`dev.sh` 当前提供本地 API 进程管理、端口扫描、环境检查、迁移和测试快捷入口。`deploy.sh` 当前提供四种运行模型：`dev` 是常用本地开发 recipe，组合 Docker PostgreSQL / Redis 与宿主机 API；`local` 委托 `dev.sh` 只管理宿主机 API；`compose-deps` 管理 Docker PostgreSQL / Redis；`compose-full` 管理 Docker API / PostgreSQL / Redis，并通过 `start-api.sh` 作为 API 容器入口。三种管理方式分别是：日常入口 `deploy.sh up|status|down dev`；单进程入口 `dev.sh start|status|stop api`；运行模型入口 `deploy.sh up|status|down local|compose-deps|compose-full`。`verify.sh check` 当前覆盖 env、syntax、registry、alembic、scripts 和 pytest；`postgres` 与 `migration-roundtrip` 是显式 PostgreSQL gate。`tools.sh` 当前提供无默认持久副作用的 secret 和 env URL 生成工具。
 
 ## Verification Baseline
 

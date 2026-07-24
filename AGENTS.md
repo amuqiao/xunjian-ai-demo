@@ -16,8 +16,9 @@
   - 常用本地开发环境：`./scripts/deploy.sh up dev`
   - 查看常用本地开发环境：`./scripts/deploy.sh status dev`
   - 停止常用本地开发环境：`./scripts/deploy.sh down dev`
+  - 仅宿主机 API：`./scripts/deploy.sh up|status|down local`
   - 仅 Docker 依赖：`./scripts/deploy.sh up|status|down compose-deps`
-  - 全 Docker API/依赖：`./scripts/deploy.sh up|status|down compose-full`
+  - 全 Docker API / 依赖：`./scripts/deploy.sh up|status|down compose-full`
   - 全量停止必须显式使用：`./scripts/deploy.sh down all`
 - 不要使用裸 `./scripts/deploy.sh down`；该命令应报错，避免误停服务。
 - 排查状态优先使用 `status`，不要直接用 `docker stop`、`kill` 或手工清理 PID，除非用户明确要求。
