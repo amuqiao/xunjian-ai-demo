@@ -27,11 +27,19 @@ compose() {
   resolved_project_name="$(compose_project_name)"
 
   if docker compose version >/dev/null 2>&1; then
-    docker compose --env-file "$env_file" -p "$resolved_project_name" "$@"
+    if [[ -f "$env_file" ]]; then
+      docker compose --env-file "$env_file" -p "$resolved_project_name" "$@"
+    else
+      docker compose -p "$resolved_project_name" "$@"
+    fi
     return
   fi
   if command -v docker-compose >/dev/null 2>&1; then
-    docker-compose --env-file "$env_file" -p "$resolved_project_name" "$@"
+    if [[ -f "$env_file" ]]; then
+      docker-compose --env-file "$env_file" -p "$resolved_project_name" "$@"
+    else
+      docker-compose -p "$resolved_project_name" "$@"
+    fi
     return
   fi
   die "Docker Compose is not available. Install Docker Desktop or docker-compose." 2

@@ -628,6 +628,52 @@ exit 1
     assert "--profile app stop api postgres redis" in calls[0]
 
 
+def test_deploy_down_all_does_not_require_missing_env_file(tmp_path):
+    bin_dir = tmp_path / "bin"
+    log_file = tmp_path / "calls.log"
+    bin_dir.mkdir()
+
+    docker = bin_dir / "docker"
+    docker.write_text(
+        f"""#!/usr/bin/env sh
+if [ "$1" = "compose" ] && [ "$2" = "version" ]; then
+  exit 0
+fi
+if [ "$1" = "ps" ]; then
+  exit 0
+fi
+if [ "$1" = "compose" ]; then
+  for arg in "$@"; do
+    if [ "$arg" = "--env-file" ]; then
+      echo "unexpected --env-file" >&2
+      exit 15
+    fi
+  done
+  echo "docker $@" >> "{log_file}"
+  exit 0
+fi
+exit 1
+"""
+    )
+    docker.chmod(0o755)
+
+    result = subprocess.run(
+        ["./scripts/deploy.sh", "down", "all"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(
+            tmp_path,
+            ENV_FILE=str(tmp_path / "missing.env"),
+            PATH=f"{bin_dir}:{os.environ['PATH']}",
+        ),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "--env-file" not in log_file.read_text()
+
+
 def test_deploy_down_all_fails_when_compose_is_unavailable_after_local_stop(tmp_path):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -689,6 +735,7 @@ def test_deploy_compose_deps_rejects_busy_host_port_before_docker(tmp_path):
             check=False,
             env=script_env(
                 tmp_path,
+                ENV_FILE=".env.example",
                 POSTGRES_HOST_PORT=str(port),
                 REDIS_HOST_PORT=str(unused_port()),
             ),
@@ -745,6 +792,7 @@ exit 1
         check=False,
         env=script_env(
             tmp_path,
+            ENV_FILE=".env.example",
             PATH=f"{bin_dir}:{os.environ['PATH']}",
             POSTGRES_HOST_PORT="25432",
             REDIS_HOST_PORT="26379",
