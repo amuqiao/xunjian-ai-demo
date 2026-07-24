@@ -94,6 +94,31 @@ Rules:
 - Business code must use typed dependency/getter, not registry string lookup.
 - Unsupported enabled modes must fail fast instead of silently using fake implementations.
 
+## Adding An External Service Client
+
+普通外部 HTTP API 调用不一定需要新增 provider。只有资源需要随应用生命周期统一启动、ready 和关闭时，才按 provider 接入；只调用外部 API 时，优先新增 integration client。
+
+Recommended shape:
+
+```text
+settings section
+  -> app/integrations/<service>_client.py
+  -> shared http_client provider
+  -> route or service composition root
+  -> AppError mapping
+  -> tests
+```
+
+Rules:
+
+- 外部服务地址、token、timeout 和开关必须来自 typed settings section，不直接读取 `os.environ`。
+- HTTP 调用优先复用 shared `httpx.AsyncClient`，不要在每次请求中创建新的 client。
+- 外部请求必须透传当前 `request_id` / `trace_id`，除非对方协议明确不接受这些 header。
+- Integration client 负责把外部错误、超时和无效响应收敛成明确的 `AppError` 或内部异常；不要返回裸 dict 让 route 自己猜语义。
+- 不要 silent catch 外部错误；如果调用方可见，使用已登记错误码和 common error envelope。
+- 不要把业务事务提交放在 integration client 里；事务编排仍属于 service。
+- 新 client 应有成功、外部错误、超时或无效响应测试。调用方可见的新失败语义要同步 `app/core/error_registry.py` 和 `docs/contracts/api-contract.md`。
+
 ## Adding A Tool
 
 Pure reusable tools belong under `app/tools/`.

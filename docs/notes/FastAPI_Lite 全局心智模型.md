@@ -1,6 +1,6 @@
 # FastAPI Lite 全局心智模型
 
-这是一份精简版全局视角：打开它，只需要快速知道 `fastapi-lite` 的地基有什么、新业务怎么接、哪些能力不要误以为已经有。
+这是一份精简版全局视角：打开它，只需要快速知道 `fastapi-lite` 的地基有什么、新服务怎么落地、新业务怎么接、哪些能力不要误以为已经有。
 
 ## 这是什么
 
@@ -16,6 +16,7 @@
 
 更细的规则看：
 
+- 文档入口：[`docs/README.md`](../README.md)
 - 当前实现：[`../current/implementation.md`](../current/implementation.md)
 - 扩展规则：[`../contracts/extension-contract.md`](../contracts/extension-contract.md)
 - 后续缺口：[`../plans/drift-checklist.md`](../plans/drift-checklist.md)
@@ -48,6 +49,38 @@
 - `lifespan`：FastAPI 生命周期入口。负责按顺序启动 provider、注册 readiness、关闭资源。
 - `app.state`：应用级资源挂载点。provider 初始化后的资源放在这里，再通过 typed getter 或 dependency 取用。
 - `envelope`：统一响应包裹。成功和失败响应都按固定结构输出，避免接口各自定义格式。
+
+## 新服务怎么落地
+
+复制或派生一个新 FastAPI 服务时，先确认服务身份和运行边界，再开始写业务代码：
+
+```text
+1. 服务身份
+   SERVICE__NAME
+   SERVICE__API_PREFIX
+   README 中的服务说明
+
+2. 本地端口和依赖
+   API_HOST / API_PORT
+   DATABASE__URL / REDIS__URL
+   docker-compose.yml 的 host port
+
+3. 配置合同
+   .env.example
+   app/core/config/env_manifest.py
+   app/core/config/sections.py
+
+4. 文档入口
+   README.md
+   docs/README.md
+   docs/current / docs/contracts / docs/plans
+
+5. 验证入口
+   ./scripts/dev.sh doctor
+   ./scripts/verify.sh check
+```
+
+`items` 是业务模块范式示例，不一定是新服务的真实领域模型。新服务可以保留它作为脚手架示例，也可以在建立真实业务模块后移除；无论哪种选择，都要同步 operation registry、API contract、migration 和测试。
 
 ## 新业务怎么接
 
@@ -97,6 +130,22 @@ schema
 - 新 route、错误码、API docs 要同步注册。
 - 最后跑 `./scripts/verify.sh check`。
 
+## 新能力放哪里
+
+新增能力前先判断它属于哪一类，再去对应合同文档看细则。这里负责帮你选入口，不重复维护完整规则：
+
+| 需求 | 主要放置点 | 继续阅读 |
+|---|---|---|
+| 新 HTTP 资源 | `app/api/routes/`、`app/schemas/`、`app/services/`、`app/repositories/`、`app/models/` | [`Adding A Business Module`](../contracts/extension-contract.md#adding-a-business-module) |
+| 新配置 | `app/core/config/` | [`Adding Configuration`](../contracts/extension-contract.md#adding-configuration) |
+| 新外部资源 | `app/integrations/` + lifecycle provider | [`Adding A Provider`](../contracts/extension-contract.md#adding-a-provider) |
+| 新外部 HTTP 调用 | `app/integrations/` | [`Adding An External Service Client`](../contracts/extension-contract.md#adding-an-external-service-client) |
+| 新 middleware | `app/core/` | [`Adding Middleware`](../contracts/extension-contract.md#adding-middleware) |
+| 新纯工具 | `app/tools/` | [`Adding A Tool`](../contracts/extension-contract.md#adding-a-tool) |
+| 新脚本能力 | `scripts/` | [`Adding Script Commands`](../contracts/extension-contract.md#adding-script-commands) 和 [`scripts/README.md`](../../scripts/README.md) |
+
+如果一个能力同时命中多类，先确定主边界，再用最小 wiring 串起来。不要因为一次业务需求就新增自动发现、动态注册或全局抽象。
+
 ## 新基础设施怎么接
 
 新增外部资源按 provider 范式走：
@@ -118,6 +167,28 @@ config section
 - 资源挂到 `app.state`，业务代码通过 typed getter 或 dependency 使用。
 - readiness 要能暴露依赖状态。
 - 未实现的真实后端要 fail fast，不要静默降级。
+
+## 外部服务怎么接
+
+外部服务集成不等同于新增 provider。先做这个判断：
+
+```text
+需要被应用生命周期统一启动、ready、关闭
+  -> provider
+
+只是通过 HTTP 或 SDK 调用外部 API
+  -> integration client
+```
+
+完整规则看 [`Adding A Provider`](../contracts/extension-contract.md#adding-a-provider) 和 [`Adding An External Service Client`](../contracts/extension-contract.md#adding-an-external-service-client)。这里不要自行发明第三种接入路径。
+
+## 改完怎么验
+
+默认验收入口是 `./scripts/verify.sh check`。更窄或更重的验证由改动类型决定，细则看 [`Verification`](../contracts/extension-contract.md#verification)、[`Scripts And Verification`](../current/implementation.md#scripts-and-verification) 和 [`scripts/README.md`](../../scripts/README.md)。
+
+`./scripts/verify.sh registry` 只覆盖 registry、route/OpenAPI/API contract 和必需文档存在性，不会检查 README、notes 或所有 Markdown 链接。只改说明性文档时，仍需要人工检查阅读路径和相对链接；如果文档改变了稳定合同或当前事实，再跑对应的 registry、check 或更重 gate。
+
+不要只看 diff 就认为完成。文档、注册表、OpenAPI、migration、脚本 help 和测试都可能漂移。
 
 ## 当前不要误解
 
