@@ -330,7 +330,9 @@ start_api() {
 
 stop_api() {
   local pid
+  local stopped_port
   pid="$(api_pid)"
+  stopped_port="$(api_meta_port)"
   if [[ -n "$pid" ]] && pid_running "$pid" && ! api_pid_owned "$pid"; then
     rm -f "$API_PID_FILE" "$API_META_FILE"
     event "STALE" "api" "removed pid file for unowned pid=$pid"
@@ -343,7 +345,13 @@ stop_api() {
     return 0
   fi
   kill "$pid"
+  if ! wait_for_pid_exit "$pid" 10; then
+    die "api pid $pid did not exit after 10s" 4
+  fi
   rm -f "$API_PID_FILE" "$API_META_FILE"
+  if ! wait_for_port_free "$stopped_port" 10; then
+    die "api stopped but port $stopped_port is still used by pid=$(port_owner_pid "$stopped_port")" 4
+  fi
   event "STOPPED" "api" "pid=$pid"
 }
 

@@ -47,3 +47,11 @@
 ./scripts/deploy.sh check
 kubectl exec -it <api-pod> -- ./scripts/k8s.sh check
 ```
+
+## Service Management
+
+| Path | Scope |
+|---|---|
+| `./scripts/deploy.sh up|status|down dev` | Daily local development: Docker PostgreSQL / Redis plus host API. |
+| `./scripts/dev.sh start|status|stop api` | Precise host API process management. |
+| `./scripts/deploy.sh up|status|down local|compose-deps|compose-full` | Explicit runtime models for host API, Docker dependencies, or full Docker Compose API/dependencies. |

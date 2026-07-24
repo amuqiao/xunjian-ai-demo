@@ -14,7 +14,7 @@
 - lifecycle providers：Postgres、Redis fake boundary、object storage、shared HTTP client。
 - `app/tools/` 示例工具模块。
 - `dev.sh`、`deploy.sh`、`verify.sh`、`tools.sh` 脚本入口。
-- 脚本公共能力：`doctor`、端口扫描、PID/log 管理、三模式部署入口、迁移入口、secret/env-url 工具、registry/env/docs drift gate。
+- 脚本公共能力：`doctor`、端口扫描、PID/log 管理、运行模型部署入口、迁移入口、secret/env-url 工具、registry/env/docs drift gate。
 - Dockerfile、docker-compose.yml 和 `start-api.sh` API 容器入口。
 
 ## Quick Start
@@ -53,9 +53,19 @@ Start the common local development stack:
 
 ```bash
 ./scripts/deploy.sh up dev
+./scripts/deploy.sh status dev
+./scripts/deploy.sh down dev
 ```
 
 This starts PostgreSQL and Redis with Docker Compose, then starts the FastAPI app on the host. The app process can start without opening a database connection, but `/ready` and the `items` API require a reachable PostgreSQL database unless tests inject a session override.
+
+Manage local services in three ways:
+
+| Entry | Use it for |
+|---|---|
+| `./scripts/deploy.sh up|status|down dev` | Daily local development: Docker PostgreSQL / Redis plus host API. |
+| `./scripts/dev.sh start|status|stop api` | Precise host API process control. |
+| `./scripts/deploy.sh up|status|down local|compose-deps|compose-full` | Explicit local or Docker Compose runtime models. |
 
 Run only local dependencies with Docker Compose:
 

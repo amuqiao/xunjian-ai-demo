@@ -131,11 +131,59 @@ api_running() {
   pid_running "$pid" && api_pid_owned "$pid"
 }
 
+api_meta_port() {
+  local url
+  local authority
+  local port
+  if [[ -f "$API_META_FILE" ]]; then
+    url="$(sed -n 's/^url=//p' "$API_META_FILE" | tail -n 1)"
+  fi
+  if [[ -z "${url:-}" ]]; then
+    printf "%s" "$API_PORT"
+    return 0
+  fi
+  authority="${url#*://}"
+  authority="${authority%%/*}"
+  case "$authority" in
+    *:*) port="${authority##*:}" ;;
+    *) port="$API_PORT" ;;
+  esac
+  validate_port "api meta port" "$port"
+  printf "%s" "$port"
+}
+
 port_owner_pid() {
   local port="$1"
   if command -v lsof >/dev/null 2>&1; then
     lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -n 1 || true
   fi
+}
+
+wait_for_pid_exit() {
+  local pid="$1"
+  local timeout_seconds="${2:-10}"
+  local elapsed=0
+  [[ -z "$pid" ]] && return 0
+  while pid_running "$pid"; do
+    if (( elapsed >= timeout_seconds )); then
+      return 1
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+}
+
+wait_for_port_free() {
+  local port="$1"
+  local timeout_seconds="${2:-10}"
+  local elapsed=0
+  while [[ -n "$(port_owner_pid "$port")" ]]; do
+    if (( elapsed >= timeout_seconds )); then
+      return 1
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
 }
 
 assert_api_port_free() {
