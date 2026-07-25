@@ -7,18 +7,19 @@
     <style>
       :root {
         color-scheme: dark;
-        --bg: #071116;
-        --panel: rgba(12, 29, 35, 0.84);
-        --panel-strong: rgba(15, 42, 47, 0.96);
-        --line: rgba(110, 232, 214, 0.34);
-        --line-strong: rgba(119, 232, 214, 0.86);
+        --bg: #061014;
+        --panel: rgba(10, 24, 30, 0.9);
+        --panel-strong: rgba(12, 32, 38, 0.96);
+        --line: rgba(112, 224, 211, 0.26);
+        --line-hot: rgba(245, 181, 72, 0.72);
         --text: #eefbf7;
-        --muted: #8caaa7;
+        --muted: #87a6a2;
         --cyan: #58e4d2;
-        --green: #7fe391;
-        --amber: #f6b84b;
-        --red: #ff6574;
         --blue: #5ca8ff;
+        --green: #83e39a;
+        --amber: #f5b548;
+        --red: #ff6574;
+        --shadow: 0 20px 70px rgba(0, 0, 0, 0.32);
       }
 
       * {
@@ -27,135 +28,194 @@
 
       body {
         margin: 0;
-        min-width: 1280px;
+        min-width: 1180px;
         min-height: 100vh;
-        overflow: hidden;
         color: var(--text);
         font-family:
           Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
         background:
-          radial-gradient(circle at 18% 14%, rgba(88, 228, 210, 0.18), transparent 30%),
-          radial-gradient(circle at 82% 26%, rgba(246, 184, 75, 0.13), transparent 28%),
-          linear-gradient(135deg, #061014 0%, #0b1a1f 48%, #121a18 100%);
+          radial-gradient(circle at 18% 10%, rgba(88, 228, 210, 0.18), transparent 32%),
+          radial-gradient(circle at 82% 16%, rgba(245, 181, 72, 0.14), transparent 30%),
+          linear-gradient(145deg, #040b0f 0%, #08151a 46%, #0d1817 100%);
       }
 
       button {
         font: inherit;
       }
 
-      .screen {
-        position: relative;
+      .app {
         display: grid;
-        grid-template-rows: 76px 1fr 132px;
+        grid-template-rows: 82px minmax(0, 1fr) 86px;
+        min-height: 100vh;
+        padding: 16px;
         gap: 14px;
-        height: 100vh;
-        padding: 18px;
-      }
-
-      .screen::before {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        content: "";
-        background-image:
-          linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-        background-size: 48px 48px;
-        mask-image: radial-gradient(circle at center, black 0%, transparent 74%);
       }
 
       .topbar,
-      .panel,
-      .bottom-flow,
-      .drawer {
-        position: relative;
-        z-index: 1;
+      .stage,
+      .commandbar {
         border: 1px solid var(--line);
         background: var(--panel);
         box-shadow:
-          0 0 28px rgba(88, 228, 210, 0.08),
-          inset 0 0 24px rgba(88, 228, 210, 0.045);
+          var(--shadow),
+          inset 0 0 24px rgba(88, 228, 210, 0.04);
         backdrop-filter: blur(14px);
       }
 
       .topbar {
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
+        grid-template-columns: 320px 1fr 280px;
         align-items: center;
-        padding: 0 24px;
-        clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 24px 100%);
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
-
-      .brand-mark {
-        width: 34px;
-        height: 34px;
-        border: 1px solid var(--line-strong);
-        background:
-          linear-gradient(135deg, rgba(88, 228, 210, 0.28), rgba(246, 184, 75, 0.14)),
-          rgba(255, 255, 255, 0.04);
-        box-shadow: 0 0 18px rgba(88, 228, 210, 0.25);
+        gap: 20px;
+        padding: 0 22px;
       }
 
       .brand h1 {
         margin: 0;
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0;
+        font-size: 21px;
+        line-height: 1.1;
       }
 
       .brand small,
-      .clock {
+      .runtime small,
+      .meta {
         color: var(--muted);
-        font-size: 13px;
-      }
-
-      .scene-tabs {
-        display: flex;
-        gap: 8px;
-        padding: 5px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.04);
-      }
-
-      .scene-tab {
-        min-width: 100px;
-        padding: 9px 12px;
-        border: 0;
-        color: var(--muted);
-        cursor: pointer;
-        background: transparent;
-      }
-
-      .scene-tab.active {
-        color: #061014;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--cyan), var(--amber));
-      }
-
-      .tab-hint {
-        justify-self: end;
-        margin-top: 6px;
-        color: #ffe0a3;
         font-size: 12px;
       }
 
-      .main-grid {
-        position: relative;
-        z-index: 1;
+      .step-nav {
         display: grid;
-        grid-template-columns: 306px 1fr 334px;
-        gap: 14px;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 7px;
+      }
+
+      .nav-step {
+        min-height: 48px;
+        padding: 7px 9px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--muted);
+        text-align: left;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .nav-step span {
+        display: block;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 11px;
+      }
+
+      .nav-step strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .nav-step.active {
+        color: #061014;
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--cyan), var(--amber));
+      }
+
+      .nav-step.active span {
+        color: rgba(6, 16, 20, 0.65);
+      }
+
+      .runtime {
+        justify-self: end;
+        text-align: right;
+      }
+
+      .runtime strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--green);
+        font-size: 14px;
+      }
+
+      .stage {
+        position: relative;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: none;
+        padding: 22px;
+        animation: sceneIn 0.24s ease;
+      }
+
+      .scene.active {
+        display: block;
+      }
+
+      .scene-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+
+      .scene-head h2 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.1;
+      }
+
+      .scene-head p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .scene-index {
+        min-width: 86px;
+        padding: 9px 12px;
+        color: #061014;
+        text-align: center;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--cyan), var(--amber));
+      }
+
+      .layout {
+        display: grid;
+        gap: 16px;
+        height: calc(100% - 72px);
         min-height: 0;
       }
 
-      .panel {
+      .layout.overview,
+      .layout.analysis,
+      .layout.media,
+      .layout.knowledge,
+      .layout.report {
+        grid-template-columns: minmax(0, 1fr) 360px;
+      }
+
+      .layout.recheck {
+        grid-template-columns: 430px minmax(0, 1fr);
+      }
+
+      .panel,
+      .main-visual,
+      .side-card,
+      .doc-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .main-visual {
+        position: relative;
         min-height: 0;
+        overflow: hidden;
+      }
+
+      .panel,
+      .side-card,
+      .doc-card {
         padding: 16px;
       }
 
@@ -166,714 +226,552 @@
         margin-bottom: 14px;
         color: #dffcf8;
         font-size: 15px;
-        font-weight: 700;
-      }
-
-      .panel-title::before {
-        width: 5px;
-        height: 18px;
-        margin-right: 8px;
-        content: "";
-        background: linear-gradient(var(--cyan), var(--amber));
-      }
-
-      .panel-title span:first-child {
-        display: flex;
-        align-items: center;
-      }
-
-      .task-card,
-      .metric-card,
-      .finding-card,
-      .scene-card,
-      .info-card,
-      .report-section,
-      .check-item {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.045);
-      }
-
-      .task-card {
-        padding: 14px;
-      }
-
-      .task-card h2 {
-        margin: 0 0 10px;
-        font-size: 18px;
-      }
-
-      .meta-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 8px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .meta-row strong {
-        color: var(--text);
-        font-weight: 600;
-      }
-
-      .metrics {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin: 14px 0;
-      }
-
-      .metric-card {
-        min-height: 82px;
-        padding: 12px;
-      }
-
-      .metric-card .num {
-        display: block;
-        margin-top: 8px;
-        font-size: 28px;
         font-weight: 800;
-        line-height: 1;
       }
 
-      .metric-card small,
-      .scene-card small,
-      .info-card small {
+      .panel-title small {
         color: var(--muted);
+        font-weight: 500;
       }
 
-      .num.cyan { color: var(--cyan); }
-      .num.amber { color: var(--amber); }
-      .num.green { color: var(--green); }
-      .num.red { color: var(--red); }
-
-      .finding-list,
-      .status-steps,
-      .card-stack {
-        display: grid;
-        gap: 10px;
-      }
-
-      .finding-card {
-        width: 100%;
-        padding: 12px;
-        text-align: left;
-        color: var(--text);
-        cursor: pointer;
-        transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
-      }
-
-      .finding-card:hover,
-      .finding-card.active {
-        transform: translateX(4px);
-        border-color: var(--amber);
-        background: rgba(246, 184, 75, 0.1);
-      }
-
-      .finding-card strong {
-        display: block;
-        margin-bottom: 7px;
-        font-size: 14px;
-      }
-
-      .finding-card small {
-        color: var(--muted);
-      }
-
-      .stage {
-        position: relative;
-        min-height: 0;
-        overflow: hidden;
-        padding: 0;
-      }
-
-      .view {
-        position: absolute;
-        inset: 0;
-        display: none;
-        padding: 16px;
-        animation: fadeIn 0.28s ease;
-      }
-
-      .view.active {
-        display: grid;
-      }
-
-      .view-home {
-        grid-template-rows: 1fr 156px;
-        gap: 14px;
-      }
-
-      .map-panel {
-        position: relative;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.035);
-      }
-
-      .map-header {
-        position: absolute;
-        top: 16px;
-        left: 18px;
-        right: 18px;
-        z-index: 3;
-        display: flex;
-        justify-content: space-between;
-        gap: 20px;
-        pointer-events: none;
-      }
-
-      .map-header h2,
-      .view-title h2 {
-        margin: 0;
-        font-size: 22px;
-      }
-
-      .map-header p,
-      .view-title p {
-        margin: 6px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .stage-badge {
-        align-self: start;
-        padding: 8px 12px;
-        color: #061014;
-        font-size: 13px;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--amber), var(--green));
-      }
-
-      .site-map {
+      .station-map {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
       }
 
-      .area-shape {
+      .map-zone {
         cursor: pointer;
-        fill: rgba(45, 99, 99, 0.52);
-        stroke: rgba(120, 232, 214, 0.52);
+        fill: rgba(38, 94, 96, 0.52);
+        stroke: rgba(118, 232, 214, 0.5);
         stroke-width: 2;
-        transition: fill 0.2s ease, filter 0.2s ease, stroke 0.2s ease;
+        transition: fill 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
       }
 
-      .area-shape:hover,
-      .area-shape.active {
-        fill: rgba(246, 184, 75, 0.32);
+      .map-zone:hover,
+      .map-zone.active {
+        fill: rgba(245, 181, 72, 0.27);
         stroke: var(--amber);
-        filter: drop-shadow(0 0 12px rgba(246, 184, 75, 0.65));
+        filter: drop-shadow(0 0 12px rgba(245, 181, 72, 0.68));
+      }
+
+      .route {
+        fill: none;
+        stroke: rgba(131, 227, 154, 0.88);
+        stroke-width: 4;
+        stroke-dasharray: 12 10;
+        animation: dash 16s linear infinite;
       }
 
       .risk-dot {
         cursor: pointer;
         fill: var(--red);
-        filter: drop-shadow(0 0 10px rgba(255, 101, 116, 0.9));
+        filter: drop-shadow(0 0 12px rgba(255, 101, 116, 0.9));
         animation: pulse 1.6s ease-in-out infinite;
       }
 
-      .route-line {
-        fill: none;
-        stroke: rgba(127, 227, 145, 0.88);
-        stroke-width: 4;
-        stroke-dasharray: 12 10;
-        animation: dash 14s linear infinite;
-      }
-
-      .zone-label {
-        fill: #e9fffb;
+      .map-label {
+        fill: #eafffb;
         font-size: 16px;
-        font-weight: 700;
+        font-weight: 800;
         pointer-events: none;
       }
 
-      .scan {
+      .map-overlay {
         position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background: linear-gradient(180deg, transparent 0%, rgba(88, 228, 210, 0.18) 50%, transparent 100%);
-        transform: translateY(-100%);
-        animation: scan 5s ease-in-out infinite;
+        left: 24px;
+        top: 24px;
+        max-width: 520px;
+        padding: 18px;
+        border: 1px solid rgba(88, 228, 210, 0.28);
+        background: rgba(5, 14, 18, 0.78);
       }
 
-      .source-grid {
+      .map-overlay h3 {
+        margin: 0;
+        font-size: 27px;
+        line-height: 1.18;
+      }
+
+      .map-overlay p {
+        margin: 10px 0 0;
+        color: #c9e6e1;
+        line-height: 1.6;
+      }
+
+      .risk-callout {
+        position: absolute;
+        right: 32px;
+        bottom: 34px;
+        width: 330px;
+        padding: 16px;
+        border: 1px solid rgba(255, 101, 116, 0.5);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        background: rgba(72, 16, 22, 0.72);
+      }
+
+      .risk-callout strong {
+        display: block;
+        color: #ffd2d7;
+        font-size: 16px;
+      }
+
+      .risk-callout span {
+        display: block;
+        margin-top: 8px;
+        color: #f3bbb8;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .metric-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
 
-      .scene-card,
-      .info-card {
-        padding: 14px;
-      }
-
-      .scene-card strong,
-      .info-card strong {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 15px;
-      }
-
-      .view-analysis {
-        grid-template-rows: auto 1fr;
-        gap: 14px;
-      }
-
-      .analysis-grid {
-        display: grid;
-        grid-template-columns: 1.05fr 1.25fr;
-        gap: 14px;
-        min-height: 0;
-      }
-
-      .table-card,
-      .trend-card,
-      .image-card,
-      .knowledge-card {
-        min-height: 0;
-        padding: 14px;
+      .metric {
+        min-height: 84px;
+        padding: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(0, 0, 0, 0.16);
       }
 
-      .focus-card {
-        border-color: rgba(246, 184, 75, 0.78);
-        box-shadow:
-          0 0 22px rgba(246, 184, 75, 0.14),
-          inset 0 0 18px rgba(246, 184, 75, 0.06);
+      .metric small {
+        color: var(--muted);
       }
 
-      .analysis-guide {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 10px;
-        padding: 10px 12px;
-        border: 1px solid rgba(88, 228, 210, 0.26);
-        color: #dffcf8;
-        font-size: 13px;
-        background: rgba(88, 228, 210, 0.08);
+      .metric strong {
+        display: block;
+        margin-top: 9px;
+        color: var(--cyan);
+        font-size: 27px;
+        line-height: 1;
       }
 
-      .analysis-guide strong {
+      .metric.hot strong {
         color: var(--amber);
       }
 
-      .trend-card {
+      .metric.red strong {
+        color: var(--red);
+      }
+
+      .task-list {
         display: grid;
-        grid-template-rows: auto minmax(148px, 1fr) auto;
-        gap: 8px;
-        overflow: hidden;
+        gap: 10px;
+        margin-top: 14px;
       }
 
-      .trend-card .mini-title {
-        margin-bottom: 0;
+      .task-row {
+        display: grid;
+        grid-template-columns: 84px 1fr;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.035);
       }
 
-      .trend-controls {
-        display: flex;
-        gap: 8px;
-      }
-
-      .trend-switch {
-        min-height: 30px;
-        padding: 0 10px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--text);
-        cursor: pointer;
-        background: rgba(0, 0, 0, 0.35);
-      }
-
-      .trend-switch.active {
-        color: #061014;
-        font-weight: 800;
-        background: var(--cyan);
-      }
-
-      .trend-controls.is-auxiliary .trend-switch {
-        display: none;
-      }
-
-      .trend-body {
-        min-height: 0;
-      }
-
-      .inspection-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-
-      .inspection-table th,
-      .inspection-table td {
-        padding: 10px 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        text-align: left;
-      }
-
-      .inspection-table th {
+      .task-row span {
         color: var(--muted);
-        font-weight: 600;
+        font-size: 12px;
       }
 
-      .inspection-table tr.hot {
-        color: #fff7df;
-        background: rgba(246, 184, 75, 0.1);
+      .task-row strong {
+        font-size: 14px;
       }
 
-      .inspection-table tbody tr {
-        cursor: pointer;
-      }
-
-      .inspection-table tbody tr.selected {
-        color: #061014;
-        background: linear-gradient(135deg, rgba(88, 228, 210, 0.9), rgba(246, 184, 75, 0.82));
-      }
-
-      .analysis-right {
+      .analysis-main {
         display: grid;
-        grid-template-rows: 1fr 1fr;
+        grid-template-rows: auto minmax(0, 1fr) 96px;
         gap: 14px;
-        min-height: 0;
+        height: 100%;
+        padding: 18px;
       }
 
-      .mini-title {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
+      .conflict-strip {
+        display: grid;
+        grid-template-columns: 1fr 46px 1fr 46px 1fr;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .conflict-card {
+        min-height: 78px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.045);
+      }
+
+      .conflict-card small {
         color: var(--muted);
-        font-size: 13px;
+      }
+
+      .conflict-card strong {
+        display: block;
+        margin-top: 7px;
+        font-size: 17px;
+      }
+
+      .conflict-card.warn {
+        border-color: rgba(245, 181, 72, 0.5);
+        background: rgba(245, 181, 72, 0.08);
+      }
+
+      .arrow {
+        color: var(--muted);
+        text-align: center;
+        font-size: 24px;
+      }
+
+      .chart-wrap {
+        position: relative;
+        min-height: 0;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.18);
       }
 
       .trend-chart {
         width: 100%;
         height: 100%;
-        min-height: 148px;
       }
 
-      .trend-path {
+      .chart-path {
         fill: none;
         stroke: var(--cyan);
         stroke-width: 4;
-        filter: drop-shadow(0 0 6px rgba(88, 228, 210, 0.55));
+        filter: drop-shadow(0 0 7px rgba(88, 228, 210, 0.52));
       }
 
       .threshold {
         stroke: var(--red);
         stroke-width: 2;
-        stroke-dasharray: 8 6;
+        stroke-dasharray: 8 7;
       }
 
-      .danger-window {
-        fill: rgba(255, 101, 116, 0.14);
-        stroke: rgba(255, 101, 116, 0.42);
+      .danger-band {
+        fill: rgba(255, 101, 116, 0.12);
       }
 
-      .trend-hotspot {
-        cursor: pointer;
-      }
-
-      .trend-hotspot:hover .danger-window,
-      .trend-hotspot.active .danger-window {
-        fill: rgba(255, 101, 116, 0.28);
-        stroke: rgba(246, 184, 75, 0.9);
-      }
-
-      .trend-point {
-        fill: var(--cyan);
-        stroke: rgba(2, 6, 7, 0.86);
-        stroke-width: 2;
-      }
-
-      .trend-point.hot {
-        fill: var(--amber);
-        filter: drop-shadow(0 0 6px rgba(246, 184, 75, 0.72));
-      }
-
-      .trend-axis-label,
-      .trend-value-label {
+      .chart-label {
         fill: var(--muted);
-        font-size: 12px;
+        font-size: 13px;
       }
 
-      .trend-value-label.hot {
+      .chart-label.hot {
         fill: #ffe0a3;
       }
 
-      .trend-stats {
+      .stat-row {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
+        gap: 10px;
       }
 
-      .trend-stat {
-        min-width: 0;
-        padding: 8px;
+      .stat {
+        padding: 12px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(0, 0, 0, 0.18);
+        background: rgba(255, 255, 255, 0.035);
       }
 
-      .trend-stat small {
+      .stat small {
+        color: var(--muted);
+      }
+
+      .stat strong {
+        display: block;
+        margin-top: 7px;
+        font-size: 18px;
+      }
+
+      .judge-card,
+      .evidence-stack,
+      .checklist,
+      .rule-menu {
+        display: grid;
+        gap: 12px;
+      }
+
+      .judge-line,
+      .evidence-item,
+      .check,
+      .rule-item,
+      .summary-box {
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .judge-line span {
         display: block;
         color: var(--muted);
-        font-size: 11px;
+        font-size: 12px;
       }
 
-      .trend-stat strong {
+      .judge-line strong {
         display: block;
-        margin-top: 4px;
-        font-size: 15px;
-        white-space: nowrap;
+        margin-top: 7px;
+        line-height: 1.45;
       }
 
-      .trend-stat.hot strong {
-        color: var(--amber);
+      .judge-line.hot {
+        border-color: rgba(245, 181, 72, 0.5);
+        background: rgba(245, 181, 72, 0.08);
       }
 
-      .image-card {
+      .media-viewer {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) 96px;
+        gap: 14px;
+        height: 100%;
+        padding: 18px;
+      }
+
+      .frame {
         position: relative;
         overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #020607;
       }
 
-      .scene-img {
+      .frame img {
         width: 100%;
-        height: calc(100% - 28px);
-        min-height: 176px;
+        height: 100%;
         object-fit: cover;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        cursor: zoom-in;
-        filter: saturate(1.05) contrast(1.03);
+        display: block;
+        filter: saturate(1.05) contrast(1.04);
       }
 
       .bbox {
         position: absolute;
-        right: 42px;
-        bottom: 36px;
-        width: 112px;
-        height: 62px;
+        right: 12%;
+        bottom: 14%;
+        width: 168px;
+        height: 92px;
         border: 2px solid var(--amber);
-        box-shadow: 0 0 14px rgba(246, 184, 75, 0.6);
+        box-shadow: 0 0 18px rgba(245, 181, 72, 0.6);
       }
 
-      .bbox::after {
+      .bbox::before {
         position: absolute;
         left: -2px;
-        top: -27px;
-        padding: 4px 8px;
+        top: -30px;
+        padding: 5px 9px;
         color: #061014;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 800;
         content: attr(data-label);
         background: var(--amber);
       }
 
-      .bbox.is-hidden {
-        display: none;
-      }
-
-      .frame-actions {
+      .frame-label {
         position: absolute;
-        left: 14px;
-        right: 14px;
-        bottom: 12px;
-        display: flex;
-        gap: 8px;
+        left: 18px;
+        top: 18px;
+        padding: 9px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(0, 0, 0, 0.55);
       }
 
-      .frame-action {
-        flex: 1;
-        min-height: 30px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--text);
-        cursor: pointer;
-        background: rgba(0, 0, 0, 0.45);
-      }
-
-      .frame-action.active {
-        color: #061014;
-        background: var(--amber);
-      }
-
-      .view-recheck {
-        grid-template-rows: auto 1fr;
-        gap: 14px;
-      }
-
-      .recheck-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 14px;
-        min-height: 0;
-      }
-
-      .check-item {
-        display: flex;
-        gap: 10px;
-        padding: 12px;
-        color: var(--muted);
-      }
-
-      .check-item i {
-        width: 14px;
-        height: 14px;
-        margin-top: 2px;
-        border: 1px solid var(--line-strong);
-      }
-
-      .check-item.done {
-        color: var(--text);
-        border-color: rgba(127, 227, 145, 0.45);
-      }
-
-      .check-item.done i {
-        background: var(--green);
-        box-shadow: 0 0 10px rgba(127, 227, 145, 0.55);
-      }
-
-      .decision-bar {
+      .thumb-row {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 10px;
-        margin-top: 12px;
       }
 
-      .decision-bar.attention .decision-btn {
-        border-color: rgba(246, 184, 75, 0.9);
-        box-shadow: 0 0 14px rgba(246, 184, 75, 0.18);
-      }
-
-      .decision-btn {
-        min-height: 42px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--text);
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      .decision-btn.active {
-        color: #061014;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--cyan), var(--amber));
-      }
-
-      .view-report {
-        grid-template-rows: auto 1fr;
-        gap: 14px;
-      }
-
-      .report-grid {
+      .thumb {
         display: grid;
-        grid-template-columns: 1.2fr 0.8fr;
-        gap: 14px;
-        min-height: 0;
-      }
-
-      .report-section {
-        padding: 16px;
-      }
-
-      .report-section h3 {
-        margin: 0 0 12px;
-        font-size: 17px;
-      }
-
-      .report-section p,
-      .report-section li {
-        color: var(--muted);
-        font-size: 14px;
-        line-height: 1.7;
-      }
-
-      .report-section ul {
-        margin: 0;
-        padding-left: 18px;
-      }
-
-      .stamp {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 104px;
-        height: 104px;
-        border: 2px solid rgba(127, 227, 145, 0.62);
-        color: var(--green);
-        font-size: 20px;
-        font-weight: 900;
-        transform: rotate(-12deg);
-        box-shadow: 0 0 18px rgba(127, 227, 145, 0.16);
-      }
-
-      .report-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-top: 14px;
-      }
-
-      .assist-note {
-        margin-top: 10px;
-        padding: 10px;
-        border: 1px solid rgba(246, 184, 75, 0.28);
-        color: #ffe0a3;
-        font-size: 13px;
-        background: rgba(246, 184, 75, 0.08);
-      }
-
-      .right-stack {
-        display: grid;
-        grid-template-rows: auto 1fr auto;
-        gap: 14px;
-        min-height: 0;
-      }
-
-      .status-steps {
-        display: grid;
-        gap: 9px;
-      }
-
-      .step {
-        display: flex;
+        grid-template-columns: 78px 1fr;
         align-items: center;
         gap: 10px;
-        padding: 10px;
+        padding: 8px;
         border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      .thumb img {
+        width: 78px;
+        height: 54px;
+        object-fit: cover;
+      }
+
+      .thumb small,
+      .evidence-item small,
+      .rule-item small {
+        color: var(--muted);
+      }
+
+      .thumb.active,
+      .rule-item.active {
+        border-color: var(--line-hot);
+        background: rgba(245, 181, 72, 0.08);
+      }
+
+      .doc-view {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 14px;
+        height: 100%;
+        padding: 18px;
+      }
+
+      .rule-search {
+        display: grid;
+        grid-template-columns: 1fr 140px;
+        gap: 10px;
+      }
+
+      .search-box {
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
         color: var(--muted);
         background: rgba(255, 255, 255, 0.04);
       }
 
-      .step i {
-        width: 10px;
-        height: 10px;
-        background: rgba(255, 255, 255, 0.18);
+      .rule-list {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 14px;
+        min-height: 0;
       }
 
-      .step.done {
+      .rule-detail {
+        overflow: auto;
+        padding: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.16);
+      }
+
+      .rule-detail h3 {
+        margin: 0 0 12px;
+        font-size: 22px;
+      }
+
+      .rule-detail p,
+      .rule-detail li,
+      .summary-box p {
+        color: #c9e6e1;
+        line-height: 1.75;
+      }
+
+      .highlight {
+        color: #061014;
+        padding: 2px 6px;
+        font-weight: 900;
+        background: var(--amber);
+      }
+
+      .check {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 10px;
+        color: var(--muted);
+      }
+
+      .check i {
+        width: 15px;
+        height: 15px;
+        margin-top: 2px;
+        border: 1px solid var(--line);
+      }
+
+      .check.done {
         color: var(--text);
-        border-color: rgba(127, 227, 145, 0.48);
+        border-color: rgba(131, 227, 154, 0.4);
       }
 
-      .step.done i {
+      .check.done i {
         background: var(--green);
-        box-shadow: 0 0 12px rgba(127, 227, 145, 0.75);
+        box-shadow: 0 0 12px rgba(131, 227, 154, 0.55);
+      }
+
+      .decision-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .decision {
+        min-height: 76px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .decision.active {
+        color: #061014;
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--cyan), var(--amber));
+      }
+
+      .work-summary {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 14px;
+        height: 100%;
+      }
+
+      .report-doc {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 14px;
+        height: 100%;
+        padding: 22px;
+        color: #102126;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(230, 245, 242, 0.95));
+      }
+
+      .report-doc h3 {
+        margin: 0;
+        font-size: 25px;
+      }
+
+      .report-doc p,
+      .report-doc li {
+        color: #34545a;
+        line-height: 1.7;
+      }
+
+      .report-doc strong {
+        color: #0c2f38;
+      }
+
+      .stamp {
+        display: inline-grid;
+        place-items: center;
+        width: 116px;
+        height: 116px;
+        border: 3px solid var(--green);
+        color: var(--green);
+        font-size: 21px;
+        font-weight: 900;
+        transform: rotate(-12deg);
       }
 
       .tag-row {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin: 12px 0;
+        margin-top: 12px;
       }
 
       .tag {
-        padding: 6px 8px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 6px 9px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
         color: var(--muted);
         font-size: 12px;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.04);
       }
 
       .tag.hot {
@@ -883,1570 +781,532 @@
       }
 
       .action {
-        width: 100%;
         min-height: 42px;
-        margin-top: 10px;
+        padding: 0 16px;
         border: 1px solid rgba(88, 228, 210, 0.42);
         color: var(--text);
         cursor: pointer;
-        background: linear-gradient(135deg, rgba(88, 228, 210, 0.18), rgba(246, 184, 75, 0.16));
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        background: linear-gradient(135deg, rgba(88, 228, 210, 0.16), rgba(245, 181, 72, 0.12));
       }
 
-      .action:hover {
-        transform: translateY(-1px);
-        border-color: var(--amber);
+      .action.primary {
+        color: #061014;
+        font-weight: 900;
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--cyan), var(--amber));
       }
 
-      .action.attention {
-        border-color: rgba(246, 184, 75, 0.9);
-        box-shadow: 0 0 16px rgba(246, 184, 75, 0.18);
+      .commandbar {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
       }
 
-      .report-line {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
+      .commandbar h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .commandbar p {
+        margin: 5px 0 0;
         color: var(--muted);
         font-size: 13px;
       }
 
-      .report-line strong {
-        color: var(--text);
-      }
-
-      .bottom-flow {
-        display: grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap: 10px;
-        padding: 14px;
-      }
-
-      .flow-item {
-        position: relative;
-        display: grid;
-        align-content: center;
-        min-height: 102px;
-        padding: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.04);
-        overflow: hidden;
-        cursor: pointer;
-      }
-
-      .flow-item::after {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: -30%;
-        width: 30%;
-        content: "";
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
-        transform: skewX(-18deg);
-      }
-
-      .flow-item.active::after {
-        animation: sweep 1.3s ease-out;
-      }
-
-      .flow-item strong {
-        font-size: 15px;
-      }
-
-      .flow-item small {
-        margin-top: 8px;
-        color: var(--muted);
-      }
-
-      .flow-item.active {
-        border-color: var(--cyan);
-        background: rgba(88, 228, 210, 0.1);
-      }
-
-      .replay-pulse {
-        animation: replayPulse 0.72s ease;
-      }
-
-      .drawer-mask {
-        position: fixed;
-        inset: 0;
-        z-index: 9;
-        display: none;
-        background: rgba(0, 0, 0, 0.42);
-      }
-
-      .drawer-mask.open {
-        display: block;
-      }
-
-      .drawer {
-        position: fixed;
-        top: 18px;
-        right: 18px;
-        bottom: 18px;
-        z-index: 10;
-        width: 420px;
-        padding: 18px;
-        transform: translateX(calc(100% + 30px));
-        transition: transform 0.26s ease;
-      }
-
-      .drawer.open {
-        transform: translateX(0);
-      }
-
-      .drawer h2 {
-        margin: 0 0 12px;
-      }
-
-      .drawer-question {
-        width: 100%;
-        padding: 10px;
-        margin: 8px 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: var(--text);
-        text-align: left;
-        cursor: pointer;
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      .drawer-answer {
-        margin-top: 14px;
-        padding: 14px;
-        border: 1px solid rgba(88, 228, 210, 0.26);
-        color: var(--muted);
-        line-height: 1.7;
-        background: rgba(88, 228, 210, 0.06);
-      }
-
-      .image-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 11;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.78);
-      }
-
-      .image-modal.open {
-        display: flex;
-      }
-
-      .image-modal-inner {
-        width: min(960px, 86vw);
-        border: 1px solid var(--line-strong);
-        background: var(--panel-strong);
-        box-shadow: 0 0 34px rgba(88, 228, 210, 0.18);
-      }
-
-      .image-modal-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 14px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .image-modal img {
-        display: block;
-        width: 100%;
-        max-height: 72vh;
-        object-fit: contain;
-        background: #020607;
-      }
-
       @keyframes pulse {
-        0%, 100% { opacity: 0.75; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.18); }
-      }
-
-      @keyframes replayPulse {
-        0%, 100% { box-shadow: 0 0 0 rgba(246, 184, 75, 0); }
-        45% { box-shadow: 0 0 28px rgba(246, 184, 75, 0.34); }
+        0%, 100% { opacity: 0.78; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
       }
 
       @keyframes dash {
         to { stroke-dashoffset: -220; }
       }
 
-      @keyframes scan {
-        0%, 35% { transform: translateY(-100%); }
-        70%, 100% { transform: translateY(100%); }
-      }
-
-      @keyframes sweep {
-        from { left: -30%; }
-        to { left: 120%; }
-      }
-
-      @keyframes fadeIn {
+      @keyframes sceneIn {
         from { opacity: 0; transform: translateY(8px); }
         to { opacity: 1; transform: translateY(0); }
       }
     </style>
   </head>
   <body>
-    <main class="screen">
+    <main class="app">
       <header class="topbar">
         <div class="brand">
-          <div class="brand-mark"></div>
-          <div>
-            <h1>巡检质量智能分析助手</h1>
-            <small>长郴-湘潭站 · 巡检质量智能分析 · 任务批次 XJ-20260721-A</small>
-          </div>
+          <h1>巡检质量智能分析助手</h1>
+          <small>长郴-湘潭站 · 任务批次 XJ-20260721-A</small>
         </div>
-        <nav class="scene-tabs" aria-label="巡检场景">
-          <button class="scene-tab active" type="button" data-scene="home">态势总览</button>
-          <button class="scene-tab" type="button" data-scene="analysis">巡检分析</button>
-          <button class="scene-tab" type="button" data-scene="recheck" title="查看复检工作台">复检工作台</button>
-          <button class="scene-tab" type="button" data-scene="report" title="查看报告归档">报告归档</button>
+        <nav class="step-nav" aria-label="演示场景">
+          <button class="nav-step active" type="button" data-scene="overview"><span>01</span><strong>态势总览</strong></button>
+          <button class="nav-step" type="button" data-scene="analysis"><span>02</span><strong>疑点分析</strong></button>
+          <button class="nav-step" type="button" data-scene="visual"><span>03</span><strong>视频证据</strong></button>
+          <button class="nav-step" type="button" data-scene="knowledge"><span>04</span><strong>知识依据</strong></button>
+          <button class="nav-step" type="button" data-scene="recheck"><span>05</span><strong>复检工作台</strong></button>
+          <button class="nav-step" type="button" data-scene="report"><span>06</span><strong>报告归档</strong></button>
         </nav>
-        <div>
-          <div class="clock">2026-07-21 04:43:22 · 任务批次 XJ-20260721-A</div>
-          <div class="tab-hint" id="tabHint">可直接切换页面；主线按钮会按巡检闭环顺序推进。</div>
+        <div class="runtime">
+          <strong id="runState">演示模式 · 待处理</strong>
+          <small>2026-07-21 04:43:22</small>
         </div>
       </header>
 
-      <section class="main-grid">
-        <aside class="panel">
-          <div class="panel-title"><span>本轮巡检任务</span><span>XJ-20260721-A</span></div>
-          <div class="task-card">
-            <h2>计量区例行巡检</h2>
-            <div class="meta-row"><span>巡检人</span><strong>廖震宇</strong></div>
-            <div class="meta-row"><span>计划开始</span><strong>03:30:05</strong></div>
-            <div class="meta-row"><span>实际开始</span><strong>04:00:27</strong></div>
-            <div class="meta-row"><span>路线</span><strong>13 个区域</strong></div>
-            <div class="assist-note">本轮聚焦计量区过滤器差压疑点，联动周边区域视频、趋势、知识依据完成巡检闭环。</div>
+      <section class="stage">
+        <section class="scene active" data-scene="overview">
+          <div class="scene-head">
+            <div>
+              <h2>态势总览</h2>
+              <p>先看巡检任务在哪里、风险点在哪里。首页只负责把评委带入场景。</p>
+            </div>
+            <div class="scene-index">01 / 06</div>
           </div>
-
-          <div class="metrics">
-            <div class="metric-card"><small>AI 疑点</small><span class="num red" id="metricFindings">3</span></div>
-            <div class="metric-card"><small>待复检</small><span class="num amber" id="metricRecheck">1</span></div>
-            <div class="metric-card"><small>证据源</small><span class="num cyan">4</span></div>
-            <div class="metric-card"><small>闭环率</small><span class="num green" id="metricClosed">0%</span></div>
-          </div>
-
-          <div class="panel-title"><span>AI 疑点胶囊</span></div>
-          <div class="finding-list">
-            <button class="finding-card active" type="button" data-area="metering">
-              <strong>计量区过滤器差压趋势异常</strong>
-              <small>表单填写正常，但 72h 趋势接近 0.1MPa 阈值。</small>
-            </button>
-            <button class="finding-card" type="button" data-area="pump">
-              <strong>泵棚视频帧待复核</strong>
-              <small>现场关键帧可用于补充设备状态证据。</small>
-            </button>
-            <button class="finding-card" type="button" data-area="plc">
-              <strong>PLC 机房灯态抽查</strong>
-              <small>作为视觉证据，补充设备状态核验。</small>
-            </button>
-          </div>
-        </aside>
-
-        <section class="panel stage">
-          <div class="view view-home active" data-view="home">
-            <div class="map-panel">
-              <div class="map-header">
-                <div>
-                  <h2 id="stageTitle">计量区过滤器差压疑点</h2>
-                  <p id="stageSub">表单填写正常，趋势曲线接近 0.1MPa 阈值，建议生成复检清单。</p>
-                </div>
-                <div class="stage-badge" id="stageBadge">高优先级复检</div>
-              </div>
-              <svg class="site-map" viewBox="0 0 900 560" role="img" aria-label="湘潭站巡检区域图">
-                <path class="route-line" d="M105 338 C210 248, 260 170, 390 190 C520 210, 552 314, 670 270 C740 244, 792 186, 832 120" />
-                <polygon class="area-shape" data-area="valve" points="95,330 205,270 250,352 154,430" />
-                <polygon class="area-shape active" data-area="metering" points="292,160 432,154 480,262 355,318 264,250" />
-                <polygon class="area-shape" data-area="pump" points="510,262 642,236 700,326 590,402 486,346" />
-                <polygon class="area-shape" data-area="control" points="690,116 815,88 850,180 744,224" />
-                <polygon class="area-shape" data-area="plc" points="712,268 820,256 846,352 746,392" />
-                <polygon class="area-shape" data-area="ups" points="186,122 270,92 318,150 248,214" />
-                <circle class="risk-dot" data-area="metering" cx="386" cy="222" r="13" />
-                <text class="zone-label" x="122" y="384">阀组区</text>
-                <text class="zone-label" x="332" y="236">计量区</text>
-                <text class="zone-label" x="568" y="336">泵区</text>
-                <text class="zone-label" x="730" y="158">站控室</text>
-                <text class="zone-label" x="742" y="330">PLC机房</text>
-                <text class="zone-label" x="214" y="164">UPS室</text>
+          <div class="layout overview">
+            <div class="main-visual">
+              <svg class="station-map" viewBox="0 0 980 620" role="img" aria-label="湘潭站巡检态势图">
+                <rect x="0" y="0" width="980" height="620" fill="rgba(255,255,255,0.02)" />
+                <path class="route" d="M92 386 C190 292, 278 258, 360 200 C478 116, 578 174, 650 250 C720 324, 792 344, 888 238" />
+                <polygon class="map-zone" points="84,372 206,312 260,405 150,486" />
+                <polygon class="map-zone active" points="326,156 492,162 535,286 390,346 288,270" />
+                <polygon class="map-zone" points="560,284 706,252 770,358 650,448 532,386" />
+                <polygon class="map-zone" points="744,118 886,82 920,184 800,244" />
+                <polygon class="map-zone" points="780,304 900,292 930,400 812,452" />
+                <polygon class="map-zone" points="184,118 290,82 348,152 270,230" />
+                <circle class="risk-dot" cx="426" cy="246" r="14" />
+                <text class="map-label" x="122" y="430">阀组区</text>
+                <text class="map-label" x="382" y="254">计量区</text>
+                <text class="map-label" x="620" y="370">泵区</text>
+                <text class="map-label" x="790" y="166">站控室</text>
+                <text class="map-label" x="818" y="370">PLC机房</text>
+                <text class="map-label" x="230" y="158">UPS室</text>
               </svg>
-              <div class="scan"></div>
+              <div class="map-overlay">
+                <h3>本轮巡检从 329 项记录中锁定 1 个主疑点</h3>
+                <p>计量区过滤器差压项表单填写正常。系统先定位该巡检项，随后进入趋势、视频、知识依据和复检闭环。</p>
+              </div>
+              <button class="risk-callout" id="riskHotspot" type="button">
+                <strong>计量区过滤器差压疑点</strong>
+                <span>点击进入疑点分析。当前只讲这一条主线，其他区域作为后续补充证据。</span>
+              </button>
             </div>
-            <div class="source-grid">
-              <div class="scene-card"><strong>巡检记录</strong><small>任务、路线、表单第 73 项。</small></div>
-              <div class="scene-card"><strong>时序趋势</strong><small>差压主曲线候选，阈值 0.1MPa。</small></div>
-              <div class="scene-card"><strong>现场关键帧</strong><small>泵棚、PLC、配电室视觉证据。</small></div>
-              <div class="scene-card"><strong>知识依据</strong><small>标准、复检步骤、交接班关注项。</small></div>
-            </div>
+            <aside class="panel">
+              <div class="panel-title"><span>本轮任务摘要</span><small>XJ-20260721-A</small></div>
+              <div class="metric-grid">
+                <div class="metric"><small>巡检记录</small><strong>329</strong></div>
+                <div class="metric red"><small>主线疑点</small><strong>1</strong></div>
+                <div class="metric hot"><small>待复检</small><strong>1</strong></div>
+                <div class="metric"><small>证据类型</small><strong>4</strong></div>
+              </div>
+              <div class="task-list">
+                <div class="task-row"><span>巡检人</span><strong>廖震宇</strong></div>
+                <div class="task-row"><span>任务区域</span><strong>计量区、泵区、PLC 机房</strong></div>
+                <div class="task-row"><span>演示路线</span><strong>发现疑点 -> 复检确认 -> 报告归档</strong></div>
+              </div>
+            </aside>
           </div>
+        </section>
 
-          <div class="view view-analysis" data-view="analysis">
-            <div class="view-title">
-              <h2>巡检分析：表单、趋势、图片三源联动</h2>
-              <p>主冲突：巡检结果“正常”，但差压趋势接近预警阈值，需要复检。</p>
-              <div class="analysis-guide">
-                <span id="analysisGuide"><strong>当前步骤：表单质检</strong> · 表单第 73 项正常，与后续趋势判断形成冲突。</span>
-                <span id="analysisTarget">点击底部流程可切换证据视角</span>
-              </div>
+        <section class="scene" data-scene="analysis">
+          <div class="scene-head">
+            <div>
+              <h2>疑点分析</h2>
+              <p>这个页面只回答一个问题：为什么“表单正常”仍然需要复检。</p>
             </div>
-            <div class="analysis-grid">
-              <div class="table-card" id="tableCard">
-                <div class="mini-title"><span>精选巡检项</span><span>8 / 329</span></div>
-                <table class="inspection-table">
-                  <thead>
-                    <tr><th>序号</th><th>区域</th><th>设备</th><th>检查项</th><th>结果</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr data-item="pressure"><td>63</td><td>计量区</td><td>污油罐</td><td>压力</td><td>0.06</td></tr>
-                    <tr class="hot selected" data-item="dp"><td>73</td><td>计量区</td><td>过滤器</td><td>差压</td><td>正常</td></tr>
-                    <tr data-item="panel"><td>76</td><td>计量区</td><td>电动执行机构</td><td>显示面板</td><td>正常</td></tr>
-                    <tr data-item="indicator"><td>77</td><td>计量区</td><td>电动执行机构</td><td>指示灯</td><td>正常</td></tr>
-                    <tr data-item="level"><td>97</td><td>计量区</td><td>污油罐</td><td>液位</td><td>329mm</td></tr>
-                    <tr data-item="plc"><td>288</td><td>PLC机房</td><td>PLC机柜</td><td>POWER灯</td><td>正常</td></tr>
-                  </tbody>
-                </table>
-              </div>
-                <div class="analysis-right">
-                  <div class="trend-card" id="trendCard">
-                  <div class="mini-title">
-                    <span id="chartTitle">过滤器差压趋势 · 72h</span>
-                    <div class="trend-controls">
-                      <button class="trend-switch active" type="button" data-series="filterDp">差压</button>
-                      <button class="trend-switch" type="button" data-series="pressureStable">压力</button>
-                      <button class="frame-action" id="trendReplayBtn" type="button">趋势回放</button>
-                    </div>
-                  </div>
-                  <div class="trend-body">
-                    <svg class="trend-chart" viewBox="0 0 640 220" aria-label="差压趋势图">
-                      <line x1="30" y1="180" x2="610" y2="180" stroke="rgba(255,255,255,.16)" />
-                      <line id="trendThreshold" x1="30" y1="44" x2="610" y2="44" class="threshold" />
-                      <g class="trend-hotspot active" data-item="dp" tabindex="0" role="button" aria-label="点击异常窗口联动表单第73项">
-                        <rect id="trendWindow" x="462" y="36" width="112" height="150" class="danger-window" />
-                      </g>
-                      <polyline class="trend-path" id="trendPath" points="" />
-                      <g id="trendPoints"></g>
-                      <g id="trendLabels"></g>
-                      <text id="trendThresholdLabel" x="32" y="34" fill="#ff6574" font-size="13">0.1MPa</text>
-                      <text id="trendWindowLabel" x="465" y="206" fill="#f6b84b" font-size="13">异常窗口</text>
-                    </svg>
-                  </div>
-                  <div class="trend-stats">
-                    <div class="trend-stat"><small>最新值</small><strong id="trendLatest">0.097MPa</strong></div>
-                    <div class="trend-stat"><small>72h最大</small><strong id="trendMax">0.097MPa</strong></div>
-                    <div class="trend-stat hot"><small>阈值余量</small><strong id="trendMargin">0.003MPa</strong></div>
-                    <div class="trend-stat"><small>数据质量</small><strong id="trendQuality">12/12</strong></div>
-                  </div>
-                </div>
-                <div class="image-card" id="imageCard">
-                  <div class="mini-title"><span id="imageTitle">现场关键帧 · 视觉证据</span><span id="imageScene">P-4 泵棚</span></div>
-                  <img class="scene-img" id="sceneImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="现场关键帧" />
-                  <div class="bbox" id="bbox" data-label="视觉证据 0.92"></div>
-                  <div class="frame-actions">
-                    <button class="frame-action active" type="button" data-frame="current">当前帧</button>
-                    <button class="frame-action" type="button" data-frame="compare">对比帧</button>
-                    <button class="frame-action" type="button" data-frame="plc">PLC帧</button>
-                    <button class="frame-action" type="button" data-frame="zoom">放大</button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div class="scene-index">02 / 06</div>
           </div>
-
-          <div class="view view-recheck" data-view="recheck">
-            <div class="view-title">
-              <h2>复检工作台：证据链转动作</h2>
-              <p>Agent 将疑点转成复检点位、补拍要求、人工确认项和交接班关注项。</p>
-            </div>
-            <div class="recheck-grid">
-              <div class="knowledge-card">
-                <div class="mini-title"><span>异常说明</span><span>高优先级</span></div>
-                <div class="info-card"><strong>触发原因</strong><small>差压趋势接近 0.1MPa，且表单结果仍填写“正常”。</small></div>
-                <div class="info-card"><strong>关联对象</strong><small>计量区 / 过滤器 / 差压。</small></div>
-                <div class="info-card"><strong>来源说明</strong><small>巡检记录第 73 项 + 差压趋势候选文件。</small></div>
+          <div class="layout analysis">
+            <div class="main-visual analysis-main">
+              <div class="conflict-strip">
+                <div class="conflict-card"><small>巡检表单第 73 项</small><strong>过滤器差压：正常</strong></div>
+                <div class="arrow">></div>
+                <div class="conflict-card warn"><small>72h 时序趋势</small><strong>末值 0.097MPa</strong></div>
+                <div class="arrow">></div>
+                <div class="conflict-card warn"><small>业务红线</small><strong>距离 0.1MPa 仅 0.003MPa</strong></div>
               </div>
-              <div class="knowledge-card">
-                <div class="mini-title"><span>知识依据</span><span>4 条命中</span></div>
-                <div class="info-card"><strong>阈值</strong><small>过滤分离器差压小于 0.1MPa。</small></div>
-                <div class="info-card"><strong>复检步骤</strong><small>核对现场差压表、设备铭牌、过滤器状态。</small></div>
-                <div class="info-card"><strong>交接班</strong><small>建议下一班持续关注差压变化。</small></div>
+              <div class="chart-wrap">
+                <svg class="trend-chart" viewBox="0 0 900 360" role="img" aria-label="过滤器差压趋势图">
+                  <rect class="danger-band" x="640" y="48" width="180" height="238" />
+                  <line x1="60" y1="286" x2="840" y2="286" stroke="rgba(255,255,255,.16)" />
+                  <line x1="60" y1="64" x2="840" y2="64" class="threshold" />
+                  <polyline class="chart-path" points="60,245 128,238 196,226 264,214 332,195 400,172 468,150 536,124 604,102 672,82 740,72 808,69" />
+                  <circle cx="808" cy="69" r="7" fill="#f5b548" />
+                  <text class="chart-label hot" x="646" y="42">红线 0.1MPa</text>
+                  <text class="chart-label hot" x="722" y="96">0.097MPa</text>
+                  <text class="chart-label" x="60" y="326">07-18 04:00</text>
+                  <text class="chart-label" x="716" y="326">07-21 04:00</text>
+                </svg>
               </div>
-              <div class="knowledge-card">
-                <div class="mini-title"><span>复检清单</span><span id="checkStatus">待确认</span></div>
-                <div class="check-item done"><i></i><span>复核过滤器差压趋势和阈值。</span></div>
-                <div class="check-item done"><i></i><span>补拍差压表、铭牌和周边状态。</span></div>
-                <div class="check-item"><i></i><span>核对执行机构状态与表单一致。</span></div>
-                <div class="check-item"><i></i><span>纳入交接班关注项。</span></div>
-                <div class="decision-bar" id="decisionBar">
-                  <button class="decision-btn" type="button" data-decision="confirmed">确认异常</button>
-                  <button class="decision-btn" type="button" data-decision="false-positive">误报关闭</button>
-                  <button class="decision-btn" type="button" data-decision="observe">继续观察</button>
-                </div>
+              <div class="stat-row">
+                <div class="stat"><small>最新值</small><strong>0.097MPa</strong></div>
+                <div class="stat"><small>72h 最大</small><strong>0.097MPa</strong></div>
+                <div class="stat"><small>阈值余量</small><strong>0.003MPa</strong></div>
+                <div class="stat"><small>数据质量</small><strong>12/12</strong></div>
               </div>
             </div>
+            <aside class="side-card">
+              <div class="panel-title"><span>AI 判断</span><small>表单 + 趋势</small></div>
+              <div class="judge-card">
+                <div class="judge-line"><span>输入</span><strong>巡检表第 73 项、过滤器差压 72h 趋势</strong></div>
+                <div class="judge-line hot"><span>冲突</span><strong>表单写正常，但趋势已经接近红线</strong></div>
+                <div class="judge-line"><span>结论</span><strong>建议进入视频证据和知识依据核验，不直接替代人工结论</strong></div>
+              </div>
+            </aside>
           </div>
+        </section>
 
-          <div class="view view-report" data-view="report">
-            <div class="view-title">
-              <h2>报告归档：巡检摘要、交接班关注、案例沉淀</h2>
-              <p>报告内容随复检结论、交接班关注项和案例归档状态实时更新。</p>
+        <section class="scene" data-scene="visual">
+          <div class="scene-head">
+            <div>
+              <h2>视频证据</h2>
+              <p>这个页面只处理现场画面。趋势结论不在这里重复展开。</p>
             </div>
-            <div class="report-grid">
-              <div class="report-section">
-                <h3>巡检质量智能分析报告</h3>
-                <p id="reportMainText">报告尚未生成。请先完成巡检分析、复检清单和人工结论选择。</p>
-                <ul id="reportBullets">
-                  <li>报告内容将随复检结论更新。</li>
-                </ul>
+            <div class="scene-index">03 / 06</div>
+          </div>
+          <div class="layout media">
+            <div class="main-visual media-viewer">
+              <div class="frame">
+                <img id="frameImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="现场视频关键帧" />
+                <div class="frame-label" id="frameTitle">当前帧 · P-4 泵棚</div>
+                <div class="bbox" id="frameBox" data-label="视觉证据 0.92"></div>
               </div>
-              <div class="report-section">
-                <h3>归档状态</h3>
-                <div class="stamp" id="reportStamp">报告草稿</div>
-                <p>案例标签：计量区、过滤器、差压趋势、表单冲突、复检闭环。</p>
-                <p>版本信息：任务批次 XJ-20260721-A / 巡检质检规则库 / 交接班归档模板。</p>
-                <div class="report-actions">
-                  <button class="action" id="archiveBtn" type="button">归档为案例</button>
-                  <button class="action" id="backHomeBtn" type="button">回到首页</button>
+              <div class="thumb-row">
+                <button class="thumb active" type="button" data-frame="current">
+                  <img src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="" />
+                  <span><strong>当前帧</strong><small>疑点关联画面</small></span>
+                </button>
+                <button class="thumb" type="button" data-frame="compare">
+                  <img src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png" alt="" />
+                  <span><strong>对比帧</strong><small>同点位前序画面</small></span>
+                </button>
+                <button class="thumb" type="button" data-frame="plc">
+                  <img src="../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png" alt="" />
+                  <span><strong>PLC 帧</strong><small>联动核验画面</small></span>
+                </button>
+              </div>
+            </div>
+            <aside class="side-card">
+              <div class="panel-title"><span>画面核验要点</span><small>辅助证据</small></div>
+              <div class="evidence-stack">
+                <div class="evidence-item"><strong>看什么</strong><small>补拍差压表、过滤器铭牌、周边状态，确认现场和趋势数据是否一致。</small></div>
+                <div class="evidence-item"><strong>不做什么</strong><small>视频识别只提供现场证据，不单独给出异常结论。</small></div>
+                <div class="evidence-item"><strong>下一步</strong><small>进入知识依据页，查看阈值和复检步骤是否命中。</small></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="scene" data-scene="knowledge">
+          <div class="scene-head">
+            <div>
+              <h2>知识依据</h2>
+              <p>这个页面像规则库检索，不再把依据藏在问答抽屉里。</p>
+            </div>
+            <div class="scene-index">04 / 06</div>
+          </div>
+          <div class="layout knowledge">
+            <div class="main-visual doc-view">
+              <div class="rule-search">
+                <div class="search-box">检索：过滤器 差压 阈值 复检 交接班</div>
+                <button class="action primary" id="ruleHitBtn" type="button">4 条命中</button>
+              </div>
+              <div class="rule-list">
+                <div class="rule-menu">
+                  <button class="rule-item active" type="button">过滤分离器差压阈值</button>
+                  <button class="rule-item" type="button">现场差压表复核步骤</button>
+                  <button class="rule-item" type="button">交接班关注项生成规则</button>
+                  <button class="rule-item" type="button">视频补拍材料要求</button>
                 </div>
+                <article class="rule-detail">
+                  <h3>过滤分离器差压应小于 0.1MPa</h3>
+                  <p>当前巡检表单第 73 项填写为正常，但系统发现 72h 差压趋势末值达到 <span class="highlight">0.097MPa</span>，距离红线 <span class="highlight">0.003MPa</span>。</p>
+                  <p>命中规则后，系统不直接判定异常，而是生成可执行的复检动作：</p>
+                  <ul>
+                    <li>复核现场差压表与趋势数据是否一致。</li>
+                    <li>补拍过滤器铭牌、差压表和设备周边状态。</li>
+                    <li>由人工选择确认异常、误报关闭或继续观察。</li>
+                    <li>根据人工结论生成交接班关注和报告归档。</li>
+                  </ul>
+                </article>
+              </div>
+            </div>
+            <aside class="side-card">
+              <div class="panel-title"><span>规则转动作</span><small>自动生成</small></div>
+              <div class="checklist">
+                <div class="check done"><i></i><span>定位巡检表单第 73 项。</span></div>
+                <div class="check done"><i></i><span>匹配差压阈值规则。</span></div>
+                <div class="check done"><i></i><span>生成复检清单草稿。</span></div>
+                <div class="check"><i></i><span>等待人工复检结论。</span></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="scene" data-scene="recheck">
+          <div class="scene-head">
+            <div>
+              <h2>复检工作台</h2>
+              <p>这个页面只做人工确认，系统负责把证据转成动作。</p>
+            </div>
+            <div class="scene-index">05 / 06</div>
+          </div>
+          <div class="layout recheck">
+            <aside class="side-card">
+              <div class="panel-title"><span>复检清单</span><small id="checkStatus">待确认</small></div>
+              <div class="checklist">
+                <div class="check done"><i></i><span>复核过滤器差压趋势和阈值。</span></div>
+                <div class="check done"><i></i><span>补拍差压表、铭牌和周边状态。</span></div>
+                <div class="check" id="manualCheck"><i></i><span>填写人工复检结论。</span></div>
+                <div class="check" id="handoverCheck"><i></i><span id="handoverText">根据结论更新交接班关注项。</span></div>
+              </div>
+            </aside>
+            <div class="main-visual panel work-summary">
+              <div>
+                <div class="panel-title"><span>人工结论</span><small>责任边界明确</small></div>
+                <div class="decision-grid">
+                  <button class="decision" type="button" data-decision="confirmed"><strong>确认异常</strong><br /><small>纳入交接班关注</small></button>
+                  <button class="decision" type="button" data-decision="false-positive"><strong>误报关闭</strong><br /><small>记录关闭依据</small></button>
+                  <button class="decision" type="button" data-decision="observe"><strong>继续观察</strong><br /><small>下一班复核趋势</small></button>
+                </div>
+              </div>
+              <div class="summary-box">
+                <h3 id="decisionTitle">等待人工选择</h3>
+                <p id="decisionText">AI 已完成证据汇总和复检清单生成。请人工选择结论，报告页将根据结论生成不同内容。</p>
+              </div>
+              <div class="tag-row">
+                <span class="tag hot">表单冲突</span>
+                <span class="tag">趋势接近红线</span>
+                <span class="tag">视频补拍</span>
+                <span class="tag">规则命中</span>
               </div>
             </div>
           </div>
         </section>
 
-        <aside class="right-stack">
-          <div class="panel">
-            <div class="panel-title"><span>巡检闭环状态</span></div>
-            <div class="status-steps">
-              <div class="step done" data-step="analysis"><i></i><span>AI 发现疑点</span></div>
-              <div class="step" data-step="evidence"><i></i><span>知识依据命中</span></div>
-              <div class="step" data-step="recheck"><i></i><span>生成复检清单</span></div>
-              <div class="step" data-step="confirm"><i></i><span>人工确认复检</span></div>
-              <div class="step" data-step="report"><i></i><span>报告归档复用</span></div>
+        <section class="scene" data-scene="report">
+          <div class="scene-head">
+            <div>
+              <h2>报告归档</h2>
+              <p>这个页面只展示闭环结果：报告、交接班、案例沉淀。</p>
             </div>
+            <div class="scene-index">06 / 06</div>
           </div>
-
-          <div class="panel">
-            <div class="panel-title"><span id="evidenceTitle">证据链与下一步</span></div>
-            <p id="evidenceText">当前选中：计量区 / 过滤器 / 差压。巡检表单结果正常，但趋势曲线接近阈值，建议复检。</p>
-            <div class="tag-row" id="tagRow">
-              <span class="tag hot">表单冲突</span>
-              <span class="tag">时序趋势</span>
-              <span class="tag">0.1MPa</span>
-              <span class="tag">需复检</span>
-            </div>
-            <button class="action" id="primaryBtn" type="button">进入巡检分析</button>
-            <button class="action" id="agentBtn" type="button">打开 Agent 辅助说明</button>
+          <div class="layout report">
+            <article class="main-visual report-doc">
+              <div>
+                <h3>巡检质量智能分析报告</h3>
+                <p>任务批次：XJ-20260721-A / 对象：计量区过滤器差压 / 生成状态：<strong id="reportState">报告草稿</strong></p>
+              </div>
+              <div>
+                <p id="reportMain">报告尚未形成最终结论。请先在复检工作台选择人工结论。</p>
+                <ul id="reportList">
+                  <li>主疑点：第 73 项过滤器差压表单正常，但趋势接近 0.1MPa 红线。</li>
+                  <li>证据来源：巡检表单、72h 趋势、现场关键帧、知识规则。</li>
+                  <li>待办：人工确认后归档为案例。</li>
+                </ul>
+              </div>
+            </article>
+            <aside class="side-card">
+              <div class="panel-title"><span>归档控制</span><small id="archiveState">待归档</small></div>
+              <div class="stamp" id="stamp">草稿</div>
+              <div class="task-list">
+                <div class="task-row"><span>巡检摘要</span><strong id="summaryState">待生成</strong></div>
+                <div class="task-row"><span>交接班</span><strong id="handoverState">待确认</strong></div>
+                <div class="task-row"><span>案例库</span><strong id="caseState">未归档</strong></div>
+              </div>
+              <button class="action primary" id="archiveBtn" type="button">归档为案例</button>
+            </aside>
           </div>
-
-          <div class="panel">
-            <div class="panel-title"><span>报告快照</span></div>
-            <div class="report-line"><span>巡检摘要</span><strong id="reportSummary">待生成</strong></div>
-            <div class="report-line"><span>交接班关注</span><strong id="reportHandover">待确认</strong></div>
-            <div class="report-line"><span>案例归档</span><strong id="reportArchive">未归档</strong></div>
-            <button class="action" id="resetBtn" type="button">重置流程</button>
-          </div>
-        </aside>
+        </section>
       </section>
 
-      <footer class="bottom-flow">
-        <div class="flow-item active" data-flow="analysis" data-jump="analysis"><strong>表单质检</strong><small>到位、结果、冲突自动标红</small></div>
-        <div class="flow-item" data-flow="trend" data-jump="trend"><strong>时序趋势</strong><small>差压接近阈值，触发复检</small></div>
-        <div class="flow-item" data-flow="visual" data-jump="visual"><strong>视觉证据</strong><small>现场关键帧补充现场状态</small></div>
-        <div class="flow-item" data-flow="knowledge" data-jump="knowledge"><strong>知识依据</strong><small>标准、阈值、复检步骤命中</small></div>
-        <div class="flow-item" data-flow="recheck" data-jump="recheck"><strong>复检确认</strong><small>人工确认，保留责任边界</small></div>
-        <div class="flow-item" data-flow="report" data-jump="report"><strong>报告归档</strong><small>摘要、交接班、案例沉淀</small></div>
+      <footer class="commandbar">
+        <div>
+          <h3 id="commandTitle">从态势总览开始</h3>
+          <p id="commandText">点击计量区风险点，进入疑点分析。每次只推进一个业务场景。</p>
+        </div>
+        <button class="action" id="prevBtn" type="button">上一步</button>
+        <button class="action primary" id="nextBtn" type="button">进入疑点分析</button>
       </footer>
     </main>
 
-    <div class="drawer-mask" id="drawerMask"></div>
-    <aside class="drawer" id="agentDrawer" aria-label="Agent 辅助说明">
-      <h2>Agent 辅助说明</h2>
-      <p>常见问题辅助，帮助复检人员快速理解证据链。</p>
-      <button class="drawer-question" type="button" data-answer="差压趋势接近 0.1MPa 阈值，且表单填写正常，形成表单与时序数据冲突，因此建议复检。">为什么需要复检？</button>
-      <button class="drawer-question" type="button" data-answer="建议补拍差压表、过滤器铭牌、设备周边状态，并核对执行机构指示灯和远传控制状态。">复检人员需要补拍什么？</button>
-      <button class="drawer-question" type="button" data-answer="交接班建议关注过滤器差压变化趋势，如继续抬升，应安排进一步检查过滤器状态。">交接班关注什么？</button>
-      <div class="drawer-answer" id="drawerAnswer">点击上方问题查看辅助回答。</div>
-      <button class="action" id="closeDrawerBtn" type="button">关闭</button>
-    </aside>
-
-    <div class="image-modal" id="imageModal" aria-label="关键帧放大预览">
-      <div class="image-modal-inner">
-        <div class="image-modal-head">
-          <strong id="modalTitle">现场关键帧放大</strong>
-          <button class="action" id="closeImageBtn" type="button">关闭</button>
-        </div>
-        <img id="modalImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="关键帧放大预览" />
-      </div>
-    </div>
-
     <script>
-      const areas = {
-        metering: {
-          title: "计量区过滤器差压疑点",
-          sub: "表单填写正常，趋势曲线接近 0.1MPa 阈值，建议生成复检清单。",
-          badge: "高优先级复检",
-          image: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
-          imageTitle: "现场关键帧 · 视觉证据",
-          imageScene: "P-4 泵棚",
-          showBbox: true,
-          bboxLabel: "视觉证据 0.92",
-          chartTitle: "过滤器差压趋势 · 72h",
-          trendKey: "filterDp",
-          evidence: "巡检记录第 73 项显示“计量区 / 过滤器 / 差压”结果正常；趋势数据提示接近阈值，形成表单与时序冲突。",
-          tags: ["表单冲突", "时序趋势", "0.1MPa", "需复检"],
-          flow: "trend"
+      const scenes = [
+        { key: "overview", title: "从态势总览开始", text: "点击计量区风险点，进入疑点分析。每次只推进一个业务场景。", next: "进入疑点分析" },
+        { key: "analysis", title: "疑点分析", text: "当前只看表单和趋势的冲突，不展示报告和复检清单。", next: "查看视频证据" },
+        { key: "visual", title: "视频证据", text: "当前只核验现场关键帧，视频不单独下结论。", next: "查看知识依据" },
+        { key: "knowledge", title: "知识依据", text: "当前只看规则命中和复检动作生成。", next: "进入复检工作台" },
+        { key: "recheck", title: "复检工作台", text: "请选择人工结论。系统会根据结论生成不同报告。", next: "生成报告" },
+        { key: "report", title: "报告归档", text: "完成报告、交接班和案例归档，形成演示闭环。", next: "回到总览" }
+      ];
+
+      const frames = {
+        current: {
+          src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
+          title: "当前帧 · P-4 泵棚",
+          label: "视觉证据 0.92"
         },
-        pump: {
-          title: "泵区现场视频帧复核",
-          sub: "点击泵区后切换关键帧，核对设备状态与巡检记录一致性。",
-          badge: "视觉证据",
-          image: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
-          imageTitle: "现场关键帧 · 辅助证据",
-          imageScene: "P-4 泵棚",
-          showBbox: true,
-          bboxLabel: "设备区域 0.89",
-          chartTitle: "泵区运行状态 · 平稳",
-          trendKey: "pumpStable",
-          evidence: "泵区关键帧用于核对现场视频抽查结果，可在报告页作为辅助证据，不改变主线复检判断。",
-          tags: ["视频帧", "辅助证据", "泵棚", "正常对照"],
-          flow: "visual"
+        compare: {
+          src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
+          title: "对比帧 · 同点位前序",
+          label: "同点位对比"
         },
         plc: {
-          title: "PLC 机房灯态抽查",
-          sub: "切换到 PLC 机房关键帧，识别指示灯、柜体区域和状态标签。",
-          badge: "灯态识别",
-          image: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-          imageTitle: "现场关键帧 · 灯态抽查",
-          imageScene: "PLC 机房",
-          showBbox: true,
-          bboxLabel: "灯态识别 0.91",
-          chartTitle: "通讯状态 · 抽查",
-          trendKey: "plcHealth",
-          evidence: "PLC 机房关键帧适合补充视觉证据：识别灯态、柜体区域和状态标签。",
-          tags: ["PLC", "指示灯", "视觉证据", "备用证据"],
-          flow: "visual"
-        },
-        control: {
-          title: "站控室视频与数据核对",
-          sub: "站控室用于核对视频质量、回放质量和关键参数。",
-          badge: "站控核对",
-          image: "../../附件2/站场阀室巡检视频抽查情况统计表.jpg",
-          imageTitle: "视频抽查统计 · 管理材料",
-          imageScene: "视频抽查",
-          showBbox: false,
-          bboxLabel: "",
-          chartTitle: "站控室监控质量",
-          trendKey: "videoQuality",
-          evidence: "统计截图可作为报告背景或管理侧材料，不进入主线规则。",
-          tags: ["工业电视", "抽查统计", "背景材料"],
-          flow: "knowledge",
-          auxiliaryOnly: true
-        },
-        valve: {
-          title: "阀组区巡检正常对照",
-          sub: "阀组区用于说明不是所有区域都报异常，主线风险集中在计量区。",
-          badge: "正常对照",
-          image: "../../data/现场视频关键帧/湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
-          imageTitle: "现场关键帧 · 正常对照",
-          imageScene: "低压配电室",
-          showBbox: true,
-          bboxLabel: "区域巡查 0.87",
-          chartTitle: "阀组区状态 · 平稳",
-          trendKey: "valveStable",
-          evidence: "正常对照用于说明系统按风险聚焦，不对低风险区域产生无效告警。",
-          tags: ["正常对照", "路线覆盖", "低风险"],
-          flow: "analysis",
-          auxiliaryOnly: true
-        },
-        ups: {
-          title: "UPS 室巡检节点",
-          sub: "UPS 室作为路线节点，展示巡检覆盖和设备状态关联。",
-          badge: "路线节点",
-          image: "../../data/现场视频关键帧/湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
-          imageTitle: "现场关键帧 · 路线节点",
-          imageScene: "配电区域",
-          showBbox: true,
-          bboxLabel: "路线节点",
-          chartTitle: "UPS 室参数 · 平稳",
-          trendKey: "upsStable",
-          evidence: "UPS 室作为路线覆盖节点，关联供电状态、视频帧和巡检记录。",
-          tags: ["路线覆盖", "低风险", "节点点亮"],
-          flow: "analysis"
+          src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
+          title: "PLC 帧 · 联动核验",
+          label: "灯态识别 0.91"
         }
       };
 
-      const trendSeries = {
-        filterDp: {
-          title: "过滤器差压趋势 · 72h",
-          unit: "MPa",
-          threshold: 0.1,
-          safeSide: "below",
-          min: 0.04,
-          max: 0.105,
-          quality: "12/12",
-          window: { startIndex: 8, endIndex: 11, label: "异常窗口" },
-          summary: "差压连续抬升，末值距离 0.1MPa 阈值仅 0.003MPa。",
-          points: [
-            ["07-18 04:00", 0.053],
-            ["07-18 10:00", 0.055],
-            ["07-18 16:00", 0.058],
-            ["07-18 22:00", 0.061],
-            ["07-19 04:00", 0.066],
-            ["07-19 10:00", 0.071],
-            ["07-19 16:00", 0.077],
-            ["07-19 22:00", 0.083],
-            ["07-20 04:00", 0.089],
-            ["07-20 10:00", 0.094],
-            ["07-20 16:00", 0.096],
-            ["07-21 04:00", 0.097]
-          ]
-        },
-        pressureStable: {
-          title: "污油罐压力趋势 · 72h",
-          unit: "MPa",
-          threshold: 0.08,
-          safeSide: "below",
-          min: 0.04,
-          max: 0.09,
-          quality: "12/12",
-          window: null,
-          summary: "压力围绕 0.06MPa 小幅波动，作为正常对照。",
-          points: [
-            ["07-18 04:00", 0.058],
-            ["07-18 10:00", 0.061],
-            ["07-18 16:00", 0.06],
-            ["07-18 22:00", 0.059],
-            ["07-19 04:00", 0.062],
-            ["07-19 10:00", 0.061],
-            ["07-19 16:00", 0.06],
-            ["07-19 22:00", 0.058],
-            ["07-20 04:00", 0.059],
-            ["07-20 10:00", 0.061],
-            ["07-20 16:00", 0.06],
-            ["07-21 04:00", 0.06]
-          ]
-        },
-        levelStable: {
-          title: "污油罐液位趋势 · 72h",
-          unit: "mm",
-          threshold: 500,
-          safeSide: "below",
-          min: 260,
-          max: 520,
-          quality: "12/12",
-          window: null,
-          summary: "液位在 320mm 附近波动，不进入本轮复检主线。",
-          points: [
-            ["07-18 04:00", 322],
-            ["07-18 10:00", 326],
-            ["07-18 16:00", 330],
-            ["07-18 22:00", 327],
-            ["07-19 04:00", 331],
-            ["07-19 10:00", 329],
-            ["07-19 16:00", 334],
-            ["07-19 22:00", 332],
-            ["07-20 04:00", 328],
-            ["07-20 10:00", 333],
-            ["07-20 16:00", 330],
-            ["07-21 04:00", 329]
-          ]
-        },
-        pumpStable: {
-          title: "泵区运行状态 · 平稳",
-          unit: "%",
-          threshold: 88,
-          safeSide: "above",
-          min: 60,
-          max: 95,
-          quality: "10/10",
-          window: null,
-          summary: "泵区运行健康度保持平稳，用于视觉证据的正常对照。",
-          points: [
-            ["07-18 04:00", 84],
-            ["07-18 12:00", 85],
-            ["07-18 20:00", 83],
-            ["07-19 04:00", 84],
-            ["07-19 12:00", 86],
-            ["07-19 20:00", 85],
-            ["07-20 04:00", 84],
-            ["07-20 12:00", 85],
-            ["07-20 20:00", 86],
-            ["07-21 04:00", 85]
-          ]
-        },
-        plcHealth: {
-          title: "PLC 通讯健康度 · 抽查",
-          unit: "%",
-          threshold: 80,
-          safeSide: "above",
-          min: 60,
-          max: 100,
-          quality: "10/10",
-          window: null,
-          summary: "PLC 通讯健康度稳定，配合关键帧完成灯态抽查。",
-          points: [
-            ["07-18 04:00", 96],
-            ["07-18 12:00", 95],
-            ["07-18 20:00", 96],
-            ["07-19 04:00", 97],
-            ["07-19 12:00", 96],
-            ["07-19 20:00", 95],
-            ["07-20 04:00", 96],
-            ["07-20 12:00", 96],
-            ["07-20 20:00", 97],
-            ["07-21 04:00", 96]
-          ]
-        },
-        videoQuality: {
-          title: "站控室监控质量",
-          unit: "%",
-          threshold: 85,
-          safeSide: "above",
-          min: 60,
-          max: 100,
-          quality: "9/10",
-          window: null,
-          summary: "监控质量用于管理材料展示，不参与差压异常判定。",
-          points: [
-            ["07-18 04:00", 90],
-            ["07-18 12:00", 88],
-            ["07-18 20:00", 89],
-            ["07-19 04:00", 91],
-            ["07-19 12:00", 87],
-            ["07-19 20:00", 89],
-            ["07-20 04:00", 90],
-            ["07-20 12:00", 88],
-            ["07-20 20:00", 91],
-            ["07-21 04:00", 90]
-          ]
-        },
-        valveStable: {
-          title: "阀组区状态 · 平稳",
-          unit: "%",
-          threshold: 75,
-          safeSide: "above",
-          min: 55,
-          max: 95,
-          quality: "10/10",
-          window: null,
-          summary: "阀组区状态平稳，作为全站路线覆盖和正常对照。",
-          points: [
-            ["07-18 04:00", 88],
-            ["07-18 12:00", 87],
-            ["07-18 20:00", 89],
-            ["07-19 04:00", 88],
-            ["07-19 12:00", 90],
-            ["07-19 20:00", 89],
-            ["07-20 04:00", 88],
-            ["07-20 12:00", 87],
-            ["07-20 20:00", 89],
-            ["07-21 04:00", 88]
-          ]
-        },
-        upsStable: {
-          title: "UPS 室参数 · 平稳",
-          unit: "%",
-          threshold: 80,
-          safeSide: "above",
-          min: 60,
-          max: 100,
-          quality: "10/10",
-          window: null,
-          summary: "UPS 室参数稳定，用于巡检路线节点点亮。",
-          points: [
-            ["07-18 04:00", 93],
-            ["07-18 12:00", 94],
-            ["07-18 20:00", 93],
-            ["07-19 04:00", 94],
-            ["07-19 12:00", 95],
-            ["07-19 20:00", 94],
-            ["07-20 04:00", 93],
-            ["07-20 12:00", 94],
-            ["07-20 20:00", 95],
-            ["07-21 04:00", 94]
-          ]
-        }
-      };
-
-      const sceneOrder = ["home", "analysis", "recheck", "report"];
-      const stepOrder = ["analysis", "evidence", "recheck", "confirm", "report"];
-      const primaryText = {
-        home: "进入巡检分析",
-        analysis: "查看依据并生成复检清单",
-        recheck: "人工确认复检",
-        report: "报告已生成"
-      };
-      const flowDetails = {
-        analysis: {
-          title: "表单质检",
-          guide: "表单第 73 项记录为正常，系统先定位巡检项、区域、设备与填写结果。",
-          target: "主视图：巡检项列表",
-          focus: "table",
-          evidence: "表单质检已定位第 73 项：计量区 / 过滤器 / 差压。该项填写正常，是后续冲突判断的基线。"
-        },
-        trend: {
-          title: "时序趋势",
-          guide: "72h 差压曲线持续抬升，末值接近 0.1MPa 阈值，形成复检触发点。",
-          target: "主视图：差压趋势图",
-          focus: "trend",
-          evidence: "时序趋势已聚焦过滤器差压曲线：末值 0.097MPa，距离 0.1MPa 阈值仅 0.003MPa。"
-        },
-        visual: {
-          title: "视觉证据",
-          guide: "现场关键帧与同点位对比帧用于补充设备状态，支撑复检清单。",
-          target: "主视图：现场关键帧",
-          focus: "image",
-          evidence: "视觉证据已切换到现场关键帧：可查看当前帧、对比帧、PLC 联动帧并放大核验。"
-        },
-        knowledge: {
-          title: "知识依据",
-          guide: "规则依据命中过滤分离器差压阈值，并生成复检步骤与交接班关注项。",
-          target: "主视图：规则依据说明",
-          focus: "trend",
-          evidence: "知识依据已命中：过滤分离器差压应小于 0.1MPa，建议复核现场差压表、设备铭牌和趋势变化。"
-        },
-        recheck: {
-          title: "复检确认",
-          guide: "复检工作台承接证据链，等待人工选择确认异常、误报关闭或继续观察。",
-          target: "主视图：复检工作台",
-          focus: "",
-          evidence: "复检工作台已打开：请根据证据链选择人工结论，报告快照会随结论同步更新。"
-        },
-        report: {
-          title: "报告归档",
-          guide: "报告页汇总巡检摘要、交接班关注和案例归档状态。",
-          target: "主视图：报告归档",
-          focus: "",
-          evidence: "报告归档页已打开：当前报告可查看草稿、人工结论和归档状态。"
-        }
-      };
-      let currentArea = "metering";
-      let currentScene = "home";
-      let maxSceneIndex = 1;
-      let currentStepIndex = 0;
-      let currentItem = "dp";
-      let currentTrendKey = "filterDp";
-      let selectedDecision = "";
-      let archived = false;
-
-      const reportDrafts = {
+      const decisionDrafts = {
         pending: {
-          main: "报告尚未生成。请先完成巡检分析、复检清单和人工结论选择。",
-          bullets: ["报告内容将随复检结论更新。"],
-          handover: "待确认"
+          title: "等待人工选择",
+          text: "AI 已完成证据汇总和复检清单生成。请人工选择结论，报告页将根据结论生成不同内容。",
+          status: "待确认",
+          handover: "根据结论更新交接班关注项。",
+          report: "报告尚未形成最终结论。请先在复检工作台选择人工结论。",
+          handoverState: "待确认"
         },
         confirmed: {
-          main: "长郴-湘潭站本轮计量区例行巡检已完成。人工复检结论为“确认异常”，建议将过滤器差压趋势纳入交接班持续关注。",
-          bullets: [
-            "到位质检：实际开始时间晚于计划开始时间。",
-            "表单质检：过滤器差压项填写正常，但与趋势数据存在冲突。",
-            "复检结论：确认异常，建议核对现场差压表并持续观察趋势。",
-            "交接班关注：下一班持续关注过滤器差压变化。"
-          ],
-          handover: "已纳入"
+          title: "已选择：确认异常",
+          text: "该疑点将纳入交接班关注，报告中保留趋势、视频和规则依据。",
+          status: "确认异常",
+          handover: "纳入交接班关注项。",
+          report: "人工复检结论为确认异常。建议下一班持续关注过滤器差压趋势，并复核现场差压表。",
+          handoverState: "已纳入"
         },
         "false-positive": {
-          main: "长郴-湘潭站本轮计量区例行巡检已完成。人工复检结论为“误报关闭”，本次报告仅记录关闭原因和证据来源，不纳入交接班风险关注。",
-          bullets: [
-            "到位质检：实际开始时间晚于计划开始时间。",
-            "表单质检：过滤器差压项曾触发趋势疑点。",
-            "复检结论：误报关闭，需记录关闭依据，避免形成正式异常结论。",
-            "交接班关注：无需纳入风险关注，仅保留案例归档记录。"
-          ],
-          handover: "无需纳入"
+          title: "已选择：误报关闭",
+          text: "报告记录关闭依据，不纳入交接班风险关注。",
+          status: "误报关闭",
+          handover: "记录关闭原因，不纳入交接班风险关注。",
+          report: "人工复检结论为误报关闭。本次保留趋势触发过程和关闭依据，不纳入交接班风险关注。",
+          handoverState: "无需纳入"
         },
         observe: {
-          main: "长郴-湘潭站本轮计量区例行巡检已完成。人工复检结论为“继续观察”，本次不下异常结论，建议下一班复核趋势变化。",
-          bullets: [
-            "到位质检：实际开始时间晚于计划开始时间。",
-            "表单质检：过滤器差压项与趋势判断存在待核实差异。",
-            "复检结论：继续观察，暂不关闭，也不升级为正式异常。",
-            "交接班关注：建议下一班复核差压曲线和现场差压表。"
-          ],
-          handover: "观察中"
+          title: "已选择：继续观察",
+          text: "当前不升级为异常，下一班继续复核差压趋势。",
+          status: "继续观察",
+          handover: "纳入下一班观察项。",
+          report: "人工复检结论为继续观察。建议下一班复核差压趋势和现场差压表，不立即关闭该疑点。",
+          handoverState: "观察中"
         }
       };
 
-      const itemDetails = {
-        dp: {
-          evidence: "已选中表单第 73 项：过滤器差压。趋势异常窗口同步高亮，形成“表单正常但趋势接近阈值”的主冲突。",
-          tags: ["第73项", "差压", "趋势异常", "主证据"],
-          flow: "trend",
-          trendKey: "filterDp",
-          image: "current"
-        },
-        pressure: {
-          evidence: "已选中污油罐压力项。当前作为正常对照数据，帮助说明系统不是全量报错。",
-          tags: ["压力", "正常对照", "0.06", "辅助项"],
-          flow: "analysis",
-          trendKey: "pressureStable",
-          image: "current"
-        },
-        panel: {
-          evidence: "已选中电动执行机构显示面板。可切换现场帧展示视觉辅助证据，但不替代人工确认。",
-          tags: ["执行机构", "显示面板", "视觉辅助"],
-          flow: "visual",
-          trendKey: "filterDp",
-          image: "current"
-        },
-        indicator: {
-          evidence: "已选中电动执行机构指示灯。建议补拍指示灯、阀位和远传状态，作为复检辅助证据。",
-          tags: ["指示灯", "补拍建议", "视觉证据"],
-          flow: "visual",
-          trendKey: "filterDp",
-          image: "current"
-        },
-        level: {
-          evidence: "已选中污油罐液位项。液位示值作为辅助数据，不进入本轮高优先级复检主线。",
-          tags: ["液位", "329mm", "辅助数据"],
-          flow: "analysis",
-          trendKey: "levelStable",
-          image: "current"
-        },
-        plc: {
-          evidence: "已选中 PLC 机柜 POWER 灯项。右侧关键帧切换到 PLC 机房，核验灯态识别结果。",
-          tags: ["PLC", "POWER灯", "灯态识别"],
-          flow: "visual",
-          trendKey: "plcHealth",
-          image: "plc"
-        }
-      };
+      let currentIndex = 0;
+      let selectedDecision = "pending";
+      let archived = false;
 
-      const frameSources = {
-        metering: {
-          current: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
-            title: "现场关键帧 · 视觉证据",
-            scene: "P-4 泵棚",
-            label: "视觉证据 0.92",
-            showBbox: true
-          },
-          compare: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
-            title: "现场关键帧 · 同点位对比",
-            scene: "P-4 泵棚",
-            label: "同点位对比 0.88",
-            showBbox: true
-          },
-          plc: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "现场关键帧 · PLC 联动核验",
-            scene: "PLC 机房",
-            label: "灯态识别 0.91",
-            showBbox: true
-          }
-        },
-        pump: {
-          current: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
-            title: "泵区关键帧 · 设备状态",
-            scene: "P-4 泵棚",
-            label: "设备区域 0.89",
-            showBbox: true
-          },
-          compare: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
-            title: "泵区关键帧 · 同点位对比",
-            scene: "P-4 泵棚",
-            label: "同点位对比 0.90",
-            showBbox: true
-          },
-          plc: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "泵区联动帧 · PLC 状态",
-            scene: "PLC 机房",
-            label: "联动核验 0.91",
-            showBbox: true
-          }
-        },
-        plc: {
-          current: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "PLC 关键帧 · 灯态抽查",
-            scene: "PLC 机房",
-            label: "灯态识别 0.91",
-            showBbox: true
-          },
-          compare: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
-            title: "PLC 关键帧 · 供电侧对比",
-            scene: "低压配电室",
-            label: "供电侧核验 0.87",
-            showBbox: true
-          },
-          plc: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "PLC 关键帧 · 柜体细节",
-            scene: "PLC 机房",
-            label: "柜体区域 0.91",
-            showBbox: true
-          }
-        },
-        control: {
-          current: {
-            src: "../../附件2/站场阀室巡检视频抽查情况统计表.jpg",
-            title: "站控室材料 · 视频抽查",
-            scene: "视频抽查统计",
-            label: "",
-            showBbox: false
-          },
-          compare: {
-            src: "../../附件2/站场阀室巡检视频抽查情况统计表.jpg",
-            title: "站控室材料 · 抽查复核",
-            scene: "视频抽查统计",
-            label: "",
-            showBbox: false
-          },
-          plc: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "站控室联动帧 · PLC 状态",
-            scene: "PLC 机房",
-            label: "联动核验 0.91",
-            showBbox: true
-          }
-        },
-        valve: {
-          current: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
-            title: "阀组区关键帧 · 正常对照",
-            scene: "低压配电室",
-            label: "区域巡查 0.87",
-            showBbox: true
-          },
-          compare: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
-            title: "阀组区关键帧 · 相邻点位对比",
-            scene: "P-4 泵棚",
-            label: "相邻点位 0.88",
-            showBbox: true
-          },
-          plc: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "阀组区联动帧 · PLC 状态",
-            scene: "PLC 机房",
-            label: "联动核验 0.91",
-            showBbox: true
-          }
-        },
-        ups: {
-          current: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
-            title: "UPS 室关键帧 · 供电侧状态",
-            scene: "配电区域",
-            label: "供电侧核验 0.87",
-            showBbox: true
-          },
-          compare: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
-            title: "UPS 室关键帧 · 负载侧对比",
-            scene: "P-4 泵棚",
-            label: "负载侧对比 0.90",
-            showBbox: true
-          },
-          plc: {
-            src: "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
-            title: "UPS 室联动帧 · PLC 状态",
-            scene: "PLC 机房",
-            label: "联动核验 0.91",
-            showBbox: true
-          }
-        }
-      };
-
-      function formatTrendValue(value, unit) {
-        if (unit === "%") return `${Math.round(value)}%`;
-        if (unit === "mm") return `${Math.round(value)}mm`;
-        return `${value.toFixed(3)}${unit}`;
+      function goScene(sceneKey) {
+        const index = scenes.findIndex((scene) => scene.key === sceneKey);
+        if (index < 0) return;
+        currentIndex = index;
+        document.querySelectorAll(".scene").forEach((node) => {
+          node.classList.toggle("active", node.dataset.scene === sceneKey);
+        });
+        document.querySelectorAll(".nav-step").forEach((node) => {
+          node.classList.toggle("active", node.dataset.scene === sceneKey);
+        });
+        updateCommandbar();
       }
 
-      function syncInspectionSelection(itemKey) {
-        currentItem = itemKey;
-        document.querySelectorAll(".inspection-table tbody tr").forEach((node) => {
-          node.classList.toggle("selected", node.dataset.item === itemKey);
-        });
-        document.querySelectorAll(".trend-hotspot").forEach((node) => {
-          node.classList.toggle("active", itemKey === "dp" && currentArea === "metering");
-        });
+      function updateCommandbar() {
+        const scene = scenes[currentIndex];
+        document.getElementById("commandTitle").textContent = scene.title;
+        document.getElementById("commandText").textContent = scene.text;
+        document.getElementById("nextBtn").textContent = scene.next;
+        document.getElementById("prevBtn").disabled = currentIndex === 0;
+        document.getElementById("runState").textContent =
+          archived ? "演示模式 · 已归档" : selectedDecision === "pending" ? "演示模式 · 待处理" : `演示模式 · ${decisionDrafts[selectedDecision].status}`;
       }
 
-      function renderTrendSeries(trendKey) {
-        currentTrendKey = trendKey;
-        const series = trendSeries[trendKey];
-        const left = 30;
-        const right = 610;
-        const top = 28;
-        const bottom = 180;
-        const width = right - left;
-        const height = bottom - top;
-        const valueToY = (value) => bottom - ((value - series.min) / (series.max - series.min)) * height;
-        const indexToX = (index) => left + (index / (series.points.length - 1)) * width;
-        const coords = series.points.map((point, index) => ({
-          label: point[0],
-          value: point[1],
-          x: indexToX(index),
-          y: valueToY(point[1])
-        }));
-        const pathPoints = coords.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
-        const thresholdY = valueToY(series.threshold);
-        const values = series.points.map((point) => point[1]);
-        const latest = values[values.length - 1];
-        const max = Math.max(...values);
-        const margin = series.safeSide === "below" ? series.threshold - latest : latest - series.threshold;
-        const marginText = `${margin >= 0 ? "" : "-"}${formatTrendValue(Math.abs(margin), series.unit)}`;
-        const hotStart = series.window ? series.window.startIndex : -1;
-        const hotEnd = series.window ? series.window.endIndex : -1;
-        const latestPoint = coords[coords.length - 1];
-        const firstPoint = coords[0];
-
-        document.getElementById("chartTitle").textContent = series.title;
-        document.getElementById("trendPath").setAttribute("points", pathPoints);
-        document.getElementById("trendThreshold").setAttribute("y1", thresholdY.toFixed(1));
-        document.getElementById("trendThreshold").setAttribute("y2", thresholdY.toFixed(1));
-        document.getElementById("trendThresholdLabel").setAttribute("y", Math.max(16, thresholdY - 10).toFixed(1));
-        document.getElementById("trendThresholdLabel").textContent = `阈值 ${formatTrendValue(series.threshold, series.unit)}`;
-        document.getElementById("trendPoints").innerHTML = coords
-          .map((point, index) => {
-            const hot = index >= hotStart && index <= hotEnd;
-            return `<circle class="trend-point ${hot ? "hot" : ""}" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${hot ? 5 : 4}" />`;
-          })
-          .join("");
-        document.getElementById("trendLabels").innerHTML = [
-          `<text class="trend-axis-label" x="${firstPoint.x.toFixed(1)}" y="205">${firstPoint.label}</text>`,
-          `<text class="trend-axis-label" x="${(latestPoint.x - 84).toFixed(1)}" y="205">${latestPoint.label}</text>`,
-          `<text class="trend-value-label hot" x="${(latestPoint.x - 72).toFixed(1)}" y="${Math.max(18, latestPoint.y - 12).toFixed(1)}">${formatTrendValue(latest, series.unit)}</text>`
-        ].join("");
-
-        const hotspot = document.querySelector(".trend-hotspot");
-        if (series.window) {
-          const windowStart = coords[series.window.startIndex];
-          const windowEnd = coords[series.window.endIndex];
-          const windowX = Math.max(left, windowStart.x - 14);
-          const windowWidth = Math.min(right - windowX, windowEnd.x - windowStart.x + 28);
-          const windowY = Math.min(...coords.slice(series.window.startIndex, series.window.endIndex + 1).map((point) => point.y)) - 18;
-          const windowHeight = bottom - windowY + 6;
-          hotspot.style.display = "";
-          document.getElementById("trendWindow").setAttribute("x", windowX.toFixed(1));
-          document.getElementById("trendWindow").setAttribute("y", Math.max(top, windowY).toFixed(1));
-          document.getElementById("trendWindow").setAttribute("width", windowWidth.toFixed(1));
-          document.getElementById("trendWindow").setAttribute("height", windowHeight.toFixed(1));
-          document.getElementById("trendWindowLabel").setAttribute("x", windowX.toFixed(1));
-          document.getElementById("trendWindowLabel").textContent = series.window.label;
-        } else {
-          hotspot.style.display = "none";
-          document.getElementById("trendWindowLabel").textContent = "正常窗口";
-        }
-
-        document.getElementById("trendLatest").textContent = formatTrendValue(latest, series.unit);
-        document.getElementById("trendMax").textContent = formatTrendValue(max, series.unit);
-        document.getElementById("trendMargin").textContent = marginText;
-        document.getElementById("trendQuality").textContent = series.quality;
-        document.querySelectorAll(".trend-switch").forEach((node) => {
-          node.classList.toggle("active", node.dataset.series === trendKey);
-        });
-        document.querySelector(".trend-controls").classList.toggle("is-auxiliary", currentArea !== "metering");
-      }
-
-      function resetDemo() {
-        maxSceneIndex = 1;
-        currentStepIndex = 0;
-        selectedDecision = "";
-        archived = false;
-        document.getElementById("metricClosed").textContent = "0%";
-        document.getElementById("metricRecheck").textContent = "1";
-        resetReportDerived();
-        document.getElementById("checkStatus").textContent = "待确认";
-        document.getElementById("archiveBtn").classList.remove("attention");
-        document.querySelectorAll(".decision-btn").forEach((node) => node.classList.remove("active"));
-        selectInspectionItem("dp");
-        setArea("metering", false);
-        setScene("home", true);
-        updateSceneLocks();
-      }
-
-      function setArea(areaKey, resetProgress = true) {
-        currentArea = areaKey;
-        const area = areas[areaKey];
-        if (resetProgress) {
-          currentStepIndex = 0;
-          document.getElementById("metricClosed").textContent = "0%";
-          resetReportDerived();
-          document.getElementById("checkStatus").textContent = "待确认";
-          selectedDecision = "";
-          archived = false;
-          document.getElementById("decisionBar").classList.remove("attention");
-          document.getElementById("archiveBtn").classList.remove("attention");
-          document.querySelectorAll(".decision-btn").forEach((node) => node.classList.remove("active"));
-          setStep("analysis", true);
-        }
-        document.querySelectorAll(".area-shape").forEach((node) => {
-          node.classList.toggle("active", node.dataset.area === areaKey);
-        });
-        document.querySelectorAll(".finding-card").forEach((node) => {
-          node.classList.toggle("active", node.dataset.area === areaKey);
-        });
-        document.getElementById("stageTitle").textContent = area.title;
-        document.getElementById("stageSub").textContent = area.sub;
-        document.getElementById("stageBadge").textContent = area.badge;
-        setFrame(areaKey === "plc" ? "plc" : "current");
-        renderTrendSeries(area.trendKey);
-        syncInspectionSelection(areaKey === "metering" ? "dp" : areaKey === "plc" ? "plc" : "");
-        document.getElementById("evidenceText").textContent = area.evidence;
-        document.getElementById("tagRow").innerHTML = area.tags
-          .map((tag, index) => `<span class="tag ${index === 0 ? "hot" : ""}">${tag}</span>`)
-          .join("");
-        if (areaKey !== "metering") {
-          document.getElementById("evidenceText").textContent = `${area.evidence} 当前区域用于补充全站巡检覆盖和证据关联。`;
-        }
-        setFlow(area.flow);
-      }
-
-      function setScene(scene, force = false) {
-        currentScene = scene;
-        document.querySelectorAll(".view").forEach((node) => {
-          node.classList.toggle("active", node.dataset.view === scene);
-        });
-        document.querySelectorAll(".scene-tab").forEach((node) => {
-          node.classList.toggle("active", node.dataset.scene === scene);
-        });
-        const area = areas[currentArea];
-        document.getElementById("primaryBtn").textContent =
-          area.auxiliaryOnly || currentArea !== "metering" ? "回到计量区主线" : primaryText[scene];
-        if (scene === "home") setFlow(areas[currentArea].flow);
-        if (scene === "analysis") {
-          setStep("analysis");
-          updateAnalysisGuide("analysis");
-        }
-        if (scene === "recheck") setStep("recheck");
-        if (scene === "report") {
-          setStep(archived ? "report" : "confirm");
-          setFlow("report");
-        }
-      }
-
-      function updateSceneLocks() {
-        document.querySelectorAll(".scene-tab").forEach((node) => {
-          node.disabled = false;
-        });
-        document.getElementById("tabHint").textContent =
-          maxSceneIndex < 2
-            ? "可直接切换页面；主线按钮会按巡检闭环顺序推进。"
-            : maxSceneIndex < 3
-              ? "复检清单已生成；选择人工结论后报告快照会同步更新。"
-              : "当前已可查看全流程；复检结论可归档为案例。";
-      }
-
-      function setFlow(flowKey) {
-        document.querySelectorAll(".flow-item").forEach((node) => {
-          node.classList.toggle("active", node.dataset.flow === flowKey);
-        });
-      }
-
-      function focusAnalysisCard(focusKey) {
-        const focusMap = {
-          table: "tableCard",
-          trend: "trendCard",
-          image: "imageCard"
-        };
-        ["tableCard", "trendCard", "imageCard"].forEach((id) => {
-          document.getElementById(id).classList.toggle("focus-card", focusMap[focusKey] === id);
-        });
-      }
-
-      function updateAnalysisGuide(flowKey) {
-        const detail = flowDetails[flowKey] || flowDetails.analysis;
-        document.getElementById("analysisGuide").innerHTML = `<strong>当前步骤：${detail.title}</strong> · ${detail.guide}`;
-        document.getElementById("analysisTarget").textContent = detail.target;
-        focusAnalysisCard(detail.focus);
-      }
-
-      function activateFlowStep(flowKey) {
-        const detail = flowDetails[flowKey] || flowDetails.analysis;
-        if (currentArea !== "metering" && ["analysis", "trend", "knowledge"].includes(flowKey)) {
-          setArea("metering", false);
-          updateSceneLocks();
-        }
-        if (["analysis", "trend", "visual", "knowledge"].includes(flowKey)) {
-          setScene("analysis");
-          updateAnalysisGuide(flowKey);
-          if (flowKey === "analysis") selectInspectionItem("dp");
-          if (flowKey === "trend") selectInspectionItem("dp");
-          if (flowKey === "visual") setFrame("current");
-          if (flowKey === "knowledge") openDrawer();
-          setFlow(flowKey);
-          document.getElementById("evidenceText").textContent =
-            flowKey === "visual" && currentArea !== "metering"
-              ? `${areas[currentArea].evidence} 当前正在查看 ${areas[currentArea].title} 的现场关键帧。`
-              : detail.evidence;
+      function nextScene() {
+        if (currentIndex === scenes.length - 1) {
+          goScene("overview");
           return;
         }
-        if (flowKey === "recheck") {
-          setScene("recheck");
-          setFlow("recheck");
-          document.getElementById("evidenceText").textContent = detail.evidence;
+        if (scenes[currentIndex].key === "recheck" && selectedDecision === "pending") {
+          document.getElementById("decisionTitle").textContent = "请先选择人工结论";
+          document.getElementById("decisionText").textContent = "确认异常、误报关闭、继续观察三者任选其一，报告页才会生成对应内容。";
           return;
         }
-        if (flowKey === "report") {
-          setScene("report");
-          setFlow("report");
-          document.getElementById("evidenceText").textContent = detail.evidence;
-        }
+        goScene(scenes[currentIndex + 1].key);
       }
 
-      function setStep(stepKey, force = false) {
-        const nextIndex = stepOrder.indexOf(stepKey);
-        currentStepIndex = force ? nextIndex : Math.max(currentStepIndex, nextIndex);
-        document.querySelectorAll(".step").forEach((node) => {
-          const index = stepOrder.indexOf(node.dataset.step);
-          node.classList.toggle("done", index <= currentStepIndex);
-        });
-        const flowMap = {
-          analysis: "analysis",
-          evidence: "knowledge",
-          recheck: "recheck",
-          confirm: "recheck",
-          report: "report"
-        };
-        setFlow(flowMap[stepKey]);
-      }
-
-      function advancePrimary() {
-        if (currentArea !== "metering") {
-          setArea("metering", false);
-          updateSceneLocks();
-          setScene("home", true);
-          return;
-        }
-        if (currentScene === "home") {
-          setScene("analysis");
-          return;
-        }
-        if (currentScene === "analysis") {
-          selectInspectionItem("dp");
-          maxSceneIndex = Math.max(maxSceneIndex, 2);
-          updateSceneLocks();
-          setScene("recheck");
-          document.getElementById("metricRecheck").textContent = "1";
-          return;
-        }
-        if (currentScene === "recheck") {
-          if (!selectedDecision) {
-            document.getElementById("evidenceText").textContent = "请先在复检工作台选择“确认异常 / 误报关闭 / 继续观察”之一，再生成报告快照。";
-            document.getElementById("checkStatus").textContent = "请选择结论";
-            const decisionBar = document.getElementById("decisionBar");
-            decisionBar.classList.add("attention");
-            window.setTimeout(() => decisionBar.classList.remove("attention"), 900);
-            return;
-          }
-          maxSceneIndex = Math.max(maxSceneIndex, 3);
-          updateSceneLocks();
-          setStep("confirm");
-          document.getElementById("metricClosed").textContent = selectedDecision === "confirmed" ? "67%" : "50%";
-          setScene("report");
-          renderReportDraft(selectedDecision);
-          document.getElementById("reportSummary").textContent = "已生成";
-          document.getElementById("reportArchive").textContent = "待归档";
-          document.getElementById("reportStamp").textContent = "报告草稿";
-        }
-      }
-
-      function selectInspectionItem(itemKey) {
-        const detail = itemDetails[itemKey];
-        if (!detail) return;
-        if (currentScene !== "analysis") setScene("analysis");
-        const targetArea = itemKey === "plc" ? "plc" : "metering";
-        if (currentArea !== targetArea) setArea(targetArea, false);
-        syncInspectionSelection(itemKey);
-        renderTrendSeries(detail.trendKey);
-        updateAnalysisGuide(detail.flow);
-        document.getElementById("evidenceText").textContent =
-          `${detail.evidence} ${trendSeries[detail.trendKey].summary}`;
-        document.getElementById("tagRow").innerHTML = detail.tags
-          .map((tag, index) => `<span class="tag ${index === 0 ? "hot" : ""}">${tag}</span>`)
-          .join("");
-        setFlow(detail.flow);
-        if (detail.image) setFrame(detail.image);
+      function prevScene() {
+        if (currentIndex > 0) goScene(scenes[currentIndex - 1].key);
       }
 
       function setFrame(frameKey) {
-        if (frameKey === "zoom") {
-          openImageModal();
-          return;
-        }
-        const frame = frameSources[currentArea][frameKey];
-        document.querySelectorAll("[data-frame]").forEach((node) => {
+        const frame = frames[frameKey];
+        document.getElementById("frameImage").src = frame.src;
+        document.getElementById("frameTitle").textContent = frame.title;
+        document.getElementById("frameBox").dataset.label = frame.label;
+        document.querySelectorAll(".thumb").forEach((node) => {
           node.classList.toggle("active", node.dataset.frame === frameKey);
         });
-        document.getElementById("imageTitle").textContent = frame.title;
-        document.getElementById("imageScene").textContent = frame.scene;
-        document.getElementById("sceneImage").src = frame.src;
-        document.getElementById("modalImage").src = frame.src;
-        document.getElementById("modalTitle").textContent = `${frame.title} · ${frame.scene}`;
-        const bbox = document.getElementById("bbox");
-        bbox.classList.toggle("is-hidden", !frame.showBbox);
-        bbox.dataset.label = frame.label;
       }
 
-      function replayTrend() {
-        if (currentArea !== "metering") {
-          setArea("metering", false);
-          updateSceneLocks();
-          setScene("analysis", true);
-        }
-        selectInspectionItem("dp");
-        setFlow("trend");
-        const trendCard = document.getElementById("trendCard");
-        trendCard.classList.add("replay-pulse");
-        window.setTimeout(() => trendCard.classList.remove("replay-pulse"), 760);
-        document.getElementById("evidenceText").textContent =
-          "趋势回放已定位到过滤器差压异常窗口：72h 曲线连续抬升，表单仍记录正常，因此生成复检清单。";
-      }
-
-      function chooseDecision(decision) {
+      function setDecision(decision) {
         selectedDecision = decision;
         archived = false;
-        const decisionText = {
-          confirmed: "已选择：确认异常。报告将纳入交接班关注，并保留复检证据摘要。",
-          "false-positive": "已选择：误报关闭。报告将记录关闭原因，不纳入交接班关注。",
-          observe: "已选择：继续观察。报告将提示下一班复核差压变化。"
-        };
-        const statusText = {
-          confirmed: "确认异常",
-          "false-positive": "误报关闭",
-          observe: "继续观察"
-        };
-        document.querySelectorAll(".decision-btn").forEach((node) => {
+        const draft = decisionDrafts[decision];
+        document.getElementById("decisionTitle").textContent = draft.title;
+        document.getElementById("decisionText").textContent = draft.text;
+        document.getElementById("checkStatus").textContent = draft.status;
+        document.getElementById("handoverText").textContent = draft.handover;
+        document.getElementById("manualCheck").classList.add("done");
+        document.getElementById("handoverCheck").classList.add("done");
+        document.querySelectorAll(".decision").forEach((node) => {
           node.classList.toggle("active", node.dataset.decision === decision);
         });
-        document.getElementById("decisionBar").classList.remove("attention");
-        document.getElementById("archiveBtn").classList.remove("attention");
-        document.getElementById("checkStatus").textContent = statusText[decision];
-        document.getElementById("evidenceText").textContent = decisionText[decision];
-        setStep("confirm");
-        maxSceneIndex = Math.max(maxSceneIndex, 3);
-        renderReportDraft(decision);
-        document.getElementById("reportSummary").textContent = "已生成";
-        document.getElementById("reportArchive").textContent = "待归档";
-        document.getElementById("reportStamp").textContent = "报告草稿";
-        updateSceneLocks();
+        renderReport();
+        updateCommandbar();
       }
 
-      function resetReportDerived() {
-        document.getElementById("reportSummary").textContent = "待生成";
-        document.getElementById("reportHandover").textContent = "待确认";
-        document.getElementById("reportArchive").textContent = "未归档";
-        document.getElementById("reportStamp").textContent = "报告草稿";
-        renderReportDraft("pending");
-      }
-
-      function renderReportDraft(decision) {
-        const draft = reportDrafts[decision] || reportDrafts.pending;
-        document.getElementById("reportMainText").textContent = draft.main;
-        document.getElementById("reportBullets").innerHTML = draft.bullets
-          .map((line) => `<li>${line}</li>`)
-          .join("");
-        document.getElementById("reportHandover").textContent = draft.handover;
+      function renderReport() {
+        const draft = decisionDrafts[selectedDecision];
+        document.getElementById("reportMain").textContent = draft.report;
+        document.getElementById("reportState").textContent = selectedDecision === "pending" ? "报告草稿" : "已生成草稿";
+        document.getElementById("summaryState").textContent = selectedDecision === "pending" ? "待生成" : "已生成";
+        document.getElementById("handoverState").textContent = draft.handoverState;
+        document.getElementById("archiveState").textContent = archived ? "已归档" : "待归档";
+        document.getElementById("caseState").textContent = archived ? "已归档" : "未归档";
+        document.getElementById("stamp").textContent = archived ? "已归档" : "草稿";
+        document.getElementById("reportList").innerHTML = [
+          "主疑点：第 73 项过滤器差压表单正常，但趋势接近 0.1MPa 红线。",
+          "证据来源：巡检表单、72h 趋势、现场关键帧、知识规则。",
+          `人工结论：${decisionDrafts[selectedDecision].status}。`,
+          archived ? "归档结果：已沉淀为交接班与相似案例复用材料。" : "待办：点击归档为案例。"
+        ].map((line) => `<li>${line}</li>`).join("");
       }
 
       function archiveReport() {
-        if (!selectedDecision) {
-          document.getElementById("evidenceText").textContent = "报告仍为草稿：请先在复检工作台选择人工结论，再归档为案例。";
-          document.getElementById("reportMainText").textContent = "报告仍为草稿。完成复检结论后，系统会生成可归档的巡检质量分析报告。";
-          const archiveBtn = document.getElementById("archiveBtn");
-          archiveBtn.classList.add("attention");
-          window.setTimeout(() => archiveBtn.classList.remove("attention"), 900);
+        if (selectedDecision === "pending") {
+          goScene("recheck");
+          document.getElementById("decisionTitle").textContent = "请先选择人工结论";
+          document.getElementById("decisionText").textContent = "没有人工结论时，报告只能保持草稿，不能归档为案例。";
           return;
         }
         archived = true;
-        document.getElementById("reportArchive").textContent = "已归档";
-        document.getElementById("reportStamp").textContent = "已归档";
-        document.getElementById("metricClosed").textContent = "100%";
-        setStep("report");
+        renderReport();
+        updateCommandbar();
       }
 
-      function jumpFlow(jump) {
-        activateFlowStep(jump);
-      }
-
-      function openImageModal() {
-        document.getElementById("imageModal").classList.add("open");
-      }
-
-      function closeImageModal() {
-        document.getElementById("imageModal").classList.remove("open");
-      }
-
-      function openDrawer() {
-        document.getElementById("drawerMask").classList.add("open");
-        document.getElementById("agentDrawer").classList.add("open");
-      }
-
-      function closeDrawer() {
-        document.getElementById("drawerMask").classList.remove("open");
-        document.getElementById("agentDrawer").classList.remove("open");
-      }
-
-      document.querySelectorAll("[data-area]").forEach((node) => {
-        node.addEventListener("click", () => {
-          setArea(node.dataset.area, false);
-          updateSceneLocks();
-          setScene("home", true);
-        });
+      document.querySelectorAll(".nav-step").forEach((node) => {
+        node.addEventListener("click", () => goScene(node.dataset.scene));
       });
-
-      document.querySelectorAll(".scene-tab").forEach((node) => {
-        node.addEventListener("click", () => setScene(node.dataset.scene));
-      });
-
-      document.querySelectorAll(".drawer-question").forEach((node) => {
-        node.addEventListener("click", () => {
-          document.getElementById("drawerAnswer").textContent = node.dataset.answer;
-        });
-      });
-
-      document.querySelectorAll(".inspection-table tbody tr").forEach((node) => {
-        node.addEventListener("click", () => selectInspectionItem(node.dataset.item));
-      });
-
-      document.querySelectorAll(".trend-hotspot").forEach((node) => {
-        node.addEventListener("click", () => selectInspectionItem(node.dataset.item));
-        node.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") selectInspectionItem(node.dataset.item);
-        });
-      });
-
-      document.querySelectorAll("[data-frame]").forEach((node) => {
+      document.getElementById("riskHotspot").addEventListener("click", () => goScene("analysis"));
+      document.getElementById("nextBtn").addEventListener("click", nextScene);
+      document.getElementById("prevBtn").addEventListener("click", prevScene);
+      document.querySelectorAll(".thumb").forEach((node) => {
         node.addEventListener("click", () => setFrame(node.dataset.frame));
       });
-
-      document.querySelectorAll(".trend-switch").forEach((node) => {
-        node.addEventListener("click", () => {
-          const itemKey = node.dataset.series === "filterDp" ? "dp" : "pressure";
-          selectInspectionItem(itemKey);
-        });
+      document.querySelectorAll(".decision").forEach((node) => {
+        node.addEventListener("click", () => setDecision(node.dataset.decision));
       });
-
-      document.querySelectorAll(".decision-btn").forEach((node) => {
-        node.addEventListener("click", () => chooseDecision(node.dataset.decision));
-      });
-
-      document.querySelectorAll(".flow-item").forEach((node) => {
-        node.addEventListener("click", () => jumpFlow(node.dataset.jump));
-      });
-
-      document.getElementById("primaryBtn").addEventListener("click", advancePrimary);
-      document.getElementById("agentBtn").addEventListener("click", openDrawer);
-      document.getElementById("drawerMask").addEventListener("click", closeDrawer);
-      document.getElementById("closeDrawerBtn").addEventListener("click", closeDrawer);
-      document.getElementById("resetBtn").addEventListener("click", resetDemo);
       document.getElementById("archiveBtn").addEventListener("click", archiveReport);
-      document.getElementById("backHomeBtn").addEventListener("click", () => setScene("home"));
-      document.getElementById("trendReplayBtn").addEventListener("click", replayTrend);
-      document.getElementById("sceneImage").addEventListener("click", openImageModal);
-      document.getElementById("closeImageBtn").addEventListener("click", closeImageModal);
-      document.getElementById("imageModal").addEventListener("click", (event) => {
-        if (event.target.id === "imageModal") closeImageModal();
-      });
 
-      resetDemo();
+      renderReport();
+      updateCommandbar();
     </script>
   </body>
 </html>
