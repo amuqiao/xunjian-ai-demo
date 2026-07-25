@@ -18,8 +18,10 @@
         </div>
 
         <nav class="scene-nav" aria-label="演示场景">
-          <button class="scene-nav-btn active" type="button" data-scene-target="overview">态势总览</button>
-          <button class="scene-nav-btn" type="button" data-scene-target="analysis">巡检分析</button>
+          <button class="scene-nav-btn active" type="button" data-scene-target="overview">任务总览</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="form">表单质检</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="trend">时序预警</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="vision">视觉证据</button>
           <button class="scene-nav-btn" type="button" data-scene-target="recheck">复检确认</button>
           <button class="scene-nav-btn" type="button" data-scene-target="report">报告归档</button>
         </nav>
@@ -51,7 +53,7 @@
             <section class="panel map-panel" aria-labelledby="overviewTitle">
               <div class="panel-title">
                 <span id="overviewTitle">站场态势总览</span>
-                <button class="action primary" type="button" data-action="go-analysis">进入巡检分析</button>
+                <button class="action primary" type="button" data-action="go-form">进入表单质检</button>
               </div>
               <div class="map-wrap">
                 <svg class="site-map" id="siteMap" viewBox="0 0 900 560" aria-label="湘潭站巡检区域图">
@@ -94,16 +96,16 @@
           </div>
         </section>
 
-        <section class="scene" id="scene-analysis" data-scene="analysis" aria-labelledby="analysisTitle">
+        <section class="scene" id="scene-form" data-scene="form" aria-labelledby="formTitle">
           <div class="scene-head">
             <div>
-              <h2 id="analysisTitle">巡检分析工作台</h2>
-              <p id="analysisSubtitle">表单第 73 项“正常”与 72h 差压趋势接近阈值形成冲突。</p>
+              <h2 id="formTitle">表单质检工作台</h2>
+              <p id="formSubtitle">先锁定巡检表中与趋势冲突的检查项，避免直接跳到结论。</p>
             </div>
-            <span class="badge danger" id="areaBadge">计量区 · 高优先级复检</span>
+            <span class="badge danger" id="formBadge">计量区 · 高优先级复检</span>
           </div>
 
-          <div class="analysis-grid">
+          <div class="form-grid">
             <section class="panel table-panel">
               <div class="panel-title">
                 <span>精选巡检项</span>
@@ -124,7 +126,7 @@
               </div>
             </section>
 
-            <section class="conflict-column" aria-label="冲突说明">
+            <section class="conflict-column" aria-label="表单冲突说明">
               <div class="conflict-card" id="conflictCard">
                 <span class="conflict-icon">!</span>
                 <strong id="conflictTitle">表单正常 vs 趋势逼近阈值</strong>
@@ -132,45 +134,109 @@
               </div>
             </section>
 
-            <section class="analysis-right">
-              <div class="panel trend-panel">
-                <div class="panel-title">
-                  <span id="trendTitle">过滤器差压趋势 · 72h</span>
-                  <div class="button-group">
-                    <button class="tool-btn active" type="button" data-trend="filterDp">差压</button>
-                    <button class="tool-btn" type="button" data-item="pressure">压力</button>
-                    <button class="tool-btn" type="button" data-action="replay-trend">回放</button>
-                  </div>
-                </div>
-                <div class="trend-canvas" id="trendCanvas"></div>
-                <div class="trend-stats" id="trendStats"></div>
+            <aside class="panel form-explain-panel">
+              <div class="panel-title">
+                <span>质检判断</span>
+                <span class="mini-hint">从表单到证据</span>
               </div>
-
-              <div class="panel frame-panel">
-                <div class="panel-title">
-                  <span>现场关键帧</span>
-                  <div class="button-group">
-                    <button class="tool-btn active" type="button" data-frame="current">当前帧</button>
-                    <button class="tool-btn" type="button" data-frame="compare">对比帧</button>
-                    <button class="tool-btn" type="button" data-frame="plc">PLC帧</button>
-                    <button class="tool-btn" type="button" data-action="open-image">放大</button>
-                  </div>
-                </div>
-                <div class="frame-stage">
-                  <img id="frameImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="现场关键帧" />
-                  <div class="bbox" id="bbox"><span id="bboxLabel">视觉证据 0.92</span></div>
-                </div>
-                <div class="frame-caption">
-                  <strong id="frameTitle">现场关键帧 · 视觉证据</strong>
-                  <span id="frameScene">P-4 泵棚</span>
-                </div>
-              </div>
-            </section>
+              <div class="explain-list" id="formExplainList"></div>
+            </aside>
           </div>
 
           <div class="scene-actions">
             <button class="action" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
-            <button class="action primary" type="button" id="analysisPrimary" data-action="go-recheck">生成复检清单</button>
+            <button class="action primary" type="button" id="formPrimary" data-action="go-trend">查看时序预警</button>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-trend" data-scene="trend" aria-labelledby="trendSceneTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="trendSceneTitle">时序预警工作台</h2>
+              <p id="trendSubtitle">把表单第 73 项与 72h 差压曲线放在同一条判断链路中。</p>
+            </div>
+            <span class="badge danger" id="trendBadge">差压趋势 · 接近阈值</span>
+          </div>
+
+          <div class="trend-grid">
+            <section class="panel trend-panel">
+              <div class="panel-title">
+                <span id="trendTitle">过滤器差压趋势 · 72h</span>
+                <div class="button-group">
+                  <button class="tool-btn active" type="button" data-trend="filterDp">差压</button>
+                  <button class="tool-btn" type="button" data-item="pressure">压力对照</button>
+                  <button class="tool-btn" type="button" data-action="replay-trend">回放</button>
+                </div>
+              </div>
+              <div class="trend-canvas trend-canvas-large" id="trendCanvas"></div>
+              <div class="trend-stats" id="trendStats"></div>
+            </section>
+
+            <aside class="panel trend-logic-panel">
+              <div class="panel-title">
+                <span>冲突解释</span>
+                <span class="mini-hint">趋势 / 阈值 / 表单</span>
+              </div>
+              <div class="conflict-card inline">
+                <span class="conflict-icon">!</span>
+                <strong id="trendConflictTitle">表单正常 vs 趋势逼近阈值</strong>
+                <p id="trendConflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
+              </div>
+              <div class="explain-list" id="trendExplainList"></div>
+            </aside>
+          </div>
+
+          <div class="scene-actions">
+            <button class="action" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
+            <button class="action" type="button" data-action="go-form">返回表单质检</button>
+            <button class="action primary" type="button" data-action="go-vision">核验视觉证据</button>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-vision" data-scene="vision" aria-labelledby="visionTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="visionTitle">视觉证据工作台</h2>
+              <p id="visionSubtitle">用现场关键帧补强复检依据，但不让视觉结果替代人工确认。</p>
+            </div>
+            <span class="badge info" id="visionBadge">现场关键帧 · 证据补强</span>
+          </div>
+
+          <div class="vision-grid">
+            <section class="panel frame-panel frame-panel-large">
+              <div class="panel-title">
+                <span>现场关键帧</span>
+                <div class="button-group">
+                  <button class="tool-btn active" type="button" data-frame="current">当前帧</button>
+                  <button class="tool-btn" type="button" data-frame="compare">对比帧</button>
+                  <button class="tool-btn" type="button" data-frame="plc">PLC帧</button>
+                  <button class="tool-btn" type="button" data-action="open-image">放大</button>
+                </div>
+              </div>
+              <div class="frame-stage frame-stage-large">
+                <img id="frameImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="现场关键帧" />
+                <div class="bbox" id="bbox"><span id="bboxLabel">视觉证据 0.92</span></div>
+              </div>
+              <div class="frame-caption">
+                <strong id="frameTitle">现场关键帧 · 视觉证据</strong>
+                <span id="frameScene">P-4 泵棚</span>
+              </div>
+            </section>
+
+            <aside class="panel vision-evidence-panel">
+              <div class="panel-title">
+                <span>证据用途</span>
+                <span class="mini-hint">辅助复检</span>
+              </div>
+              <p class="vision-summary" id="visionSummary"></p>
+              <div class="tag-row" id="visionTags"></div>
+              <div class="explain-list" id="visionExplainList"></div>
+            </aside>
+          </div>
+
+          <div class="scene-actions">
+            <button class="action" type="button" data-action="go-trend">返回时序预警</button>
+            <button class="action primary" type="button" data-action="go-recheck">生成复检清单</button>
           </div>
         </section>
 
@@ -178,7 +244,7 @@
           <div class="scene-head">
             <div>
               <h2 id="recheckTitle">复检工作台</h2>
-              <p>把 AI 疑点转换成可执行复检项，并保留人工确认边界。</p>
+              <p id="recheckSubtitle">把 AI 疑点转换成可执行复检项，并保留人工确认边界。</p>
             </div>
             <span class="badge warn" id="recheckStatus">待人工确认</span>
           </div>
@@ -231,7 +297,7 @@
               </section>
               <section class="panel report-actions">
                 <button class="action primary wide" type="button" id="archiveBtn" data-action="archive-report">归档为案例</button>
-                <button class="action wide" type="button" data-action="back-overview">回到大屏看闭环</button>
+                <button class="action wide" type="button" id="reportBackBtn" data-action="back-overview">返回任务总览</button>
               </section>
             </aside>
           </div>
@@ -239,6 +305,7 @@
       </main>
 
       <footer class="flow-rail panel" aria-label="闭环流程">
+        <div class="flow-hint" id="flowHint">流程步骤 · 灰色步骤需完成前序操作后解锁</div>
         <div class="flow-track" id="flowTrack"></div>
       </footer>
     </div>

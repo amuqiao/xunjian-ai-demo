@@ -16,20 +16,25 @@
       subtitle: "巡检质量智能分析",
       batch: "XJ-20260721-A",
       clock: "2026-07-21 04:43:22",
-      sceneOrder: ["overview", "analysis", "recheck", "report"],
+      sceneOrder: ["overview", "form", "trend", "vision", "recheck", "report"],
       sceneLabels: {
-        overview: "态势总览",
-        analysis: "巡检分析",
+        overview: "任务总览",
+        form: "表单质检",
+        trend: "时序预警",
+        vision: "视觉证据",
         recheck: "复检确认",
         report: "报告归档",
       },
       flowSteps: [
-        { key: "analysis", label: "AI 发现疑点", desc: "表单与趋势冲突" },
-        { key: "evidence", label: "三源证据联动", desc: "表单 / 趋势 / 图片" },
-        { key: "recheck", label: "生成复检清单", desc: "规则命中与动作项" },
-        { key: "confirm", label: "人工确认", desc: "确认异常 / 关闭 / 观察" },
-        { key: "report", label: "报告归档", desc: "交接班与案例沉淀" },
-        { key: "closed", label: "闭环回看", desc: "总览回写处理结果" },
+        { key: "task", label: "任务总览", desc: "批次 / 路线 / 区域" },
+        { key: "form", label: "表单质检", desc: "定位第 73 项" },
+        { key: "trend", label: "时序预警", desc: "72h 趋势抬升" },
+        { key: "conflict", label: "表单趋势冲突", desc: "正常 vs 近阈值" },
+        { key: "vision", label: "视觉证据", desc: "关键帧补证" },
+        { key: "recheck", label: "复检清单", desc: "规则与动作项" },
+        { key: "confirm", label: "人工确认", desc: "三类结论" },
+        { key: "report", label: "报告归档", desc: "交接班 / 案例" },
+        { key: "closed", label: "闭环回看", desc: "总览回写" },
       ],
       agentQA: [
         { q: "为什么需要复检?", a: "差压趋势接近 0.1MPa 阈值,且表单填写正常,形成表单与时序数据冲突,因此建议复检。" },
@@ -149,6 +154,26 @@
     },
 
     analysis: {
+      formExplain: [
+        { title: "先看填写事实", desc: "过滤器差压在巡检表中被填写为“正常”,这是 AI 不能直接覆盖的原始记录。" },
+        { title: "再看系统质检", desc: "同一设备的趋势数据接近阈值,系统只标记冲突,不自动下异常结论。" },
+        { title: "保留人工边界", desc: "复检结论仍由人员确认,页面只负责把疑点、证据和清单串起来。" },
+      ],
+      trendExplain: [
+        { title: "72h 连续抬升", desc: "差压从 0.053MPa 抬升到 0.097MPa,末值距离阈值只剩 0.003MPa。" },
+        { title: "异常窗口收敛", desc: "最近 4 个采样点被标记为异常窗口,用于联动表单第 73 项。" },
+        { title: "正常对照可切换", desc: "压力趋势作为正常对照,帮助说明本轮不是全量报错。" },
+      ],
+      conflictExplain: [
+        { title: "冲突不是结论", desc: "表单填写为正常,趋势接近阈值,系统只把二者差异升级为复检疑点。" },
+        { title: "冲突对象明确", desc: "冲突绑定计量区 / 过滤器 / 差压第 73 项,避免把整条巡检路线都标成异常。" },
+        { title: "下一步需要现场复核", desc: "需要用关键帧、差压表补拍和人工复检来决定确认异常、误报关闭或继续观察。" },
+      ],
+      visionExplain: [
+        { title: "补充现场语境", desc: "关键帧用于确认设备点位、周边状态和需要补拍的位置。" },
+        { title: "不替代复检", desc: "视觉框只作为辅助证据,不能绕过差压表现场复核。" },
+        { title: "可进入报告", desc: "当前帧、对比帧和 PLC 帧都可以沉淀为报告中的证据来源。" },
+      ],
       inspectionRows: [
         { item: "pressure", areaKey: "metering", no: 63, area: "计量区", device: "污油罐", check: "压力", result: "0.06", hot: false },
         { item: "dp", areaKey: "metering", no: 73, area: "计量区", device: "过滤器", check: "差压", result: "正常", hot: true },

@@ -16,6 +16,8 @@
       decision: "",
       archived: false,
       recheckReady: false,
+      stepKey: "task",
+      maxStepIndex: 0,
     };
   }
 
@@ -72,6 +74,35 @@
     return DATA.shell.sceneOrder.indexOf(scene);
   }
 
+  function stepIndex(stepKey) {
+    return DATA.shell.flowSteps.map(function (s) { return s.key; }).indexOf(stepKey);
+  }
+
+  function defaultStepForScene(scene) {
+    if (scene === "overview") return state.archived ? "closed" : "task";
+    if (scene === "form") return "form";
+    if (scene === "trend") return state.stepKey === "conflict" ? "conflict" : "trend";
+    if (scene === "vision") return "vision";
+    if (scene === "recheck") return state.decision ? "confirm" : "recheck";
+    if (scene === "report") return "report";
+    throw new Error("[v3] 未知场景: " + scene);
+  }
+
+  function setStep(stepKey, shouldProgress) {
+    var idx = stepIndex(stepKey);
+    if (idx < 0) throw new Error("[v3] 未知步骤: " + stepKey);
+    state.stepKey = stepKey;
+    if (shouldProgress !== false) state.maxStepIndex = Math.max(state.maxStepIndex, idx);
+  }
+
+  function markStep(stepKey) {
+    setStep(stepKey, true);
+  }
+
+  function showStep(stepKey) {
+    setStep(stepKey, false);
+  }
+
   function persistState() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
@@ -87,13 +118,22 @@
     var raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     var saved = JSON.parse(raw);
+    var savedHadStep = Object.prototype.hasOwnProperty.call(saved, "stepKey");
     Object.keys(saved).forEach(function (key) {
       if (key in state) state[key] = saved[key];
     });
+    var migratedAnalysis = state.scene === "analysis";
+    if (migratedAnalysis) state.scene = "form";
+    if (!(state.scene in DATA.shell.sceneLabels)) state.scene = "overview";
+    if (stepIndex(state.stepKey) < 0) state.stepKey = defaultStepForScene(state.scene);
+    if (migratedAnalysis && !savedHadStep) showStep("form");
+    if (typeof state.maxStepIndex !== "number") state.maxStepIndex = stepIndex(state.stepKey);
   }
 
   function canVisit(scene) {
-    if (scene === "overview" || scene === "analysis") return true;
+    if (scene === "overview" || scene === "form") return true;
+    if (scene === "trend") return state.maxStepIndex >= stepIndex("form");
+    if (scene === "vision") return state.maxStepIndex >= stepIndex("conflict");
     if (scene === "recheck") return state.recheckReady || !!state.decision || state.archived;
     if (scene === "report") return !!state.decision || state.archived;
     throw new Error("[v3] 未知场景: " + scene);
@@ -102,7 +142,9 @@
   function nearestLegalScene(scene) {
     if (canVisit(scene)) return scene;
     if (scene === "report" && canVisit("recheck")) return "recheck";
-    if (scene === "recheck" || scene === "report") return "analysis";
+    if ((scene === "recheck" || scene === "report") && canVisit("vision")) return "vision";
+    if ((scene === "vision" || scene === "recheck" || scene === "report") && canVisit("trend")) return "trend";
+    if (scene !== "overview") return "form";
     return "overview";
   }
 
@@ -114,14 +156,23 @@
       enterArea(opts.area, false);
       state.scene = scene;
     } else {
-      if (scene === "analysis" && state.currentArea !== "metering") enterArea("metering", false);
       state.scene = scene;
     }
+    markStep(opts.stepKey || defaultStepForScene(scene));
     if (window.location.hash !== "#" + scene) {
       window.location.hash = scene;
     }
     persistState();
     render();
+    scrollActiveSceneIntoView();
+  }
+
+  function scrollActiveSceneIntoView() {
+    if (!window.matchMedia || !window.matchMedia("(max-width: 1180px)").matches) return;
+    window.requestAnimationFrame(function () {
+      var scene = document.querySelector(".scene.active");
+      if (scene && scene.scrollIntoView) scene.scrollIntoView({ block: "start" });
+    });
   }
 
   function enterArea(area, shouldRender) {
@@ -138,7 +189,7 @@
     if (shouldRender !== false) render();
   }
 
-  function selectItem(itemKey) {
+  function selectItem(itemKey, targetScene) {
     var detail = assertKey(DATA.analysis.itemDetails, itemKey, "巡检项");
     var row = DATA.analysis.inspectionRows.filter(function (item) { return item.item === itemKey; })[0];
     if (!row) throw new Error("[v3] 巡检表缺少条目: " + itemKey);
@@ -146,8 +197,20 @@
     state.currentArea = row.areaKey;
     state.currentTrend = detail.trendKey;
     state.frameKey = detail.image;
-    state.scene = "analysis";
-    window.location.hash = "analysis";
+    state.scene = targetScene || "form";
+    markStep(defaultStepForScene(state.scene));
+    window.location.hash = state.scene;
+    persistState();
+    render();
+  }
+
+  function selectTrendItem(itemKey) {
+    var detail = assertKey(DATA.analysis.itemDetails, itemKey, "巡检项");
+    state.selectedItem = itemKey;
+    state.currentArea = "metering";
+    state.currentTrend = detail.trendKey;
+    state.frameKey = detail.image;
+    markStep("trend");
     persistState();
     render();
   }
@@ -165,6 +228,7 @@
     state.decision = decision;
     state.archived = false;
     state.recheckReady = true;
+    markStep("confirm");
     persistState();
     render();
   }
@@ -177,6 +241,7 @@
       return;
     }
     state.archived = true;
+    markStep("closed");
     persistState();
     render();
   }
@@ -271,7 +336,7 @@
         class: "finding-card" + (finding.primary ? " primary" : "") + (closed ? " closed" : ""),
         type: "button",
         dataset: { area: finding.area },
-        onClick: function () { go("analysis", { area: finding.area }); },
+        onClick: function () { go("form", { area: finding.area, stepKey: "form" }); },
       }, [
         el("span", { class: badgeClass, text: badgeText }),
         el("strong", { text: finding.title }),
@@ -312,11 +377,63 @@
     });
   }
 
-  function renderAnalysis() {
+  function renderExplainList(id, items) {
+    var list = q(id);
+    list.innerHTML = "";
+    items.forEach(function (item) {
+      list.appendChild(el("div", { class: "explain-item card" }, [
+        el("strong", { text: item.title }),
+        el("small", { text: item.desc }),
+      ]));
+    });
+  }
+
+  function conflictContent(area, trendInfo) {
+    if (area.auxiliaryOnly) {
+      return {
+        title: "AI 按风险聚焦 · " + area.short + "为对照",
+        text: area.evidence,
+        contrast: true,
+      };
+    }
+    if (state.selectedItem === "dp") {
+      return {
+        title: "表单第73项 = 正常 ↔ 差压趋势 " + trendInfo.latest,
+        text: "阈值 0.1MPa,余量仅 " + trendInfo.marginText + " · " + trendInfo.summary,
+        contrast: false,
+      };
+    }
+    return {
+      title: "主线冲突未解除",
+      text: "当前查看辅助项,第73项差压仍需回到主线复检。",
+      contrast: false,
+    };
+  }
+
+  function trendSummary(seriesKey) {
+    var series = assertKey(DATA.analysis.trendSeries, seriesKey, "趋势");
+    var values = series.points.map(function (point) { return point[1]; });
+    var latest = values[values.length - 1];
+    var max = Math.max.apply(null, values);
+    var margin = series.safeSide === "below" ? series.threshold - latest : latest - series.threshold;
+    var marginText = (margin >= 0 ? "" : "-") + formatTrendValue(Math.abs(margin), series.unit);
+    return {
+      title: series.title,
+      latest: formatTrendValue(latest, series.unit),
+      max: formatTrendValue(max, series.unit),
+      margin: margin,
+      marginText: marginText,
+      quality: series.quality,
+      summary: series.summary,
+      hasWindow: !!series.window,
+    };
+  }
+
+  function renderForm() {
     var area = assertKey(DATA.areas, state.currentArea, "区域");
-    q("analysisSubtitle").textContent = area.sub;
-    q("areaBadge").className = "badge " + area.badgeTone;
-    q("areaBadge").textContent = area.short + " · " + area.badge;
+    q("formSubtitle").textContent = area.sub;
+    q("formBadge").className = "badge " + area.badgeTone;
+    q("formBadge").textContent = area.short + " · " + area.badge;
 
     renderInspectionTable();
 
@@ -326,23 +443,42 @@
       area.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
-      q("analysisPrimary").textContent = "回到计量区主线";
-      q("analysisPrimary").dataset.action = "back-main";
+      q("formPrimary").textContent = "回到计量区主线";
+      q("formPrimary").dataset.action = "back-main";
     } else {
       var detail = assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项");
       q("evidenceText").textContent = detail.evidence;
       detail.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
-      q("analysisPrimary").textContent = "生成复检清单";
-      q("analysisPrimary").dataset.action = "go-recheck";
+      q("formPrimary").textContent = "查看时序预警";
+      q("formPrimary").dataset.action = "go-trend";
     }
+
+    var content = conflictContent(area, trendSummary(state.currentTrend));
+    q("conflictCard").classList.toggle("contrast", content.contrast);
+    q("conflictTitle").textContent = content.title;
+    q("conflictText").textContent = content.text;
+    renderExplainList("formExplainList", DATA.analysis.formExplain);
+  }
+
+  function renderTrendScene() {
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    var isConflictStep = state.stepKey === "conflict";
+    q("trendSceneTitle").textContent = isConflictStep ? "表单趋势冲突工作台" : "时序预警工作台";
+    q("trendSubtitle").textContent = isConflictStep
+      ? "当前步骤聚焦“表单正常”和“趋势近阈值”的矛盾,为后续复检生成明确对象。"
+      : area.auxiliaryOnly ? area.sub : "第 73 项表单结果为“正常”,但趋势曲线显示差压持续接近阈值。";
+    q("trendBadge").className = "badge " + (area.auxiliaryOnly && !isConflictStep ? "info" : "danger");
+    q("trendBadge").textContent = isConflictStep ? "表单趋势冲突 · 待复检" : area.auxiliaryOnly ? area.short + " · 对照趋势" : "时序预警 · 接近阈值";
 
     var trendInfo = renderTrend(q("trendCanvas"), state.currentTrend);
     q("trendTitle").textContent = trendInfo.title;
     renderTrendStats(trendInfo);
-    renderConflict(area, trendInfo);
-    renderFrame();
+    var content = conflictContent(area, trendInfo);
+    q("trendConflictTitle").textContent = content.title;
+    q("trendConflictText").textContent = content.text;
+    renderExplainList("trendExplainList", isConflictStep ? DATA.analysis.conflictExplain : DATA.analysis.trendExplain);
 
     qa("[data-trend]").forEach(function (btn) {
       btn.classList.toggle("active", state.currentTrend === btn.dataset.trend);
@@ -350,6 +486,22 @@
     qa("[data-item='pressure']").forEach(function (btn) {
       btn.classList.toggle("active", state.selectedItem === "pressure" && !area.auxiliaryOnly);
     });
+  }
+
+  function renderVision() {
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    q("visionSubtitle").textContent = area.auxiliaryOnly ? area.sub : "关键帧用于补强复检依据,最终结论仍需人员确认。";
+    q("visionBadge").className = "badge " + (area.auxiliaryOnly ? area.badgeTone : "info");
+    q("visionBadge").textContent = area.short + " · " + area.badge;
+    renderFrame();
+
+    q("visionSummary").textContent = area.auxiliaryOnly ? area.evidence : assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项").evidence;
+    q("visionTags").innerHTML = "";
+    var tags = area.auxiliaryOnly ? area.tags : assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项").tags;
+    tags.forEach(function (tag, i) {
+      q("visionTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
+    });
+    renderExplainList("visionExplainList", DATA.analysis.visionExplain);
   }
 
   function renderTrend(container, seriesKey) {
@@ -455,21 +607,6 @@
     });
   }
 
-  function renderConflict(area, trendInfo) {
-    var card = q("conflictCard");
-    card.classList.toggle("contrast", area.auxiliaryOnly);
-    if (area.auxiliaryOnly) {
-      q("conflictTitle").textContent = "AI 按风险聚焦 · " + area.short + "为对照";
-      q("conflictText").textContent = area.evidence;
-    } else if (state.selectedItem === "dp") {
-      q("conflictTitle").textContent = "表单第73项 = 正常 ↔ 差压趋势 " + trendInfo.latest;
-      q("conflictText").textContent = "阈值 0.1MPa,余量仅 " + trendInfo.marginText + " · " + trendInfo.summary;
-    } else {
-      q("conflictTitle").textContent = "主线冲突未解除";
-      q("conflictText").textContent = "当前查看辅助项,第73项差压仍需回到主线复检。";
-    }
-  }
-
   function renderFrame() {
     var frames = assertKey(DATA.analysis.frameSources, state.currentArea, "关键帧区域");
     var frame = assertKey(frames, state.frameKey, "关键帧");
@@ -485,6 +622,12 @@
   }
 
   function renderRecheck() {
+    var isConfirmStep = state.stepKey === "confirm";
+    q("recheckTitle").textContent = isConfirmStep ? "人工确认工作台" : "复检工作台";
+    q("recheckSubtitle").textContent = isConfirmStep
+      ? "请在复检证据和规则依据基础上选择人工结论,系统不会自动替人员下结论。"
+      : "把 AI 疑点转换成可执行复检项，并保留人工确认边界。";
+
     q("recheckSummary").innerHTML = "";
     DATA.recheck.summary.forEach(function (item) {
       q("recheckSummary").appendChild(el("div", { class: "summary-item" }, [
@@ -523,7 +666,7 @@
 
     q("decisionLabel").textContent = state.decision ? DATA.recheck.decisionStatus[state.decision] : "请选择结论";
     q("recheckStatus").className = state.decision ? "badge ok" : "badge warn";
-    q("recheckStatus").textContent = state.decision ? "已选择: " + DATA.recheck.decisionStatus[state.decision] : "待人工确认";
+    q("recheckStatus").textContent = state.decision ? "已选择: " + DATA.recheck.decisionStatus[state.decision] : isConfirmStep ? "请选择人工结论" : "待人工确认";
   }
 
   function renderReport() {
@@ -542,6 +685,7 @@
     q("reportStamp").className = state.archived ? "badge ok" : state.decision ? "badge warn" : "badge info";
     q("reportStamp").textContent = state.archived ? "已归档" : state.decision ? "报告草稿" : "等待结论";
     q("archiveBtn").disabled = !state.decision || state.archived;
+    q("reportBackBtn").textContent = state.archived ? "回到大屏看闭环" : "返回任务总览";
 
     q("caseTags").innerHTML = "";
     DATA.report.caseTags.forEach(function (tag, i) {
@@ -549,21 +693,58 @@
     });
   }
 
+  function canVisitStep(stepKey) {
+    var idx = stepIndex(stepKey);
+    if (idx < 0) throw new Error("[v3] 未知步骤: " + stepKey);
+    if (stepKey === "report") return !!state.decision || state.archived;
+    if (stepKey === "closed") return state.archived;
+    if (stepKey === "recheck" || stepKey === "confirm") {
+      return state.recheckReady || idx <= state.maxStepIndex + 1 || !!state.decision || state.archived;
+    }
+    return idx <= state.maxStepIndex + 1;
+  }
+
+  function stepLockedTitle(stepKey) {
+    if (stepKey === "report") return "请先在复检确认中选择人工结论";
+    if (stepKey === "closed") return "请先完成报告归档";
+    return "请先完成前序步骤";
+  }
+
+  function goStep(stepKey) {
+    if (!canVisitStep(stepKey)) throw new Error("[v3] 步骤尚未解锁: " + stepKey);
+    if (stepKey === "task") go("overview", { stepKey: "task" });
+    else if (stepKey === "form") go("form", { stepKey: "form" });
+    else if (stepKey === "trend") go("trend", { stepKey: "trend" });
+    else if (stepKey === "conflict") go("trend", { stepKey: "conflict" });
+    else if (stepKey === "vision") go("vision", { stepKey: "vision" });
+    else if (stepKey === "recheck") {
+      state.recheckReady = true;
+      go("recheck", { stepKey: "recheck" });
+    } else if (stepKey === "confirm") {
+      state.recheckReady = true;
+      go("recheck", { stepKey: "confirm" });
+    } else if (stepKey === "report") go("report", { stepKey: "report" });
+    else if (stepKey === "closed") go("overview", { stepKey: "closed" });
+    else throw new Error("[v3] 未知步骤: " + stepKey);
+  }
+
   function renderFlow() {
-    var activeMap = {
-      overview: "analysis",
-      analysis: "evidence",
-      recheck: state.decision ? "confirm" : "recheck",
-      report: state.archived ? "report" : "confirm",
-    };
-    var activeKey = state.archived && state.scene === "overview" ? "closed" : activeMap[state.scene];
-    var activeIndex = DATA.shell.flowSteps.map(function (s) { return s.key; }).indexOf(activeKey);
+    var activeIndex = stepIndex(state.stepKey);
     q("flowTrack").innerHTML = "";
     DATA.shell.flowSteps.forEach(function (step, index) {
       var cls = "flow-step";
-      if (index < activeIndex) cls += " done";
+      if (index <= state.maxStepIndex && index !== activeIndex) cls += " done";
       if (index === activeIndex) cls += " active";
-      q("flowTrack").appendChild(el("div", { class: cls, dataset: { idx: String(index + 1) } }, [
+      var disabled = !canVisitStep(step.key);
+      var attrs = {
+        class: cls,
+        type: "button",
+        title: disabled ? stepLockedTitle(step.key) : step.label,
+        dataset: { idx: String(index + 1), step: step.key },
+        onClick: function () { goStep(step.key); },
+      };
+      if (disabled) attrs.disabled = "disabled";
+      q("flowTrack").appendChild(el("button", attrs, [
         el("strong", { text: step.label }),
         el("small", { text: step.desc }),
       ]));
@@ -584,7 +765,9 @@
   function render() {
     renderShell();
     renderOverview();
-    renderAnalysis();
+    renderForm();
+    renderTrendScene();
+    renderVision();
     renderRecheck();
     renderReport();
     renderFlow();
@@ -663,24 +846,32 @@
   }
 
   function handleAction(action) {
-    if (action === "go-analysis") go("analysis", { area: "metering" });
+    if (action === "go-form") {
+      if (state.scene === "overview") go("form", { area: "metering", stepKey: "form" });
+      else go("form", { stepKey: "form" });
+    }
+    else if (action === "go-trend") go("trend", { stepKey: "trend" });
+    else if (action === "go-vision") {
+      markStep("conflict");
+      go("vision", { stepKey: "vision" });
+    }
     else if (action === "go-recheck") {
       state.recheckReady = true;
       persistState();
-      go("recheck");
+      go("recheck", { stepKey: "recheck" });
     }
     else if (action === "back-main") {
       enterArea("metering", false);
-      go("analysis");
+      go("form", { stepKey: "form" });
     } else if (action === "confirm-recheck") {
       if (!state.decision) {
         q("recheckStatus").className = "badge danger";
         q("recheckStatus").textContent = "请先选择结论";
         return;
       }
-      go("report");
+      go("report", { stepKey: "report" });
     } else if (action === "archive-report") archiveReport();
-    else if (action === "back-overview") go("overview");
+    else if (action === "back-overview") go("overview", { stepKey: state.archived ? "closed" : "task" });
     else if (action === "open-drawer") openDrawer();
     else if (action === "close-drawer") closeDrawer();
     else if (action === "open-image") openImage();
@@ -703,19 +894,19 @@
       node.addEventListener("click", function () { handleAction(node.dataset.action); });
     });
     qa(".map-area").forEach(function (node) {
-      node.addEventListener("click", function () { go("analysis", { area: node.dataset.area }); });
+      node.addEventListener("click", function () { go("form", { area: node.dataset.area, stepKey: "form" }); });
       node.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          go("analysis", { area: node.dataset.area });
+          go("form", { area: node.dataset.area, stepKey: "form" });
         }
       });
     });
-    q("riskDot").addEventListener("click", function () { go("analysis", { area: "metering" }); });
+    q("riskDot").addEventListener("click", function () { go("form", { area: "metering", stepKey: "form" }); });
     q("riskDot").addEventListener("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        go("analysis", { area: "metering" });
+        go("form", { area: "metering", stepKey: "form" });
       }
     });
     qa("[data-trend]").forEach(function (btn) {
@@ -724,11 +915,16 @@
         state.selectedItem = "dp";
         state.currentTrend = btn.dataset.trend;
         state.frameKey = "current";
+        markStep("trend");
+        persistState();
         render();
       });
     });
     qa("[data-item]").forEach(function (btn) {
-      btn.addEventListener("click", function () { selectItem(btn.dataset.item); });
+      btn.addEventListener("click", function () {
+        if (btn.closest("#scene-trend")) selectTrendItem(btn.dataset.item);
+        else selectItem(btn.dataset.item, "form");
+      });
     });
     qa("[data-frame]").forEach(function (btn) {
       btn.addEventListener("click", function () { selectFrame(btn.dataset.frame); });
@@ -739,12 +935,17 @@
     });
     window.addEventListener("hashchange", function () {
       var scene = window.location.hash.replace("#", "");
+      if (scene === "analysis") scene = "form";
       if (scene && scene !== state.scene) {
         assertKey(DATA.shell.sceneLabels, scene, "场景");
+        var legal = canVisit(scene);
         state.scene = nearestLegalScene(scene);
+        if (legal) markStep(defaultStepForScene(state.scene));
+        else showStep(defaultStepForScene(state.scene));
         if (window.location.hash !== "#" + state.scene) window.location.hash = state.scene;
         persistState();
         render();
+        scrollActiveSceneIntoView();
       }
     });
     window.addEventListener("keydown", function (event) {
@@ -763,9 +964,13 @@
   function boot() {
     loadState();
     var initial = window.location.hash.replace("#", "");
+    if (initial === "analysis") initial = "form";
     if (initial) {
       assertKey(DATA.shell.sceneLabels, initial, "场景");
+      var legal = canVisit(initial);
       state.scene = nearestLegalScene(initial);
+      if (legal) markStep(defaultStepForScene(state.scene));
+      else showStep(defaultStepForScene(state.scene));
       if (window.location.hash !== "#" + state.scene) window.location.hash = state.scene;
     }
     renderDrawer();
