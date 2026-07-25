@@ -1,0 +1,23 @@
+{
+  "role": "management-background",
+  "primaryFlow": false,
+  "stages": [
+    {
+      "scene": "overview",
+      "purpose": "展示区域状态、角色和入口"
+    },
+    {
+      "scene": "form",
+      "purpose": "核对该区域巡检表明细"
+    },
+    {
+      "scene": "trend",
+      "purpose": "展示该区域时序或健康度走势"
+    },
+    {
+      "scene": "vision",
+      "purpose": "展示该区域视觉帧或联动参考材料"
+    }
+  ],
+  "terminalState": "作为证据或正常对照返回总览"
+}

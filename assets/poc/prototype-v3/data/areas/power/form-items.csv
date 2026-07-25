@@ -1,0 +1,6 @@
+item,areaKey,no,area,device,check,result,hot
+power-low-voltage,power,250,配电间,低压配电装置,运行情况检查,正常,false
+power-dc-a,power,252,配电间,直流屏柜,运行状态,正常,false
+power-mains,power,259,配电间,外电电源,电压/频率/功率因数,平稳,false
+power-switch,power,260,配电间,10kV 开关柜,运行情况检查,正常,false
+power-video,power,264,配电间,低压柜画面,关键帧可用,可用,false

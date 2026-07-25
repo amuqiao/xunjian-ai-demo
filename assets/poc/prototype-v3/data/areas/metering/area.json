@@ -1,0 +1,77 @@
+{
+  "key": "metering",
+  "area": {
+    "title": "计量区过滤器差压疑点",
+    "short": "计量区",
+    "overviewTitle": "过滤器差压趋势异常",
+    "overviewDesc": "本轮唯一高优先级疑点。表单第 73 项填写正常,但差压趋势接近 0.1MPa 阈值。",
+    "overviewStatus": "高优先级复检",
+    "overviewAction": "进入表单质检",
+    "overviewSecondary": "查看区域记录",
+    "overviewTarget": "riskFlow",
+    "overviewStats": [
+      {
+        "label": "高风险疑点",
+        "value": "1"
+      },
+      {
+        "label": "关联表单",
+        "value": "第 73 项"
+      },
+      {
+        "label": "证据源",
+        "value": "4"
+      }
+    ],
+    "sub": "表单填写正常,趋势曲线接近 0.1MPa 阈值,建议生成复检清单。",
+    "badge": "高优先级复检",
+    "badgeTone": "danger",
+    "trendKey": "filterDp",
+    "evidence": "巡检记录第 73 项显示“计量区 / 过滤器 / 差压”结果正常;趋势数据提示接近阈值,形成表单与时序冲突。",
+    "tags": [
+      "表单冲突",
+      "时序趋势",
+      "0.1MPa",
+      "需复检"
+    ],
+    "assets": [
+      "表单 60-105",
+      "差压 GL-11",
+      "污油罐压力/液位",
+      "泵棚/PLC 联动帧"
+    ],
+    "quality": {
+      "title": "第73项填写正常,但差压趋势已逼近阈值",
+      "text": "AI 不直接改写表单结果,只把“正常填写”和“趋势近阈值”的差异升级为复检疑点。",
+      "facts": [
+        "表单结果: 正常",
+        "规则阈值: <0.1MPa",
+        "趋势末值: 0.097MPa",
+        "动作: 生成复检清单"
+      ]
+    },
+    "formExplain": [
+      {
+        "title": "先看填写事实",
+        "desc": "过滤器差压在巡检表中被填写为“正常”,这是 AI 不能直接覆盖的原始记录。"
+      },
+      {
+        "title": "再看系统质检",
+        "desc": "同一设备的趋势数据接近阈值,系统只标记冲突,不自动下异常结论。"
+      },
+      {
+        "title": "保留人工边界",
+        "desc": "复检结论仍由人员确认,页面只负责把疑点、证据和清单串起来。"
+      }
+    ],
+    "auxiliaryOnly": false
+  },
+  "finding": {
+    "area": "metering",
+    "priority": "high",
+    "entryType": "riskFlow",
+    "title": "计量区过滤器差压趋势异常",
+    "desc": "表单填写正常,但 72h 趋势接近 0.1MPa 阈值。",
+    "primary": true
+  }
+}

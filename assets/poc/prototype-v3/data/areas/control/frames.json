@@ -1,0 +1,32 @@
+{
+  "current": {
+    "src": "frames/current.jpg",
+    "title": "站控室材料 · 视频抽查",
+    "scene": "视频抽查统计",
+    "label": "",
+    "showBbox": false,
+    "sourcePath": "../../data/附件2/站场阀室巡检视频抽查情况统计表.jpg",
+    "sourceArea": "control",
+    "isDirectEvidence": true
+  },
+  "compare": {
+    "src": "frames/compare.jpg",
+    "title": "站控室材料 · 抽查复核",
+    "scene": "视频抽查统计",
+    "label": "",
+    "showBbox": false,
+    "sourcePath": "../../data/附件2/站场阀室巡检视频抽查情况统计表.jpg",
+    "sourceArea": "control",
+    "isDirectEvidence": true
+  },
+  "plc": {
+    "src": "frames/plc.png",
+    "title": "站控室联动帧 · PLC 状态",
+    "scene": "PLC 机房",
+    "label": "联动核验 0.91",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
+    "sourceArea": "plc",
+    "isDirectEvidence": false
+  }
+}

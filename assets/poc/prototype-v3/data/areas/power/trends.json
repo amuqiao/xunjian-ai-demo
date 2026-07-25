@@ -1,0 +1,14 @@
+{
+  "powerStable": {
+    "title": "配电间三相电压健康度",
+    "unit": "%",
+    "threshold": 85,
+    "safeSide": "above",
+    "min": 70,
+    "max": 100,
+    "quality": "10/10",
+    "window": null,
+    "summary": "三相电压健康度稳定,与低压配电室关键帧共同支撑供电侧核验。",
+    "file": "trends/power-stable.csv"
+  }
+}

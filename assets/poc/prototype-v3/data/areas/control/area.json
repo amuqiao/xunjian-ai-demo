@@ -1,0 +1,69 @@
+{
+  "key": "control",
+  "area": {
+    "title": "站控室视频与数据核对",
+    "short": "站控室",
+    "overviewTitle": "站控室视频质量核对",
+    "overviewDesc": "用于管理侧视频质量和参数核对,当前没有高优先级异常。",
+    "overviewStatus": "背景材料",
+    "overviewAction": "查看区域质检",
+    "overviewSecondary": "查看视觉证据",
+    "overviewTarget": "form",
+    "overviewStats": [
+      {
+        "label": "证据入口",
+        "value": "0"
+      },
+      {
+        "label": "视频质量",
+        "value": "9/10"
+      },
+      {
+        "label": "流程属性",
+        "value": "背景"
+      }
+    ],
+    "sub": "站控室用于核对视频质量、回放质量和关键参数。",
+    "badge": "站控核对",
+    "badgeTone": "info",
+    "trendKey": "videoQuality",
+    "evidence": "统计截图可作为报告背景或管理侧材料,不进入主线规则。",
+    "tags": [
+      "工业电视",
+      "抽查统计",
+      "背景材料"
+    ],
+    "assets": [
+      "表单 179-200",
+      "视频质量趋势",
+      "视频抽查统计图",
+      "PLC 联动帧"
+    ],
+    "quality": {
+      "title": "站控室用于管理侧视频质量核对",
+      "text": "站控室不是设备异常主线,重点展示工业电视、回放质量和系统状态是否可支撑报告背景。",
+      "facts": [
+        "表单对象: 工业电视/站控机",
+        "视频质量: 9/10",
+        "材料类型: 统计截图",
+        "动作: 作为管理侧背景"
+      ]
+    },
+    "formExplain": [
+      {
+        "title": "先看管理侧表单",
+        "desc": "站控室条目关注工业电视、监控画面、站控机和通信状态。"
+      },
+      {
+        "title": "视频质量作为材料",
+        "desc": "抽查统计图用于说明素材质量,不直接触发设备异常。"
+      },
+      {
+        "title": "结论边界清楚",
+        "desc": "当前只进入报告背景和证据说明,不推进复检闭环。"
+      }
+    ],
+    "auxiliaryOnly": true
+  },
+  "finding": null
+}

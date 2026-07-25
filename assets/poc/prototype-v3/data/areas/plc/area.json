@@ -1,0 +1,77 @@
+{
+  "key": "plc",
+  "area": {
+    "title": "PLC 机房灯态抽查",
+    "short": "PLC机房",
+    "overviewTitle": "PLC 机房灯态抽查",
+    "overviewDesc": "用于核验柜体、灯态和供电侧状态,作为视觉证据补充而非异常结论。",
+    "overviewStatus": "视觉辅助",
+    "overviewAction": "查看区域质检",
+    "overviewSecondary": "查看视觉证据",
+    "overviewTarget": "form",
+    "overviewStats": [
+      {
+        "label": "证据入口",
+        "value": "1"
+      },
+      {
+        "label": "识别对象",
+        "value": "POWER灯"
+      },
+      {
+        "label": "流程属性",
+        "value": "辅助"
+      }
+    ],
+    "sub": "切换到 PLC 机房关键帧,识别指示灯、柜体区域和状态标签。",
+    "badge": "灯态识别",
+    "badgeTone": "info",
+    "trendKey": "plcHealth",
+    "evidence": "PLC 机房关键帧适合补充视觉证据:识别灯态、柜体区域和状态标签。",
+    "tags": [
+      "PLC",
+      "指示灯",
+      "视觉证据",
+      "备用证据"
+    ],
+    "assets": [
+      "表单 285-315",
+      "通讯健康度趋势",
+      "PLC 机房关键帧",
+      "低压柜联动帧"
+    ],
+    "quality": {
+      "title": "PLC 机房灯态和通讯健康度一致",
+      "text": "灯态识别结果与通讯健康度趋势互相印证,当前作为设备状态抽查材料。",
+      "facts": [
+        "表单对象: PLC机柜",
+        "趋势状态: 95%+",
+        "视觉证据: 灯态识别",
+        "动作: 归入备用证据"
+      ]
+    },
+    "formExplain": [
+      {
+        "title": "锁定柜体巡检项",
+        "desc": "表单页优先展示 PLC 机柜、模块、指示灯等可被视觉核验的条目。"
+      },
+      {
+        "title": "联动通讯趋势",
+        "desc": "通讯健康度趋势稳定,支撑“抽查正常”的质检判断。"
+      },
+      {
+        "title": "保留供电侧关联",
+        "desc": "可切换低压配电室帧,说明 PLC 状态与供电侧材料能关联查看。"
+      }
+    ],
+    "auxiliaryOnly": true
+  },
+  "finding": {
+    "area": "plc",
+    "priority": "mid",
+    "entryType": "areaSummary",
+    "title": "PLC 机房灯态抽查",
+    "desc": "作为视觉证据,补充设备状态核验。",
+    "primary": false
+  }
+}

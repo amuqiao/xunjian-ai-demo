@@ -1,0 +1,6 @@
+item,areaKey,no,area,device,check,result,hot
+pressure,metering,63,计量区,污油罐,压力,0.06,false
+dp,metering,73,计量区,过滤器,差压,正常,true
+panel,metering,76,计量区,电动执行机构,显示面板,正常,false
+indicator,metering,77,计量区,电动执行机构,指示灯,正常,false
+level,metering,97,计量区,污油罐,液位,329mm,false

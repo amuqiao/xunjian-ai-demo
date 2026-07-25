@@ -73,8 +73,8 @@
                   <g class="map-area" data-area="plc" tabindex="0" role="button" aria-label="PLC机房">
                     <polygon points="712,268 820,256 846,352 746,392"></polygon><text x="742" y="330">PLC机房</text>
                   </g>
-                  <g class="map-area" data-area="ups" tabindex="0" role="button" aria-label="UPS室">
-                    <polygon points="186,122 270,92 318,150 248,214"></polygon><text x="214" y="164">UPS室</text>
+                  <g class="map-area" data-area="power" tabindex="0" role="button" aria-label="配电间">
+                    <polygon points="186,122 270,92 318,150 248,214"></polygon><text x="214" y="164">配电间</text>
                   </g>
                   <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" tabindex="0" role="button" aria-label="计量区高优先级疑点"></circle>
                 </svg>
@@ -108,8 +108,8 @@
 
               <section class="panel findings-panel">
                 <div class="panel-title">
-                  <span>AI 提示列表</span>
-                  <span class="mini-hint">高风险进入详情</span>
+                  <span>异常与证据入口</span>
+                  <span class="mini-hint">高风险进入闭环</span>
                 </div>
                 <div class="finding-list" id="findingList"></div>
               </section>
@@ -127,10 +127,22 @@
           </div>
 
           <div class="form-grid">
+            <aside class="panel scope-panel">
+              <div class="panel-title">
+                <span>区域质检范围</span>
+                <span class="mini-hint">6 区域</span>
+              </div>
+              <div class="scope-list" id="areaScopeList"></div>
+              <div class="asset-card card">
+                <strong>本区数据资产</strong>
+                <div class="asset-list" id="areaAssetList"></div>
+              </div>
+            </aside>
+
             <section class="panel table-panel">
               <div class="panel-title">
-                <span>精选巡检项</span>
-                <span class="mini-hint">表单 / 路线 / 结果</span>
+                <span id="inspectionPanelTitle">巡检表明细</span>
+                <span class="mini-hint">表单 / 设备 / 结果</span>
               </div>
               <div class="table-scroll">
                 <table class="data-table" id="inspectionTable">
@@ -141,25 +153,23 @@
                 </table>
               </div>
               <div class="evidence-card card">
-                <strong>证据摘要</strong>
+                <strong id="evidenceTitle">证据摘要</strong>
                 <p id="evidenceText"></p>
                 <div class="tag-row" id="evidenceTags"></div>
               </div>
             </section>
 
-            <section class="conflict-column" aria-label="表单冲突说明">
-              <div class="conflict-card" id="conflictCard">
+            <aside class="panel form-explain-panel">
+              <div class="panel-title">
+                <span>AI 质检结论</span>
+                <span class="mini-hint">规则 / 时序 / 视觉</span>
+              </div>
+              <div class="conflict-card inline" id="conflictCard">
                 <span class="conflict-icon">!</span>
                 <strong id="conflictTitle">表单正常 vs 趋势逼近阈值</strong>
                 <p id="conflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
               </div>
-            </section>
-
-            <aside class="panel form-explain-panel">
-              <div class="panel-title">
-                <span>质检判断</span>
-                <span class="mini-hint">从表单到证据</span>
-              </div>
+              <div class="quality-facts" id="formQualityFacts"></div>
               <div class="explain-list" id="formExplainList"></div>
             </aside>
           </div>
@@ -235,7 +245,7 @@
                 </div>
               </div>
               <div class="frame-stage frame-stage-large">
-                <img id="frameImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="现场关键帧" />
+                <img id="frameImage" alt="现场关键帧" />
                 <div class="bbox" id="bbox"><span id="bboxLabel">视觉证据 0.92</span></div>
               </div>
               <div class="frame-caption">

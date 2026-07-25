@@ -1,0 +1,6 @@
+item,areaKey,no,area,device,check,result,hot
+valve-main,valve,12,阀组区,进站阀组,阀位状态,正常,false
+valve-leak,valve,18,阀组区,汇管区,跑冒滴漏,未见异常,false
+valve-pressure,valve,24,阀组区,压力表,示值状态,平稳,false
+valve-ground,valve,38,阀组区,防静电设施,接地状态,正常,false
+valve-route,valve,51,阀组区,区域环境,巡检路线,已覆盖,false

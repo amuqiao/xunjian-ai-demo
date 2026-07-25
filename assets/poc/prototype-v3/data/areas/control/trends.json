@@ -1,0 +1,14 @@
+{
+  "videoQuality": {
+    "title": "站控室监控质量",
+    "unit": "%",
+    "threshold": 85,
+    "safeSide": "above",
+    "min": 60,
+    "max": 100,
+    "quality": "9/10",
+    "window": null,
+    "summary": "监控质量用于管理材料展示,不参与差压异常判定。",
+    "file": "trends/video-quality.csv"
+  }
+}

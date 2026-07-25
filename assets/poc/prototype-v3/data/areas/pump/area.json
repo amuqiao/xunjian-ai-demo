@@ -1,0 +1,77 @@
+{
+  "key": "pump",
+  "area": {
+    "title": "泵区现场视频帧复核",
+    "short": "泵区",
+    "overviewTitle": "泵棚视频帧待复核",
+    "overviewDesc": "现场关键帧可作为设备状态辅助证据,本轮不进入高优先级异常闭环。",
+    "overviewStatus": "视觉辅助",
+    "overviewAction": "查看区域质检",
+    "overviewSecondary": "查看视觉证据",
+    "overviewTarget": "form",
+    "overviewStats": [
+      {
+        "label": "证据入口",
+        "value": "1"
+      },
+      {
+        "label": "证据类型",
+        "value": "关键帧"
+      },
+      {
+        "label": "流程属性",
+        "value": "辅助"
+      }
+    ],
+    "sub": "切换关键帧,核对设备状态与巡检记录一致性。",
+    "badge": "视觉证据",
+    "badgeTone": "info",
+    "trendKey": "pumpStable",
+    "evidence": "泵区关键帧用于核对现场视频抽查结果,可在报告页作为辅助证据,不改变主线复检判断。",
+    "tags": [
+      "视频帧",
+      "辅助证据",
+      "泵棚",
+      "正常对照"
+    ],
+    "assets": [
+      "表单 106-138",
+      "泵健康度趋势",
+      "P-4 泵棚关键帧",
+      "PLC 联动帧"
+    ],
+    "quality": {
+      "title": "泵区表单与视频帧一致,作为视觉辅助",
+      "text": "该区域展示设备外观、泵棚环境和运行健康度的正常对照,不进入主线复检。",
+      "facts": [
+        "表单覆盖: 泵棚设备",
+        "趋势状态: 平稳",
+        "视觉证据: 2 帧",
+        "动作: 保留为报告辅证"
+      ]
+    },
+    "formExplain": [
+      {
+        "title": "表单覆盖泵棚设备",
+        "desc": "先确认泵区关键巡检项均有记录,避免只看图像忽略表单事实。"
+      },
+      {
+        "title": "趋势用于正常对照",
+        "desc": "运行健康度保持平稳,说明 AI 不是对全站区域平均报错。"
+      },
+      {
+        "title": "视觉只做补证",
+        "desc": "P-4 泵棚关键帧用于补充设备状态和现场语境。"
+      }
+    ],
+    "auxiliaryOnly": true
+  },
+  "finding": {
+    "area": "pump",
+    "priority": "mid",
+    "entryType": "areaSummary",
+    "title": "泵棚视频帧待复核",
+    "desc": "现场关键帧可用于补充设备状态证据。",
+    "primary": false
+  }
+}

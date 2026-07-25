@@ -1,0 +1,6 @@
+item,areaKey,no,area,device,check,result,hot
+plc,plc,288,PLC机房,PLC机柜,POWER灯,正常,false
+plc-run,plc,292,PLC机房,PLC 模块,RUN灯,正常,false
+plc-comm,plc,296,PLC机房,通讯模块,通讯状态,正常,false
+plc-cabinet,plc,302,PLC机房,机柜,柜门/标识,正常,false
+plc-env,plc,312,PLC机房,机房环境,温湿度,平稳,false

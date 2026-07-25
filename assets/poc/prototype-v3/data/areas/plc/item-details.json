@@ -1,0 +1,12 @@
+{
+  "plc": {
+    "evidence": "已选中 PLC 机柜 POWER 灯项。右侧关键帧切换到 PLC 机房,核验灯态识别结果。",
+    "tags": [
+      "PLC",
+      "POWER灯",
+      "灯态识别"
+    ],
+    "trendKey": "plcHealth",
+    "image": "plc"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "key": "power",
+  "area": {
+    "title": "配电间供电侧核验",
+    "short": "配电间",
+    "overviewTitle": "配电间低压柜状态核对",
+    "overviewDesc": "低压配电室关键帧可直接支撑供电侧视觉核验,适合展示配电设备状态。",
+    "overviewStatus": "供电侧核验",
+    "overviewAction": "查看区域质检",
+    "overviewSecondary": "查看视觉证据",
+    "overviewTarget": "form",
+    "overviewStats": [
+      {
+        "label": "证据入口",
+        "value": "1"
+      },
+      {
+        "label": "视觉帧",
+        "value": "低压柜"
+      },
+      {
+        "label": "流程属性",
+        "value": "供电"
+      }
+    ],
+    "sub": "配电间展示供电侧表单、三相电压趋势和低压配电室关键帧的闭环。",
+    "badge": "供电侧核验",
+    "badgeTone": "ok",
+    "trendKey": "powerStable",
+    "evidence": "配电间使用低压配电室关键帧核对柜体状态,并用三相电压趋势作为正常对照。",
+    "tags": [
+      "低压配电室",
+      "三相电压",
+      "供电侧",
+      "视觉证据"
+    ],
+    "assets": [
+      "表单 250/259/260",
+      "频率/电压模拟趋势",
+      "低压配电室关键帧",
+      "直流屏补充项"
+    ],
+    "quality": {
+      "title": "配电间表单、趋势、低压柜画面一致",
+      "text": "该区域承担供电侧演示角色,后续补充更多电参量和柜体帧时可直接填充数据对象。",
+      "facts": [
+        "表单对象: 低压配电装置",
+        "趋势状态: 频率/电压平稳",
+        "视觉证据: 低压配电室",
+        "动作: 保留供电侧核验"
+      ]
+    },
+    "formExplain": [
+      {
+        "title": "供电侧素材匹配",
+        "desc": "现有关键帧直接来自低压配电室,能清晰支撑柜体、开关和仪表状态核验。"
+      },
+      {
+        "title": "趋势构造有业务方向",
+        "desc": "后续可填充三相电压、柜温、开关状态等时序数据。"
+      },
+      {
+        "title": "视觉证据可持续扩展",
+        "desc": "当前先绑定低压柜关键帧,后续补图像帧只需要增加 frameSources。"
+      }
+    ],
+    "auxiliaryOnly": true
+  },
+  "finding": {
+    "area": "power",
+    "priority": "mid",
+    "entryType": "areaSummary",
+    "title": "配电间低压柜状态核对",
+    "desc": "低压配电室关键帧可支撑供电侧视觉核验。",
+    "primary": false
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "current": {
+    "src": "frames/current.png",
+    "title": "泵区关键帧 · 设备状态",
+    "scene": "P-4 泵棚",
+    "label": "设备区域 0.89",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
+    "sourceArea": "pump",
+    "isDirectEvidence": true
+  },
+  "compare": {
+    "src": "frames/compare.png",
+    "title": "泵区关键帧 · 同点位对比",
+    "scene": "P-4 泵棚",
+    "label": "同点位对比 0.90",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
+    "sourceArea": "pump",
+    "isDirectEvidence": true
+  },
+  "plc": {
+    "src": "frames/plc.png",
+    "title": "泵区联动帧 · PLC 状态",
+    "scene": "PLC 机房",
+    "label": "联动核验 0.91",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
+    "sourceArea": "plc",
+    "isDirectEvidence": false
+  }
+}

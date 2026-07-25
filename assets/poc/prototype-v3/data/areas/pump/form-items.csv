@@ -1,0 +1,6 @@
+item,areaKey,no,area,device,check,result,hot
+pump-body,pump,108,泵区,P-4 输油泵,本体状态,正常,false
+pump-seal,pump,114,泵区,P-4 输油泵,密封泄漏,未见异常,false
+pump-vibration,pump,121,泵区,机泵基础,振动/异响,平稳,false
+pump-video,pump,132,泵区,泵棚画面,视频帧可用,可用,false
+pump-env,pump,138,泵区,区域环境,通道/照明,正常,false

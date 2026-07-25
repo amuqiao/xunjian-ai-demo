@@ -1,0 +1,42 @@
+{
+  "filterDp": {
+    "title": "过滤器差压趋势 · 72h",
+    "unit": "MPa",
+    "threshold": 0.1,
+    "safeSide": "below",
+    "min": 0.04,
+    "max": 0.105,
+    "quality": "12/12",
+    "window": {
+      "startIndex": 8,
+      "endIndex": 11,
+      "label": "异常窗口"
+    },
+    "summary": "差压连续抬升,末值距离 0.1MPa 阈值仅 0.003MPa。",
+    "file": "trends/filter-dp.csv"
+  },
+  "pressureStable": {
+    "title": "污油罐压力趋势 · 72h",
+    "unit": "MPa",
+    "threshold": 0.08,
+    "safeSide": "below",
+    "min": 0.04,
+    "max": 0.09,
+    "quality": "12/12",
+    "window": null,
+    "summary": "压力围绕 0.06MPa 小幅波动,作为正常对照。",
+    "file": "trends/pressure-stable.csv"
+  },
+  "levelStable": {
+    "title": "污油罐液位趋势 · 72h",
+    "unit": "mm",
+    "threshold": 500,
+    "safeSide": "below",
+    "min": 260,
+    "max": 520,
+    "quality": "12/12",
+    "window": null,
+    "summary": "液位在 320mm 附近波动,不进入本轮高优先级复检主线。",
+    "file": "trends/level-stable.csv"
+  }
+}

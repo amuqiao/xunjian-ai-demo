@@ -1,0 +1,14 @@
+{
+  "plcHealth": {
+    "title": "PLC 通讯健康度 · 抽查",
+    "unit": "%",
+    "threshold": 80,
+    "safeSide": "above",
+    "min": 60,
+    "max": 100,
+    "quality": "10/10",
+    "window": null,
+    "summary": "PLC 通讯健康度稳定,配合关键帧完成灯态抽查。",
+    "file": "trends/plc-health.csv"
+  }
+}

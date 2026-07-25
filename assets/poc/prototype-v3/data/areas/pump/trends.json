@@ -1,0 +1,14 @@
+{
+  "pumpStable": {
+    "title": "泵区运行状态 · 平稳",
+    "unit": "%",
+    "threshold": 88,
+    "safeSide": "above",
+    "min": 60,
+    "max": 95,
+    "quality": "10/10",
+    "window": null,
+    "summary": "泵区运行健康度保持平稳,用于视觉证据的正常对照。",
+    "file": "trends/pump-stable.csv"
+  }
+}

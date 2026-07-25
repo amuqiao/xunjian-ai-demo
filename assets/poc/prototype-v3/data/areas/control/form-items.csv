@@ -1,0 +1,6 @@
+item,areaKey,no,area,device,check,result,hot
+control-scada,control,181,站控室,站控机,画面状态,正常,false
+control-comm,control,183,站控室,PLC 通讯,通讯状态,正常,false
+control-tv,control,186,站控室,工业电视,图像质量,9/10,false
+control-record,control,188,站控室,工业电视,录像回放,可回放,false
+control-time,control,196,站控室,系统时钟,时间同步,正常,false

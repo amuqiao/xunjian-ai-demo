@@ -1,0 +1,14 @@
+{
+  "valveStable": {
+    "title": "阀组区状态 · 平稳",
+    "unit": "%",
+    "threshold": 75,
+    "safeSide": "above",
+    "min": 55,
+    "max": 95,
+    "quality": "10/10",
+    "window": null,
+    "summary": "阀组区状态平稳,作为全站路线覆盖和正常对照。",
+    "file": "trends/valve-stable.csv"
+  }
+}

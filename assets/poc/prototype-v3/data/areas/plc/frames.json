@@ -1,0 +1,32 @@
+{
+  "current": {
+    "src": "frames/current.png",
+    "title": "PLC 关键帧 · 灯态抽查",
+    "scene": "PLC 机房",
+    "label": "灯态识别 0.91",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
+    "sourceArea": "plc",
+    "isDirectEvidence": true
+  },
+  "compare": {
+    "src": "frames/compare.png",
+    "title": "PLC 关键帧 · 供电侧对比",
+    "scene": "低压配电室",
+    "label": "供电侧核验 0.87",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
+    "sourceArea": "power",
+    "isDirectEvidence": false
+  },
+  "plc": {
+    "src": "frames/plc.png",
+    "title": "PLC 关键帧 · 柜体细节",
+    "scene": "PLC 机房",
+    "label": "柜体区域 0.91",
+    "showBbox": true,
+    "sourcePath": "../../data/现场视频关键帧/湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
+    "sourceArea": "plc",
+    "isDirectEvidence": true
+  }
+}

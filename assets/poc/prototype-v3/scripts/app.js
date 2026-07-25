@@ -7,12 +7,13 @@
   var lastFocus = null;
 
   function initialState() {
+    var flow = primaryFlow();
     return {
       scene: "overview",
-      currentArea: "metering",
-      selectedItem: "dp",
-      currentTrend: "filterDp",
-      frameKey: "current",
+      currentArea: flow.areaKey,
+      selectedItem: flow.itemKey,
+      currentTrend: flow.trendKey,
+      frameKey: flow.frameKey,
       decision: "",
       archived: false,
       recheckReady: false,
@@ -63,6 +64,10 @@
   function assertKey(obj, key, label) {
     if (!(key in obj)) throw new Error("[v3] 未知" + label + ": " + key);
     return obj[key];
+  }
+
+  function primaryFlow() {
+    return DATA.shell.primaryFlow;
   }
 
   function formatTrendValue(value, unit) {
@@ -133,6 +138,9 @@
 
   function canVisit(scene) {
     if (scene === state.scene) return true;
+    if (state.browseMode && assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) {
+      if (scene === "overview" || scene === "form" || scene === "trend" || scene === "vision") return true;
+    }
     if (scene === "overview" || scene === "form") return true;
     if (scene === "trend") return state.maxStepIndex >= stepIndex("form");
     if (scene === "vision") return state.maxStepIndex >= stepIndex("conflict");
@@ -185,9 +193,10 @@
       state.currentTrend = areaInfo.trendKey;
       state.frameKey = "current";
     } else {
-      state.selectedItem = "dp";
-      state.currentTrend = DATA.analysis.itemDetails.dp.trendKey;
-      state.frameKey = DATA.analysis.itemDetails.dp.image;
+      var flow = primaryFlow();
+      state.selectedItem = flow.itemKey;
+      state.currentTrend = flow.trendKey;
+      state.frameKey = flow.frameKey;
     }
     if (shouldRender !== false) render();
   }
@@ -204,7 +213,7 @@
 
   function openRiskFlow(area) {
     state.browseMode = false;
-    go("form", { area: area || "metering", stepKey: "form" });
+    go("form", { area: area || primaryFlow().areaKey, stepKey: "form" });
   }
 
   function browseArea(scene, area, stepKey) {
@@ -230,42 +239,55 @@
   }
 
   function areaSecondaryAction() {
-    browseArea("form", state.currentArea, "form");
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    if (area.auxiliaryOnly) browseArea("vision", state.currentArea, "vision");
+    else openRiskFlow(state.currentArea);
+  }
+
+  function switchFormArea(areaKey) {
+    var area = assertKey(DATA.areas, areaKey, "区域");
+    enterArea(areaKey, false);
+    state.scene = "form";
+    state.browseMode = area.auxiliaryOnly;
+    showStep("form");
+    if (window.location.hash !== "#form") window.location.hash = "form";
+    persistState();
+    render();
+  }
+
+  function inspectionRowsForArea(areaKey) {
+    var rows = DATA.analysis.inspectionRows.filter(function (row) { return row.areaKey === areaKey; });
+    if (!rows.length) throw new Error("[v3] 区域缺少巡检表行: " + areaKey);
+    return rows;
+  }
+
+  function inspectionRowForItem(itemKey) {
+    var row = DATA.analysis.inspectionRows.filter(function (item) { return item.item === itemKey; })[0];
+    if (!row) throw new Error("[v3] 巡检表缺少条目: " + itemKey);
+    return row;
+  }
+
+  function primaryFlowRow() {
+    return inspectionRowForItem(primaryFlow().itemKey);
   }
 
   function browseRowsForArea(areaKey) {
-    var area = assertKey(DATA.areas, areaKey, "区域");
-    var rows = DATA.analysis.inspectionRows.filter(function (row) { return row.areaKey === areaKey; });
-    if (rows.length) {
-      return rows.map(function (row) {
-        return {
-          no: row.no,
-          area: row.area,
-          device: row.device,
-          check: row.check,
-          result: row.result,
-          hot: false,
-          item: row.item,
-        };
-      });
-    }
-    return area.overviewStats.map(function (stat, index) {
+    return inspectionRowsForArea(areaKey).map(function (row) {
       return {
-        no: "-",
-        area: area.short,
-        device: area.overviewStatus,
-        check: stat.label,
-        result: stat.value,
+        no: row.no,
+        area: row.area,
+        device: row.device,
+        check: row.check,
+        result: row.result,
         hot: false,
-        item: areaKey + "-" + index,
+        item: row.item,
       };
     });
   }
 
   function selectItem(itemKey, targetScene) {
     var detail = assertKey(DATA.analysis.itemDetails, itemKey, "巡检项");
-    var row = DATA.analysis.inspectionRows.filter(function (item) { return item.item === itemKey; })[0];
-    if (!row) throw new Error("[v3] 巡检表缺少条目: " + itemKey);
+    var row = inspectionRowForItem(itemKey);
     state.selectedItem = itemKey;
     state.currentArea = row.areaKey;
     state.currentTrend = detail.trendKey;
@@ -280,8 +302,9 @@
 
   function selectTrendItem(itemKey) {
     var detail = assertKey(DATA.analysis.itemDetails, itemKey, "巡检项");
+    var row = inspectionRowForItem(itemKey);
     state.selectedItem = itemKey;
-    state.currentArea = "metering";
+    state.currentArea = row.areaKey;
     state.currentTrend = detail.trendKey;
     state.frameKey = detail.image;
     markStep("trend");
@@ -348,6 +371,30 @@
     });
   }
 
+  function renderAreaScope() {
+    var list = q("areaScopeList");
+    list.innerHTML = "";
+    DATA.overview.areaOrder.forEach(function (areaKey) {
+      var area = assertKey(DATA.areas, areaKey, "区域");
+      list.appendChild(el("button", {
+        class: "scope-item" + (state.currentArea === areaKey ? " active" : "") + (!area.auxiliaryOnly ? " risk" : ""),
+        type: "button",
+        onClick: function () { switchFormArea(areaKey); },
+      }, [
+        el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
+        el("strong", { text: area.short }),
+        el("small", { text: area.overviewDesc }),
+      ]));
+    });
+
+    var assets = q("areaAssetList");
+    var areaInfo = assertKey(DATA.areas, state.currentArea, "区域");
+    assets.innerHTML = "";
+    areaInfo.assets.forEach(function (asset) {
+      assets.appendChild(el("span", { class: "asset-pill", text: asset }));
+    });
+  }
+
   function renderOverview() {
     var task = DATA.overview.task;
     var currentArea = assertKey(DATA.areas, state.currentArea, "区域");
@@ -373,6 +420,9 @@
     DATA.overview.metrics.forEach(function (m) {
       var value = m.value;
       var tone = m.tone;
+      if (m.key === "findings") {
+        value = String(DATA.overview.findings.length);
+      }
       if (m.key === "recheck" && state.decision) {
         value = "0";
         tone = "green";
@@ -394,15 +444,21 @@
     q("riskDot").classList.toggle("closed", state.archived);
     q("mapToastBadge").className = "badge " + currentArea.badgeTone;
     q("mapToastBadge").textContent = currentArea.overviewStatus;
-    q("mapToastText").textContent = state.archived && state.currentArea === "metering"
-      ? "复检报告已归档,计量区疑点进入闭环案例库。"
+    q("mapToastText").textContent = state.archived && state.currentArea === primaryFlow().areaKey
+      ? "复检报告已归档," + currentArea.short + "疑点进入闭环案例库。"
       : currentArea.short + ": " + currentArea.overviewDesc;
 
     var areaGrid = q("areaSummaryGrid");
     areaGrid.innerHTML = "";
     DATA.overview.areaOrder.forEach(function (areaKey) {
       var area = assertKey(DATA.areas, areaKey, "区域");
-      var findingCount = DATA.overview.findings.filter(function (finding) { return finding.area === areaKey; }).length;
+      var areaFindings = DATA.overview.findings.filter(function (finding) { return finding.area === areaKey; });
+      var findingCount = areaFindings.length;
+      var cardHint = !findingCount
+        ? "本轮正常覆盖"
+        : areaFindings.some(function (finding) { return finding.entryType === "riskFlow"; })
+          ? findingCount + " 个高风险疑点"
+          : findingCount + " 个证据入口";
       var cls = "area-summary-card" + (state.currentArea === areaKey ? " active" : "") + (!area.auxiliaryOnly ? " risk" : "");
       areaGrid.appendChild(el("button", {
         class: cls,
@@ -412,7 +468,7 @@
       }, [
         el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
         el("strong", { text: area.short }),
-        el("small", { text: findingCount ? findingCount + " 个 AI 提示" : "本轮正常覆盖" }),
+        el("small", { text: cardHint }),
       ]));
     });
 
@@ -440,7 +496,7 @@
     DATA.overview.findings.forEach(function (finding) {
       var closed = finding.primary && (state.decision || state.archived);
       var badgeClass = closed ? "badge ok" : finding.priority === "high" ? "badge danger" : "badge warn";
-      var badgeText = closed ? (state.archived ? "已归档" : "已复检") : finding.priority === "high" ? "高优先级" : "中优先级";
+      var badgeText = closed ? (state.archived ? "已归档" : "已复检") : finding.priority === "high" ? "高优先级" : "证据入口";
       var resultText = "";
       if (closed) {
         resultText = state.archived
@@ -467,14 +523,15 @@
   function renderInspectionTable() {
     var tbody = q("inspectionTable").querySelector("tbody");
     tbody.innerHTML = "";
-    var rows = state.browseMode ? browseRowsForArea(state.currentArea) : DATA.analysis.inspectionRows;
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    var rows = state.browseMode || area.auxiliaryOnly ? browseRowsForArea(state.currentArea) : inspectionRowsForArea(state.currentArea);
     rows.forEach(function (row) {
-      var interactive = !state.browseMode;
+      var interactive = !state.browseMode && !area.auxiliaryOnly && !!DATA.analysis.itemDetails[row.item];
       var tr = el("tr", {
-        class: (row.hot ? "hot " : "") + (state.selectedItem === row.item && !DATA.areas[state.currentArea].auxiliaryOnly ? "selected" : "") + (state.browseMode ? "readonly" : ""),
+        class: (row.hot ? "hot " : "") + (state.selectedItem === row.item && !area.auxiliaryOnly ? "selected" : "") + (!interactive ? "readonly" : ""),
         tabindex: interactive ? "0" : "-1",
         role: interactive ? "button" : "row",
-        "aria-selected": state.selectedItem === row.item && !DATA.areas[state.currentArea].auxiliaryOnly ? "true" : "false",
+        "aria-selected": state.selectedItem === row.item && !area.auxiliaryOnly ? "true" : "false",
         dataset: { item: row.item },
         onClick: interactive ? function () { selectItem(row.item); } : null,
         onKeydown: function (event) {
@@ -510,25 +567,45 @@
   }
 
   function conflictContent(area, trendInfo) {
+    var primaryRow = primaryFlowRow();
+    var primaryLabel = "第" + primaryRow.no + "项" + primaryRow.check;
     if (area.auxiliaryOnly) {
       return {
-        title: "AI 按风险聚焦 · " + area.short + "为对照",
-        text: area.evidence,
+        title: area.quality.title,
+        text: area.quality.text,
         contrast: true,
+        facts: area.quality.facts,
       };
     }
-    if (state.selectedItem === "dp") {
+    if (state.selectedItem === primaryFlow().itemKey) {
       return {
-        title: "表单第73项 = 正常 ↔ 差压趋势 " + trendInfo.latest,
-        text: "阈值 0.1MPa,余量仅 " + trendInfo.marginText + " · " + trendInfo.summary,
+        title: "表单" + primaryLabel + " = " + primaryRow.result + " ↔ 趋势 " + trendInfo.latest,
+        text: "阈值余量 " + trendInfo.marginText + " · " + trendInfo.summary,
         contrast: false,
+        facts: area.quality.facts,
       };
     }
     return {
       title: "主线冲突未解除",
-      text: "当前查看辅助项,第73项差压仍需回到主线复检。",
+      text: "当前查看辅助项," + primaryLabel + "仍需回到主线复检。",
       contrast: false,
+      facts: [
+        "主线对象: " + primaryRow.area + "/" + primaryRow.device + "/" + primaryRow.check,
+        "当前查看: 辅助巡检项",
+        "动作: 返回" + primaryRow.check + "项复核",
+      ],
     };
+  }
+
+  function renderQualityFacts(items) {
+    var facts = q("formQualityFacts");
+    facts.innerHTML = "";
+    items.forEach(function (item) {
+      facts.appendChild(el("div", { class: "quality-fact card" }, [
+        el("small", { text: item.split(":")[0] }),
+        el("strong", { text: item.indexOf(":") >= 0 ? item.split(":").slice(1).join(":").trim() : item }),
+      ]));
+    });
   }
 
   function trendSummary(seriesKey) {
@@ -552,23 +629,27 @@
 
   function renderForm() {
     var area = assertKey(DATA.areas, state.currentArea, "区域");
-    q("formTitle").textContent = state.browseMode ? area.overviewStatus + "工作台" : "表单质检工作台";
+    q("formTitle").textContent = area.auxiliaryOnly ? area.short + "质检记录" : "表单质检工作台";
     q("formSubtitle").textContent = area.sub;
     q("formBadge").className = "badge " + area.badgeTone;
     q("formBadge").textContent = area.short + " · " + area.badge;
+    q("inspectionPanelTitle").textContent = area.short + "巡检表明细";
 
+    renderAreaScope();
     renderInspectionTable();
 
     q("evidenceTags").innerHTML = "";
     if (state.browseMode || area.auxiliaryOnly) {
+      q("evidenceTitle").textContent = "区域证据摘要";
       q("evidenceText").textContent = area.evidence;
       area.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
-      q("formPrimary").textContent = "返回区域概要";
-      q("formPrimary").dataset.action = "back-overview";
+      q("formPrimary").textContent = "查看区域趋势";
+      q("formPrimary").dataset.action = "go-trend";
     } else {
       var detail = assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项");
+      q("evidenceTitle").textContent = "冲突证据摘要";
       q("evidenceText").textContent = detail.evidence;
       detail.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
@@ -581,16 +662,18 @@
     q("conflictCard").classList.toggle("contrast", content.contrast);
     q("conflictTitle").textContent = content.title;
     q("conflictText").textContent = content.text;
-    renderExplainList("formExplainList", DATA.analysis.formExplain);
+    renderQualityFacts(content.facts);
+    renderExplainList("formExplainList", area.formExplain);
   }
 
   function renderTrendScene() {
     var area = assertKey(DATA.areas, state.currentArea, "区域");
+    var primaryRow = primaryFlowRow();
     var isConflictStep = state.stepKey === "conflict";
     q("trendSceneTitle").textContent = isConflictStep ? "表单趋势冲突工作台" : "时序预警工作台";
     q("trendSubtitle").textContent = isConflictStep
       ? "当前步骤聚焦“表单正常”和“趋势近阈值”的矛盾,为后续复检生成明确对象。"
-      : area.auxiliaryOnly ? area.sub : "第 73 项表单结果为“正常”,但趋势曲线显示差压持续接近阈值。";
+      : area.auxiliaryOnly ? area.sub : "第 " + primaryRow.no + " 项表单结果为“" + primaryRow.result + "”,但趋势曲线显示" + primaryRow.check + "需要复核。";
     q("trendBadge").className = "badge " + (area.auxiliaryOnly && !isConflictStep ? "info" : "danger");
     q("trendBadge").textContent = isConflictStep ? "表单趋势冲突 · 待复检" : area.auxiliaryOnly ? area.short + " · 对照趋势" : "时序预警 · 接近阈值";
 
@@ -600,12 +683,15 @@
     var content = conflictContent(area, trendInfo);
     q("trendConflictTitle").textContent = content.title;
     q("trendConflictText").textContent = content.text;
-    renderExplainList("trendExplainList", isConflictStep ? DATA.analysis.conflictExplain : DATA.analysis.trendExplain);
+    renderExplainList("trendExplainList", isConflictStep ? DATA.analysis.conflictExplain : area.auxiliaryOnly ? area.formExplain : DATA.analysis.trendExplain);
 
     qa("[data-trend]").forEach(function (btn) {
+      btn.dataset.trend = area.auxiliaryOnly && !isConflictStep ? area.trendKey : primaryFlow().trendKey;
+      btn.textContent = area.auxiliaryOnly && !isConflictStep ? "区域趋势" : primaryRow.check;
       btn.classList.toggle("active", state.currentTrend === btn.dataset.trend);
     });
     qa("[data-item='pressure']").forEach(function (btn) {
+      btn.hidden = area.auxiliaryOnly && !isConflictStep;
       btn.classList.toggle("active", state.selectedItem === "pressure" && !area.auxiliaryOnly);
     });
   }
@@ -694,11 +780,11 @@
 
     var hotspot = container.querySelector(".trend-hotspot");
     if (hotspot) {
-      hotspot.addEventListener("click", function () { selectItem("dp"); });
+      hotspot.addEventListener("click", function () { selectItem(primaryFlow().itemKey); });
       hotspot.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          selectItem("dp");
+          selectItem(primaryFlow().itemKey);
         }
       });
     }
@@ -853,6 +939,31 @@
   }
 
   function renderFlow() {
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    if (area.auxiliaryOnly) {
+      q("flowHint").textContent = area.short + "演示生命周期 · " + area.lifecycle.terminalState;
+      q("flowTrack").innerHTML = "";
+      area.lifecycle.stages.forEach(function (stage, index) {
+        assertKey(DATA.shell.sceneLabels, stage.scene, "场景");
+        var cls = "flow-step" + (stage.scene === state.scene ? " active" : "");
+        q("flowTrack").appendChild(el("button", {
+          class: cls,
+          type: "button",
+          title: stage.purpose,
+          dataset: { idx: String(index + 1), step: stage.scene },
+          onClick: function () {
+            if (stage.scene === "overview") selectOverviewArea(state.currentArea);
+            else browseArea(stage.scene, state.currentArea, defaultStepForScene(stage.scene));
+          },
+        }, [
+          el("strong", { text: DATA.shell.sceneLabels[stage.scene] }),
+          el("small", { text: stage.purpose }),
+        ]));
+      });
+      return;
+    }
+
+    q("flowHint").textContent = "流程步骤 · 灰色步骤需完成前序操作后解锁";
     var activeIndex = stepIndex(state.stepKey);
     q("flowTrack").innerHTML = "";
     DATA.shell.flowSteps.forEach(function (step, index) {
@@ -876,8 +987,9 @@
   }
 
   function renderDrawer() {
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
     q("drawerQuestions").innerHTML = "";
-    DATA.shell.agentQA.forEach(function (item) {
+    area.questions.forEach(function (item) {
       q("drawerQuestions").appendChild(el("button", {
         class: "drawer-question",
         type: "button",
@@ -894,6 +1006,7 @@
     renderVision();
     renderRecheck();
     renderReport();
+    renderDrawer();
     renderFlow();
   }
 
@@ -971,15 +1084,15 @@
 
   function handleAction(action) {
     if (action === "go-form") {
-      if (state.scene === "overview") go("form", { area: "metering", stepKey: "form" });
+      if (state.scene === "overview") go("form", { area: primaryFlow().areaKey, stepKey: "form" });
       else go("form", { stepKey: "form" });
     }
     else if (action === "go-trend") {
-      if (state.browseMode) browseArea("trend", state.currentArea, "trend");
+      if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) browseArea("trend", state.currentArea, "trend");
       else go("trend", { stepKey: "trend" });
     }
     else if (action === "go-vision") {
-      if (state.browseMode) {
+      if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) {
         browseArea("vision", state.currentArea, "vision");
         return;
       }
@@ -998,7 +1111,7 @@
     else if (action === "go-area-primary") areaPrimaryAction();
     else if (action === "go-area-secondary") areaSecondaryAction();
     else if (action === "back-main") {
-      enterArea("metering", false);
+      enterArea(primaryFlow().areaKey, false);
       go("form", { stepKey: "form" });
     } else if (action === "confirm-recheck") {
       if (!state.decision) {
@@ -1025,7 +1138,15 @@
 
   function bindEvents() {
     qa("[data-scene-target]").forEach(function (btn) {
-      btn.addEventListener("click", function () { go(btn.dataset.sceneTarget); });
+      btn.addEventListener("click", function () {
+        var target = btn.dataset.sceneTarget;
+        if (state.browseMode && assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly &&
+            (target === "form" || target === "trend" || target === "vision")) {
+          browseArea(target, state.currentArea, defaultStepForScene(target));
+        } else {
+          go(target);
+        }
+      });
     });
     qa("[data-action]").forEach(function (node) {
       node.addEventListener("click", function () { handleAction(node.dataset.action); });
@@ -1039,20 +1160,25 @@
         }
       });
     });
-    q("riskDot").addEventListener("click", function () { openRiskFlow("metering"); });
+    q("riskDot").addEventListener("click", function () { openRiskFlow(primaryFlow().areaKey); });
     q("riskDot").addEventListener("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openRiskFlow("metering");
+        openRiskFlow(primaryFlow().areaKey);
       }
     });
     qa("[data-trend]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        state.currentArea = "metering";
-        state.selectedItem = "dp";
+        var trendKey = btn.dataset.trend;
+        var flow = primaryFlow();
+        if (trendKey === flow.trendKey) {
+          state.currentArea = flow.areaKey;
+          state.selectedItem = flow.itemKey;
+          state.frameKey = flow.frameKey;
+        }
         state.currentTrend = btn.dataset.trend;
-        state.frameKey = "current";
-        markStep("trend");
+        if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) showStep("trend");
+        else markStep("trend");
         persistState();
         render();
       });

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "order": [
+    "metering",
+    "valve",
+    "pump",
+    "control",
+    "plc",
+    "power"
+  ],
+  "primaryFlow": {
+    "areaKey": "metering",
+    "itemKey": "dp",
+    "trendKey": "filterDp",
+    "frameKey": "current"
+  }
+}

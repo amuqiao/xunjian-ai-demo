@@ -1,0 +1,54 @@
+{
+  "dp": {
+    "evidence": "已选中表单第 73 项:过滤器差压。趋势异常窗口同步高亮,形成“表单正常但趋势接近阈值”的主冲突。",
+    "tags": [
+      "第73项",
+      "差压",
+      "趋势异常",
+      "主证据"
+    ],
+    "trendKey": "filterDp",
+    "image": "current"
+  },
+  "pressure": {
+    "evidence": "已选中污油罐压力项。当前作为正常对照数据,帮助说明系统不是全量报错。",
+    "tags": [
+      "压力",
+      "正常对照",
+      "0.06",
+      "辅助项"
+    ],
+    "trendKey": "pressureStable",
+    "image": "current"
+  },
+  "panel": {
+    "evidence": "已选中电动执行机构显示面板。可切换现场帧展示视觉辅助证据,但不替代人工确认。",
+    "tags": [
+      "执行机构",
+      "显示面板",
+      "视觉辅助"
+    ],
+    "trendKey": "filterDp",
+    "image": "current"
+  },
+  "indicator": {
+    "evidence": "已选中电动执行机构指示灯。建议补拍指示灯、阀位和远传状态,作为复检辅助证据。",
+    "tags": [
+      "指示灯",
+      "补拍建议",
+      "视觉证据"
+    ],
+    "trendKey": "filterDp",
+    "image": "current"
+  },
+  "level": {
+    "evidence": "已选中污油罐液位项。液位示值作为辅助数据,不进入本轮高优先级复检主线。",
+    "tags": [
+      "液位",
+      "329mm",
+      "辅助数据"
+    ],
+    "trendKey": "levelStable",
+    "image": "current"
+  }
+}
