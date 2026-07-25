@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>巡检质量智能分析助手</title>
+
+    <!-- 皮肤与外壳 -->
+    <link rel="stylesheet" href="styles/base.css" />
+    <link rel="stylesheet" href="styles/shell.css" />
+    <!-- 各场景专属样式(前缀命名空间:.ov- / .an- / .rc- / .rp-) -->
+    <link rel="stylesheet" href="styles/overview.css" />
+    <link rel="stylesheet" href="styles/analysis.css" />
+    <link rel="stylesheet" href="styles/recheck.css" />
+    <link rel="stylesheet" href="styles/report.css" />
+  </head>
+  <body>
+    <div class="app">
+      <!-- ============ 顶栏:品牌 + 进度轴 + 时钟 ============ -->
+      <header class="topbar panel">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div>
+            <h1>巡检质量智能分析助手</h1>
+            <small id="brandSub">长郴-湘潭站 · 巡检质量智能分析 · 任务批次 XJ-20260721-A</small>
+          </div>
+        </div>
+
+        <!-- 进度轴:由 remote.js 渲染并订阅 Router 高亮 -->
+        <nav class="progress-rail" id="progressRail" aria-label="演示进度"></nav>
+
+        <div class="topbar-right">
+          <div class="clock" id="clock"></div>
+        </div>
+      </header>
+
+      <!-- ============ 场景舞台:4 个空容器,由各场景 JS 自渲染 ============ -->
+      <main class="stage" id="stage">
+        <section class="scene" data-scene="overview" aria-label="态势总览"></section>
+        <section class="scene" data-scene="analysis" aria-label="巡检分析"></section>
+        <section class="scene" data-scene="recheck" aria-label="复检工作台"></section>
+        <section class="scene" data-scene="report" aria-label="报告归档"></section>
+      </main>
+    </div>
+
+    <!-- ============ 唤出式遥控器(演示者兜底):由 remote.js 填充 ============ -->
+    <div class="remote-hotzone" id="remoteHotzone" aria-hidden="true"></div>
+    <nav class="remote" id="remote" aria-label="演示者快速跳转"></nav>
+
+    <!-- ============ 全局 Agent 抽屉 ============ -->
+    <div class="drawer-mask" id="drawerMask"></div>
+    <aside class="drawer panel" id="agentDrawer" aria-label="Agent 辅助说明">
+      <h2>Agent 辅助说明</h2>
+      <p>固定问题辅助,帮助复检人员快速理解证据链。</p>
+      <div id="drawerQuestions"></div>
+      <div class="drawer-answer" id="drawerAnswer">点击上方问题查看辅助回答。</div>
+      <button class="action" id="closeDrawerBtn" type="button">关闭</button>
+    </aside>
+
+    <!-- ============ 图片放大弹窗 ============ -->
+    <div class="image-modal" id="imageModal" aria-label="关键帧放大预览">
+      <div class="image-modal-inner">
+        <div class="image-modal-head">
+          <strong id="modalTitle">现场关键帧放大</strong>
+          <button class="action" id="closeImageBtn" type="button">关闭</button>
+        </div>
+        <img id="modalImage" src="" alt="关键帧放大预览" />
+      </div>
+    </div>
+
+    <!--
+      加载顺序(file:// 传统 script 串联,不用 ES module):
+        1) 数据与契约:data.js → state.js → shell-ui.js → router.js
+        2) 场景(顶层各自 Router.register 并自渲染 DOM):overview → analysis → recheck → report
+        3) 辅助:remote.js(进度轴 + 遥控器,订阅 Router.onChange)
+        4) 启动:main.js(注册就绪后 Router.start(),并接开场引入)
+      共享契约:window.DEMO_DATA / DemoState / DemoUtil / DemoUI / Router
+    -->
+    <script src="scripts/data.js"></script>
+    <script src="scripts/state.js"></script>
+    <script src="scripts/shell-ui.js"></script>
+    <script src="scripts/router.js"></script>
+    <script src="scripts/overview.js"></script>
+    <script src="scripts/analysis.js"></script>
+    <script src="scripts/recheck.js"></script>
+    <script src="scripts/report.js"></script>
+    <script src="scripts/remote.js"></script>
+    <script src="scripts/main.js"></script>
+  </body>
+</html>

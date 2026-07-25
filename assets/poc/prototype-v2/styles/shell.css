@@ -1,0 +1,343 @@
+/*
+ * shell.css — 应用外壳:整体布局、顶栏+进度轴、场景舞台与转场、
+ * 唤出式遥控器、Agent 抽屉、图片弹窗。
+ * 场景内部样式不在此文件,见各 <scene>.css。
+ */
+
+/* ============ 整体骨架 ============ */
+.app {
+  position: relative;
+  display: grid;
+  grid-template-rows: 68px 1fr;
+  gap: 12px;
+  height: 100vh;
+  padding: 16px 18px 18px;
+}
+
+.app::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 0%, transparent 76%);
+}
+
+/* ============ 顶栏 ============ */
+.topbar {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto minmax(280px, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 0 22px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  background:
+    linear-gradient(135deg, rgba(88, 228, 210, 0.28), rgba(246, 184, 75, 0.14)),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 18px rgba(88, 228, 210, 0.25);
+}
+.brand h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+}
+.brand small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.topbar-right {
+  justify-self: end;
+  text-align: right;
+}
+.clock {
+  color: var(--muted);
+  font-size: 13px;
+}
+.clock strong {
+  color: var(--cyan);
+}
+
+/* ---- 顶部进度轴:总览→分析→复检→报告 ---- */
+.progress-rail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.04);
+}
+.rail-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color var(--dur-ui) var(--ease), background var(--dur-ui) var(--ease);
+}
+.rail-step .rail-idx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+.rail-step.done {
+  color: var(--green);
+}
+.rail-step.active {
+  color: #061014;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--cyan), var(--amber));
+}
+.rail-sep {
+  width: 18px;
+  height: 1px;
+  background: var(--line-soft);
+}
+
+/* ============ 场景舞台与转场 ============ */
+.stage {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.scene.is-active {
+  z-index: 2;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.scene.is-leaving {
+  z-index: 1;
+  visibility: visible;
+}
+
+/* 下钻(drill):镜头前推 —— 新场景由大收敛到正常,旧场景缩小退后 */
+.stage[data-dir="drill"] .scene.is-active { animation: drillIn var(--dur-scene) var(--ease); }
+.stage[data-dir="drill"] .scene.is-leaving { animation: drillOut var(--dur-scene) var(--ease); }
+/* 退回(back):镜头后拉 —— 新场景由小放大到正常,旧场景放大冲出 */
+.stage[data-dir="back"] .scene.is-active { animation: backIn var(--dur-scene) var(--ease); }
+.stage[data-dir="back"] .scene.is-leaving { animation: backOut var(--dur-scene) var(--ease); }
+/* 遥控器跳转(jump):纯淡入淡出,不带方向 */
+.stage[data-dir="jump"] .scene.is-active { animation: jumpIn var(--dur-scene) var(--ease); }
+.stage[data-dir="jump"] .scene.is-leaving { animation: jumpOut var(--dur-scene) var(--ease); }
+
+@keyframes drillIn {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes drillOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.92); }
+}
+@keyframes backIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes backOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.08); }
+}
+@keyframes jumpIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes jumpOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ============ 唤出式遥控器(演示者兜底) ============ */
+.remote {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  z-index: 8;
+  transform: translate(-50%, calc(100% + 6px));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  background: rgba(6, 16, 20, 0.82);
+  backdrop-filter: blur(10px);
+  opacity: 0.16;
+  transition: transform var(--dur-ui) var(--ease), opacity var(--dur-ui) var(--ease);
+}
+/* 底部悬停热区把遥控器唤出 */
+.remote-hotzone {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26px;
+  z-index: 7;
+}
+.remote:hover,
+.remote.is-open,
+.remote-hotzone:hover + .remote {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+.remote-label {
+  color: var(--muted);
+  font-size: 12px;
+  padding-right: 4px;
+}
+.remote-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  transition: background var(--dur-ui) var(--ease);
+}
+.remote-btn kbd {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--line-soft);
+  padding: 0 4px;
+}
+.remote-btn.active {
+  color: #061014;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--cyan), var(--amber));
+}
+.remote-btn.active kbd {
+  color: #061014;
+  border-color: rgba(6, 16, 20, 0.3);
+}
+
+/* ============ Agent 抽屉 ============ */
+.drawer-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  display: none;
+  background: rgba(0, 0, 0, 0.42);
+}
+.drawer-mask.open {
+  display: block;
+}
+.drawer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 10;
+  width: 420px;
+  padding: 20px;
+  transform: translateX(calc(100% + 30px));
+  transition: transform 0.28s var(--ease);
+  overflow-y: auto;
+}
+.drawer.open {
+  transform: translateX(0);
+}
+.drawer h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+.drawer > p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.drawer-question {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
+  margin: 8px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color var(--dur-ui) var(--ease);
+}
+.drawer-question:hover {
+  border-color: var(--cyan);
+}
+.drawer-answer {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(88, 228, 210, 0.26);
+  color: var(--muted);
+  line-height: 1.7;
+  background: rgba(88, 228, 210, 0.06);
+  min-height: 60px;
+}
+
+/* ============ 图片放大弹窗 ============ */
+.image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+}
+.image-modal.open {
+  display: flex;
+}
+.image-modal-inner {
+  width: min(960px, 86vw);
+  border: 1px solid var(--line-strong);
+  background: var(--panel-strong);
+  box-shadow: 0 0 34px rgba(88, 228, 210, 0.18);
+}
+.image-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.image-modal-head strong {
+  font-size: 15px;
+}
+.image-modal img {
+  display: block;
+  width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  background: #020607;
+}

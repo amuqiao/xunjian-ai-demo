@@ -1,0 +1,297 @@
+/*
+ * recheck.css —— 复检工作台场景样式(命名空间前缀 .rc-)
+ * 结构:窄标题带(.rc-header) / 三列主体(.rc-body) / 底部人工确认区(.rc-footer)
+ * + 人工确认弹窗(.rc-modal)。
+ */
+
+.rc-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+/* ============ 顶部窄标题带 ============ */
+.rc-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+}
+.rc-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rc-title {
+  margin: 0;
+  font-size: var(--fs-strong);
+  font-weight: 800;
+  color: #dffcf8;
+}
+.rc-subtitle {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.rc-back {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color var(--dur-ui) var(--ease), color var(--dur-ui) var(--ease);
+}
+.rc-back:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
+/* ============ 主体三列 ============ */
+.rc-body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: 1fr 1fr 1.15fr;
+  gap: 14px;
+}
+.rc-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 18px;
+}
+.rc-col > .rc-list,
+.rc-col > .rc-trend-wrap {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ---- 异常说明列 ---- */
+.rc-summary-list {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 6px 10px;
+  margin: 0 0 12px;
+}
+.rc-summary-list dt {
+  color: var(--muted);
+  font-size: 12.5px;
+  padding-top: 2px;
+}
+.rc-summary-list dd {
+  margin: 0;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+}
+.rc-trend-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+}
+.rc-trend {
+  height: 140px;
+}
+.rc-trend-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ---- 知识依据命中列 ---- */
+.rc-knowledge-item {
+  padding: 12px 12px 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.035);
+}
+.rc-k-type {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+  color: var(--cyan);
+  font-size: 11.5px;
+  border: 1px solid rgba(88, 228, 210, 0.4);
+}
+.rc-k-title {
+  margin: 0 0 4px;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+}
+.rc-k-desc {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.rc-k-source {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+/* ---- 复检清单列 ---- */
+.rc-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.035);
+}
+.rc-item-idx {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--cyan);
+  border-radius: 50%;
+  color: var(--cyan);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+.rc-item-text {
+  flex: 1;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+.rc-item-status {
+  flex: none;
+}
+
+/* ============ 底部人工确认区 ============ */
+.rc-footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 20px;
+}
+.rc-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.rc-footer-label {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.rc-decision-group {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid transparent;
+  transition: border-color var(--dur-ui) var(--ease), box-shadow var(--dur-ui) var(--ease);
+}
+.rc-decision-group.rc-attn {
+  border-color: rgba(255, 101, 116, 0.7);
+  box-shadow: 0 0 14px rgba(255, 101, 116, 0.3);
+  animation: pulse 0.7s var(--ease) 2;
+}
+.rc-decision-btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color var(--dur-ui) var(--ease), background var(--dur-ui) var(--ease),
+    color var(--dur-ui) var(--ease);
+}
+.rc-decision-btn:hover {
+  border-color: var(--cyan);
+}
+.rc-decision-btn.active {
+  color: #061014;
+  font-weight: 800;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--cyan), var(--amber));
+}
+.rc-hint {
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+}
+.rc-confirm-btn {
+  flex: none;
+  font-size: var(--fs-strong);
+}
+
+/* ============ 人工确认弹窗 ============ */
+.rc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+}
+.rc-modal.open {
+  display: flex;
+}
+.rc-modal-inner {
+  width: min(520px, 88vw);
+  padding: 22px 24px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-strong);
+  box-shadow: 0 0 34px rgba(88, 228, 210, 0.18);
+}
+.rc-modal-title {
+  margin: 0 0 16px;
+  font-size: var(--fs-strong);
+}
+.rc-modal-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.rc-modal-label {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.rc-modal-decision {
+  font-size: var(--fs-key);
+}
+.rc-modal-note {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.04);
+}
+.rc-modal-checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.rc-modal-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cyan);
+}
+.rc-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

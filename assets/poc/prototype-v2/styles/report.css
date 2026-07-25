@@ -1,0 +1,254 @@
+/*
+ * report.css — 报告归档场景专属样式(命名空间前缀 .rp-)
+ * 视觉重心:左侧报告正文分段渐显成稿,右侧归档状态印章式收束。
+ */
+
+.rp-root {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 14px;
+}
+
+/* ---- 顶部窄标题带 ---- */
+.rp-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 10px 20px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.03);
+}
+.rp-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
+.rp-subtitle {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.rp-back-entry {
+  flex: none;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--line-soft);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color var(--dur-ui) var(--ease), transform var(--dur-ui) var(--ease);
+}
+.rp-back-entry:hover {
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+}
+
+/* ---- 主体左右布局 ---- */
+.rp-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+}
+
+/* ---- 左:巡检质量智能分析报告 ---- */
+.rp-report {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 22px 26px;
+}
+
+.rp-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: none;
+  gap: 12px 20px;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rp-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rp-meta-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.rp-meta-value {
+  overflow: hidden;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-version {
+  flex: none;
+  margin: 10px 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rp-content {
+  flex: 1;
+  min-height: 0;
+  padding-right: 6px;
+  overflow-y: auto;
+}
+
+/* 正文空态(异常路径:未选人工结论) */
+.rp-empty {
+  padding: 46px 20px;
+  border: 1px dashed var(--line-soft);
+  color: var(--muted);
+  font-size: var(--fs-strong);
+  text-align: center;
+}
+.rp-empty-text {
+  margin: 0;
+}
+
+/* 报告分段(摘要 / 异常 / 复检结论 / 交接班) */
+.rp-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.rp-section:last-child {
+  border-bottom: none;
+}
+.rp-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: #dffcf8;
+  font-size: var(--fs-strong);
+  font-weight: 700;
+}
+.rp-section-title::before {
+  width: 4px;
+  height: 16px;
+  content: "";
+  background: linear-gradient(var(--cyan), var(--amber));
+}
+.rp-lead {
+  margin: 0 0 8px;
+  font-size: var(--fs-strong);
+  font-weight: 600;
+  line-height: 1.6;
+}
+.rp-section-text {
+  margin: 0 0 10px;
+  color: var(--text);
+  line-height: 1.7;
+}
+.rp-section .badge {
+  margin-top: 4px;
+}
+
+/* 分段渐显(fadeUp):onEnter 时逐段错开延迟触发 rp-in */
+.rp-fade {
+  opacity: 0;
+}
+.rp-fade.rp-in {
+  animation: fadeUp 0.5s var(--ease) forwards;
+}
+
+/* ---- 右:归档状态 ---- */
+.rp-archive {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 22px 22px 20px;
+}
+
+/* 印章式状态戳:文字自解释,不只靠颜色 */
+.rp-stamp {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+  border: 3px double currentColor;
+  border-radius: 6px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  transform: rotate(-5deg);
+  transition: color var(--dur-ui) var(--ease), border-color var(--dur-ui) var(--ease);
+}
+.rp-stamp.is-draft {
+  color: var(--amber);
+}
+.rp-stamp.is-archived {
+  color: var(--green);
+  transform: rotate(-5deg) scale(1.03);
+}
+
+.rp-tags-label {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.rp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.rp-tag {
+  padding: 6px 10px;
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.04);
+  transition: color var(--dur-ui) var(--ease), border-color var(--dur-ui) var(--ease), background var(--dur-ui) var(--ease), box-shadow var(--dur-ui) var(--ease);
+}
+.rp-tag.is-lit {
+  border-color: transparent;
+  color: #061014;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--green));
+  box-shadow: 0 0 14px rgba(127, 227, 145, 0.38);
+}
+
+.rp-closed {
+  padding: 14px 16px;
+  margin: 12px 0 16px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.03);
+}
+.rp-closed-label {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.rp-closed .num {
+  font-size: var(--fs-key);
+}
+
+.rp-archive-actions {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 10px;
+  margin-top: auto;
+}
+.rp-btn {
+  width: 100%;
+}
+.rp-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none !important;
+}
