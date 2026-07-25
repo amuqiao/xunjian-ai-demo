@@ -53,7 +53,7 @@
             <section class="panel map-panel" aria-labelledby="overviewTitle">
               <div class="panel-title">
                 <span id="overviewTitle">站场态势总览</span>
-                <button class="action primary" type="button" data-action="go-form">进入表单质检</button>
+                <button class="action primary" type="button" data-action="go-area-primary" id="overviewPrimary">进入表单质检</button>
               </div>
               <div class="map-wrap">
                 <svg class="site-map" id="siteMap" viewBox="0 0 900 560" aria-label="湘潭站巡检区域图">
@@ -80,18 +80,39 @@
                 </svg>
                 <div class="scan-band" aria-hidden="true"></div>
                 <div class="map-toast">
-                  <span class="badge danger">AI 提示</span>
+                  <span class="badge danger" id="mapToastBadge">AI 提示</span>
                   <span id="mapToastText">计量区过滤器差压趋势异常，建议生成复检清单。</span>
                 </div>
               </div>
+              <div class="area-summary-grid" id="areaSummaryGrid" aria-label="6 个巡检区域概要"></div>
             </section>
 
-            <aside class="panel findings-panel">
-              <div class="panel-title">
-                <span>AI 疑点清单</span>
-                <span class="mini-hint">点击下钻</span>
-              </div>
-              <div class="finding-list" id="findingList"></div>
+            <aside class="overview-right">
+              <section class="panel area-detail-panel">
+                <div class="panel-title">
+                  <span>当前区域概要</span>
+                  <span class="mini-hint">地图 / 卡片切换</span>
+                </div>
+                <div class="area-detail-head">
+                  <span class="badge danger" id="selectedAreaBadge">高优先级复检</span>
+                  <strong id="selectedAreaTitle">计量区过滤器差压疑点</strong>
+                  <small id="selectedAreaDesc">表单填写正常，趋势曲线接近 0.1MPa 阈值。</small>
+                </div>
+                <div class="area-detail-stats" id="selectedAreaStats"></div>
+                <div class="tag-row" id="selectedAreaTags"></div>
+                <div class="area-detail-actions">
+                  <button class="action primary wide" type="button" id="selectedAreaPrimary" data-action="go-area-primary">进入表单质检</button>
+                  <button class="action wide" type="button" id="selectedAreaSecondary" data-action="go-area-secondary">查看区域记录</button>
+                </div>
+              </section>
+
+              <section class="panel findings-panel">
+                <div class="panel-title">
+                  <span>AI 提示列表</span>
+                  <span class="mini-hint">高风险进入详情</span>
+                </div>
+                <div class="finding-list" id="findingList"></div>
+              </section>
             </aside>
           </div>
         </section>
@@ -236,7 +257,7 @@
 
           <div class="scene-actions">
             <button class="action" type="button" data-action="go-trend">返回时序预警</button>
-            <button class="action primary" type="button" data-action="go-recheck">生成复检清单</button>
+            <button class="action primary" type="button" id="visionPrimary" data-action="go-recheck">生成复检清单</button>
           </div>
         </section>
 

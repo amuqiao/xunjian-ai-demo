@@ -18,6 +18,7 @@
       recheckReady: false,
       stepKey: "task",
       maxStepIndex: 0,
+      browseMode: false,
     };
   }
 
@@ -131,6 +132,7 @@
   }
 
   function canVisit(scene) {
+    if (scene === state.scene) return true;
     if (scene === "overview" || scene === "form") return true;
     if (scene === "trend") return state.maxStepIndex >= stepIndex("form");
     if (scene === "vision") return state.maxStepIndex >= stepIndex("conflict");
@@ -158,6 +160,7 @@
     } else {
       state.scene = scene;
     }
+    state.browseMode = !!opts.browseMode;
     markStep(opts.stepKey || defaultStepForScene(scene));
     if (window.location.hash !== "#" + scene) {
       window.location.hash = scene;
@@ -189,6 +192,76 @@
     if (shouldRender !== false) render();
   }
 
+  function selectOverviewArea(area) {
+    enterArea(area, false);
+    state.scene = "overview";
+    state.browseMode = false;
+    showStep(defaultStepForScene("overview"));
+    if (window.location.hash !== "#overview") window.location.hash = "overview";
+    persistState();
+    render();
+  }
+
+  function openRiskFlow(area) {
+    state.browseMode = false;
+    go("form", { area: area || "metering", stepKey: "form" });
+  }
+
+  function browseArea(scene, area, stepKey) {
+    enterArea(area || state.currentArea, false);
+    state.scene = scene;
+    state.browseMode = true;
+    showStep(stepKey || defaultStepForScene(scene));
+    if (window.location.hash !== "#" + scene) window.location.hash = scene;
+    persistState();
+    render();
+    scrollActiveSceneIntoView();
+  }
+
+  function areaPrimaryAction() {
+    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    if (area.overviewTarget === "riskFlow") {
+      openRiskFlow(state.currentArea);
+    } else if (area.overviewTarget === "vision") {
+      browseArea("vision", state.currentArea, "vision");
+    } else {
+      browseArea("form", state.currentArea, "form");
+    }
+  }
+
+  function areaSecondaryAction() {
+    browseArea("form", state.currentArea, "form");
+  }
+
+  function browseRowsForArea(areaKey) {
+    var area = assertKey(DATA.areas, areaKey, "区域");
+    var rows = DATA.analysis.inspectionRows.filter(function (row) { return row.areaKey === areaKey; });
+    if (rows.length) {
+      return rows.map(function (row) {
+        return {
+          no: row.no,
+          area: row.area,
+          device: row.device,
+          check: row.check,
+          result: row.result,
+          hot: false,
+          item: row.item,
+        };
+      });
+    }
+    return area.overviewStats.map(function (stat, index) {
+      return {
+        no: "-",
+        area: area.short,
+        device: area.overviewStatus,
+        check: stat.label,
+        result: stat.value,
+        hot: false,
+        item: areaKey + "-" + index,
+      };
+    });
+  }
+
   function selectItem(itemKey, targetScene) {
     var detail = assertKey(DATA.analysis.itemDetails, itemKey, "巡检项");
     var row = DATA.analysis.inspectionRows.filter(function (item) { return item.item === itemKey; })[0];
@@ -198,6 +271,7 @@
     state.currentTrend = detail.trendKey;
     state.frameKey = detail.image;
     state.scene = targetScene || "form";
+    state.browseMode = false;
     markStep(defaultStepForScene(state.scene));
     window.location.hash = state.scene;
     persistState();
@@ -211,6 +285,7 @@
     state.currentTrend = detail.trendKey;
     state.frameKey = detail.image;
     markStep("trend");
+    state.browseMode = false;
     persistState();
     render();
   }
@@ -275,6 +350,7 @@
 
   function renderOverview() {
     var task = DATA.overview.task;
+    var currentArea = assertKey(DATA.areas, state.currentArea, "区域");
     q("taskBatch").textContent = DATA.shell.batch;
     q("taskTitle").textContent = task.title;
     q("taskNote").textContent = task.note;
@@ -316,9 +392,48 @@
       node.classList.toggle("active", node.dataset.area === state.currentArea);
     });
     q("riskDot").classList.toggle("closed", state.archived);
-    q("mapToastText").textContent = state.archived
+    q("mapToastBadge").className = "badge " + currentArea.badgeTone;
+    q("mapToastBadge").textContent = currentArea.overviewStatus;
+    q("mapToastText").textContent = state.archived && state.currentArea === "metering"
       ? "复检报告已归档,计量区疑点进入闭环案例库。"
-      : "计量区过滤器差压趋势异常,建议生成复检清单。";
+      : currentArea.short + ": " + currentArea.overviewDesc;
+
+    var areaGrid = q("areaSummaryGrid");
+    areaGrid.innerHTML = "";
+    DATA.overview.areaOrder.forEach(function (areaKey) {
+      var area = assertKey(DATA.areas, areaKey, "区域");
+      var findingCount = DATA.overview.findings.filter(function (finding) { return finding.area === areaKey; }).length;
+      var cls = "area-summary-card" + (state.currentArea === areaKey ? " active" : "") + (!area.auxiliaryOnly ? " risk" : "");
+      areaGrid.appendChild(el("button", {
+        class: cls,
+        type: "button",
+        dataset: { area: areaKey },
+        onClick: function () { selectOverviewArea(areaKey); },
+      }, [
+        el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
+        el("strong", { text: area.short }),
+        el("small", { text: findingCount ? findingCount + " 个 AI 提示" : "本轮正常覆盖" }),
+      ]));
+    });
+
+    q("selectedAreaBadge").className = "badge " + currentArea.badgeTone;
+    q("selectedAreaBadge").textContent = currentArea.overviewStatus;
+    q("selectedAreaTitle").textContent = currentArea.overviewTitle;
+    q("selectedAreaDesc").textContent = currentArea.overviewDesc;
+    q("selectedAreaStats").innerHTML = "";
+    currentArea.overviewStats.forEach(function (item) {
+      q("selectedAreaStats").appendChild(el("div", { class: "area-stat card" }, [
+        el("small", { text: item.label }),
+        el("strong", { text: item.value }),
+      ]));
+    });
+    q("selectedAreaTags").innerHTML = "";
+    currentArea.tags.forEach(function (tag, i) {
+      q("selectedAreaTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
+    });
+    q("overviewPrimary").textContent = currentArea.overviewAction;
+    q("selectedAreaPrimary").textContent = currentArea.overviewAction;
+    q("selectedAreaSecondary").textContent = currentArea.overviewSecondary;
 
     var list = q("findingList");
     list.innerHTML = "";
@@ -336,7 +451,10 @@
         class: "finding-card" + (finding.primary ? " primary" : "") + (closed ? " closed" : ""),
         type: "button",
         dataset: { area: finding.area },
-        onClick: function () { go("form", { area: finding.area, stepKey: "form" }); },
+        onClick: function () {
+          if (finding.entryType === "riskFlow") openRiskFlow(finding.area);
+          else selectOverviewArea(finding.area);
+        },
       }, [
         el("span", { class: badgeClass, text: badgeText }),
         el("strong", { text: finding.title }),
@@ -349,15 +467,18 @@
   function renderInspectionTable() {
     var tbody = q("inspectionTable").querySelector("tbody");
     tbody.innerHTML = "";
-    DATA.analysis.inspectionRows.forEach(function (row) {
+    var rows = state.browseMode ? browseRowsForArea(state.currentArea) : DATA.analysis.inspectionRows;
+    rows.forEach(function (row) {
+      var interactive = !state.browseMode;
       var tr = el("tr", {
-        class: (row.hot ? "hot " : "") + (state.selectedItem === row.item && !DATA.areas[state.currentArea].auxiliaryOnly ? "selected" : ""),
-        tabindex: "0",
-        role: "button",
+        class: (row.hot ? "hot " : "") + (state.selectedItem === row.item && !DATA.areas[state.currentArea].auxiliaryOnly ? "selected" : "") + (state.browseMode ? "readonly" : ""),
+        tabindex: interactive ? "0" : "-1",
+        role: interactive ? "button" : "row",
         "aria-selected": state.selectedItem === row.item && !DATA.areas[state.currentArea].auxiliaryOnly ? "true" : "false",
         dataset: { item: row.item },
-        onClick: function () { selectItem(row.item); },
+        onClick: interactive ? function () { selectItem(row.item); } : null,
         onKeydown: function (event) {
+          if (!interactive) return;
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             selectItem(row.item);
@@ -431,6 +552,7 @@
 
   function renderForm() {
     var area = assertKey(DATA.areas, state.currentArea, "区域");
+    q("formTitle").textContent = state.browseMode ? area.overviewStatus + "工作台" : "表单质检工作台";
     q("formSubtitle").textContent = area.sub;
     q("formBadge").className = "badge " + area.badgeTone;
     q("formBadge").textContent = area.short + " · " + area.badge;
@@ -438,13 +560,13 @@
     renderInspectionTable();
 
     q("evidenceTags").innerHTML = "";
-    if (area.auxiliaryOnly) {
+    if (state.browseMode || area.auxiliaryOnly) {
       q("evidenceText").textContent = area.evidence;
       area.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
-      q("formPrimary").textContent = "回到计量区主线";
-      q("formPrimary").dataset.action = "back-main";
+      q("formPrimary").textContent = "返回区域概要";
+      q("formPrimary").dataset.action = "back-overview";
     } else {
       var detail = assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项");
       q("evidenceText").textContent = detail.evidence;
@@ -502,6 +624,8 @@
       q("visionTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
     });
     renderExplainList("visionExplainList", DATA.analysis.visionExplain);
+    q("visionPrimary").textContent = state.browseMode || area.auxiliaryOnly ? "返回区域概要" : "生成复检清单";
+    q("visionPrimary").dataset.action = state.browseMode || area.auxiliaryOnly ? "back-overview" : "go-recheck";
   }
 
   function renderTrend(container, seriesKey) {
@@ -850,16 +974,29 @@
       if (state.scene === "overview") go("form", { area: "metering", stepKey: "form" });
       else go("form", { stepKey: "form" });
     }
-    else if (action === "go-trend") go("trend", { stepKey: "trend" });
+    else if (action === "go-trend") {
+      if (state.browseMode) browseArea("trend", state.currentArea, "trend");
+      else go("trend", { stepKey: "trend" });
+    }
     else if (action === "go-vision") {
+      if (state.browseMode) {
+        browseArea("vision", state.currentArea, "vision");
+        return;
+      }
       markStep("conflict");
       go("vision", { stepKey: "vision" });
     }
     else if (action === "go-recheck") {
+      if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) {
+        go("overview", { stepKey: "task" });
+        return;
+      }
       state.recheckReady = true;
       persistState();
       go("recheck", { stepKey: "recheck" });
     }
+    else if (action === "go-area-primary") areaPrimaryAction();
+    else if (action === "go-area-secondary") areaSecondaryAction();
     else if (action === "back-main") {
       enterArea("metering", false);
       go("form", { stepKey: "form" });
@@ -894,19 +1031,19 @@
       node.addEventListener("click", function () { handleAction(node.dataset.action); });
     });
     qa(".map-area").forEach(function (node) {
-      node.addEventListener("click", function () { go("form", { area: node.dataset.area, stepKey: "form" }); });
+      node.addEventListener("click", function () { selectOverviewArea(node.dataset.area); });
       node.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          go("form", { area: node.dataset.area, stepKey: "form" });
+          selectOverviewArea(node.dataset.area);
         }
       });
     });
-    q("riskDot").addEventListener("click", function () { go("form", { area: "metering", stepKey: "form" }); });
+    q("riskDot").addEventListener("click", function () { openRiskFlow("metering"); });
     q("riskDot").addEventListener("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        go("form", { area: "metering", stepKey: "form" });
+        openRiskFlow("metering");
       }
     });
     qa("[data-trend]").forEach(function (btn) {
