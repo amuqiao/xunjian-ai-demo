@@ -1,0 +1,383 @@
+(function () {
+  "use strict";
+
+  var FRAME = "../../data/现场视频关键帧/";
+  var IMG = {
+    pumpA: FRAME + "湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.21.27.421.png",
+    pumpB: FRAME + "湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png",
+    plc: FRAME + "湘潭站_长郴湘潭PCL机房_2026.07.23.17.22.43.060.png",
+    power: FRAME + "湘潭站_长郴湘潭低压配电室_2026.07.23.17.22.50.782.png",
+    stat: "../../data/附件2/站场阀室巡检视频抽查情况统计表.jpg",
+  };
+
+  window.DEMO_V3_DATA = {
+    shell: {
+      siteName: "长郴-湘潭站",
+      subtitle: "巡检质量智能分析",
+      batch: "XJ-20260721-A",
+      clock: "2026-07-21 04:43:22",
+      sceneOrder: ["overview", "analysis", "recheck", "report"],
+      sceneLabels: {
+        overview: "态势总览",
+        analysis: "巡检分析",
+        recheck: "复检确认",
+        report: "报告归档",
+      },
+      flowSteps: [
+        { key: "analysis", label: "AI 发现疑点", desc: "表单与趋势冲突" },
+        { key: "evidence", label: "三源证据联动", desc: "表单 / 趋势 / 图片" },
+        { key: "recheck", label: "生成复检清单", desc: "规则命中与动作项" },
+        { key: "confirm", label: "人工确认", desc: "确认异常 / 关闭 / 观察" },
+        { key: "report", label: "报告归档", desc: "交接班与案例沉淀" },
+        { key: "closed", label: "闭环回看", desc: "总览回写处理结果" },
+      ],
+      agentQA: [
+        { q: "为什么需要复检?", a: "差压趋势接近 0.1MPa 阈值,且表单填写正常,形成表单与时序数据冲突,因此建议复检。" },
+        { q: "复检人员需要补拍什么?", a: "建议补拍差压表、过滤器铭牌、设备周边状态,并核对执行机构指示灯和远传控制状态。" },
+        { q: "交接班关注什么?", a: "交接班建议关注过滤器差压变化趋势,如继续抬升,应安排进一步检查过滤器状态。" },
+      ],
+    },
+
+    overview: {
+      task: {
+        title: "计量区例行巡检",
+        inspector: "廖震宇",
+        planStart: "2026-07-21 03:30:05",
+        actualStart: "2026-07-21 04:00:27",
+        actualEnd: "2026-07-21 04:43:22",
+        routeCount: "13 个区域",
+        note: "本轮聚焦计量区过滤器差压疑点,联动周边区域视频、趋势、知识依据完成巡检闭环。",
+      },
+      metrics: [
+        { key: "findings", label: "AI 疑点", value: "3", tone: "red" },
+        { key: "recheck", label: "待复检", value: "1", tone: "amber" },
+        { key: "sources", label: "证据源", value: "4", tone: "cyan" },
+        { key: "closed", label: "闭环率", value: "0%", tone: "green" },
+      ],
+      findings: [
+        {
+          area: "metering",
+          priority: "high",
+          title: "计量区过滤器差压趋势异常",
+          desc: "表单填写正常,但 72h 趋势接近 0.1MPa 阈值。",
+          primary: true,
+        },
+        {
+          area: "pump",
+          priority: "mid",
+          title: "泵棚视频帧待复核",
+          desc: "现场关键帧可用于补充设备状态证据。",
+          primary: false,
+        },
+        {
+          area: "plc",
+          priority: "mid",
+          title: "PLC 机房灯态抽查",
+          desc: "作为视觉证据,补充设备状态核验。",
+          primary: false,
+        },
+      ],
+    },
+
+    areas: {
+      metering: {
+        title: "计量区过滤器差压疑点",
+        short: "计量区",
+        sub: "表单填写正常,趋势曲线接近 0.1MPa 阈值,建议生成复检清单。",
+        badge: "高优先级复检",
+        badgeTone: "danger",
+        trendKey: "filterDp",
+        evidence: "巡检记录第 73 项显示“计量区 / 过滤器 / 差压”结果正常;趋势数据提示接近阈值,形成表单与时序冲突。",
+        tags: ["表单冲突", "时序趋势", "0.1MPa", "需复检"],
+        auxiliaryOnly: false,
+      },
+      pump: {
+        title: "泵区现场视频帧复核",
+        short: "泵区",
+        sub: "切换关键帧,核对设备状态与巡检记录一致性。",
+        badge: "视觉证据",
+        badgeTone: "info",
+        trendKey: "pumpStable",
+        evidence: "泵区关键帧用于核对现场视频抽查结果,可在报告页作为辅助证据,不改变主线复检判断。",
+        tags: ["视频帧", "辅助证据", "泵棚", "正常对照"],
+        auxiliaryOnly: true,
+      },
+      plc: {
+        title: "PLC 机房灯态抽查",
+        short: "PLC机房",
+        sub: "切换到 PLC 机房关键帧,识别指示灯、柜体区域和状态标签。",
+        badge: "灯态识别",
+        badgeTone: "info",
+        trendKey: "plcHealth",
+        evidence: "PLC 机房关键帧适合补充视觉证据:识别灯态、柜体区域和状态标签。",
+        tags: ["PLC", "指示灯", "视觉证据", "备用证据"],
+        auxiliaryOnly: true,
+      },
+      control: {
+        title: "站控室视频与数据核对",
+        short: "站控室",
+        sub: "站控室用于核对视频质量、回放质量和关键参数。",
+        badge: "站控核对",
+        badgeTone: "info",
+        trendKey: "videoQuality",
+        evidence: "统计截图可作为报告背景或管理侧材料,不进入主线规则。",
+        tags: ["工业电视", "抽查统计", "背景材料"],
+        auxiliaryOnly: true,
+      },
+      valve: {
+        title: "阀组区巡检正常对照",
+        short: "阀组区",
+        sub: "说明不是所有区域都报异常,主线风险集中在计量区。",
+        badge: "正常对照",
+        badgeTone: "ok",
+        trendKey: "valveStable",
+        evidence: "正常对照用于说明系统按风险聚焦,不对低风险区域产生无效告警。",
+        tags: ["正常对照", "路线覆盖", "低风险"],
+        auxiliaryOnly: true,
+      },
+      ups: {
+        title: "UPS 室巡检节点",
+        short: "UPS室",
+        sub: "作为路线节点,展示巡检覆盖和设备状态关联。",
+        badge: "路线节点",
+        badgeTone: "ok",
+        trendKey: "upsStable",
+        evidence: "UPS 室作为路线覆盖节点,关联供电状态、视频帧和巡检记录。",
+        tags: ["路线覆盖", "低风险", "节点点亮"],
+        auxiliaryOnly: true,
+      },
+    },
+
+    analysis: {
+      inspectionRows: [
+        { item: "pressure", areaKey: "metering", no: 63, area: "计量区", device: "污油罐", check: "压力", result: "0.06", hot: false },
+        { item: "dp", areaKey: "metering", no: 73, area: "计量区", device: "过滤器", check: "差压", result: "正常", hot: true },
+        { item: "panel", areaKey: "metering", no: 76, area: "计量区", device: "电动执行机构", check: "显示面板", result: "正常", hot: false },
+        { item: "indicator", areaKey: "metering", no: 77, area: "计量区", device: "电动执行机构", check: "指示灯", result: "正常", hot: false },
+        { item: "level", areaKey: "metering", no: 97, area: "计量区", device: "污油罐", check: "液位", result: "329mm", hot: false },
+        { item: "plc", areaKey: "plc", no: 288, area: "PLC机房", device: "PLC机柜", check: "POWER灯", result: "正常", hot: false },
+      ],
+      itemDetails: {
+        dp: {
+          evidence: "已选中表单第 73 项:过滤器差压。趋势异常窗口同步高亮,形成“表单正常但趋势接近阈值”的主冲突。",
+          tags: ["第73项", "差压", "趋势异常", "主证据"],
+          trendKey: "filterDp",
+          image: "current",
+        },
+        pressure: {
+          evidence: "已选中污油罐压力项。当前作为正常对照数据,帮助说明系统不是全量报错。",
+          tags: ["压力", "正常对照", "0.06", "辅助项"],
+          trendKey: "pressureStable",
+          image: "current",
+        },
+        panel: {
+          evidence: "已选中电动执行机构显示面板。可切换现场帧展示视觉辅助证据,但不替代人工确认。",
+          tags: ["执行机构", "显示面板", "视觉辅助"],
+          trendKey: "filterDp",
+          image: "current",
+        },
+        indicator: {
+          evidence: "已选中电动执行机构指示灯。建议补拍指示灯、阀位和远传状态,作为复检辅助证据。",
+          tags: ["指示灯", "补拍建议", "视觉证据"],
+          trendKey: "filterDp",
+          image: "current",
+        },
+        level: {
+          evidence: "已选中污油罐液位项。液位示值作为辅助数据,不进入本轮高优先级复检主线。",
+          tags: ["液位", "329mm", "辅助数据"],
+          trendKey: "levelStable",
+          image: "current",
+        },
+        plc: {
+          evidence: "已选中 PLC 机柜 POWER 灯项。右侧关键帧切换到 PLC 机房,核验灯态识别结果。",
+          tags: ["PLC", "POWER灯", "灯态识别"],
+          trendKey: "plcHealth",
+          image: "plc",
+        },
+      },
+      trendSeries: {
+        filterDp: {
+          title: "过滤器差压趋势 · 72h",
+          unit: "MPa",
+          threshold: 0.1,
+          safeSide: "below",
+          min: 0.04,
+          max: 0.105,
+          quality: "12/12",
+          window: { startIndex: 8, endIndex: 11, label: "异常窗口" },
+          summary: "差压连续抬升,末值距离 0.1MPa 阈值仅 0.003MPa。",
+          points: [
+            ["07-18 04:00", 0.053], ["07-18 10:00", 0.055], ["07-18 16:00", 0.058],
+            ["07-18 22:00", 0.061], ["07-19 04:00", 0.066], ["07-19 10:00", 0.071],
+            ["07-19 16:00", 0.077], ["07-19 22:00", 0.083], ["07-20 04:00", 0.089],
+            ["07-20 10:00", 0.094], ["07-20 16:00", 0.096], ["07-21 04:00", 0.097],
+          ],
+        },
+        pressureStable: {
+          title: "污油罐压力趋势 · 72h",
+          unit: "MPa", threshold: 0.08, safeSide: "below", min: 0.04, max: 0.09,
+          quality: "12/12", window: null,
+          summary: "压力围绕 0.06MPa 小幅波动,作为正常对照。",
+          points: [
+            ["07-18 04:00", 0.058], ["07-18 10:00", 0.061], ["07-18 16:00", 0.06],
+            ["07-18 22:00", 0.059], ["07-19 04:00", 0.062], ["07-19 10:00", 0.061],
+            ["07-19 16:00", 0.06], ["07-19 22:00", 0.058], ["07-20 04:00", 0.059],
+            ["07-20 10:00", 0.061], ["07-20 16:00", 0.06], ["07-21 04:00", 0.06],
+          ],
+        },
+        levelStable: {
+          title: "污油罐液位趋势 · 72h",
+          unit: "mm", threshold: 500, safeSide: "below", min: 260, max: 520,
+          quality: "12/12", window: null,
+          summary: "液位在 320mm 附近波动,不进入本轮高优先级复检主线。",
+          points: [
+            ["07-18 04:00", 322], ["07-18 10:00", 326], ["07-18 16:00", 330],
+            ["07-18 22:00", 327], ["07-19 04:00", 331], ["07-19 10:00", 329],
+            ["07-19 16:00", 334], ["07-19 22:00", 332], ["07-20 04:00", 328],
+            ["07-20 10:00", 333], ["07-20 16:00", 330], ["07-21 04:00", 329],
+          ],
+        },
+        pumpStable: {
+          title: "泵区运行状态 · 平稳",
+          unit: "%", threshold: 88, safeSide: "above", min: 60, max: 95,
+          quality: "10/10", window: null,
+          summary: "泵区运行健康度保持平稳,用于视觉证据的正常对照。",
+          points: [["07-18 04:00", 89], ["07-18 12:00", 90], ["07-18 20:00", 89], ["07-19 04:00", 90], ["07-19 12:00", 91], ["07-19 20:00", 90], ["07-20 04:00", 89], ["07-20 12:00", 90], ["07-20 20:00", 91], ["07-21 04:00", 90]],
+        },
+        plcHealth: {
+          title: "PLC 通讯健康度 · 抽查",
+          unit: "%", threshold: 80, safeSide: "above", min: 60, max: 100,
+          quality: "10/10", window: null,
+          summary: "PLC 通讯健康度稳定,配合关键帧完成灯态抽查。",
+          points: [["07-18 04:00", 96], ["07-18 12:00", 95], ["07-18 20:00", 96], ["07-19 04:00", 97], ["07-19 12:00", 96], ["07-19 20:00", 95], ["07-20 04:00", 96], ["07-20 12:00", 96], ["07-20 20:00", 97], ["07-21 04:00", 96]],
+        },
+        videoQuality: {
+          title: "站控室监控质量",
+          unit: "%", threshold: 85, safeSide: "above", min: 60, max: 100,
+          quality: "9/10", window: null,
+          summary: "监控质量用于管理材料展示,不参与差压异常判定。",
+          points: [["07-18 04:00", 90], ["07-18 12:00", 88], ["07-18 20:00", 89], ["07-19 04:00", 91], ["07-19 12:00", 87], ["07-19 20:00", 89], ["07-20 04:00", 90], ["07-20 12:00", 88], ["07-20 20:00", 91], ["07-21 04:00", 90]],
+        },
+        valveStable: {
+          title: "阀组区状态 · 平稳",
+          unit: "%", threshold: 75, safeSide: "above", min: 55, max: 95,
+          quality: "10/10", window: null,
+          summary: "阀组区状态平稳,作为全站路线覆盖和正常对照。",
+          points: [["07-18 04:00", 88], ["07-18 12:00", 87], ["07-18 20:00", 89], ["07-19 04:00", 88], ["07-19 12:00", 90], ["07-19 20:00", 89], ["07-20 04:00", 88], ["07-20 12:00", 87], ["07-20 20:00", 89], ["07-21 04:00", 88]],
+        },
+        upsStable: {
+          title: "UPS 室参数 · 平稳",
+          unit: "%", threshold: 80, safeSide: "above", min: 60, max: 100,
+          quality: "10/10", window: null,
+          summary: "UPS 室参数稳定,用于巡检路线节点点亮。",
+          points: [["07-18 04:00", 93], ["07-18 12:00", 94], ["07-18 20:00", 93], ["07-19 04:00", 94], ["07-19 12:00", 95], ["07-19 20:00", 94], ["07-20 04:00", 93], ["07-20 12:00", 94], ["07-20 20:00", 95], ["07-21 04:00", 94]],
+        },
+      },
+      frameSources: {
+        metering: {
+          current: { src: IMG.pumpB, title: "现场关键帧 · 视觉证据", scene: "P-4 泵棚", label: "视觉证据 0.92", showBbox: true },
+          compare: { src: IMG.pumpA, title: "现场关键帧 · 同点位对比", scene: "P-4 泵棚", label: "同点位对比 0.88", showBbox: true },
+          plc: { src: IMG.plc, title: "现场关键帧 · PLC 联动核验", scene: "PLC 机房", label: "灯态识别 0.91", showBbox: true },
+        },
+        pump: {
+          current: { src: IMG.pumpA, title: "泵区关键帧 · 设备状态", scene: "P-4 泵棚", label: "设备区域 0.89", showBbox: true },
+          compare: { src: IMG.pumpB, title: "泵区关键帧 · 同点位对比", scene: "P-4 泵棚", label: "同点位对比 0.90", showBbox: true },
+          plc: { src: IMG.plc, title: "泵区联动帧 · PLC 状态", scene: "PLC 机房", label: "联动核验 0.91", showBbox: true },
+        },
+        plc: {
+          current: { src: IMG.plc, title: "PLC 关键帧 · 灯态抽查", scene: "PLC 机房", label: "灯态识别 0.91", showBbox: true },
+          compare: { src: IMG.power, title: "PLC 关键帧 · 供电侧对比", scene: "低压配电室", label: "供电侧核验 0.87", showBbox: true },
+          plc: { src: IMG.plc, title: "PLC 关键帧 · 柜体细节", scene: "PLC 机房", label: "柜体区域 0.91", showBbox: true },
+        },
+        control: {
+          current: { src: IMG.stat, title: "站控室材料 · 视频抽查", scene: "视频抽查统计", label: "", showBbox: false },
+          compare: { src: IMG.stat, title: "站控室材料 · 抽查复核", scene: "视频抽查统计", label: "", showBbox: false },
+          plc: { src: IMG.plc, title: "站控室联动帧 · PLC 状态", scene: "PLC 机房", label: "联动核验 0.91", showBbox: true },
+        },
+        valve: {
+          current: { src: IMG.power, title: "阀组区关键帧 · 正常对照", scene: "低压配电室", label: "区域巡查 0.87", showBbox: true },
+          compare: { src: IMG.pumpA, title: "阀组区关键帧 · 相邻点位对比", scene: "P-4 泵棚", label: "相邻点位 0.88", showBbox: true },
+          plc: { src: IMG.plc, title: "阀组区联动帧 · PLC 状态", scene: "PLC 机房", label: "联动核验 0.91", showBbox: true },
+        },
+        ups: {
+          current: { src: IMG.power, title: "UPS 室关键帧 · 供电侧状态", scene: "配电区域", label: "供电侧核验 0.87", showBbox: true },
+          compare: { src: IMG.pumpB, title: "UPS 室关键帧 · 负载侧对比", scene: "P-4 泵棚", label: "负载侧对比 0.90", showBbox: true },
+          plc: { src: IMG.plc, title: "UPS 室联动帧 · PLC 状态", scene: "PLC 机房", label: "联动核验 0.91", showBbox: true },
+        },
+      },
+    },
+
+    recheck: {
+      summary: [
+        { label: "触发原因", value: "差压趋势接近 0.1MPa,且表单结果仍填写“正常”。" },
+        { label: "关联对象", value: "计量区 / 过滤器 / 差压。" },
+        { label: "来源说明", value: "巡检记录第 73 项 + 差压趋势候选文件。" },
+      ],
+      knowledge: [
+        { type: "阈值", title: "过滤分离器差压标准", desc: "过滤分离器差压应小于 0.1MPa,当前 72h 末值 0.097MPa,余量仅 0.003MPa。", source: "巡检记录第 73 项 / 工作指引" },
+        { type: "复检步骤", title: "差压复核步骤", desc: "核对现场差压表、设备铭牌与历史趋势,确认是否接近 0.1MPa。", source: "油气站场巡检及交接班工作指引" },
+        { type: "复检步骤", title: "执行机构核对", desc: "确认指示灯、阀位、远传控制状态与巡检表单填写一致。", source: "巡检记录第 76-78 项" },
+        { type: "交接班", title: "交接班关注项", desc: "建议下一班持续关注过滤器差压变化,如继续抬升安排进一步检查。", source: "交接班工作指引" },
+      ],
+      checklist: [
+        { text: "复核过滤器差压趋势和阈值。", auto: true },
+        { text: "补拍差压表、铭牌和周边状态。", auto: true },
+        { text: "核对执行机构状态与表单一致。", auto: false },
+        { text: "纳入交接班关注项。", auto: false },
+      ],
+      decisions: [
+        { key: "confirmed", label: "确认异常" },
+        { key: "false-positive", label: "误报关闭" },
+        { key: "observe", label: "继续观察" },
+      ],
+      decisionStatus: {
+        confirmed: "确认异常",
+        "false-positive": "误报关闭",
+        observe: "继续观察",
+      },
+    },
+
+    report: {
+      drafts: {
+        pending: {
+          main: "报告尚未生成。请先完成巡检分析、复检清单和人工结论选择。",
+          bullets: ["报告内容将随复检结论更新。"],
+          handover: "待确认",
+        },
+        confirmed: {
+          main: "长郴-湘潭站本轮计量区例行巡检已完成。人工复检结论为“确认异常”,建议将过滤器差压趋势纳入交接班持续关注。",
+          bullets: [
+            "到位质检:实际开始时间晚于计划开始时间。",
+            "表单质检:过滤器差压项填写正常,但与趋势数据存在冲突。",
+            "复检结论:确认异常,建议核对现场差压表并持续观察趋势。",
+            "交接班关注:下一班持续关注过滤器差压变化。",
+          ],
+          handover: "已纳入",
+        },
+        "false-positive": {
+          main: "长郴-湘潭站本轮计量区例行巡检已完成。人工复检结论为“误报关闭”,本次报告仅记录关闭原因和证据来源,不纳入交接班风险关注。",
+          bullets: [
+            "到位质检:实际开始时间晚于计划开始时间。",
+            "表单质检:过滤器差压项曾触发趋势疑点。",
+            "复检结论:误报关闭,需记录关闭依据,避免形成正式异常结论。",
+            "交接班关注:无需纳入风险关注,仅保留案例归档记录。",
+          ],
+          handover: "无需纳入",
+        },
+        observe: {
+          main: "长郴-湘潭站本轮计量区例行巡检已完成。人工复检结论为“继续观察”,本次不下异常结论,建议下一班复核趋势变化。",
+          bullets: [
+            "到位质检:实际开始时间晚于计划开始时间。",
+            "表单质检:过滤器差压项与趋势判断存在待核实差异。",
+            "复检结论:继续观察,暂不关闭,也不升级为正式异常。",
+            "交接班关注:建议下一班复核差压曲线和现场差压表。",
+          ],
+          handover: "观察中",
+        },
+      },
+      closedRate: { confirmed: "67%", "false-positive": "50%", observe: "50%", archived: "100%" },
+      caseTags: ["计量区", "过滤器", "差压趋势", "表单冲突", "复检闭环"],
+      version: "任务批次 XJ-20260721-A / 巡检质检规则库 / 交接班归档模板",
+    },
+  };
+})();

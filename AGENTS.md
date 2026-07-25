@@ -23,3 +23,14 @@
 - 不要使用 `./scripts/deploy.sh up|status|down dev`、`local` 或 `down all`；这些不是当前脚本合同。
 - 排查状态优先使用 `status`，不要直接用 `docker stop`、`kill` 或手工清理 PID，除非用户明确要求。
 - 验证文档或脚本帮助时，不要执行会改变服务状态的 `up` / `down`，除非任务目标就是验证启停行为。
+
+# 浏览器截图验证规则
+- 需要验证静态 HTML、POC 页面或前端原型截图时，优先使用 Python 版 Playwright。
+- 不要直接调用系统 Google Chrome headless；当前本机环境曾出现 Chrome 进程崩溃和 macOS “Google Chrome 意外退出”弹窗。
+- 不要把 `qlmanage` 缩略图当作真实页面验证；它可能不完整执行 JavaScript，只能作为粗略静态预览。
+- Playwright 已作为 dev 依赖安装，常用命令：
+  - 查看版本：`uv run playwright --version`
+  - 安装 Chromium：`uv run playwright install chromium`
+  - 运行截图脚本：`uv run python <临时截图脚本>`
+- 临时截图脚本和输出建议放在 `/private/tmp`，不要为了临时验证污染仓库。
+- 截图验证应至少确认页面 `title`、当前 active scene、是否存在 `pageerror`、截图输出路径；如涉及 canvas/图片，应实际查看截图。

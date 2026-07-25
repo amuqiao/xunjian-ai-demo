@@ -26,6 +26,7 @@ metrics = []
 
 [dependency-groups]
 dev = [
+    "playwright>=1.61.0",
     "pytest==9.0.3",
     "pytest-asyncio==1.4.0",
 ]

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>巡检质量智能分析助手 · v3</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar panel">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <h1>巡检质量智能分析助手</h1>
+            <small id="brandSub">长郴-湘潭站 · 巡检质量智能分析 · 任务批次 XJ-20260721-A</small>
+          </div>
+        </div>
+
+        <nav class="scene-nav" aria-label="演示场景">
+          <button class="scene-nav-btn active" type="button" data-scene-target="overview">态势总览</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="analysis">巡检分析</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="recheck">复检确认</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="report">报告归档</button>
+        </nav>
+
+        <div class="top-status">
+          <div id="clock">2026-07-21 04:43:22 · 任务批次 XJ-20260721-A</div>
+          <div id="statusLine">AI 已发现 1 处高优先级疑点，等待复检确认。</div>
+          <button class="tool-btn reset-btn" type="button" data-action="reset-demo">重置演示</button>
+        </div>
+      </header>
+
+      <main class="stage" id="stage">
+        <section class="scene active" id="scene-overview" data-scene="overview" aria-labelledby="overviewTitle">
+          <div class="overview-grid">
+            <aside class="overview-left">
+              <section class="panel task-panel">
+                <div class="panel-title">
+                  <span>本轮任务</span>
+                  <span id="taskBatch">XJ-20260721-A</span>
+                </div>
+                <h2 id="taskTitle">计量区例行巡检</h2>
+                <div class="task-rows" id="taskRows"></div>
+                <p id="taskNote" class="task-note">本轮聚焦计量区过滤器差压疑点，联动周边区域视频、趋势、知识依据完成巡检闭环。</p>
+              </section>
+
+              <section class="metric-grid" id="overviewMetrics" aria-label="巡检指标"></section>
+            </aside>
+
+            <section class="panel map-panel" aria-labelledby="overviewTitle">
+              <div class="panel-title">
+                <span id="overviewTitle">站场态势总览</span>
+                <button class="action primary" type="button" data-action="go-analysis">进入巡检分析</button>
+              </div>
+              <div class="map-wrap">
+                <svg class="site-map" id="siteMap" viewBox="0 0 900 560" aria-label="湘潭站巡检区域图">
+                  <path class="route-line" d="M105 338 C210 248, 260 170, 390 190 C520 210, 552 314, 670 270 C740 244, 792 186, 832 120"></path>
+                  <g class="map-area" data-area="valve" tabindex="0" role="button" aria-label="阀组区">
+                    <polygon points="95,330 205,270 250,352 154,430"></polygon><text x="122" y="384">阀组区</text>
+                  </g>
+                  <g class="map-area active" data-area="metering" tabindex="0" role="button" aria-label="计量区">
+                    <polygon points="292,160 432,154 480,262 355,318 264,250"></polygon><text x="332" y="236">计量区</text>
+                  </g>
+                  <g class="map-area" data-area="pump" tabindex="0" role="button" aria-label="泵区">
+                    <polygon points="510,262 642,236 700,326 590,402 486,346"></polygon><text x="568" y="336">泵区</text>
+                  </g>
+                  <g class="map-area" data-area="control" tabindex="0" role="button" aria-label="站控室">
+                    <polygon points="690,116 815,88 850,180 744,224"></polygon><text x="730" y="158">站控室</text>
+                  </g>
+                  <g class="map-area" data-area="plc" tabindex="0" role="button" aria-label="PLC机房">
+                    <polygon points="712,268 820,256 846,352 746,392"></polygon><text x="742" y="330">PLC机房</text>
+                  </g>
+                  <g class="map-area" data-area="ups" tabindex="0" role="button" aria-label="UPS室">
+                    <polygon points="186,122 270,92 318,150 248,214"></polygon><text x="214" y="164">UPS室</text>
+                  </g>
+                  <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" tabindex="0" role="button" aria-label="计量区高优先级疑点"></circle>
+                </svg>
+                <div class="scan-band" aria-hidden="true"></div>
+                <div class="map-toast">
+                  <span class="badge danger">AI 提示</span>
+                  <span id="mapToastText">计量区过滤器差压趋势异常，建议生成复检清单。</span>
+                </div>
+              </div>
+            </section>
+
+            <aside class="panel findings-panel">
+              <div class="panel-title">
+                <span>AI 疑点清单</span>
+                <span class="mini-hint">点击下钻</span>
+              </div>
+              <div class="finding-list" id="findingList"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-analysis" data-scene="analysis" aria-labelledby="analysisTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="analysisTitle">巡检分析工作台</h2>
+              <p id="analysisSubtitle">表单第 73 项“正常”与 72h 差压趋势接近阈值形成冲突。</p>
+            </div>
+            <span class="badge danger" id="areaBadge">计量区 · 高优先级复检</span>
+          </div>
+
+          <div class="analysis-grid">
+            <section class="panel table-panel">
+              <div class="panel-title">
+                <span>精选巡检项</span>
+                <span class="mini-hint">表单 / 路线 / 结果</span>
+              </div>
+              <div class="table-scroll">
+                <table class="data-table" id="inspectionTable">
+                  <thead>
+                    <tr><th>序号</th><th>区域</th><th>设备</th><th>检查项</th><th>结果</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="evidence-card card">
+                <strong>证据摘要</strong>
+                <p id="evidenceText"></p>
+                <div class="tag-row" id="evidenceTags"></div>
+              </div>
+            </section>
+
+            <section class="conflict-column" aria-label="冲突说明">
+              <div class="conflict-card" id="conflictCard">
+                <span class="conflict-icon">!</span>
+                <strong id="conflictTitle">表单正常 vs 趋势逼近阈值</strong>
+                <p id="conflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
+              </div>
+            </section>
+
+            <section class="analysis-right">
+              <div class="panel trend-panel">
+                <div class="panel-title">
+                  <span id="trendTitle">过滤器差压趋势 · 72h</span>
+                  <div class="button-group">
+                    <button class="tool-btn active" type="button" data-trend="filterDp">差压</button>
+                    <button class="tool-btn" type="button" data-item="pressure">压力</button>
+                    <button class="tool-btn" type="button" data-action="replay-trend">回放</button>
+                  </div>
+                </div>
+                <div class="trend-canvas" id="trendCanvas"></div>
+                <div class="trend-stats" id="trendStats"></div>
+              </div>
+
+              <div class="panel frame-panel">
+                <div class="panel-title">
+                  <span>现场关键帧</span>
+                  <div class="button-group">
+                    <button class="tool-btn active" type="button" data-frame="current">当前帧</button>
+                    <button class="tool-btn" type="button" data-frame="compare">对比帧</button>
+                    <button class="tool-btn" type="button" data-frame="plc">PLC帧</button>
+                    <button class="tool-btn" type="button" data-action="open-image">放大</button>
+                  </div>
+                </div>
+                <div class="frame-stage">
+                  <img id="frameImage" src="../../data/现场视频关键帧/湘潭站_长郴湘潭P-4泵棚_2026.07.23.17.22.38.271.png" alt="现场关键帧" />
+                  <div class="bbox" id="bbox"><span id="bboxLabel">视觉证据 0.92</span></div>
+                </div>
+                <div class="frame-caption">
+                  <strong id="frameTitle">现场关键帧 · 视觉证据</strong>
+                  <span id="frameScene">P-4 泵棚</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="scene-actions">
+            <button class="action" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
+            <button class="action primary" type="button" id="analysisPrimary" data-action="go-recheck">生成复检清单</button>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-recheck" data-scene="recheck" aria-labelledby="recheckTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="recheckTitle">复检工作台</h2>
+              <p>把 AI 疑点转换成可执行复检项，并保留人工确认边界。</p>
+            </div>
+            <span class="badge warn" id="recheckStatus">待人工确认</span>
+          </div>
+
+          <div class="recheck-grid">
+            <section class="panel summary-panel">
+              <div class="panel-title"><span>异常说明</span></div>
+              <div class="summary-list" id="recheckSummary"></div>
+            </section>
+
+            <section class="panel knowledge-panel">
+              <div class="panel-title"><span>知识依据命中</span><span class="mini-hint">规则 / 阈值 / 交接班</span></div>
+              <div class="knowledge-list" id="knowledgeList"></div>
+            </section>
+
+            <section class="panel checklist-panel">
+              <div class="panel-title"><span>复检清单</span><span id="decisionLabel">请选择结论</span></div>
+              <div class="check-list" id="checkList"></div>
+              <div class="decision-row" id="decisionRow"></div>
+              <button class="action primary wide" type="button" data-action="confirm-recheck">进入报告草稿</button>
+            </section>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-report" data-scene="report" aria-labelledby="reportTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="reportTitle">报告归档</h2>
+              <p>根据复检结论生成报告摘要、交接班关注和案例标签。</p>
+            </div>
+            <span class="badge info" id="reportStamp">报告草稿</span>
+          </div>
+
+          <div class="report-grid">
+            <section class="panel report-document">
+              <div class="panel-title"><span>巡检质量智能分析报告</span><span id="reportVersion">任务批次 XJ-20260721-A</span></div>
+              <p class="report-main" id="reportMainText"></p>
+              <ul class="report-bullets" id="reportBullets"></ul>
+            </section>
+
+            <aside class="report-side">
+              <section class="panel report-status">
+                <div class="panel-title"><span>归档状态</span></div>
+                <div class="status-tiles">
+                  <div class="status-tile card"><small>报告状态</small><strong id="reportSummary">待生成</strong></div>
+                  <div class="status-tile card"><small>交接班</small><strong id="reportHandover">待确认</strong></div>
+                  <div class="status-tile card"><small>案例归档</small><strong id="reportArchive">未归档</strong></div>
+                </div>
+                <div class="tag-row" id="caseTags"></div>
+              </section>
+              <section class="panel report-actions">
+                <button class="action primary wide" type="button" id="archiveBtn" data-action="archive-report">归档为案例</button>
+                <button class="action wide" type="button" data-action="back-overview">回到大屏看闭环</button>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </main>
+
+      <footer class="flow-rail panel" aria-label="闭环流程">
+        <div class="flow-track" id="flowTrack"></div>
+      </footer>
+    </div>
+
+    <div class="drawer-mask" id="drawerMask"></div>
+    <aside class="drawer panel" id="agentDrawer" role="dialog" aria-modal="true" aria-label="AI 辅助问答" tabindex="-1">
+      <div class="panel-title"><span>AI 辅助问答</span></div>
+      <div class="drawer-questions" id="drawerQuestions"></div>
+      <div class="drawer-answer" id="drawerAnswer">点击问题查看辅助回答。</div>
+      <button class="action wide" type="button" data-action="close-drawer">关闭</button>
+    </aside>
+
+    <div class="image-modal" id="imageModal" role="dialog" aria-modal="true" aria-label="关键帧放大预览" tabindex="-1">
+      <div class="image-modal-inner">
+        <div class="image-modal-head">
+          <strong id="modalTitle">现场关键帧放大</strong>
+          <button class="action" type="button" data-action="close-image">关闭</button>
+        </div>
+        <img id="modalImage" src="" alt="关键帧放大预览" />
+      </div>
+    </div>
+
+    <script src="scripts/data.js"></script>
+    <script src="scripts/app.js"></script>
+  </body>
+</html>
