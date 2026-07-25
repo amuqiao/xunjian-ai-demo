@@ -170,9 +170,11 @@ If the extension changes migrations or Postgres-specific behavior, also run:
 
 - 本地开发生命周期、端口、迁移和环境检查归 `scripts/dev.sh`。
 - 一次性验证归 `scripts/verify.sh`。
-- 部署形态和 compose 接入归 `scripts/deploy.sh`。
+- Docker Compose 服务接入归 `scripts/deploy.sh`。
+- 日常快捷 recipe 归 `scripts/run.sh`；`run.sh` 只编排稳定入口命令，不直接沉淀实现细节。
 - 无默认持久副作用的本地辅助工具归 `scripts/tools.sh`。
 - 公共 shell helper 放在 `scripts/lib/`。
+- 某个入口的私有复杂 helper 才放进 `scripts/<entry>/`；不要为了目录对称性新增空的 `deploy/` 或 `run/` 子目录。
 - 结构化或复杂解析优先用 Python helper，例如 `scripts/dev/check_ports.py`。
 
 Rules:

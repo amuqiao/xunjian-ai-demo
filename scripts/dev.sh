@@ -18,6 +18,7 @@ Usage:
 不负责:
   不管理 Docker/Compose PostgreSQL、Redis、生产部署、远端资源、真实 Redis/S3 adapter、业务 worker 或跨仓库服务。
   Docker 依赖和 compose-full 生命周期请使用 ./scripts/deploy.sh。
+  日常快捷 recipe 请使用 ./scripts/run.sh。
 
 运行环境:
   Requires: Bash, uv, Python.
@@ -69,17 +70,16 @@ Usage:
   ./scripts/dev.sh ports 8100 25432 26379
 
   # 常见本地开发：Docker 依赖 + 本地 API。
-  ./scripts/deploy.sh up dev
-  ./scripts/deploy.sh status dev
-  ./scripts/deploy.sh down dev
+  ./scripts/run.sh up dev
+  ./scripts/run.sh status dev
+  ./scripts/run.sh down dev
 
   # 精确控制：只操作本地 API 或 Docker 依赖。
   ./scripts/dev.sh restart api
   ./scripts/dev.sh stop api
+  ./scripts/deploy.sh up compose-deps
   ./scripts/deploy.sh status compose-deps
-
-  # 停止本仓库全部 local/compose 服务。
-  ./scripts/deploy.sh down all
+  ./scripts/deploy.sh down compose-deps
 
 Exit Codes:
   0  成功
@@ -279,6 +279,7 @@ doctor() {
   section "Scripts"
   "$ROOT_DIR/scripts/dev.sh" help >/dev/null
   "$ROOT_DIR/scripts/deploy.sh" help >/dev/null
+  "$ROOT_DIR/scripts/run.sh" help >/dev/null
   "$ROOT_DIR/scripts/verify.sh" help >/dev/null
   event "OK" "entrypoints" "help commands"
 }

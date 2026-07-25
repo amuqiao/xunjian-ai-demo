@@ -12,14 +12,14 @@
   - 停止 API：`./scripts/dev.sh stop api`
   - 重启 API：`./scripts/dev.sh restart api`
   - 查看 API：`./scripts/dev.sh status`
-- `scripts/deploy.sh` 管理运行模型和 Docker/Compose 服务。
-  - 常用本地开发环境：`./scripts/deploy.sh up dev`
-  - 查看常用本地开发环境：`./scripts/deploy.sh status dev`
-  - 停止常用本地开发环境：`./scripts/deploy.sh down dev`
-  - 仅宿主机 API：`./scripts/deploy.sh up|status|down local`
+- `scripts/deploy.sh` 只管理 Docker/Compose 服务。
   - 仅 Docker 依赖：`./scripts/deploy.sh up|status|down compose-deps`
   - 全 Docker API / 依赖：`./scripts/deploy.sh up|status|down compose-full`
-  - 全量停止必须显式使用：`./scripts/deploy.sh down all`
+- `scripts/run.sh` 只管理日常快捷 recipe，不直接实现进程或 Compose 细节。
+  - 常用本地开发环境：`./scripts/run.sh up dev`
+  - 查看常用本地开发环境：`./scripts/run.sh status dev`
+  - 停止常用本地开发环境：`./scripts/run.sh down dev`
 - 不要使用裸 `./scripts/deploy.sh down`；该命令应报错，避免误停服务。
+- 不要使用 `./scripts/deploy.sh up|status|down dev`、`local` 或 `down all`；这些不是当前脚本合同。
 - 排查状态优先使用 `status`，不要直接用 `docker stop`、`kill` 或手工清理 PID，除非用户明确要求。
 - 验证文档或脚本帮助时，不要执行会改变服务状态的 `up` / `down`，除非任务目标就是验证启停行为。

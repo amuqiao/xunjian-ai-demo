@@ -34,7 +34,7 @@
 - 示例业务：`items` CRUD 展示完整业务接口范式。
 - Provider：Postgres、Redis fake boundary、object storage、shared HTTP client。
 - 工具模块：`app/tools/` 提供纯工具示例。
-- 脚本入口：`dev.sh`、`deploy.sh`、`verify.sh`、`tools.sh`。
+- 脚本入口：`dev.sh`、`deploy.sh`、`run.sh`、`verify.sh`、`tools.sh`。
 - 文档分层：`current` 写已实现事实，`contracts` 写稳定合同，`plans` 写后续缺口。
 
 ## 关键术语

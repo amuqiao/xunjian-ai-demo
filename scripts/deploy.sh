@@ -14,32 +14,26 @@ Usage:
   ./scripts/deploy.sh -h|--help
 
 职责:
-  部署模型入口。提供 dev、local、compose-deps、compose-full 四种运行模型；down all 为显式全量停止目标。
+  Docker Compose 服务入口。只管理 compose-deps 和 compose-full 两种 Docker 目标。
 
 不负责:
-  不管理 K8s、远端服务器、云资源、生产数据库、真实 Redis/S3 adapter 或跨仓库编排。
+  不管理宿主机本地进程、日常 recipe、K8s、远端服务器、云资源、生产数据库、真实 Redis/S3 adapter 或跨仓库编排。
+  宿主机本地进程请使用 ./scripts/dev.sh；日常快捷 recipe 请使用 ./scripts/run.sh。
 
 运行环境:
   Requires: Bash.
   Dependencies: Docker / Docker Compose for compose-deps and compose-full.
 
 命令:
-  modes                 展示运行模型和特殊目标。
+  modes                 展示 Docker Compose 目标。
   check                 校验部署文件、compose 配置、入口脚本和 project 名冲突。
-  up dev                启动常用本地开发环境：Docker PostgreSQL / Redis + 宿主机 API。
-  down dev              停止常用本地开发环境：宿主机 API + Docker PostgreSQL / Redis。
-  status dev            查看常用本地开发环境：本地 API + Docker PostgreSQL / Redis。
-  up local              委托 ./scripts/dev.sh start api。
   down <mode>           停止指定模型；mode 必须显式指定，避免误停服务。
-  down local            委托 ./scripts/dev.sh stop api。
-  status local          委托 ./scripts/dev.sh status。
   up compose-deps       启动 PostgreSQL / Redis 本地依赖。
   down compose-deps     停止 PostgreSQL / Redis 本地依赖。
   status compose-deps   查看 PostgreSQL / Redis compose 状态。
   up compose-full       构建并启动 API / PostgreSQL / Redis。
   down compose-full     停止 API / PostgreSQL / Redis。
   status compose-full   查看 compose-full 状态。
-  down all              全量停止 local API 和本仓库 compose 服务。
   help                  显示帮助。
 
 配置与环境变量:
@@ -56,13 +50,11 @@ Usage:
 
 副作用与保护边界:
   check 只做静态文件和 compose 配置检查；如果 Docker 可用，会检查 project 名冲突。
-  up/down/status dev 是常用本地开发 recipe，组合执行 compose-deps 与 local。
-  up/down local 只委托 dev.sh 管理本地 API 进程，不启动 compose 依赖。
   up compose-deps 只启动 PostgreSQL / Redis，不启动 API。
   up compose-full 会构建 API 镜像并启动 API / PostgreSQL / Redis；API 容器启动时默认执行 Alembic migration。
-  compose-full 会拒绝与本地 API 混跑；local 会拒绝与 compose-full API 混跑。
+  compose-full 会拒绝与本地 API 混跑。
   down 使用 compose stop，不删除 volume；down/status 也会检查 compose project working_dir，避免误操作其他工作树。
-  down 必须显式指定 mode；down all 会先停 local API，再一次性停止本仓库 compose api/postgres/redis。
+  down 必须显式指定 mode。
 
 成功标准:
   check 成功 = 必需部署文件存在、脚本语法正确、compose 配置可解析或 Docker 未安装时静态检查通过。
@@ -72,23 +64,20 @@ Usage:
   ./scripts/deploy.sh modes
   ./scripts/deploy.sh check
 
-  # 常见本地开发：Docker 只跑依赖，API 在宿主机运行。
-  ./scripts/deploy.sh up dev
-  ./scripts/deploy.sh status dev
-  ./scripts/deploy.sh down dev
+  # 日常本地开发 recipe 请使用 run.sh。
+  ./scripts/run.sh up dev
+  ./scripts/run.sh status dev
+  ./scripts/run.sh down dev
 
-  # 精确控制：只操作 API 或依赖。
-  ./scripts/dev.sh restart api
-  ./scripts/dev.sh stop api
-  ./scripts/dev.sh status
+  # 只操作 Docker 依赖。
+  ./scripts/deploy.sh up compose-deps
   ./scripts/deploy.sh status compose-deps
+  ./scripts/deploy.sh down compose-deps
 
   # API/PostgreSQL/Redis 全部由 Compose 管理。
   ./scripts/deploy.sh up compose-full
   ./scripts/deploy.sh status compose-full
-
-  # 停止本仓库全部 local/compose 服务。
-  ./scripts/deploy.sh down all
+  ./scripts/deploy.sh down compose-full
 
 Exit Codes:
   0  成功
@@ -118,20 +107,16 @@ EOF
     up|status)
       cat <<EOF
 Usage:
-  ./scripts/deploy.sh ${name} <dev|local|compose-deps|compose-full>
+  ./scripts/deploy.sh ${name} <compose-deps|compose-full>
 
 职责:
-  对指定部署模型执行 ${name}。
+  对指定 Docker Compose 目标执行 ${name}。
 
 副作用与保护边界:
-  dev 是常用本地开发 recipe，组合执行 compose-deps 与 local。
-  local 委托 ./scripts/dev.sh。
   compose-deps 只管理 PostgreSQL / Redis。
-  compose-full 管理 API / PostgreSQL / Redis，并与 local API 互斥。
+  compose-full 管理 API / PostgreSQL / Redis，并与本地 API 互斥。
 
 常用示例:
-  ./scripts/deploy.sh ${name} dev
-  ./scripts/deploy.sh ${name} local
   ./scripts/deploy.sh ${name} compose-deps
   ./scripts/deploy.sh ${name} compose-full
 EOF
@@ -139,24 +124,18 @@ EOF
     down)
       cat <<'EOF'
 Usage:
-  ./scripts/deploy.sh down <dev|local|compose-deps|compose-full|all>
+  ./scripts/deploy.sh down <compose-deps|compose-full>
 
 职责:
-  停止指定部署模型；必须显式传入 mode。
+  停止指定 Docker Compose 目标；必须显式传入 mode。
 
 副作用与保护边界:
-  dev 会先停止 local API，再停止 compose-deps。
-  local 委托 ./scripts/dev.sh stop api。
   compose-full 管理 API / PostgreSQL / Redis。
   compose-deps 只管理 PostgreSQL / Redis。
-  all 会先停止 local API，再一次性停止本仓库 compose api/postgres/redis。
 
 常用示例:
-  ./scripts/deploy.sh down dev
-  ./scripts/deploy.sh down local
   ./scripts/deploy.sh down compose-deps
   ./scripts/deploy.sh down compose-full
-  ./scripts/deploy.sh down all
 EOF
       ;;
     *)
@@ -173,12 +152,9 @@ require_env_file_for_compose() {
 }
 
 show_modes() {
-  section "Deployment Modes"
-  event "MODE" "dev" "常用本地开发：compose-deps + 本地 API；适合日常复制粘贴"
-  event "MODE" "local" "本地 API 进程；由 ./scripts/dev.sh 管理，适合快速开发"
-  event "MODE" "compose-deps" "只启动 postgres/redis；适合给本地 API 提供依赖"
-  event "MODE" "compose-full" "API/postgres/redis 全部由 compose 管理；API 容器启动时执行 migration"
-  event "TARGET" "all" "仅用于 down；显式停止 local API 和本仓库 compose api/postgres/redis"
+  section "Docker Compose Targets"
+  event "TARGET" "compose-deps" "只启动 postgres/redis；适合给本地 API 提供依赖"
+  event "TARGET" "compose-full" "API/postgres/redis 全部由 compose 管理；API 容器启动时执行 migration"
 }
 
 check_compose_config_if_available() {
@@ -229,6 +205,8 @@ check_deploy() {
   event "OK" "dev.sh" "syntax"
   bash -n "$ROOT_DIR/scripts/deploy.sh"
   event "OK" "deploy.sh" "syntax"
+  bash -n "$ROOT_DIR/scripts/run.sh"
+  event "OK" "run.sh" "syntax"
   bash -n "$ROOT_DIR/scripts/verify.sh"
   event "OK" "verify.sh" "syntax"
   bash -n "$ROOT_DIR/scripts/lib/compose.sh"
@@ -237,55 +215,6 @@ check_deploy() {
   event "OK" "modes.sh" "syntax"
   sh -n "$ROOT_DIR/start-api.sh"
   event "OK" "start-api.sh" "syntax"
-}
-
-up_local() {
-  "$ROOT_DIR/scripts/dev.sh" start api
-}
-
-down_local() {
-  "$ROOT_DIR/scripts/dev.sh" stop api
-}
-
-down_all() {
-  section "Deploy Down All"
-  event "RUN" "local" "down"
-  down_local
-  if ! compose_available; then
-    die "Docker Compose is not available; compose modes were not stopped" 2
-  fi
-  assert_no_compose_project_name_conflict
-  event "RUN" "compose" "down api/postgres/redis"
-  section "Compose All"
-  compose --profile app stop api postgres redis
-}
-
-status_local() {
-  "$ROOT_DIR/scripts/dev.sh" status
-}
-
-up_dev() {
-  section "Deploy Dev"
-  event "RUN" "compose-deps" "up"
-  up_deps
-  event "RUN" "local" "up"
-  up_local
-}
-
-down_dev() {
-  section "Deploy Dev"
-  event "RUN" "local" "down"
-  down_local
-  event "RUN" "compose-deps" "down"
-  down_deps
-}
-
-status_dev() {
-  section "Deploy Dev"
-  event "CHECK" "local" "status"
-  status_local
-  event "CHECK" "compose-deps" "status"
-  status_deps
 }
 
 up_deps() {
@@ -383,28 +312,17 @@ case "$cmd" in
     shift
     if args_include_help "$@"; then command_usage "$action"; exit $?; fi
     mode="${1:-}"
-    if [[ "$action" == "down" ]]; then
-      [[ -n "$mode" ]] || die "usage: ./scripts/deploy.sh down <dev|local|compose-deps|compose-full|all>" 2
-    else
-      [[ -n "$mode" ]] || die "usage: ./scripts/deploy.sh $action <dev|local|compose-deps|compose-full>" 2
-    fi
+    [[ -n "$mode" ]] || die "usage: ./scripts/deploy.sh $action <compose-deps|compose-full>" 2
     shift
     reject_extra_args "usage: ./scripts/deploy.sh $action $mode" "$@"
     case "$action:$mode" in
-      up:dev) up_dev ;;
-      down:dev) down_dev ;;
-      status:dev) status_dev ;;
-      up:local) up_local ;;
-      down:local) down_local ;;
-      status:local) status_local ;;
       up:compose-deps) up_deps ;;
       down:compose-deps) down_deps ;;
       status:compose-deps) status_deps ;;
       up:compose-full) up_full ;;
       down:compose-full) down_full ;;
       status:compose-full) status_full ;;
-      down:all) down_all ;;
-      *) die "unknown deploy mode for $action: $mode" 2 ;;
+      *) die "unknown deploy target for $action: $mode" 2 ;;
     esac
     ;;
   *)

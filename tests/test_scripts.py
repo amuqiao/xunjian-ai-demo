@@ -52,8 +52,44 @@ def script_env(tmp_path: Path, **overrides: str) -> dict[str, str]:
     return env
 
 
+def fake_run_root(tmp_path: Path, *, dev_exit: int = 0, deploy_exit: int = 0) -> tuple[Path, Path]:
+    root = tmp_path / "fake-root"
+    scripts = root / "scripts"
+    log_file = tmp_path / "calls.log"
+    scripts.mkdir(parents=True)
+
+    dev = scripts / "dev.sh"
+    dev.write_text(
+        f"""#!/usr/bin/env sh
+echo "dev $*" >> "{log_file}"
+echo "dev $*"
+exit {dev_exit}
+"""
+    )
+    dev.chmod(0o755)
+
+    deploy = scripts / "deploy.sh"
+    deploy.write_text(
+        f"""#!/usr/bin/env sh
+echo "deploy $*" >> "{log_file}"
+echo "deploy $*"
+exit {deploy_exit}
+"""
+    )
+    deploy.chmod(0o755)
+
+    return root, log_file
+
+
 def test_script_help_commands_work():
-    for script in ("./scripts/dev.sh", "./scripts/deploy.sh", "./scripts/k8s.sh", "./scripts/verify.sh", "./scripts/tools.sh"):
+    for script in (
+        "./scripts/dev.sh",
+        "./scripts/deploy.sh",
+        "./scripts/run.sh",
+        "./scripts/k8s.sh",
+        "./scripts/verify.sh",
+        "./scripts/tools.sh",
+    ):
         result = run_script(script, "help")
         assert result.returncode == 0
         assert "Usage:" in result.stdout
@@ -550,16 +586,129 @@ def test_deploy_modes_smoke():
     result = run_script("./scripts/deploy.sh", "modes")
 
     assert result.returncode == 0
-    assert "local" in result.stdout
     assert "compose-deps" in result.stdout
     assert "compose-full" in result.stdout
+    assert "local" not in result.stdout
+    assert "dev" not in result.stdout
 
 
-def test_deploy_local_status_delegates_to_dev_status():
-    result = run_script("./scripts/deploy.sh", "status", "local")
+def test_run_dev_status_checks_api_then_compose_deps(tmp_path):
+    root, log_file = fake_run_root(tmp_path)
 
-    assert result.returncode == 0
-    assert "== API ==" in result.stdout
+    result = subprocess.run(
+        ["./scripts/run.sh", "status", "dev"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path, ROOT_DIR=str(root)),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert log_file.read_text().splitlines() == [
+        "dev status",
+        "deploy status compose-deps",
+    ]
+
+
+def test_run_dev_up_starts_deps_then_api(tmp_path):
+    root, log_file = fake_run_root(tmp_path)
+
+    result = subprocess.run(
+        ["./scripts/run.sh", "up", "dev"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path, ROOT_DIR=str(root)),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert log_file.read_text().splitlines() == [
+        "deploy up compose-deps",
+        "dev start api",
+    ]
+
+
+def test_run_dev_down_stops_api_then_deps(tmp_path):
+    root, log_file = fake_run_root(tmp_path)
+
+    result = subprocess.run(
+        ["./scripts/run.sh", "down", "dev"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path, ROOT_DIR=str(root)),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert log_file.read_text().splitlines() == [
+        "dev stop api",
+        "deploy down compose-deps",
+    ]
+
+
+def test_run_dev_up_propagates_deploy_failure_without_starting_api(tmp_path):
+    root, log_file = fake_run_root(tmp_path, deploy_exit=17)
+
+    result = subprocess.run(
+        ["./scripts/run.sh", "up", "dev"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path, ROOT_DIR=str(root)),
+    )
+
+    assert result.returncode == 17
+    assert log_file.read_text().splitlines() == ["deploy up compose-deps"]
+
+
+def test_run_dev_down_propagates_dev_failure_without_stopping_deps(tmp_path):
+    root, log_file = fake_run_root(tmp_path, dev_exit=19)
+
+    result = subprocess.run(
+        ["./scripts/run.sh", "down", "dev"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path, ROOT_DIR=str(root)),
+    )
+
+    assert result.returncode == 19
+    assert log_file.read_text().splitlines() == ["dev stop api"]
+
+
+def test_run_rejects_missing_recipe(tmp_path):
+    result = subprocess.run(
+        ["./scripts/run.sh", "up"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path),
+    )
+
+    assert result.returncode == 2
+    assert "usage: ./scripts/run.sh up <dev>" in result.stderr
+
+
+def test_run_rejects_unknown_recipe(tmp_path):
+    root, _ = fake_run_root(tmp_path)
+
+    result = subprocess.run(
+        ["./scripts/run.sh", "up", "worker"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path, ROOT_DIR=str(root)),
+    )
+
+    assert result.returncode == 2
+    assert "unknown run recipe for up: worker" in result.stderr
 
 
 def test_deploy_compose_subcommand_help():
@@ -581,139 +730,50 @@ def test_deploy_down_without_mode_requires_explicit_target(tmp_path):
     )
 
     assert result.returncode == 2
-    assert "usage: ./scripts/deploy.sh down <dev|local|compose-deps|compose-full|all>" in result.stderr
+    assert "usage: ./scripts/deploy.sh down <compose-deps|compose-full>" in result.stderr
     assert result.stdout == ""
 
 
-def test_deploy_down_all_stops_local_then_compose_once(tmp_path):
-    bin_dir = tmp_path / "bin"
-    log_file = tmp_path / "calls.log"
-    bin_dir.mkdir()
-
-    docker = bin_dir / "docker"
-    docker.write_text(
-        f"""#!/usr/bin/env sh
-if [ "$1" = "compose" ] && [ "$2" = "version" ]; then
-  exit 0
-fi
-if [ "$1" = "ps" ]; then
-  exit 0
-fi
-if [ "$1" = "compose" ]; then
-  echo "docker $@" >> "{log_file}"
-  exit 0
-fi
-exit 1
-"""
-    )
-    docker.chmod(0o755)
-
-    result = subprocess.run(
-        ["./scripts/deploy.sh", "down", "all"],
-        cwd=ROOT_DIR,
-        text=True,
-        capture_output=True,
-        check=False,
-        env=script_env(
-            tmp_path,
-            PATH=f"{bin_dir}:{os.environ['PATH']}",
-        ),
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "Deploy Down All" in result.stdout
-    assert "STOPPED" in result.stdout
-    calls = log_file.read_text().splitlines()
-    assert len(calls) == 1
-    assert "--profile app stop api postgres redis" in calls[0]
-
-
-def test_deploy_down_all_does_not_require_missing_env_file(tmp_path):
-    bin_dir = tmp_path / "bin"
-    log_file = tmp_path / "calls.log"
-    bin_dir.mkdir()
-
-    docker = bin_dir / "docker"
-    docker.write_text(
-        f"""#!/usr/bin/env sh
-if [ "$1" = "compose" ] && [ "$2" = "version" ]; then
-  exit 0
-fi
-if [ "$1" = "ps" ]; then
-  exit 0
-fi
-if [ "$1" = "compose" ]; then
-  for arg in "$@"; do
-    if [ "$arg" = "--env-file" ]; then
-      echo "unexpected --env-file" >&2
-      exit 15
-    fi
-  done
-  echo "docker $@" >> "{log_file}"
-  exit 0
-fi
-exit 1
-"""
-    )
-    docker.chmod(0o755)
-
-    result = subprocess.run(
-        ["./scripts/deploy.sh", "down", "all"],
-        cwd=ROOT_DIR,
-        text=True,
-        capture_output=True,
-        check=False,
-        env=script_env(
-            tmp_path,
-            ENV_FILE=str(tmp_path / "missing.env"),
-            PATH=f"{bin_dir}:{os.environ['PATH']}",
-        ),
-    )
-
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert "--env-file" not in log_file.read_text()
-
-
-def test_deploy_down_all_fails_when_compose_is_unavailable_after_local_stop(tmp_path):
-    bin_dir = tmp_path / "bin"
-    bin_dir.mkdir()
-    docker = bin_dir / "docker"
-    docker.write_text(
-        """#!/usr/bin/env sh
-exit 127
-"""
-    )
-    docker.chmod(0o755)
-
-    result = subprocess.run(
-        ["./scripts/deploy.sh", "down", "all"],
-        cwd=ROOT_DIR,
-        text=True,
-        capture_output=True,
-        check=False,
-        env=script_env(
-            tmp_path,
-            PATH=f"{bin_dir}:/usr/bin:/bin:/usr/sbin:/sbin",
-        ),
-    )
-
-    assert result.returncode == 2
-    assert "STOPPED" in result.stdout
-    assert "Docker Compose is not available" in result.stderr
-
-
-def test_deploy_down_local_keeps_targeted_behavior_without_compose(tmp_path):
+def test_deploy_rejects_removed_local_target(tmp_path):
     result = subprocess.run(
         ["./scripts/deploy.sh", "down", "local"],
         cwd=ROOT_DIR,
         text=True,
         capture_output=True,
         check=False,
-        env=script_env(tmp_path, PATH="/usr/bin:/bin:/usr/sbin:/sbin"),
+        env=script_env(tmp_path),
     )
 
-    assert result.returncode == 0
-    assert "STOPPED" in result.stdout
+    assert result.returncode == 2
+    assert "unknown deploy target for down: local" in result.stderr
+
+
+def test_deploy_rejects_removed_dev_target(tmp_path):
+    result = subprocess.run(
+        ["./scripts/deploy.sh", "up", "dev"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path),
+    )
+
+    assert result.returncode == 2
+    assert "unknown deploy target for up: dev" in result.stderr
+
+
+def test_deploy_rejects_removed_down_all_target(tmp_path):
+    result = subprocess.run(
+        ["./scripts/deploy.sh", "down", "all"],
+        cwd=ROOT_DIR,
+        text=True,
+        capture_output=True,
+        check=False,
+        env=script_env(tmp_path),
+    )
+
+    assert result.returncode == 2
+    assert "unknown deploy target for down: all" in result.stderr
 
 
 def test_deploy_compose_deps_rejects_busy_host_port_before_docker(tmp_path):

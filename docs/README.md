@@ -8,6 +8,7 @@
 
 ```text
 notes/FastAPI_Lite 全局心智模型.md
+  -> notes/dev-deploy-service-management.md
   -> contracts/extension-contract.md
   -> contracts/api-contract.md
   -> current/implementation.md
@@ -20,6 +21,7 @@ notes/FastAPI_Lite 全局心智模型.md
 | 文档 | 职责 |
 |---|---|
 | [全局心智模型](<notes/FastAPI_Lite 全局心智模型.md>) | 快速建立模板边界、业务接入方式、能力放置点和验证思路。 |
+| [Service Management 范式](notes/dev-deploy-service-management.md) | 维护 `dev.sh` / `deploy.sh` / `run.sh` 的服务管理规则，指导新项目复用和脚本收敛。 |
 | [Extension Contract](contracts/extension-contract.md) | 新增业务模块、配置、provider、middleware、工具和脚本时必须遵守的工程合同。 |
 | [API Contract](contracts/api-contract.md) | 当前调用方可依赖的 HTTP header、envelope、route、错误码和兼容性合同。 |
 | [Current Implementation](current/implementation.md) | 当前已经实现并由测试覆盖的工程事实。 |
@@ -34,6 +36,7 @@ notes/FastAPI_Lite 全局心智模型.md
 docs/current/    -> 已实现事实
 docs/contracts/  -> 调用方或开发者可依赖的稳定合同
 docs/plans/      -> 未完成缺口、计划和验收标准
+docs/notes/      -> 心智模型和目标范式，不等同于当前实现合同
 ```
 
 不要把 `docs/plans/` 中的内容当作当前能力；只有代码、测试、脚本或迁移已经支持的行为，才能进入 `docs/current/` 或 `docs/contracts/`。
@@ -50,7 +53,7 @@ business modules
 integrations
   -> typed settings / provider or client / app.state / readiness / tests
 operations
-  -> dev.sh / deploy.sh / verify.sh / tools.sh / k8s.sh
+  -> dev.sh / deploy.sh / run.sh / verify.sh / tools.sh / k8s.sh
 ```
 
 `fastapi-lite` 不预置具体任务平台、worker runtime、消息队列、outbox、DLQ、reconciler 或业务领域模型。这些能力应在具体服务有真实需求时，按现有配置、provider、合同、测试和文档范式接入。

@@ -216,6 +216,7 @@ case "$cmd" in
     cd "$ROOT_DIR"
     bash -n scripts/dev.sh
     bash -n scripts/deploy.sh
+    bash -n scripts/run.sh
     bash -n scripts/k8s.sh
     bash -n scripts/verify.sh
     bash -n scripts/tools.sh
@@ -226,6 +227,7 @@ case "$cmd" in
     ./scripts/dev.sh ports 1 --json --allow-busy >/dev/null
     ./scripts/deploy.sh help >/dev/null
     ./scripts/deploy.sh modes >/dev/null
+    ./scripts/run.sh help >/dev/null
     ./scripts/k8s.sh help >/dev/null
     ./scripts/verify.sh help >/dev/null
     ./scripts/tools.sh help >/dev/null
