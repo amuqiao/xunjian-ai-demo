@@ -8,3 +8,4 @@ htmlcov/
 storage/
 .run/
 logs/
+.DS_Store
