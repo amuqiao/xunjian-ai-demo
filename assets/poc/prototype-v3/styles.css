@@ -50,7 +50,7 @@ button {
 .app-shell {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(600px, 1fr) 120px;
+  grid-template-rows: auto minmax(600px, 1fr) 96px;
   gap: 12px;
   min-height: 100vh;
   padding: 16px 18px;
@@ -359,8 +359,8 @@ button {
 /* Overview */
 .overview-grid {
   display: grid;
-  grid-template-columns: minmax(250px, 24%) 1fr minmax(250px, 24%);
-  gap: 14px;
+  grid-template-columns: minmax(200px, 15%) minmax(0, 1fr) minmax(230px, 18%);
+  gap: 12px;
   height: 100%;
 }
 
@@ -375,12 +375,12 @@ button {
 .map-panel,
 .findings-panel,
 .area-detail-panel {
-  padding: 16px 18px;
+  padding: 14px;
 }
 
 .task-panel h2 {
-  margin: 0 0 12px;
-  font-size: 20px;
+  margin: 0 0 10px;
+  font-size: 18px;
 }
 
 .task-rows {
@@ -392,9 +392,10 @@ button {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 8px;
+  padding-bottom: 7px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.055);
   color: var(--muted);
+  font-size: 13px;
 }
 
 .task-row strong {
@@ -403,11 +404,12 @@ button {
 }
 
 .task-note {
-  margin: 12px 0 0;
-  padding-top: 12px;
+  margin: 10px 0 0;
+  padding-top: 10px;
   border-top: 1px solid var(--line-soft);
-  color: #ffe0a3;
-  line-height: 1.65;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .metric-grid {
@@ -420,8 +422,8 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 112px;
-  padding: 14px 16px;
+  min-height: 82px;
+  padding: 12px;
 }
 
 .metric-card small {
@@ -429,8 +431,8 @@ button {
 }
 
 .metric-card strong {
-  margin-top: 8px;
-  font-size: 34px;
+  margin-top: 6px;
+  font-size: 26px;
   line-height: 1;
 }
 
@@ -554,9 +556,9 @@ button {
 
 .area-summary-card {
   display: grid;
-  gap: 6px;
-  min-height: 86px;
-  padding: 10px;
+  gap: 4px;
+  min-height: 68px;
+  padding: 8px 10px;
   border: 1px solid var(--line-soft);
   color: inherit;
   text-align: left;
@@ -580,7 +582,8 @@ button {
 
 .area-summary-card small {
   color: var(--muted);
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .overview-right {
@@ -597,17 +600,18 @@ button {
 
 .area-detail-head {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .area-detail-head strong {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.35;
 }
 
 .area-detail-head small {
   color: var(--muted);
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .area-detail-stats {
@@ -740,9 +744,18 @@ button {
   background: rgba(255, 255, 255, 0.045);
 }
 
+#scene-form.detail-open .form-grid,
+#scene-form.detail-open .assist-workbench {
+  display: none;
+}
+
+#scene-form.detail-open .evidence-detail-panel {
+  margin-top: 0;
+}
+
 .evidence-detail-panel {
-  margin-top: 14px;
-  padding: 18px;
+  margin-top: 12px;
+  padding: 14px;
 }
 
 .evidence-detail-head {
@@ -750,17 +763,18 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .evidence-detail-head strong {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .evidence-detail-head p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .evidence-detail-actions {
@@ -792,9 +806,13 @@ button {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 28%);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 22%);
   gap: 14px;
   min-height: 0;
+}
+
+.vision-detail-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 20%);
 }
 
 .detail-main,
@@ -809,7 +827,7 @@ button {
 }
 
 .detail-block {
-  padding: 14px;
+  padding: 12px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.04);
 }
@@ -827,8 +845,8 @@ button {
 
 .model-alert-item {
   display: grid;
-  gap: 5px;
-  padding: 10px;
+  gap: 3px;
+  padding: 9px;
 }
 
 .model-alert-item small,
@@ -842,7 +860,7 @@ button {
 }
 
 .sample-table-wrap {
-  max-height: 260px;
+  max-height: 236px;
   overflow: auto;
   border: 1px solid var(--line-soft);
 }
@@ -872,9 +890,9 @@ button {
 
 .detail-explain {
   display: grid;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 14px;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px;
   border: 1px solid var(--line-soft);
   background: rgba(58, 214, 209, 0.055);
 }
@@ -882,7 +900,15 @@ button {
 .detail-explain p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.frame-detail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .frame-option {
@@ -896,6 +922,19 @@ button {
   cursor: pointer;
   text-align: left;
   background: rgba(255, 255, 255, 0.045);
+}
+
+.frame-detail-toolbar .frame-option {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.frame-detail-toolbar .frame-option small {
+  display: none;
 }
 
 .frame-option.active {
@@ -1165,8 +1204,8 @@ button {
 }
 
 .trend-canvas-large {
-  height: min(430px, calc(100% - 112px));
-  min-height: 300px;
+  height: min(520px, calc(100vh - 390px));
+  min-height: 430px;
 }
 
 .trend-canvas.replay {
@@ -1261,7 +1300,7 @@ button {
 
 .frame-stage-large {
   flex: 1;
-  min-height: 380px;
+  min-height: 560px;
   height: auto;
 }
 
@@ -1511,8 +1550,8 @@ button {
 .flow-rail {
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 8px;
-  padding: 10px 18px 12px;
+  gap: 6px;
+  padding: 8px 18px 10px;
 }
 
 .flow-hint {
@@ -1536,7 +1575,7 @@ button {
   align-content: center;
   gap: 4px;
   min-width: 0;
-  padding: 9px 10px 9px 38px;
+  padding: 7px 10px 7px 34px;
   border: 1px solid var(--line-soft);
   color: var(--muted);
   text-align: left;
@@ -1546,14 +1585,14 @@ button {
 
 .flow-step::before {
   position: absolute;
-  left: 14px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 1px solid currentColor;
   content: attr(data-idx);
   font-size: 12px;
@@ -1562,11 +1601,11 @@ button {
 
 .flow-step strong {
   color: var(--text);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .flow-step small {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .flow-step:disabled {

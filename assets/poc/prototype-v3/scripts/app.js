@@ -852,6 +852,7 @@
 
   function renderEvidenceDetail(area, selectedDetail) {
     var mode = state.evidenceDetail;
+    q("scene-form").classList.toggle("detail-open", !!mode);
     q("evidenceDetailPanel").classList.toggle("hidden", !mode);
     if (!mode) return;
 
@@ -899,16 +900,12 @@
         ? selectedDetail.evidence
         : area.evidence,
     }));
-    q("trendDetailExplain").appendChild(el("p", {
-      text: "该详情只说明模型证据和表单记录之间的差异,最终异常结论仍进入人工确认环节。",
-    }));
   }
 
   function renderVisionDetail(area, selectedDetail) {
     var frames = assertKey(DATA.analysis.frameSources, state.currentArea, "关键帧区域");
     var frame = assertKey(frames, state.frameKey, "关键帧");
     q("visionDetailFrameTitle").textContent = frame.title;
-    q("visionDetailHint").textContent = frame.scene + " · " + frameLabel(state.frameKey);
     q("detailFrameImage").src = frame.src;
     q("detailFrameImage").alt = frame.title;
     q("detailFrameTitle").textContent = frame.title;
@@ -916,10 +913,10 @@
     q("detailFrameBboxLabel").textContent = frame.label || "无显式识别框";
     q("detailFrameBbox").classList.toggle("hidden", !frame.showBbox);
     renderAlertList("visionAlertList", [
-      { label: "帧类型", value: frameLabel(state.frameKey), tone: "cyan", desc: frame.scene },
-      { label: "识别结果", value: frame.showBbox ? frame.label : "现场参考帧", tone: frame.showBbox ? "amber" : "green", desc: frame.showBbox ? "可辅助定位复检对象。" : "用于补充现场语境和点位确认。" },
+      { label: "帧类型", value: frameLabel(state.frameKey), tone: "cyan" },
+      { label: "识别结果", value: frame.showBbox ? frame.label : "现场参考帧", tone: frame.showBbox ? "amber" : "green" },
       { label: "证据用途", value: area.auxiliaryOnly ? "区域对照" : "复检补证", tone: area.auxiliaryOnly ? "green" : "amber" },
-      { label: "报告关系", value: "可随人工结论入报告", tone: "cyan" },
+      { label: "报告关系", value: "可入报告", tone: "cyan" },
     ]);
 
     q("detailFrameOptions").innerHTML = "";
@@ -942,9 +939,6 @@
       text: selectedRow
         ? "当前视觉帧用于补充 " + selectedRow.area + " / " + selectedRow.device + " / " + selectedRow.check + " 的现场点位和补拍语境。"
         : area.evidence,
-    }));
-    q("visionDetailExplain").appendChild(el("p", {
-      text: "视觉模型不直接替代人工复检,只为 Agent 建议和报告证据提供现场上下文。",
     }));
   }
 
