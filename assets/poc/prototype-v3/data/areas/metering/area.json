@@ -3,29 +3,29 @@
   "area": {
     "title": "计量区过滤器差压疑点",
     "short": "计量区",
-    "overviewTitle": "过滤器差压趋势异常",
-    "overviewDesc": "本轮唯一高优先级疑点。表单第 73 项填写正常,但差压趋势接近 0.1MPa 阈值。",
-    "overviewStatus": "高优先级复检",
+    "overviewTitle": "计量区表单质检入口",
+    "overviewDesc": "本轮主线从计量区巡检表进入,先核对第 73 项表单记录,再进入模型证据页。",
+    "overviewStatus": "待质检",
     "overviewAction": "进入表单质检",
     "overviewSecondary": "查看区域记录",
-    "overviewTarget": "riskFlow",
+    "overviewTarget": "form",
     "overviewStats": [
       {
-        "label": "高风险疑点",
-        "value": "1"
+        "label": "表单范围",
+        "value": "60-105"
       },
       {
-        "label": "关联表单",
+        "label": "重点项",
         "value": "第 73 项"
       },
       {
-        "label": "证据源",
-        "value": "4"
+        "label": "后续页面",
+        "value": "时序/视觉"
       }
     ],
     "sub": "表单填写正常,趋势曲线接近 0.1MPa 阈值,建议生成复检清单。",
     "badge": "高优先级复检",
-    "badgeTone": "danger",
+    "badgeTone": "warn",
     "trendKey": "filterDp",
     "evidence": "巡检记录第 73 项显示“计量区 / 过滤器 / 差压”结果正常;趋势数据提示接近阈值,形成表单与时序冲突。",
     "tags": [
@@ -65,13 +65,5 @@
       }
     ],
     "auxiliaryOnly": false
-  },
-  "finding": {
-    "area": "metering",
-    "priority": "high",
-    "entryType": "riskFlow",
-    "title": "计量区过滤器差压趋势异常",
-    "desc": "表单填写正常,但 72h 趋势接近 0.1MPa 阈值。",
-    "primary": true
   }
 }

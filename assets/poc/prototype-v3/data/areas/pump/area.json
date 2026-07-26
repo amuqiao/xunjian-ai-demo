@@ -3,24 +3,24 @@
   "area": {
     "title": "泵区现场视频帧复核",
     "short": "泵区",
-    "overviewTitle": "泵棚视频帧待复核",
-    "overviewDesc": "现场关键帧可作为设备状态辅助证据,本轮不进入高优先级异常闭环。",
-    "overviewStatus": "视觉辅助",
+    "overviewTitle": "泵区表单记录",
+    "overviewDesc": "本轮路线已覆盖泵区表单,可从区域质检继续查看趋势和现场帧。",
+    "overviewStatus": "区域覆盖",
     "overviewAction": "查看区域质检",
-    "overviewSecondary": "查看视觉证据",
+    "overviewSecondary": "查看区域记录",
     "overviewTarget": "form",
     "overviewStats": [
       {
-        "label": "证据入口",
-        "value": "1"
+        "label": "表单范围",
+        "value": "106-138"
       },
       {
-        "label": "证据类型",
-        "value": "关键帧"
+        "label": "入口",
+        "value": "区域质检"
       },
       {
-        "label": "流程属性",
-        "value": "辅助"
+        "label": "数据包",
+        "value": "已就绪"
       }
     ],
     "sub": "切换关键帧,核对设备状态与巡检记录一致性。",
@@ -65,13 +65,5 @@
       }
     ],
     "auxiliaryOnly": true
-  },
-  "finding": {
-    "area": "pump",
-    "priority": "mid",
-    "entryType": "areaSummary",
-    "title": "泵棚视频帧待复核",
-    "desc": "现场关键帧可用于补充设备状态证据。",
-    "primary": false
   }
 }

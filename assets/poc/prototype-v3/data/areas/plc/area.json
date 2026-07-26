@@ -3,24 +3,24 @@
   "area": {
     "title": "PLC 机房灯态抽查",
     "short": "PLC机房",
-    "overviewTitle": "PLC 机房灯态抽查",
-    "overviewDesc": "用于核验柜体、灯态和供电侧状态,作为视觉证据补充而非异常结论。",
-    "overviewStatus": "视觉辅助",
+    "overviewTitle": "PLC 机房表单记录",
+    "overviewDesc": "本轮路线已覆盖 PLC 机房表单,可从区域质检继续查看趋势和现场帧。",
+    "overviewStatus": "区域覆盖",
     "overviewAction": "查看区域质检",
-    "overviewSecondary": "查看视觉证据",
+    "overviewSecondary": "查看区域记录",
     "overviewTarget": "form",
     "overviewStats": [
       {
-        "label": "证据入口",
-        "value": "1"
+        "label": "表单范围",
+        "value": "285-315"
       },
       {
-        "label": "识别对象",
-        "value": "POWER灯"
+        "label": "入口",
+        "value": "区域质检"
       },
       {
-        "label": "流程属性",
-        "value": "辅助"
+        "label": "数据包",
+        "value": "已就绪"
       }
     ],
     "sub": "切换到 PLC 机房关键帧,识别指示灯、柜体区域和状态标签。",
@@ -65,13 +65,5 @@
       }
     ],
     "auxiliaryOnly": true
-  },
-  "finding": {
-    "area": "plc",
-    "priority": "mid",
-    "entryType": "areaSummary",
-    "title": "PLC 机房灯态抽查",
-    "desc": "作为视觉证据,补充设备状态核验。",
-    "primary": false
   }
 }

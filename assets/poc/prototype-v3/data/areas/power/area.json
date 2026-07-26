@@ -3,24 +3,24 @@
   "area": {
     "title": "配电间供电侧核验",
     "short": "配电间",
-    "overviewTitle": "配电间低压柜状态核对",
-    "overviewDesc": "低压配电室关键帧可直接支撑供电侧视觉核验,适合展示配电设备状态。",
-    "overviewStatus": "供电侧核验",
+    "overviewTitle": "配电间表单记录",
+    "overviewDesc": "本轮路线已覆盖配电间表单,可从区域质检继续查看趋势和现场帧。",
+    "overviewStatus": "区域覆盖",
     "overviewAction": "查看区域质检",
-    "overviewSecondary": "查看视觉证据",
+    "overviewSecondary": "查看区域记录",
     "overviewTarget": "form",
     "overviewStats": [
       {
-        "label": "证据入口",
-        "value": "1"
+        "label": "表单范围",
+        "value": "250/259"
       },
       {
-        "label": "视觉帧",
-        "value": "低压柜"
+        "label": "入口",
+        "value": "区域质检"
       },
       {
-        "label": "流程属性",
-        "value": "供电"
+        "label": "数据包",
+        "value": "已就绪"
       }
     ],
     "sub": "配电间展示供电侧表单、三相电压趋势和低压配电室关键帧的闭环。",
@@ -65,13 +65,5 @@
       }
     ],
     "auxiliaryOnly": true
-  },
-  "finding": {
-    "area": "power",
-    "priority": "mid",
-    "entryType": "areaSummary",
-    "title": "配电间低压柜状态核对",
-    "desc": "低压配电室关键帧可支撑供电侧视觉核验。",
-    "primary": false
   }
 }

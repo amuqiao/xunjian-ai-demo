@@ -500,8 +500,8 @@ button {
 }
 
 .risk-dot {
-  fill: var(--red);
-  filter: drop-shadow(0 0 12px rgba(255, 101, 116, 0.66));
+  fill: var(--amber);
+  filter: drop-shadow(0 0 12px rgba(246, 184, 75, 0.62));
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
@@ -536,6 +536,10 @@ button {
   padding: 12px 14px;
   border: 1px solid rgba(255, 101, 116, 0.38);
   background: rgba(6, 16, 20, 0.82);
+}
+
+.map-toast.closed {
+  border-color: rgba(127, 227, 145, 0.46);
 }
 
 .area-summary-grid {
@@ -680,22 +684,56 @@ button {
   font-weight: 800;
 }
 
-/* Form / trend / vision */
+/* Form workbench */
 .form-grid {
   display: grid;
   grid-template-columns: minmax(250px, 24%) minmax(430px, 1fr) minmax(310px, 28%);
   gap: 14px;
-  height: calc(100% - 108px);
+  height: auto;
   min-height: 0;
 }
 
-.trend-grid,
-.vision-grid {
+.assist-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(310px, 28%);
+  grid-template-columns: minmax(320px, 1.1fr) minmax(260px, 0.9fr) minmax(280px, 0.8fr);
   gap: 14px;
-  height: calc(100% - 108px);
+  margin-top: 14px;
   min-height: 0;
+}
+
+.assist-panel {
+  min-width: 0;
+  padding: 16px;
+}
+
+.assist-trend-canvas {
+  height: 178px;
+}
+
+.trend-stats.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.assist-summary,
+.agent-assist-copy p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.assist-frame-stage {
+  height: 190px;
+}
+
+.assist-actions {
+  margin-top: 14px;
+}
+
+.agent-assist-copy {
+  min-height: 190px;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .table-panel,
@@ -1265,6 +1303,33 @@ button {
   font-size: 22px;
 }
 
+.case-reuse {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border-color: rgba(88, 228, 210, 0.32);
+}
+
+.case-reuse.active {
+  border-color: rgba(127, 227, 145, 0.52);
+  background: rgba(127, 227, 145, 0.08);
+}
+
+.case-reuse small {
+  color: var(--muted);
+}
+
+.case-reuse strong {
+  font-size: 18px;
+}
+
+.case-reuse p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .report-actions {
   display: grid;
   gap: 10px;
@@ -1286,7 +1351,7 @@ button {
 
 .flow-track {
   display: grid;
-  grid-template-columns: repeat(9, minmax(112px, 1fr));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
   gap: 8px;
   height: 100%;
   overflow-x: auto;
@@ -1387,6 +1452,80 @@ button {
   margin-bottom: 12px;
 }
 
+.drawer-context {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.drawer-context strong {
+  font-size: 16px;
+}
+
+.drawer-context small {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.drawer-context-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.context-toggle {
+  min-height: 34px;
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.context-toggle.active {
+  border-color: rgba(58, 214, 209, 0.62);
+  color: var(--text);
+  background: rgba(58, 214, 209, 0.13);
+}
+
+.context-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.drawer-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.source-pill {
+  padding: 5px 8px;
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.source-pill.standard {
+  border-color: rgba(246, 184, 75, 0.45);
+  color: var(--amber);
+}
+
+.source-pill.archive {
+  border-color: rgba(127, 227, 145, 0.45);
+  color: var(--green);
+}
+
+.source-pill.case {
+  border-color: rgba(127, 227, 145, 0.55);
+  color: var(--green);
+}
+
 .drawer-question {
   min-height: 38px;
   border: 1px solid var(--line-soft);
@@ -1476,6 +1615,7 @@ button {
   .topbar,
   .overview-grid,
   .form-grid,
+  .assist-workbench,
   .trend-grid,
   .vision-grid,
   .recheck-grid,
@@ -1503,6 +1643,7 @@ button {
 
   .overview-grid,
   .form-grid,
+  .assist-workbench,
   .trend-grid,
   .vision-grid,
   .recheck-grid,

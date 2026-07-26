@@ -3,24 +3,24 @@
   "area": {
     "title": "阀组区巡检正常对照",
     "short": "阀组区",
-    "overviewTitle": "阀组区正常对照",
-    "overviewDesc": "本轮路线已覆盖,未发现异常趋势,用于说明系统按风险聚焦。",
-    "overviewStatus": "正常对照",
+    "overviewTitle": "阀组区表单记录",
+    "overviewDesc": "本轮路线已覆盖阀组区表单,可从区域质检查看表单、趋势和现场帧。",
+    "overviewStatus": "区域覆盖",
     "overviewAction": "查看区域质检",
-    "overviewSecondary": "查看视觉证据",
+    "overviewSecondary": "查看区域记录",
     "overviewTarget": "form",
     "overviewStats": [
       {
-        "label": "主线疑点",
-        "value": "0"
+        "label": "表单范围",
+        "value": "1-59"
       },
       {
-        "label": "状态",
-        "value": "平稳"
+        "label": "入口",
+        "value": "区域质检"
       },
       {
-        "label": "流程属性",
-        "value": "对照"
+        "label": "数据包",
+        "value": "已就绪"
       }
     ],
     "sub": "说明不是所有区域都报异常,主线风险集中在计量区。",
@@ -64,6 +64,5 @@
       }
     ],
     "auxiliaryOnly": true
-  },
-  "finding": null
+  }
 }

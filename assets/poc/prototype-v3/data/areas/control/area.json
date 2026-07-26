@@ -3,24 +3,24 @@
   "area": {
     "title": "站控室视频与数据核对",
     "short": "站控室",
-    "overviewTitle": "站控室视频质量核对",
-    "overviewDesc": "用于管理侧视频质量和参数核对,当前没有高优先级异常。",
-    "overviewStatus": "背景材料",
+    "overviewTitle": "站控室表单记录",
+    "overviewDesc": "本轮路线已覆盖站控室表单,可从区域质检继续查看趋势和现场帧。",
+    "overviewStatus": "区域覆盖",
     "overviewAction": "查看区域质检",
-    "overviewSecondary": "查看视觉证据",
+    "overviewSecondary": "查看区域记录",
     "overviewTarget": "form",
     "overviewStats": [
       {
-        "label": "主线疑点",
-        "value": "0"
+        "label": "表单范围",
+        "value": "179-200"
       },
       {
-        "label": "视频质量",
-        "value": "9/10"
+        "label": "入口",
+        "value": "区域质检"
       },
       {
-        "label": "流程属性",
-        "value": "背景"
+        "label": "数据包",
+        "value": "已就绪"
       }
     ],
     "sub": "站控室用于核对视频质量、回放质量和关键参数。",
@@ -64,6 +64,5 @@
       }
     ],
     "auxiliaryOnly": true
-  },
-  "finding": null
+  }
 }

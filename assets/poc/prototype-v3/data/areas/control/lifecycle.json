@@ -8,15 +8,7 @@
     },
     {
       "scene": "form",
-      "purpose": "核对该区域巡检表明细"
-    },
-    {
-      "scene": "trend",
-      "purpose": "展示该区域时序或健康度走势"
-    },
-    {
-      "scene": "vision",
-      "purpose": "展示该区域视觉帧或联动参考材料"
+      "purpose": "核对该区域表单,并联查看趋势和现场帧"
     }
   ],
   "terminalState": "作为证据或正常对照返回总览"

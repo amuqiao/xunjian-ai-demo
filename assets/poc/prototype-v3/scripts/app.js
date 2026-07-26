@@ -5,6 +5,14 @@
   var state = initialState();
   var STORAGE_KEY = "xunjian-prototype-v3-state";
   var lastFocus = null;
+  var LEGACY_SCENE_TARGETS = {
+    analysis: "form",
+    trend: "form",
+    conflict: "form",
+    vision: "form",
+    confirm: "recheck",
+    closed: "report",
+  };
 
   function initialState() {
     var flow = primaryFlow();
@@ -16,6 +24,7 @@
       frameKey: flow.frameKey,
       decision: "",
       archived: false,
+      agentContext: "current",
       recheckReady: false,
       stepKey: "task",
       maxStepIndex: 0,
@@ -85,11 +94,9 @@
   }
 
   function defaultStepForScene(scene) {
-    if (scene === "overview") return state.archived ? "closed" : "task";
+    if (scene === "overview") return "task";
     if (scene === "form") return "form";
-    if (scene === "trend") return state.stepKey === "conflict" ? "conflict" : "trend";
-    if (scene === "vision") return "vision";
-    if (scene === "recheck") return state.decision ? "confirm" : "recheck";
+    if (scene === "recheck") return "recheck";
     if (scene === "report") return "report";
     throw new Error("[v3] 未知场景: " + scene);
   }
@@ -129,8 +136,10 @@
       if (key in state) state[key] = saved[key];
     });
     var migratedAnalysis = state.scene === "analysis";
-    if (migratedAnalysis) state.scene = "form";
+    state.scene = LEGACY_SCENE_TARGETS[state.scene] || state.scene;
     if (!(state.scene in DATA.shell.sceneLabels)) state.scene = "overview";
+    if (state.agentContext !== "case") state.agentContext = "current";
+    if (!state.archived) state.agentContext = "current";
     if (stepIndex(state.stepKey) < 0) state.stepKey = defaultStepForScene(state.scene);
     if (migratedAnalysis && !savedHadStep) showStep("form");
     if (typeof state.maxStepIndex !== "number") state.maxStepIndex = stepIndex(state.stepKey);
@@ -138,13 +147,8 @@
 
   function canVisit(scene) {
     if (scene === state.scene) return true;
-    if (state.browseMode && assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) {
-      if (scene === "overview" || scene === "form" || scene === "trend" || scene === "vision") return true;
-    }
     if (scene === "overview" || scene === "form") return true;
-    if (scene === "trend") return state.maxStepIndex >= stepIndex("form");
-    if (scene === "vision") return state.maxStepIndex >= stepIndex("conflict");
-    if (scene === "recheck") return state.recheckReady || !!state.decision || state.archived;
+    if (scene === "recheck") return isPrimaryArea(state.currentArea) && (state.maxStepIndex >= stepIndex("form") || state.recheckReady || !!state.decision || state.archived);
     if (scene === "report") return !!state.decision || state.archived;
     throw new Error("[v3] 未知场景: " + scene);
   }
@@ -152,8 +156,6 @@
   function nearestLegalScene(scene) {
     if (canVisit(scene)) return scene;
     if (scene === "report" && canVisit("recheck")) return "recheck";
-    if ((scene === "recheck" || scene === "report") && canVisit("vision")) return "vision";
-    if ((scene === "vision" || scene === "recheck" || scene === "report") && canVisit("trend")) return "trend";
     if (scene !== "overview") return "form";
     return "overview";
   }
@@ -228,20 +230,11 @@
   }
 
   function areaPrimaryAction() {
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
-    if (area.overviewTarget === "riskFlow") {
-      openRiskFlow(state.currentArea);
-    } else if (area.overviewTarget === "vision") {
-      browseArea("vision", state.currentArea, "vision");
-    } else {
-      browseArea("form", state.currentArea, "form");
-    }
+    openRiskFlow(state.currentArea);
   }
 
   function areaSecondaryAction() {
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
-    if (area.auxiliaryOnly) browseArea("vision", state.currentArea, "vision");
-    else openRiskFlow(state.currentArea);
+    openRiskFlow(state.currentArea);
   }
 
   function switchFormArea(areaKey) {
@@ -269,6 +262,64 @@
 
   function primaryFlowRow() {
     return inspectionRowForItem(primaryFlow().itemKey);
+  }
+
+  function primaryCaseKnowledge() {
+    var flow = primaryFlow();
+    var area = assertKey(DATA.areas, flow.areaKey, "主线区域");
+    return assertKey(area, "caseKnowledge", "主线案例知识");
+  }
+
+  function isPrimaryArea(areaKey) {
+    return areaKey === primaryFlow().areaKey;
+  }
+
+  function canUseCaseAgentContext(areaKey) {
+    return state.archived && state.scene === "form" && isPrimaryArea(areaKey);
+  }
+
+  function setAgentContext(context) {
+    if (context === "case" && !canUseCaseAgentContext(state.currentArea)) return;
+    state.agentContext = context === "case" ? "case" : "current";
+    var focusContext = state.agentContext;
+    persistState();
+    render();
+    if (q("agentDrawer").classList.contains("open")) {
+      q("drawerAnswer").textContent = drawerPromptText(drawerKnowledgeForArea(state.currentArea));
+      var target = q("drawerContextToggle").querySelector("[data-context='" + focusContext + "']");
+      if (target) target.focus();
+    }
+  }
+
+  function drawerKnowledgeForArea(areaKey) {
+    var area = assertKey(DATA.areas, areaKey, "区域");
+    if (isPrimaryArea(areaKey)) {
+      var knowledge = primaryCaseKnowledge();
+      if (canUseCaseAgentContext(areaKey) && state.agentContext === "case") return {
+        mode: knowledge.secondPass.label,
+        summary: knowledge.secondPass.summary,
+        sources: knowledge.secondPass.sources,
+        questions: knowledge.secondPass.questions,
+        caseTitle: knowledge.title,
+        caseId: knowledge.caseId,
+      };
+      return {
+        mode: knowledge.firstPass.label,
+        summary: knowledge.firstPass.summary,
+        sources: knowledge.firstPass.sources,
+        questions: knowledge.firstPass.questions,
+        caseTitle: "",
+        caseId: "",
+      };
+    }
+    return {
+      mode: area.short + "辅助问答",
+      summary: area.evidence,
+      sources: area.assets.map(function (source) { return { text: source, type: "current" }; }),
+      questions: area.questions,
+      caseTitle: "",
+      caseId: "",
+    };
   }
 
   function itemDetailForCurrentArea(itemKey) {
@@ -308,19 +359,6 @@
     render();
   }
 
-  function selectTrendItem(itemKey) {
-    var detail = assertKey(DATA.analysis.itemDetails, itemKey, "巡检项");
-    var row = inspectionRowForItem(itemKey);
-    state.selectedItem = itemKey;
-    state.currentArea = row.areaKey;
-    state.currentTrend = detail.trendKey;
-    state.frameKey = detail.image;
-    markStep("trend");
-    state.browseMode = false;
-    persistState();
-    render();
-  }
-
   function selectFrame(frameKey) {
     var frames = assertKey(DATA.analysis.frameSources, state.currentArea, "关键帧区域");
     assertKey(frames, frameKey, "关键帧");
@@ -331,10 +369,12 @@
 
   function selectDecision(decision) {
     assertKey(DATA.recheck.decisionStatus, decision, "复检结论");
+    if (state.archived) return;
     state.decision = decision;
     state.archived = false;
+    state.agentContext = "current";
     state.recheckReady = true;
-    markStep("confirm");
+    markStep("recheck");
     persistState();
     render();
   }
@@ -347,7 +387,8 @@
       return;
     }
     state.archived = true;
-    markStep("closed");
+    state.agentContext = "case";
+    markStep("report");
     persistState();
     render();
   }
@@ -357,14 +398,16 @@
     q("clock").textContent = DATA.shell.clock + " · 任务批次 " + DATA.shell.batch;
 
     var status;
-    if (state.archived) {
-      status = "报告已归档为案例,闭环率 100%。";
+    if (state.scene === "overview") {
+      status = "本轮任务已加载,请从计量区表单质检进入。";
+    } else if (state.archived) {
+      status = "报告已归档为案例,供后续表单质检命中相似案例。";
     } else if (state.decision) {
       status = "已选择复检结论: " + DATA.recheck.decisionStatus[state.decision] + ",等待报告归档。";
     } else if (state.scene === "recheck") {
       status = "复检清单已生成,等待人工确认。";
     } else {
-      status = "AI 已发现 1 处高优先级疑点,等待复检确认。";
+      status = "表单质检工作台已加载,可并联查看时序、视觉、规则和 Agent 建议。";
     }
     q("statusLine").textContent = status;
 
@@ -406,6 +449,7 @@
   function renderOverview() {
     var task = DATA.overview.task;
     var currentArea = assertKey(DATA.areas, state.currentArea, "区域");
+    var currentAreaView = currentArea;
     q("taskBatch").textContent = DATA.shell.batch;
     q("taskTitle").textContent = task.title;
     q("taskNote").textContent = task.note;
@@ -428,18 +472,6 @@
     DATA.overview.metrics.forEach(function (m) {
       var value = m.value;
       var tone = m.tone;
-      if (m.key === "findings") {
-        value = String(DATA.overview.findings.length);
-      }
-      if (m.key === "recheck" && state.decision) {
-        value = "0";
-        tone = "green";
-      }
-      if (m.key === "closed") {
-        if (state.archived) value = DATA.report.closedRate.archived;
-        else if (state.decision) value = DATA.report.closedRate[state.decision];
-        tone = "green";
-      }
       metricBox.appendChild(el("div", { class: "metric-card card" }, [
         el("small", { text: m.label }),
         el("strong", { class: "num-" + tone, text: value }),
@@ -449,81 +481,66 @@
     qa(".map-area").forEach(function (node) {
       node.classList.toggle("active", node.dataset.area === state.currentArea);
     });
-    q("riskDot").classList.toggle("closed", state.archived);
-    q("mapToastBadge").className = "badge " + currentArea.badgeTone;
-    q("mapToastBadge").textContent = currentArea.overviewStatus;
-    q("mapToastText").textContent = state.archived && state.currentArea === primaryFlow().areaKey
-      ? "复检报告已归档," + currentArea.short + "疑点进入闭环案例库。"
-      : currentArea.short + ": " + currentArea.overviewDesc;
+    q("riskDot").classList.remove("closed");
+    q("riskDot").setAttribute("aria-label", "计量区表单质检入口");
+    q("mapToast").classList.remove("closed");
+    q("mapToastBadge").className = "badge " + currentAreaView.badgeTone;
+    q("mapToastBadge").textContent = currentAreaView.overviewStatus;
+    q("mapToastText").textContent = currentArea.short + ": " + currentArea.overviewDesc;
 
     var areaGrid = q("areaSummaryGrid");
     areaGrid.innerHTML = "";
     DATA.overview.areaOrder.forEach(function (areaKey) {
       var area = assertKey(DATA.areas, areaKey, "区域");
-      var areaFindings = DATA.overview.findings.filter(function (finding) { return finding.area === areaKey; });
-      var findingCount = areaFindings.length;
-      var cardHint = !findingCount
-        ? "本轮正常覆盖"
-        : areaFindings.some(function (finding) { return finding.entryType === "riskFlow"; })
-          ? findingCount + " 个高风险疑点"
-          : findingCount + " 个证据入口";
-      var cls = "area-summary-card" + (state.currentArea === areaKey ? " active" : "") + (!area.auxiliaryOnly ? " risk" : "");
+      var cardHint = area.overviewDesc;
+      var cls = "area-summary-card" + (state.currentArea === areaKey ? " active" : "");
+      var areaView = area;
       areaGrid.appendChild(el("button", {
         class: cls,
         type: "button",
         dataset: { area: areaKey },
         onClick: function () { selectOverviewArea(areaKey); },
       }, [
-        el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
+        el("span", { class: "badge " + areaView.badgeTone, text: areaView.overviewStatus }),
         el("strong", { text: area.short }),
         el("small", { text: cardHint }),
       ]));
     });
 
-    q("selectedAreaBadge").className = "badge " + currentArea.badgeTone;
-    q("selectedAreaBadge").textContent = currentArea.overviewStatus;
-    q("selectedAreaTitle").textContent = currentArea.overviewTitle;
-    q("selectedAreaDesc").textContent = currentArea.overviewDesc;
+    q("selectedAreaBadge").className = "badge " + currentAreaView.badgeTone;
+    q("selectedAreaBadge").textContent = currentAreaView.overviewStatus;
+    q("selectedAreaTitle").textContent = currentAreaView.overviewTitle;
+    q("selectedAreaDesc").textContent = currentAreaView.overviewDesc;
     q("selectedAreaStats").innerHTML = "";
-    currentArea.overviewStats.forEach(function (item) {
+    currentAreaView.overviewStats.forEach(function (item) {
       q("selectedAreaStats").appendChild(el("div", { class: "area-stat card" }, [
         el("small", { text: item.label }),
         el("strong", { text: item.value }),
       ]));
     });
     q("selectedAreaTags").innerHTML = "";
-    currentArea.tags.forEach(function (tag, i) {
+    currentAreaView.tags.forEach(function (tag, i) {
       q("selectedAreaTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
     });
-    q("overviewPrimary").textContent = currentArea.overviewAction;
-    q("selectedAreaPrimary").textContent = currentArea.overviewAction;
-    q("selectedAreaSecondary").textContent = currentArea.overviewSecondary;
+    q("overviewPrimary").textContent = currentAreaView.overviewAction;
+    q("selectedAreaPrimary").textContent = currentAreaView.overviewAction;
+    q("selectedAreaSecondary").textContent = currentAreaView.overviewSecondary;
 
     var list = q("findingList");
     list.innerHTML = "";
-    DATA.overview.findings.forEach(function (finding) {
-      var closed = finding.primary && (state.decision || state.archived);
-      var badgeClass = closed ? "badge ok" : finding.priority === "high" ? "badge danger" : "badge warn";
-      var badgeText = closed ? (state.archived ? "已归档" : "已复检") : finding.priority === "high" ? "高优先级" : "证据入口";
-      var resultText = "";
-      if (closed) {
-        resultText = state.archived
-          ? "闭环结果: " + DATA.recheck.decisionStatus[state.decision] + " · 已归档为案例"
-          : "复检结论: " + DATA.recheck.decisionStatus[state.decision];
-      }
+    DATA.overview.areaOrder.forEach(function (areaKey) {
+      var area = assertKey(DATA.areas, areaKey, "区域");
       list.appendChild(el("button", {
-        class: "finding-card" + (finding.primary ? " primary" : "") + (closed ? " closed" : ""),
+        class: "finding-card" + (areaKey === primaryFlow().areaKey ? " primary" : ""),
         type: "button",
-        dataset: { area: finding.area },
+        dataset: { area: areaKey },
         onClick: function () {
-          if (finding.entryType === "riskFlow") openRiskFlow(finding.area);
-          else selectOverviewArea(finding.area);
+          openRiskFlow(areaKey);
         },
       }, [
-        el("span", { class: badgeClass, text: badgeText }),
-        el("strong", { text: finding.title }),
-        el("small", { text: finding.desc }),
-        closed ? el("div", { class: "finding-result", text: resultText }) : null,
+        el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
+        el("strong", { text: area.short + " · " + area.overviewTitle }),
+        el("small", { text: area.overviewDesc }),
       ]));
     });
   }
@@ -656,16 +673,16 @@
       area.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
-      q("formPrimary").textContent = "查看区域趋势";
-      q("formPrimary").dataset.action = "go-trend";
+      q("formPrimary").textContent = area.auxiliaryOnly ? "返回任务总览" : "进入人工确认";
+      q("formPrimary").dataset.action = area.auxiliaryOnly ? "back-overview" : "go-recheck";
     } else {
       q("evidenceTitle").textContent = area.auxiliaryOnly ? "表单项证据摘要" : "冲突证据摘要";
       q("evidenceText").textContent = selectedDetail.evidence;
       selectedDetail.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
-      q("formPrimary").textContent = "查看时序预警";
-      q("formPrimary").dataset.action = "go-trend";
+      q("formPrimary").textContent = "进入人工确认";
+      q("formPrimary").dataset.action = "go-recheck";
     }
 
     var content = conflictContent(area, trendSummary(state.currentTrend));
@@ -674,54 +691,28 @@
     q("conflictText").textContent = content.text;
     renderQualityFacts(content.facts);
     renderExplainList("formExplainList", area.formExplain);
+    renderFormAssist(area, selectedDetail);
   }
 
-  function renderTrendScene() {
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
-    var primaryRow = primaryFlowRow();
-    var isConflictStep = state.stepKey === "conflict";
-    q("trendSceneTitle").textContent = isConflictStep ? "表单趋势冲突工作台" : "时序预警工作台";
-    q("trendSubtitle").textContent = isConflictStep
-      ? "当前步骤聚焦“表单正常”和“趋势近阈值”的矛盾,为后续复检生成明确对象。"
-      : area.auxiliaryOnly ? area.sub : "第 " + primaryRow.no + " 项表单结果为“" + primaryRow.result + "”,但趋势曲线显示" + primaryRow.check + "需要复核。";
-    q("trendBadge").className = "badge " + (area.auxiliaryOnly && !isConflictStep ? "info" : "danger");
-    q("trendBadge").textContent = isConflictStep ? "表单趋势冲突 · 待复检" : area.auxiliaryOnly ? area.short + " · 对照趋势" : "时序预警 · 接近阈值";
+  function renderFormAssist(area, selectedDetail) {
+    var trendInfo = renderTrend(q("formTrendCanvas"), state.currentTrend);
+    renderTrendStats(trendInfo, "formTrendStats");
+    q("formTrendSummary").textContent = trendInfo.summary;
 
-    var trendInfo = renderTrend(q("trendCanvas"), state.currentTrend);
-    q("trendTitle").textContent = trendInfo.title;
-    renderTrendStats(trendInfo);
-    var content = conflictContent(area, trendInfo);
-    q("trendConflictTitle").textContent = content.title;
-    q("trendConflictText").textContent = content.text;
-    renderExplainList("trendExplainList", isConflictStep ? DATA.analysis.conflictExplain : area.auxiliaryOnly ? area.formExplain : DATA.analysis.trendExplain);
+    var frames = assertKey(DATA.analysis.frameSources, state.currentArea, "关键帧区域");
+    var frame = assertKey(frames, state.frameKey, "关键帧");
+    q("formFrameImage").src = frame.src;
+    q("formFrameImage").alt = frame.title;
+    q("formFrameTitle").textContent = frame.title;
+    q("formFrameScene").textContent = frame.scene;
+    q("formBboxLabel").textContent = frame.label;
+    q("formBbox").classList.toggle("hidden", !frame.showBbox);
 
-    qa("[data-trend]").forEach(function (btn) {
-      btn.dataset.trend = area.auxiliaryOnly && !isConflictStep ? area.trendKey : primaryFlow().trendKey;
-      btn.textContent = area.auxiliaryOnly && !isConflictStep ? "区域趋势" : primaryRow.check;
-      btn.classList.toggle("active", state.currentTrend === btn.dataset.trend);
-    });
-    qa("[data-item='pressure']").forEach(function (btn) {
-      btn.hidden = area.auxiliaryOnly && !isConflictStep;
-      btn.classList.toggle("active", state.selectedItem === "pressure" && !area.auxiliaryOnly);
-    });
-  }
-
-  function renderVision() {
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
-    q("visionSubtitle").textContent = area.auxiliaryOnly ? area.sub : "关键帧用于补强复检依据,最终结论仍需人员确认。";
-    q("visionBadge").className = "badge " + (area.auxiliaryOnly ? area.badgeTone : "info");
-    q("visionBadge").textContent = area.short + " · " + area.badge;
-    renderFrame();
-
-    q("visionSummary").textContent = area.auxiliaryOnly ? area.evidence : assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项").evidence;
-    q("visionTags").innerHTML = "";
-    var tags = area.auxiliaryOnly ? area.tags : assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项").tags;
-    tags.forEach(function (tag, i) {
-      q("visionTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
-    });
-    renderExplainList("visionExplainList", DATA.analysis.visionExplain);
-    q("visionPrimary").textContent = state.browseMode || area.auxiliaryOnly ? "返回区域概要" : "生成复检清单";
-    q("visionPrimary").dataset.action = state.browseMode || area.auxiliaryOnly ? "back-overview" : "go-recheck";
+    var knowledge = drawerKnowledgeForArea(state.currentArea);
+    q("formAgentTitle").textContent = canUseCaseAgentContext(state.currentArea)
+      ? "命中历史案例增强复检建议"
+      : "综合证据生成复检建议";
+    q("formAgentSummary").textContent = knowledge.summary || (selectedDetail ? selectedDetail.evidence : area.evidence);
   }
 
   function renderTrend(container, seriesKey) {
@@ -811,42 +802,27 @@
     };
   }
 
-  function renderTrendStats(info) {
+  function renderTrendStats(info, targetId) {
+    if (!targetId) throw new Error("[v3] 趋势统计缺少目标节点");
     var stats = [
       ["最新值", info.latest, "cyan"],
       ["72h最大", info.max, "amber"],
       ["阈值余量", info.marginText, info.margin >= 0 ? "green" : "red"],
       ["数据质量", info.quality, "green"],
     ];
-    q("trendStats").innerHTML = "";
+    var target = q(targetId);
+    target.innerHTML = "";
     stats.forEach(function (s) {
-      q("trendStats").appendChild(el("div", { class: "trend-stat card" }, [
+      target.appendChild(el("div", { class: "trend-stat card" }, [
         el("small", { text: s[0] }),
         el("strong", { class: "num-" + s[2], text: s[1] }),
       ]));
     });
   }
 
-  function renderFrame() {
-    var frames = assertKey(DATA.analysis.frameSources, state.currentArea, "关键帧区域");
-    var frame = assertKey(frames, state.frameKey, "关键帧");
-    q("frameImage").src = frame.src;
-    q("frameImage").alt = frame.title;
-    q("frameTitle").textContent = frame.title;
-    q("frameScene").textContent = frame.scene;
-    q("bboxLabel").textContent = frame.label;
-    q("bbox").classList.toggle("hidden", !frame.showBbox);
-    qa("[data-frame]").forEach(function (btn) {
-      btn.classList.toggle("active", btn.dataset.frame === state.frameKey);
-    });
-  }
-
   function renderRecheck() {
-    var isConfirmStep = state.stepKey === "confirm";
-    q("recheckTitle").textContent = isConfirmStep ? "人工确认工作台" : "复检工作台";
-    q("recheckSubtitle").textContent = isConfirmStep
-      ? "请在复检证据和规则依据基础上选择人工结论,系统不会自动替人员下结论。"
-      : "把 AI 疑点转换成可执行复检项，并保留人工确认边界。";
+    q("recheckTitle").textContent = "人工确认工作台";
+    q("recheckSubtitle").textContent = "请在复检证据和规则依据基础上选择人工结论,系统不会自动替人员下结论。";
 
     q("recheckSummary").innerHTML = "";
     DATA.recheck.summary.forEach(function (item) {
@@ -880,13 +856,14 @@
         class: "decision-btn" + (state.decision === decision.key ? " active" : ""),
         type: "button",
         dataset: { decision: decision.key },
+        disabled: state.archived ? "disabled" : null,
         onClick: function () { selectDecision(decision.key); },
       }, decision.label));
     });
 
     q("decisionLabel").textContent = state.decision ? DATA.recheck.decisionStatus[state.decision] : "请选择结论";
     q("recheckStatus").className = state.decision ? "badge ok" : "badge warn";
-    q("recheckStatus").textContent = state.decision ? "已选择: " + DATA.recheck.decisionStatus[state.decision] : isConfirmStep ? "请选择人工结论" : "待人工确认";
+    q("recheckStatus").textContent = state.decision ? "已选择: " + DATA.recheck.decisionStatus[state.decision] : "请选择人工结论";
   }
 
   function renderReport() {
@@ -905,20 +882,32 @@
     q("reportStamp").className = state.archived ? "badge ok" : state.decision ? "badge warn" : "badge info";
     q("reportStamp").textContent = state.archived ? "已归档" : state.decision ? "报告草稿" : "等待结论";
     q("archiveBtn").disabled = !state.decision || state.archived;
-    q("reportBackBtn").textContent = state.archived ? "回到大屏看闭环" : "返回任务总览";
+    q("archiveBtn").textContent = state.archived ? "已归档本次检查" : "归档本次检查";
+    q("reportBackBtn").textContent = "返回任务总览";
+
+    var caseKnowledge = primaryCaseKnowledge();
+    q("caseReusePanel").classList.toggle("active", state.archived);
+    q("caseReuseLabel").textContent = state.archived ? caseKnowledge.archivedCase.label : "案例复用";
+    q("caseReuseTitle").textContent = state.archived ? caseKnowledge.caseId : "等待归档后启用";
+    q("caseReuseText").textContent = state.archived ? caseKnowledge.archivedCase.summary
+      : "人工确认并归档后,后续同类表单质检可命中本次案例。";
 
     q("caseTags").innerHTML = "";
-    DATA.report.caseTags.forEach(function (tag, i) {
-      q("caseTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
-    });
+    if (state.decision || state.archived) {
+      DATA.report.caseTags.forEach(function (tag, i) {
+        q("caseTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
+      });
+    } else {
+      q("caseTags").appendChild(el("span", { class: "tag", text: "归档标签将在人工结论后生成" }));
+    }
   }
 
   function canVisitStep(stepKey) {
     var idx = stepIndex(stepKey);
     if (idx < 0) throw new Error("[v3] 未知步骤: " + stepKey);
     if (stepKey === "report") return !!state.decision || state.archived;
-    if (stepKey === "closed") return state.archived;
-    if (stepKey === "recheck" || stepKey === "confirm") {
+    if (stepKey === "recheck") {
+      if (!isPrimaryArea(state.currentArea)) return false;
       return state.recheckReady || idx <= state.maxStepIndex + 1 || !!state.decision || state.archived;
     }
     return idx <= state.maxStepIndex + 1;
@@ -926,7 +915,6 @@
 
   function stepLockedTitle(stepKey) {
     if (stepKey === "report") return "请先在复检确认中选择人工结论";
-    if (stepKey === "closed") return "请先完成报告归档";
     return "请先完成前序步骤";
   }
 
@@ -934,46 +922,17 @@
     if (!canVisitStep(stepKey)) throw new Error("[v3] 步骤尚未解锁: " + stepKey);
     if (stepKey === "task") go("overview", { stepKey: "task" });
     else if (stepKey === "form") go("form", { stepKey: "form" });
-    else if (stepKey === "trend") go("trend", { stepKey: "trend" });
-    else if (stepKey === "conflict") go("trend", { stepKey: "conflict" });
-    else if (stepKey === "vision") go("vision", { stepKey: "vision" });
     else if (stepKey === "recheck") {
       state.recheckReady = true;
       go("recheck", { stepKey: "recheck" });
-    } else if (stepKey === "confirm") {
-      state.recheckReady = true;
-      go("recheck", { stepKey: "confirm" });
     } else if (stepKey === "report") go("report", { stepKey: "report" });
-    else if (stepKey === "closed") go("overview", { stepKey: "closed" });
     else throw new Error("[v3] 未知步骤: " + stepKey);
   }
 
   function renderFlow() {
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
-    if (area.auxiliaryOnly) {
-      q("flowHint").textContent = area.short + "演示生命周期 · " + area.lifecycle.terminalState;
-      q("flowTrack").innerHTML = "";
-      area.lifecycle.stages.forEach(function (stage, index) {
-        assertKey(DATA.shell.sceneLabels, stage.scene, "场景");
-        var cls = "flow-step" + (stage.scene === state.scene ? " active" : "");
-        q("flowTrack").appendChild(el("button", {
-          class: cls,
-          type: "button",
-          title: stage.purpose,
-          dataset: { idx: String(index + 1), step: stage.scene },
-          onClick: function () {
-            if (stage.scene === "overview") selectOverviewArea(state.currentArea);
-            else browseArea(stage.scene, state.currentArea, defaultStepForScene(stage.scene));
-          },
-        }, [
-          el("strong", { text: DATA.shell.sceneLabels[stage.scene] }),
-          el("small", { text: stage.purpose }),
-        ]));
-      });
-      return;
-    }
-
-    q("flowHint").textContent = "流程步骤 · 灰色步骤需完成前序操作后解锁";
+    q("flowHint").textContent = state.archived && state.scene === "report"
+      ? "流程步骤 · 报告已归档,案例将供后续表单质检调用"
+      : "流程步骤 · 时序、视觉、规则和 Agent 均在表单质检中并列辅助判断";
     var activeIndex = stepIndex(state.stepKey);
     q("flowTrack").innerHTML = "";
     DATA.shell.flowSteps.forEach(function (step, index) {
@@ -997,9 +956,36 @@
   }
 
   function renderDrawer() {
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
+    var knowledge = drawerKnowledgeForArea(state.currentArea);
+    q("drawerContext").innerHTML = "";
+    q("drawerContext").appendChild(el("span", { class: "badge " + (knowledge.caseId ? "green" : "info"), text: knowledge.mode }));
+    if (knowledge.caseId) q("drawerContext").appendChild(el("strong", { text: knowledge.caseId }));
+    q("drawerContext").appendChild(el("small", { text: knowledge.summary }));
+    q("drawerContextToggle").innerHTML = "";
+    if (isPrimaryArea(state.currentArea)) {
+      q("drawerContextToggle").appendChild(el("button", {
+        class: "context-toggle" + (state.agentContext !== "case" ? " active" : ""),
+        type: "button",
+        dataset: { context: "current" },
+        "aria-pressed": state.agentContext !== "case" ? "true" : "false",
+        onClick: function () { setAgentContext("current"); },
+      }, "当前检查"));
+      q("drawerContextToggle").appendChild(el("button", {
+        class: "context-toggle" + (state.agentContext === "case" ? " active" : ""),
+        type: "button",
+        dataset: { context: "case" },
+        "aria-pressed": state.agentContext === "case" ? "true" : "false",
+        disabled: canUseCaseAgentContext(state.currentArea) ? null : "disabled",
+        title: canUseCaseAgentContext(state.currentArea) ? "查看历史案例增强上下文" : "归档后可用",
+        onClick: function () { setAgentContext("case"); },
+      }, "命中历史案例"));
+    }
+    q("drawerSources").innerHTML = "";
+    knowledge.sources.forEach(function (source) {
+      q("drawerSources").appendChild(el("span", { class: "source-pill " + source.type, text: source.text }));
+    });
     q("drawerQuestions").innerHTML = "";
-    area.questions.forEach(function (item) {
+    knowledge.questions.forEach(function (item) {
       q("drawerQuestions").appendChild(el("button", {
         class: "drawer-question",
         type: "button",
@@ -1008,12 +994,15 @@
     });
   }
 
+  function drawerPromptText(knowledge) {
+    if (knowledge.caseId) return "已命中 " + knowledge.caseId + "。请选择问题查看历史案例如何增强本次异常处置建议。";
+    return "请选择问题查看 AI 辅助回答。";
+  }
+
   function render() {
     renderShell();
     renderOverview();
     renderForm();
-    renderTrendScene();
-    renderVision();
     renderRecheck();
     renderReport();
     renderDrawer();
@@ -1022,6 +1011,18 @@
 
   function openDrawer() {
     lastFocus = document.activeElement;
+    if (state.scene !== "form") {
+      state.agentContext = "current";
+      persistState();
+      render();
+    }
+    if (!canUseCaseAgentContext(state.currentArea)) {
+      state.agentContext = "current";
+      persistState();
+      render();
+    }
+    var knowledge = drawerKnowledgeForArea(state.currentArea);
+    q("drawerAnswer").textContent = drawerPromptText(knowledge);
     q("drawerMask").classList.add("open");
     q("agentDrawer").classList.add("open");
     var first = q("agentDrawer").querySelector("button");
@@ -1097,18 +1098,6 @@
       if (state.scene === "overview") go("form", { area: primaryFlow().areaKey, stepKey: "form" });
       else go("form", { stepKey: "form" });
     }
-    else if (action === "go-trend") {
-      if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) browseArea("trend", state.currentArea, "trend");
-      else go("trend", { stepKey: "trend" });
-    }
-    else if (action === "go-vision") {
-      if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) {
-        browseArea("vision", state.currentArea, "vision");
-        return;
-      }
-      markStep("conflict");
-      go("vision", { stepKey: "vision" });
-    }
     else if (action === "go-recheck") {
       if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) {
         go("overview", { stepKey: "task" });
@@ -1131,16 +1120,12 @@
       }
       go("report", { stepKey: "report" });
     } else if (action === "archive-report") archiveReport();
-    else if (action === "back-overview") go("overview", { stepKey: state.archived ? "closed" : "task" });
+    else if (action === "back-overview") go("overview", { stepKey: "task" });
     else if (action === "open-drawer") openDrawer();
     else if (action === "close-drawer") closeDrawer();
     else if (action === "open-image") openImage();
     else if (action === "close-image") closeImage();
-    else if (action === "replay-trend") {
-      q("trendCanvas").classList.remove("replay");
-      void q("trendCanvas").offsetWidth;
-      q("trendCanvas").classList.add("replay");
-    } else if (action === "reset-demo") resetDemo();
+    else if (action === "reset-demo") resetDemo();
     else {
       throw new Error("[v3] 未知动作: " + action);
     }
@@ -1150,12 +1135,7 @@
     qa("[data-scene-target]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var target = btn.dataset.sceneTarget;
-        if (state.browseMode && assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly &&
-            (target === "form" || target === "trend" || target === "vision")) {
-          browseArea(target, state.currentArea, defaultStepForScene(target));
-        } else {
-          go(target);
-        }
+        go(target);
       });
     });
     qa("[data-action]").forEach(function (node) {
@@ -1177,30 +1157,10 @@
         openRiskFlow(primaryFlow().areaKey);
       }
     });
-    qa("[data-trend]").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var trendKey = btn.dataset.trend;
-        var flow = primaryFlow();
-        if (trendKey === flow.trendKey) {
-          state.currentArea = flow.areaKey;
-          state.selectedItem = flow.itemKey;
-          state.frameKey = flow.frameKey;
-        }
-        state.currentTrend = btn.dataset.trend;
-        if (state.browseMode || assertKey(DATA.areas, state.currentArea, "区域").auxiliaryOnly) showStep("trend");
-        else markStep("trend");
-        persistState();
-        render();
-      });
-    });
     qa("[data-item]").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        if (btn.closest("#scene-trend")) selectTrendItem(btn.dataset.item);
-        else selectItem(btn.dataset.item, "form");
+        selectItem(btn.dataset.item, "form");
       });
-    });
-    qa("[data-frame]").forEach(function (btn) {
-      btn.addEventListener("click", function () { selectFrame(btn.dataset.frame); });
     });
     q("drawerMask").addEventListener("click", closeDrawer);
     q("imageModal").addEventListener("click", function (event) {
@@ -1208,7 +1168,7 @@
     });
     window.addEventListener("hashchange", function () {
       var scene = window.location.hash.replace("#", "");
-      if (scene === "analysis") scene = "form";
+      scene = LEGACY_SCENE_TARGETS[scene] || scene;
       if (scene && scene !== state.scene) {
         assertKey(DATA.shell.sceneLabels, scene, "场景");
         var legal = canVisit(scene);
@@ -1237,7 +1197,7 @@
   function boot() {
     loadState();
     var initial = window.location.hash.replace("#", "");
-    if (initial === "analysis") initial = "form";
+    initial = LEGACY_SCENE_TARGETS[initial] || initial;
     if (initial) {
       assertKey(DATA.shell.sceneLabels, initial, "场景");
       var legal = canVisit(initial);

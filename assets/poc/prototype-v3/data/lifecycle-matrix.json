@@ -20,6 +20,7 @@
         "trends/filter-dp.csv",
         "frames/current.png",
         "questions.json",
+        "case-knowledge.json",
         "lifecycle.json"
       ]
     },

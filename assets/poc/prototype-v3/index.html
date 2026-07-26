@@ -20,15 +20,13 @@
         <nav class="scene-nav" aria-label="演示场景">
           <button class="scene-nav-btn active" type="button" data-scene-target="overview">任务总览</button>
           <button class="scene-nav-btn" type="button" data-scene-target="form">表单质检</button>
-          <button class="scene-nav-btn" type="button" data-scene-target="trend">时序预警</button>
-          <button class="scene-nav-btn" type="button" data-scene-target="vision">视觉证据</button>
           <button class="scene-nav-btn" type="button" data-scene-target="recheck">复检确认</button>
           <button class="scene-nav-btn" type="button" data-scene-target="report">报告归档</button>
         </nav>
 
         <div class="top-status">
           <div id="clock">2026-07-21 04:43:22 · 任务批次 XJ-20260721-A</div>
-          <div id="statusLine">AI 已发现 1 处高优先级疑点，等待复检确认。</div>
+          <div id="statusLine">本轮任务已加载，请从计量区表单质检进入。</div>
           <button class="tool-btn reset-btn" type="button" data-action="reset-demo">重置演示</button>
         </div>
       </header>
@@ -44,7 +42,7 @@
                 </div>
                 <h2 id="taskTitle">计量区例行巡检</h2>
                 <div class="task-rows" id="taskRows"></div>
-                <p id="taskNote" class="task-note">本轮聚焦计量区过滤器差压疑点，联动周边区域视频、趋势、知识依据完成巡检闭环。</p>
+                <p id="taskNote" class="task-note">本轮从计量区表单质检进入，在同一工作台并联查看时序模型、视觉模型、规则依据和 Agent 建议。</p>
               </section>
 
               <section class="metric-grid" id="overviewMetrics" aria-label="巡检指标"></section>
@@ -76,10 +74,10 @@
                   <g class="map-area" data-area="power" tabindex="0" role="button" aria-label="配电间">
                     <polygon points="186,122 270,92 318,150 248,214"></polygon><text x="214" y="164">配电间</text>
                   </g>
-                  <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" tabindex="0" role="button" aria-label="计量区高优先级疑点"></circle>
+                  <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" tabindex="0" role="button" aria-label="计量区表单质检入口"></circle>
                 </svg>
                 <div class="scan-band" aria-hidden="true"></div>
-                <div class="map-toast">
+                <div class="map-toast" id="mapToast">
                   <span class="badge danger" id="mapToastBadge">AI 提示</span>
                   <span id="mapToastText">计量区过滤器差压趋势异常，建议生成复检清单。</span>
                 </div>
@@ -108,8 +106,8 @@
 
               <section class="panel findings-panel">
                 <div class="panel-title">
-                  <span>异常与证据入口</span>
-                  <span class="mini-hint">高风险进入闭环</span>
+                  <span>区域质检入口</span>
+                  <span class="mini-hint">从表单开始</span>
                 </div>
                 <div class="finding-list" id="findingList"></div>
               </section>
@@ -174,100 +172,49 @@
             </aside>
           </div>
 
-          <div class="scene-actions">
-            <button class="action" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
-            <button class="action primary" type="button" id="formPrimary" data-action="go-trend">查看时序预警</button>
-          </div>
-        </section>
-
-        <section class="scene" id="scene-trend" data-scene="trend" aria-labelledby="trendSceneTitle">
-          <div class="scene-head">
-            <div>
-              <h2 id="trendSceneTitle">时序预警工作台</h2>
-              <p id="trendSubtitle">把表单第 73 项与 72h 差压曲线放在同一条判断链路中。</p>
-            </div>
-            <span class="badge danger" id="trendBadge">差压趋势 · 接近阈值</span>
-          </div>
-
-          <div class="trend-grid">
-            <section class="panel trend-panel">
+          <section class="assist-workbench" aria-label="表单辅助证据">
+            <section class="panel assist-panel trend-assist-panel">
               <div class="panel-title">
-                <span id="trendTitle">过滤器差压趋势 · 72h</span>
-                <div class="button-group">
-                  <button class="tool-btn active" type="button" data-trend="filterDp">差压</button>
-                  <button class="tool-btn" type="button" data-item="pressure">压力对照</button>
-                  <button class="tool-btn" type="button" data-action="replay-trend">回放</button>
-                </div>
+                <span>时序模型预警</span>
+                <span class="mini-hint">辅助表单判断</span>
               </div>
-              <div class="trend-canvas trend-canvas-large" id="trendCanvas"></div>
-              <div class="trend-stats" id="trendStats"></div>
+              <div class="trend-canvas assist-trend-canvas" id="formTrendCanvas"></div>
+              <div class="trend-stats compact" id="formTrendStats"></div>
+              <p class="assist-summary" id="formTrendSummary"></p>
             </section>
 
-            <aside class="panel trend-logic-panel">
+            <section class="panel assist-panel visual-assist-panel">
               <div class="panel-title">
-                <span>冲突解释</span>
-                <span class="mini-hint">趋势 / 阈值 / 表单</span>
+                <span>视觉模型预警</span>
+                <span class="mini-hint">现场关键帧</span>
               </div>
-              <div class="conflict-card inline">
-                <span class="conflict-icon">!</span>
-                <strong id="trendConflictTitle">表单正常 vs 趋势逼近阈值</strong>
-                <p id="trendConflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
-              </div>
-              <div class="explain-list" id="trendExplainList"></div>
-            </aside>
-          </div>
-
-          <div class="scene-actions">
-            <button class="action" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
-            <button class="action" type="button" data-action="go-form">返回表单质检</button>
-            <button class="action primary" type="button" data-action="go-vision">核验视觉证据</button>
-          </div>
-        </section>
-
-        <section class="scene" id="scene-vision" data-scene="vision" aria-labelledby="visionTitle">
-          <div class="scene-head">
-            <div>
-              <h2 id="visionTitle">视觉证据工作台</h2>
-              <p id="visionSubtitle">用现场关键帧补强复检依据，但不让视觉结果替代人工确认。</p>
-            </div>
-            <span class="badge info" id="visionBadge">现场关键帧 · 证据补强</span>
-          </div>
-
-          <div class="vision-grid">
-            <section class="panel frame-panel frame-panel-large">
-              <div class="panel-title">
-                <span>现场关键帧</span>
-                <div class="button-group">
-                  <button class="tool-btn active" type="button" data-frame="current">当前帧</button>
-                  <button class="tool-btn" type="button" data-frame="compare">对比帧</button>
-                  <button class="tool-btn" type="button" data-frame="plc">PLC帧</button>
-                  <button class="tool-btn" type="button" data-action="open-image">放大</button>
-                </div>
-              </div>
-              <div class="frame-stage frame-stage-large">
-                <img id="frameImage" alt="现场关键帧" />
-                <div class="bbox" id="bbox"><span id="bboxLabel">视觉证据 0.92</span></div>
+              <div class="frame-stage assist-frame-stage">
+                <img id="formFrameImage" alt="表单质检现场关键帧" />
+                <div class="bbox" id="formBbox"><span id="formBboxLabel">视觉证据</span></div>
               </div>
               <div class="frame-caption">
-                <strong id="frameTitle">现场关键帧 · 视觉证据</strong>
-                <span id="frameScene">P-4 泵棚</span>
+                <strong id="formFrameTitle">现场关键帧</strong>
+                <span id="formFrameScene">现场点位</span>
               </div>
             </section>
 
-            <aside class="panel vision-evidence-panel">
+            <section class="panel assist-panel agent-assist-panel">
               <div class="panel-title">
-                <span>证据用途</span>
-                <span class="mini-hint">辅助复检</span>
+                <span>Agent 复检建议</span>
+                <span class="mini-hint">表单 / 模型 / 规则</span>
               </div>
-              <p class="vision-summary" id="visionSummary"></p>
-              <div class="tag-row" id="visionTags"></div>
-              <div class="explain-list" id="visionExplainList"></div>
-            </aside>
-          </div>
+              <div class="agent-assist-copy">
+                <strong id="formAgentTitle">综合证据生成复检建议</strong>
+                <p id="formAgentSummary">Agent 结合表单结果、时序模型、视觉模型和规则阈值解释复检原因。</p>
+              </div>
+              <div class="assist-actions">
+                <button class="action wide" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
+              </div>
+            </section>
+          </section>
 
           <div class="scene-actions">
-            <button class="action" type="button" data-action="go-trend">返回时序预警</button>
-            <button class="action primary" type="button" id="visionPrimary" data-action="go-recheck">生成复检清单</button>
+            <button class="action primary" type="button" id="formPrimary" data-action="go-recheck">进入人工确认</button>
           </div>
         </section>
 
@@ -324,6 +271,11 @@
                   <div class="status-tile card"><small>交接班</small><strong id="reportHandover">待确认</strong></div>
                   <div class="status-tile card"><small>案例归档</small><strong id="reportArchive">未归档</strong></div>
                 </div>
+                <div class="case-reuse card" id="caseReusePanel">
+                  <small id="caseReuseLabel">案例复用</small>
+                  <strong id="caseReuseTitle">等待归档后启用</strong>
+                  <p id="caseReuseText">人工确认并归档后，后续同类表单质检可命中本次案例。</p>
+                </div>
                 <div class="tag-row" id="caseTags"></div>
               </section>
               <section class="panel report-actions">
@@ -344,6 +296,9 @@
     <div class="drawer-mask" id="drawerMask"></div>
     <aside class="drawer panel" id="agentDrawer" role="dialog" aria-modal="true" aria-label="AI 辅助问答" tabindex="-1">
       <div class="panel-title"><span>AI 辅助问答</span></div>
+      <div class="drawer-context" id="drawerContext"></div>
+      <div class="drawer-context-toggle" id="drawerContextToggle" role="group" aria-label="Agent 问答上下文"></div>
+      <div class="drawer-sources" id="drawerSources"></div>
       <div class="drawer-questions" id="drawerQuestions"></div>
       <div class="drawer-answer" id="drawerAnswer">点击问题查看辅助回答。</div>
       <button class="action wide" type="button" data-action="close-drawer">关闭</button>

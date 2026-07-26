@@ -10,16 +10,12 @@
     "sceneOrder": [
       "overview",
       "form",
-      "trend",
-      "vision",
       "recheck",
       "report"
     ],
     "sceneLabels": {
       "overview": "任务总览",
       "form": "表单质检",
-      "trend": "时序预警",
-      "vision": "视觉证据",
       "recheck": "复检确认",
       "report": "报告归档"
     },
@@ -32,56 +28,17 @@
       {
         "key": "form",
         "label": "表单质检",
-        "desc": "定位第 73 项"
-      },
-      {
-        "key": "trend",
-        "label": "时序预警",
-        "desc": "72h 趋势抬升"
-      },
-      {
-        "key": "conflict",
-        "label": "表单趋势冲突",
-        "desc": "正常 vs 近阈值"
-      },
-      {
-        "key": "vision",
-        "label": "视觉证据",
-        "desc": "关键帧补证"
+        "desc": "表单 / 时序 / 视觉 / Agent"
       },
       {
         "key": "recheck",
-        "label": "复检清单",
-        "desc": "规则与动作项"
-      },
-      {
-        "key": "confirm",
         "label": "人工确认",
-        "desc": "三类结论"
+        "desc": "复检建议 / 三类结论"
       },
       {
         "key": "report",
         "label": "报告归档",
         "desc": "交接班 / 案例"
-      },
-      {
-        "key": "closed",
-        "label": "闭环回看",
-        "desc": "总览回写"
-      }
-    ],
-    "agentQA": [
-      {
-        "q": "为什么需要复检?",
-        "a": "差压趋势接近 0.1MPa 阈值,且表单填写正常,形成表单与时序数据冲突,因此建议复检。"
-      },
-      {
-        "q": "复检人员需要补拍什么?",
-        "a": "建议补拍差压表、过滤器铭牌、设备周边状态,并核对执行机构指示灯和远传控制状态。"
-      },
-      {
-        "q": "交接班关注什么?",
-        "a": "交接班建议关注过滤器差压变化趋势,如继续抬升,应安排进一步检查过滤器状态。"
       }
     ],
     "primaryFlow": {
@@ -99,32 +56,32 @@
       "actualStart": "2026-07-21 04:00:27",
       "actualEnd": "2026-07-21 04:43:22",
       "routeCount": "13 个区域 / 展示 6 个重点区域",
-      "note": "本轮聚焦计量区过滤器差压疑点,联动周边区域视频、趋势、知识依据完成巡检闭环。"
+      "note": "本轮从计量区表单质检进入,在同一工作台并联查看时序模型、视觉模型、规则依据和 Agent 建议。"
     },
     "metrics": [
       {
-        "key": "findings",
-        "label": "异常/证据",
-        "value": "4",
-        "tone": "red"
-      },
-      {
-        "key": "recheck",
-        "label": "待复检",
-        "value": "1",
-        "tone": "amber"
-      },
-      {
-        "key": "sources",
-        "label": "证据源",
-        "value": "4",
+        "key": "batch",
+        "label": "任务批次",
+        "value": "XJ-A",
         "tone": "cyan"
       },
       {
-        "key": "closed",
-        "label": "闭环率",
-        "value": "0%",
+        "key": "areas",
+        "label": "重点区域",
+        "value": "6",
+        "tone": "amber"
+      },
+      {
+        "key": "forms",
+        "label": "表单记录",
+        "value": "315",
         "tone": "green"
+      },
+      {
+        "key": "entry",
+        "label": "主入口",
+        "value": "计量区",
+        "tone": "red"
       }
     ],
     "areaOrder": [
@@ -134,40 +91,6 @@
       "control",
       "plc",
       "power"
-    ],
-    "findings": [
-      {
-        "area": "metering",
-        "priority": "high",
-        "entryType": "riskFlow",
-        "title": "计量区过滤器差压趋势异常",
-        "desc": "表单填写正常,但 72h 趋势接近 0.1MPa 阈值。",
-        "primary": true
-      },
-      {
-        "area": "pump",
-        "priority": "mid",
-        "entryType": "areaSummary",
-        "title": "泵棚视频帧待复核",
-        "desc": "现场关键帧可用于补充设备状态证据。",
-        "primary": false
-      },
-      {
-        "area": "plc",
-        "priority": "mid",
-        "entryType": "areaSummary",
-        "title": "PLC 机房灯态抽查",
-        "desc": "作为视觉证据,补充设备状态核验。",
-        "primary": false
-      },
-      {
-        "area": "power",
-        "priority": "mid",
-        "entryType": "areaSummary",
-        "title": "配电间低压柜状态核对",
-        "desc": "低压配电室关键帧可支撑供电侧视觉核验。",
-        "primary": false
-      }
     ]
   },
   "analysis": {
@@ -183,48 +106,6 @@
       {
         "title": "保留人工边界",
         "desc": "复检结论仍由人员确认,页面只负责把疑点、证据和清单串起来。"
-      }
-    ],
-    "trendExplain": [
-      {
-        "title": "72h 连续抬升",
-        "desc": "差压从 0.053MPa 抬升到 0.097MPa,末值距离阈值只剩 0.003MPa。"
-      },
-      {
-        "title": "异常窗口收敛",
-        "desc": "最近 4 个采样点被标记为异常窗口,用于联动表单第 73 项。"
-      },
-      {
-        "title": "正常对照可切换",
-        "desc": "压力趋势作为正常对照,帮助说明本轮不是全量报错。"
-      }
-    ],
-    "conflictExplain": [
-      {
-        "title": "冲突不是结论",
-        "desc": "表单填写为正常,趋势接近阈值,系统只把二者差异升级为复检疑点。"
-      },
-      {
-        "title": "冲突对象明确",
-        "desc": "冲突绑定计量区 / 过滤器 / 差压第 73 项,避免把整条巡检路线都标成异常。"
-      },
-      {
-        "title": "下一步需要现场复核",
-        "desc": "需要用关键帧、差压表补拍和人工复检来决定确认异常、误报关闭或继续观察。"
-      }
-    ],
-    "visionExplain": [
-      {
-        "title": "补充现场语境",
-        "desc": "关键帧用于确认设备点位、周边状态和需要补拍的位置。"
-      },
-      {
-        "title": "不替代复检",
-        "desc": "视觉框只作为辅助证据,不能绕过差压表现场复核。"
-      },
-      {
-        "title": "可进入报告",
-        "desc": "当前帧、对比帧和 PLC 帧都可以沉淀为报告中的证据来源。"
       }
     ],
     "inspectionRows": [
@@ -1250,11 +1131,12 @@
           "trends/filter-dp.csv",
           "frames/current.png",
           "questions.json",
+          "case-knowledge.json",
           "lifecycle.json"
         ],
         "formItemCount": 5,
         "detailItemCount": 5,
-        "lifecycleStageCount": 6,
+        "lifecycleStageCount": 4,
         "primaryFlow": true,
         "auxiliaryOnly": false
       },
@@ -1280,7 +1162,7 @@
         ],
         "formItemCount": 5,
         "detailItemCount": 1,
-        "lifecycleStageCount": 4,
+        "lifecycleStageCount": 2,
         "primaryFlow": false,
         "auxiliaryOnly": true
       },
@@ -1306,7 +1188,7 @@
         ],
         "formItemCount": 5,
         "detailItemCount": 1,
-        "lifecycleStageCount": 4,
+        "lifecycleStageCount": 2,
         "primaryFlow": false,
         "auxiliaryOnly": true
       },
@@ -1332,7 +1214,7 @@
         ],
         "formItemCount": 5,
         "detailItemCount": 1,
-        "lifecycleStageCount": 4,
+        "lifecycleStageCount": 2,
         "primaryFlow": false,
         "auxiliaryOnly": true
       },
@@ -1358,7 +1240,7 @@
         ],
         "formItemCount": 5,
         "detailItemCount": 1,
-        "lifecycleStageCount": 4,
+        "lifecycleStageCount": 2,
         "primaryFlow": false,
         "auxiliaryOnly": true
       },
@@ -1384,7 +1266,7 @@
         ],
         "formItemCount": 5,
         "detailItemCount": 1,
-        "lifecycleStageCount": 4,
+        "lifecycleStageCount": 2,
         "primaryFlow": false,
         "auxiliaryOnly": true
       }
@@ -1528,29 +1410,29 @@
     "metering": {
       "title": "计量区过滤器差压疑点",
       "short": "计量区",
-      "overviewTitle": "过滤器差压趋势异常",
-      "overviewDesc": "本轮唯一高优先级疑点。表单第 73 项填写正常,但差压趋势接近 0.1MPa 阈值。",
-      "overviewStatus": "高优先级复检",
+      "overviewTitle": "计量区表单质检入口",
+      "overviewDesc": "本轮主线从计量区巡检表进入,先核对第 73 项表单记录,再进入模型证据页。",
+      "overviewStatus": "待质检",
       "overviewAction": "进入表单质检",
       "overviewSecondary": "查看区域记录",
-      "overviewTarget": "riskFlow",
+      "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "高风险疑点",
-          "value": "1"
+          "label": "表单范围",
+          "value": "60-105"
         },
         {
-          "label": "关联表单",
+          "label": "重点项",
           "value": "第 73 项"
         },
         {
-          "label": "证据源",
-          "value": "4"
+          "label": "后续页面",
+          "value": "时序/视觉"
         }
       ],
       "sub": "表单填写正常,趋势曲线接近 0.1MPa 阈值,建议生成复检清单。",
       "badge": "高优先级复检",
-      "badgeTone": "danger",
+      "badgeTone": "warn",
       "trendKey": "filterDp",
       "evidence": "巡检记录第 73 项显示“计量区 / 过滤器 / 差压”结果正常;趋势数据提示接近阈值,形成表单与时序冲突。",
       "tags": [
@@ -1614,15 +1496,7 @@
           },
           {
             "scene": "form",
-            "purpose": "核对该区域巡检表明细"
-          },
-          {
-            "scene": "trend",
-            "purpose": "展示该区域时序或健康度走势"
-          },
-          {
-            "scene": "vision",
-            "purpose": "展示该区域视觉帧或联动参考材料"
+            "purpose": "核对表单,并联查看时序、视觉、规则和 Agent 建议"
           },
           {
             "scene": "recheck",
@@ -1634,29 +1508,156 @@
           }
         ],
         "terminalState": "复检确认后进入报告归档"
+      },
+      "caseKnowledge": {
+        "schemaVersion": 1,
+        "areaKey": "metering",
+        "caseId": "CASE-XJ-20260721-001",
+        "title": "计量区过滤器差压趋势复检案例",
+        "firstPass": {
+          "label": "当前检查",
+          "summary": "人工完成现场巡检并填写表单,AI 围绕计量区过滤器差压疑点提供异常处置辅助。",
+          "sources": [
+            {
+              "text": "当前巡检表第 73 项",
+              "type": "current"
+            },
+            {
+              "text": "72h 差压趋势",
+              "type": "current"
+            },
+            {
+              "text": "现场关键帧",
+              "type": "current"
+            },
+            {
+              "text": "差压阈值规则",
+              "type": "standard"
+            },
+            {
+              "text": "复检步骤",
+              "type": "standard"
+            }
+          ],
+          "questions": [
+            {
+              "q": "为什么第 73 项需要复检?",
+              "a": "第 73 项“过滤器差压”在表单中填写为正常,但 72h 差压趋势末值达到 0.097MPa,接近 0.1MPa 阈值。AI 只能把它升级为复检疑点,最终结论仍需人工现场确认。"
+            },
+            {
+              "q": "现场复检优先看什么?",
+              "a": "优先核对过滤器差压表读数、过滤器铭牌、过滤器前后状态和设备周边环境,同时补拍差压表和周边状态,用于和趋势数据交叉验证。"
+            },
+            {
+              "q": "当前能否直接改成异常?",
+              "a": "不能。AI 发现的是“表单正常”和“趋势近阈值”的冲突,不是现场异常结论。是否确认异常、误报关闭或继续观察,必须由人工复检后选择。"
+            },
+            {
+              "q": "交接班要怎么提醒?",
+              "a": "建议写入“关注计量区过滤器差压变化,如趋势继续抬升,下一班应复核现场差压表和过滤器状态”。"
+            }
+          ]
+        },
+        "archivedCase": {
+          "label": "已归档案例",
+          "summary": "人工复检结论和报告摘要沉淀为案例,可在下一次同类检查中作为知识来源。",
+          "sources": [
+            {
+              "text": "复检结论",
+              "type": "archive"
+            },
+            {
+              "text": "归档报告",
+              "type": "archive"
+            },
+            {
+              "text": "交接班关注项",
+              "type": "archive"
+            },
+            {
+              "text": "案例标签",
+              "type": "archive"
+            },
+            {
+              "text": "处置建议",
+              "type": "archive"
+            }
+          ],
+          "facts": [
+            "案例编号: CASE-XJ-20260721-001",
+            "对象: 计量区 / 过滤器 / 差压",
+            "触发: 表单正常但趋势接近阈值",
+            "复检: 需要现场差压表、铭牌和周边状态",
+            "边界: 后续只能引用案例辅助判断,不能直接沿用结论"
+          ]
+        },
+        "secondPass": {
+          "label": "命中历史案例",
+          "summary": "Agent 仍围绕当前差压疑点回答,但可额外引用已归档案例,让复检建议更有上下文。",
+          "sources": [
+            {
+              "text": "当前巡检表第 73 项",
+              "type": "current"
+            },
+            {
+              "text": "当前 72h 差压趋势",
+              "type": "current"
+            },
+            {
+              "text": "当前现场关键帧",
+              "type": "current"
+            },
+            {
+              "text": "差压阈值规则",
+              "type": "standard"
+            },
+            {
+              "text": "历史案例 CASE-XJ-20260721-001",
+              "type": "case"
+            }
+          ],
+          "questions": [
+            {
+              "q": "这次和历史案例是否相似?",
+              "a": "相似点是对象同为计量区过滤器差压,且都出现“表单正常但趋势接近阈值”的模式。不同点仍需结合本次趋势末值、现场帧和人工复检结果确认。"
+            },
+            {
+              "q": "本次复检重点是否变化?",
+              "a": "基础复检重点不变:差压表、铭牌、过滤器周边状态。因为命中历史案例,建议额外对比上次复检照片、报告摘要和交接班建议,确认是否存在重复趋势。"
+            },
+            {
+              "q": "如果趋势继续抬升,建议怎么处理?",
+              "a": "建议从“继续观察”升级为“现场重点复核”,并将差压变化纳入交接班重点。是否确认异常仍由人工根据现场差压表和设备状态决定。"
+            },
+            {
+              "q": "能否沿用上次报告?",
+              "a": "不能沿用结论,只能复用报告结构、证据项和复检清单。本次报告必须基于当前表单、趋势、视觉帧和人工复检结论重新生成。"
+            }
+          ]
+        }
       }
     },
     "valve": {
       "title": "阀组区巡检正常对照",
       "short": "阀组区",
-      "overviewTitle": "阀组区正常对照",
-      "overviewDesc": "本轮路线已覆盖,未发现异常趋势,用于说明系统按风险聚焦。",
-      "overviewStatus": "正常对照",
+      "overviewTitle": "阀组区表单记录",
+      "overviewDesc": "本轮路线已覆盖阀组区表单,可从区域质检查看表单、趋势和现场帧。",
+      "overviewStatus": "区域覆盖",
       "overviewAction": "查看区域质检",
-      "overviewSecondary": "查看视觉证据",
+      "overviewSecondary": "查看区域记录",
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "主线疑点",
-          "value": "0"
+          "label": "表单范围",
+          "value": "1-59"
         },
         {
-          "label": "状态",
-          "value": "平稳"
+          "label": "入口",
+          "value": "区域质检"
         },
         {
-          "label": "流程属性",
-          "value": "对照"
+          "label": "数据包",
+          "value": "已就绪"
         }
       ],
       "sub": "说明不是所有区域都报异常,主线风险集中在计量区。",
@@ -1724,15 +1725,7 @@
           },
           {
             "scene": "form",
-            "purpose": "核对该区域巡检表明细"
-          },
-          {
-            "scene": "trend",
-            "purpose": "展示该区域时序或健康度走势"
-          },
-          {
-            "scene": "vision",
-            "purpose": "展示该区域视觉帧或联动参考材料"
+            "purpose": "核对该区域表单,并联查看趋势和现场帧"
           }
         ],
         "terminalState": "作为证据或正常对照返回总览"
@@ -1741,24 +1734,24 @@
     "pump": {
       "title": "泵区现场视频帧复核",
       "short": "泵区",
-      "overviewTitle": "泵棚视频帧待复核",
-      "overviewDesc": "现场关键帧可作为设备状态辅助证据,本轮不进入高优先级异常闭环。",
-      "overviewStatus": "视觉辅助",
+      "overviewTitle": "泵区表单记录",
+      "overviewDesc": "本轮路线已覆盖泵区表单,可从区域质检继续查看趋势和现场帧。",
+      "overviewStatus": "区域覆盖",
       "overviewAction": "查看区域质检",
-      "overviewSecondary": "查看视觉证据",
+      "overviewSecondary": "查看区域记录",
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "证据入口",
-          "value": "1"
+          "label": "表单范围",
+          "value": "106-138"
         },
         {
-          "label": "证据类型",
-          "value": "关键帧"
+          "label": "入口",
+          "value": "区域质检"
         },
         {
-          "label": "流程属性",
-          "value": "辅助"
+          "label": "数据包",
+          "value": "已就绪"
         }
       ],
       "sub": "切换关键帧,核对设备状态与巡检记录一致性。",
@@ -1827,15 +1820,7 @@
           },
           {
             "scene": "form",
-            "purpose": "核对该区域巡检表明细"
-          },
-          {
-            "scene": "trend",
-            "purpose": "展示该区域时序或健康度走势"
-          },
-          {
-            "scene": "vision",
-            "purpose": "展示该区域视觉帧或联动参考材料"
+            "purpose": "核对该区域表单,并联查看趋势和现场帧"
           }
         ],
         "terminalState": "作为证据或正常对照返回总览"
@@ -1844,24 +1829,24 @@
     "control": {
       "title": "站控室视频与数据核对",
       "short": "站控室",
-      "overviewTitle": "站控室视频质量核对",
-      "overviewDesc": "用于管理侧视频质量和参数核对,当前没有高优先级异常。",
-      "overviewStatus": "背景材料",
+      "overviewTitle": "站控室表单记录",
+      "overviewDesc": "本轮路线已覆盖站控室表单,可从区域质检继续查看趋势和现场帧。",
+      "overviewStatus": "区域覆盖",
       "overviewAction": "查看区域质检",
-      "overviewSecondary": "查看视觉证据",
+      "overviewSecondary": "查看区域记录",
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "主线疑点",
-          "value": "0"
+          "label": "表单范围",
+          "value": "179-200"
         },
         {
-          "label": "视频质量",
-          "value": "9/10"
+          "label": "入口",
+          "value": "区域质检"
         },
         {
-          "label": "流程属性",
-          "value": "背景"
+          "label": "数据包",
+          "value": "已就绪"
         }
       ],
       "sub": "站控室用于核对视频质量、回放质量和关键参数。",
@@ -1929,15 +1914,7 @@
           },
           {
             "scene": "form",
-            "purpose": "核对该区域巡检表明细"
-          },
-          {
-            "scene": "trend",
-            "purpose": "展示该区域时序或健康度走势"
-          },
-          {
-            "scene": "vision",
-            "purpose": "展示该区域视觉帧或联动参考材料"
+            "purpose": "核对该区域表单,并联查看趋势和现场帧"
           }
         ],
         "terminalState": "作为证据或正常对照返回总览"
@@ -1946,24 +1923,24 @@
     "plc": {
       "title": "PLC 机房灯态抽查",
       "short": "PLC机房",
-      "overviewTitle": "PLC 机房灯态抽查",
-      "overviewDesc": "用于核验柜体、灯态和供电侧状态,作为视觉证据补充而非异常结论。",
-      "overviewStatus": "视觉辅助",
+      "overviewTitle": "PLC 机房表单记录",
+      "overviewDesc": "本轮路线已覆盖 PLC 机房表单,可从区域质检继续查看趋势和现场帧。",
+      "overviewStatus": "区域覆盖",
       "overviewAction": "查看区域质检",
-      "overviewSecondary": "查看视觉证据",
+      "overviewSecondary": "查看区域记录",
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "证据入口",
-          "value": "1"
+          "label": "表单范围",
+          "value": "285-315"
         },
         {
-          "label": "识别对象",
-          "value": "POWER灯"
+          "label": "入口",
+          "value": "区域质检"
         },
         {
-          "label": "流程属性",
-          "value": "辅助"
+          "label": "数据包",
+          "value": "已就绪"
         }
       ],
       "sub": "切换到 PLC 机房关键帧,识别指示灯、柜体区域和状态标签。",
@@ -2032,15 +2009,7 @@
           },
           {
             "scene": "form",
-            "purpose": "核对该区域巡检表明细"
-          },
-          {
-            "scene": "trend",
-            "purpose": "展示该区域时序或健康度走势"
-          },
-          {
-            "scene": "vision",
-            "purpose": "展示该区域视觉帧或联动参考材料"
+            "purpose": "核对该区域表单,并联查看趋势和现场帧"
           }
         ],
         "terminalState": "作为证据或正常对照返回总览"
@@ -2049,24 +2018,24 @@
     "power": {
       "title": "配电间供电侧核验",
       "short": "配电间",
-      "overviewTitle": "配电间低压柜状态核对",
-      "overviewDesc": "低压配电室关键帧可直接支撑供电侧视觉核验,适合展示配电设备状态。",
-      "overviewStatus": "供电侧核验",
+      "overviewTitle": "配电间表单记录",
+      "overviewDesc": "本轮路线已覆盖配电间表单,可从区域质检继续查看趋势和现场帧。",
+      "overviewStatus": "区域覆盖",
       "overviewAction": "查看区域质检",
-      "overviewSecondary": "查看视觉证据",
+      "overviewSecondary": "查看区域记录",
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "证据入口",
-          "value": "1"
+          "label": "表单范围",
+          "value": "250/259"
         },
         {
-          "label": "视觉帧",
-          "value": "低压柜"
+          "label": "入口",
+          "value": "区域质检"
         },
         {
-          "label": "流程属性",
-          "value": "供电"
+          "label": "数据包",
+          "value": "已就绪"
         }
       ],
       "sub": "配电间展示供电侧表单、三相电压趋势和低压配电室关键帧的闭环。",
@@ -2135,15 +2104,7 @@
           },
           {
             "scene": "form",
-            "purpose": "核对该区域巡检表明细"
-          },
-          {
-            "scene": "trend",
-            "purpose": "展示该区域时序或健康度走势"
-          },
-          {
-            "scene": "vision",
-            "purpose": "展示该区域视觉帧或联动参考材料"
+            "purpose": "核对该区域表单,并联查看趋势和现场帧"
           }
         ],
         "terminalState": "作为证据或正常对照返回总览"

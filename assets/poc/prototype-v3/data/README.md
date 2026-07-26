@@ -34,6 +34,7 @@ areas/<area>/
   frames/*           # v3 内部图片副本
   lifecycle.json     # 演示生命周期说明
   questions.json     # 该区域问答/讲解点
+  case-knowledge.json # 主线区域的归档案例和二次检查问答
 ```
 
 当前区域 key 由 `area-index.json` 控制：
@@ -92,3 +93,4 @@ node --check assets/poc/prototype-v3/scripts/data.js
 - `questions.json` 会进入当前区域的 AI 辅助问答。
 - `lifecycle.json` 会进入辅助区域的底部生命周期流程条。
 - `lifecycle-matrix.json` 负责跨区域演示闭环，不替代每个区域自己的 `lifecycle.json`。
+- 主线区域需要维护 `case-knowledge.json`，用于区分首次质检问答、归档案例和二次检查问答。

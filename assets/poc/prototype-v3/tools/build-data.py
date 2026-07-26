@@ -32,6 +32,10 @@ AREA_RUNTIME_KEYS = [
 ]
 QUALITY_KEYS = ["title", "text", "facts"]
 LIFECYCLE_KEYS = ["role", "primaryFlow", "stages", "terminalState"]
+CASE_KNOWLEDGE_KEYS = ["schemaVersion", "areaKey", "caseId", "title", "firstPass", "archivedCase", "secondPass"]
+CASE_PASS_KEYS = ["label", "summary", "sources", "questions"]
+ARCHIVED_CASE_KEYS = ["label", "summary", "sources", "facts"]
+SOURCE_TYPES = ["current", "standard", "archive", "case"]
 
 
 def read_json(path: Path) -> Any:
@@ -161,6 +165,62 @@ def read_questions(area_key: str, area_dir: Path) -> list[dict[str, str]]:
     return questions
 
 
+def validate_qa_items(items: Any, label: str) -> None:
+    if not isinstance(items, list) or not items:
+      raise ValueError(f"{label} must be a non-empty list")
+    for index, item in enumerate(items):
+      require_keys(item, ["q", "a"], f"{label}[{index}]")
+      validate_non_empty_string(item["q"], f"{label}[{index}].q")
+      validate_non_empty_string(item["a"], f"{label}[{index}].a")
+
+
+def validate_non_empty_string(value: Any, label: str) -> None:
+    if not isinstance(value, str) or not value:
+      raise ValueError(f"{label} must be a non-empty string")
+
+
+def validate_source_items(items: Any, label: str) -> None:
+    if not isinstance(items, list) or not items:
+      raise ValueError(f"{label} must be a non-empty list")
+    for index, item in enumerate(items):
+      require_keys(item, ["text", "type"], f"{label}[{index}]")
+      validate_non_empty_string(item["text"], f"{label}[{index}].text")
+      if item["type"] not in SOURCE_TYPES:
+        raise ValueError(f"{label}[{index}].type must be one of {SOURCE_TYPES}: {item['type']}")
+
+
+def validate_string_list(items: Any, label: str) -> None:
+    if not isinstance(items, list) or not items:
+      raise ValueError(f"{label} must be a non-empty list")
+    for index, item in enumerate(items):
+      validate_non_empty_string(item, f"{label}[{index}]")
+
+
+def read_case_knowledge(area_key: str, area_dir: Path) -> dict[str, Any]:
+    case_knowledge = read_json(area_dir / "case-knowledge.json")
+    require_keys(case_knowledge, CASE_KNOWLEDGE_KEYS, f"{area_key}/case-knowledge.json")
+    if case_knowledge["schemaVersion"] != 1:
+      raise ValueError(f"unsupported {area_key} case-knowledge schemaVersion: {case_knowledge['schemaVersion']}")
+    if case_knowledge["areaKey"] != area_key:
+      raise ValueError(f"{area_key}/case-knowledge.json areaKey mismatch: {case_knowledge['areaKey']}")
+    validate_non_empty_string(case_knowledge["caseId"], f"{area_key} case-knowledge.caseId")
+    validate_non_empty_string(case_knowledge["title"], f"{area_key} case-knowledge.title")
+    for section_key in ["firstPass", "secondPass"]:
+      section = case_knowledge[section_key]
+      require_keys(section, CASE_PASS_KEYS, f"{area_key} case-knowledge.{section_key}")
+      validate_non_empty_string(section["label"], f"{area_key} case-knowledge.{section_key}.label")
+      validate_non_empty_string(section["summary"], f"{area_key} case-knowledge.{section_key}.summary")
+      validate_source_items(section["sources"], f"{area_key} case-knowledge.{section_key}.sources")
+      validate_qa_items(section["questions"], f"{area_key} case-knowledge.{section_key}.questions")
+    archived_case = case_knowledge["archivedCase"]
+    require_keys(archived_case, ARCHIVED_CASE_KEYS, f"{area_key} case-knowledge.archivedCase")
+    validate_non_empty_string(archived_case["label"], f"{area_key} case-knowledge.archivedCase.label")
+    validate_non_empty_string(archived_case["summary"], f"{area_key} case-knowledge.archivedCase.summary")
+    validate_source_items(archived_case["sources"], f"{area_key} case-knowledge.archivedCase.sources")
+    validate_string_list(archived_case["facts"], f"{area_key} case-knowledge.archivedCase.facts")
+    return case_knowledge
+
+
 def read_lifecycle(area_key: str, area_dir: Path, allowed_scenes: set[str]) -> dict[str, Any]:
     lifecycle = read_json(area_dir / "lifecycle.json")
     require_keys(lifecycle, LIFECYCLE_KEYS, f"{area_key}/lifecycle.json")
@@ -241,9 +301,6 @@ def validate_primary_area_contract(area_key: str, area_package: dict[str, Any], 
       raise ValueError(f"{area_key} lifecycle.primaryFlow must be {is_primary_area}")
     if area["auxiliaryOnly"] == is_primary_area:
       raise ValueError(f"{area_key} auxiliaryOnly conflicts with primaryFlow")
-    finding = area_package["finding"]
-    if finding is not None and finding.get("primary", False) != is_primary_area:
-      raise ValueError(f"{area_key} finding.primary must match area-index primaryFlow")
 
 
 def build_data() -> dict[str, Any]:
@@ -262,7 +319,6 @@ def build_data() -> dict[str, Any]:
     result = deepcopy(demo)
     result["shell"]["primaryFlow"] = area_index["primaryFlow"]
     result["overview"]["areaOrder"] = area_index["order"]
-    result["overview"]["findings"] = []
     result["areas"] = {}
 
     inspection_rows: list[dict[str, Any]] = []
@@ -274,7 +330,7 @@ def build_data() -> dict[str, Any]:
     for area_key, matrix_entry in zip(area_index["order"], lifecycle_matrix, strict=True):
       area_dir = AREAS_DIR / area_key
       area_package = read_json(area_dir / "area.json")
-      require_keys(area_package, ["key", "area", "finding"], f"{area_key}/area.json")
+      require_keys(area_package, ["key", "area"], f"{area_key}/area.json")
       if area_package["key"] != area_key:
         raise ValueError(f"{area_key}/area.json key mismatch: {area_package['key']}")
 
@@ -283,9 +339,9 @@ def build_data() -> dict[str, Any]:
       area["questions"] = read_questions(area_key, area_dir)
       area["lifecycle"] = read_lifecycle(area_key, area_dir, scene_order)
       validate_primary_area_contract(area_key, area_package, primary_area_key)
+      if area_key == primary_area_key:
+        area["caseKnowledge"] = read_case_knowledge(area_key, area_dir)
       result["areas"][area_key] = area
-      if area_package["finding"] is not None:
-        result["overview"]["findings"].append(area_package["finding"])
 
       area_rows = read_form_rows(area_key, area_dir)
       inspection_rows.extend(area_rows)
