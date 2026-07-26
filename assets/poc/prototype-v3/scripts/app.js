@@ -271,6 +271,14 @@
     return inspectionRowForItem(primaryFlow().itemKey);
   }
 
+  function itemDetailForCurrentArea(itemKey) {
+    var row = DATA.analysis.inspectionRows.filter(function (item) {
+      return item.item === itemKey && item.areaKey === state.currentArea;
+    })[0];
+    if (!row) return null;
+    return DATA.analysis.itemDetails[itemKey] || null;
+  }
+
   function browseRowsForArea(areaKey) {
     return inspectionRowsForArea(areaKey).map(function (row) {
       return {
@@ -526,12 +534,14 @@
     var area = assertKey(DATA.areas, state.currentArea, "区域");
     var rows = state.browseMode || area.auxiliaryOnly ? browseRowsForArea(state.currentArea) : inspectionRowsForArea(state.currentArea);
     rows.forEach(function (row) {
-      var interactive = !state.browseMode && !area.auxiliaryOnly && !!DATA.analysis.itemDetails[row.item];
+      var hasDetail = !!DATA.analysis.itemDetails[row.item];
+      var selected = state.selectedItem === row.item && hasDetail;
+      var interactive = hasDetail;
       var tr = el("tr", {
-        class: (row.hot ? "hot " : "") + (state.selectedItem === row.item && !area.auxiliaryOnly ? "selected" : "") + (!interactive ? "readonly" : ""),
+        class: (row.hot ? "hot " : "") + (selected ? "selected" : "") + (!interactive ? "readonly" : ""),
         tabindex: interactive ? "0" : "-1",
         role: interactive ? "button" : "row",
-        "aria-selected": state.selectedItem === row.item && !area.auxiliaryOnly ? "true" : "false",
+        "aria-selected": selected ? "true" : "false",
         dataset: { item: row.item },
         onClick: interactive ? function () { selectItem(row.item); } : null,
         onKeydown: function (event) {
@@ -639,7 +649,8 @@
     renderInspectionTable();
 
     q("evidenceTags").innerHTML = "";
-    if (state.browseMode || area.auxiliaryOnly) {
+    var selectedDetail = itemDetailForCurrentArea(state.selectedItem);
+    if (state.browseMode || !selectedDetail) {
       q("evidenceTitle").textContent = "区域证据摘要";
       q("evidenceText").textContent = area.evidence;
       area.tags.forEach(function (tag, i) {
@@ -648,10 +659,9 @@
       q("formPrimary").textContent = "查看区域趋势";
       q("formPrimary").dataset.action = "go-trend";
     } else {
-      var detail = assertKey(DATA.analysis.itemDetails, state.selectedItem, "巡检项");
-      q("evidenceTitle").textContent = "冲突证据摘要";
-      q("evidenceText").textContent = detail.evidence;
-      detail.tags.forEach(function (tag, i) {
+      q("evidenceTitle").textContent = area.auxiliaryOnly ? "表单项证据摘要" : "冲突证据摘要";
+      q("evidenceText").textContent = selectedDetail.evidence;
+      selectedDetail.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
       });
       q("formPrimary").textContent = "查看时序预警";

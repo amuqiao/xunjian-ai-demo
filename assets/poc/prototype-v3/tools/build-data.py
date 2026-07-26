@@ -19,6 +19,11 @@ FORM_COLUMNS = ["item", "areaKey", "no", "area", "device", "check", "result", "h
 TREND_COLUMNS = ["label", "value"]
 FRAME_RUNTIME_KEYS = ["src", "title", "scene", "label", "showBbox"]
 REQUIRED_FRAME_KEYS = ["current", "compare", "plc"]
+MATRIX_AREA_KEYS = [
+    "areaKey", "role", "entryScene", "formItemKey", "formEvidence",
+    "trendKey", "trendEvidence", "frameKey", "visualEvidence",
+    "questionFocus", "terminalState", "dataSlots",
+]
 AREA_RUNTIME_KEYS = [
     "title", "short", "overviewTitle", "overviewDesc", "overviewStatus",
     "overviewAction", "overviewSecondary", "overviewTarget", "overviewStats",
@@ -156,14 +161,89 @@ def read_questions(area_key: str, area_dir: Path) -> list[dict[str, str]]:
     return questions
 
 
-def read_lifecycle(area_key: str, area_dir: Path) -> dict[str, Any]:
+def read_lifecycle(area_key: str, area_dir: Path, allowed_scenes: set[str]) -> dict[str, Any]:
     lifecycle = read_json(area_dir / "lifecycle.json")
     require_keys(lifecycle, LIFECYCLE_KEYS, f"{area_key}/lifecycle.json")
     if not isinstance(lifecycle["stages"], list) or not lifecycle["stages"]:
       raise ValueError(f"{area_key} lifecycle.stages must be a non-empty list")
     for index, stage in enumerate(lifecycle["stages"]):
       require_keys(stage, ["scene", "purpose"], f"{area_key} lifecycle.stages[{index}]")
+      if stage["scene"] not in allowed_scenes:
+        raise ValueError(f"{area_key} lifecycle.stages[{index}] scene not in demo sceneOrder: {stage['scene']}")
     return lifecycle
+
+
+def read_lifecycle_matrix(area_index: dict[str, Any]) -> list[dict[str, Any]]:
+    matrix = read_json(DATA_DIR / "lifecycle-matrix.json")
+    require_keys(matrix, ["schemaVersion", "purpose", "areas"], "lifecycle-matrix")
+    if matrix["schemaVersion"] != 1:
+      raise ValueError(f"unsupported lifecycle-matrix schemaVersion: {matrix['schemaVersion']}")
+    if not isinstance(matrix["areas"], list):
+      raise ValueError("lifecycle-matrix areas must be a list")
+    matrix_order = [area["areaKey"] for area in matrix["areas"] if isinstance(area, dict) and "areaKey" in area]
+    if matrix_order != area_index["order"]:
+      raise ValueError(f"lifecycle-matrix order must match area-index order: {area_index['order']}")
+    return matrix["areas"]
+
+
+def validate_lifecycle_matrix_entry(
+    entry: dict[str, Any],
+    area_key: str,
+    area_dir: Path,
+    area: dict[str, Any],
+    form_rows: list[dict[str, Any]],
+    details: dict[str, Any],
+    trend_keys: set[str],
+    frame_keys: set[str],
+) -> dict[str, Any]:
+    require_keys(entry, MATRIX_AREA_KEYS, f"lifecycle-matrix area {area_key}")
+    if entry["areaKey"] != area_key:
+      raise ValueError(f"lifecycle-matrix areaKey mismatch: {entry['areaKey']} != {area_key}")
+    if entry["role"] != area["lifecycle"]["role"]:
+      raise ValueError(f"{area_key} lifecycle-matrix role must match lifecycle.json role")
+    if entry["terminalState"] != area["lifecycle"]["terminalState"]:
+      raise ValueError(f"{area_key} lifecycle-matrix terminalState must match lifecycle.json")
+    if entry["entryScene"] not in {stage["scene"] for stage in area["lifecycle"]["stages"]}:
+      raise ValueError(f"{area_key} lifecycle-matrix entryScene missing lifecycle stage: {entry['entryScene']}")
+    if entry["formItemKey"] not in {row["item"] for row in form_rows}:
+      raise KeyError(f"{area_key} lifecycle-matrix formItemKey missing form row: {entry['formItemKey']}")
+    if entry["formItemKey"] not in details:
+      raise KeyError(f"{area_key} lifecycle-matrix formItemKey missing item detail: {entry['formItemKey']}")
+    detail = details[entry["formItemKey"]]
+    if detail["trendKey"] != entry["trendKey"]:
+      raise ValueError(f"{area_key} lifecycle-matrix trendKey must match item detail")
+    if detail["image"] != entry["frameKey"]:
+      raise ValueError(f"{area_key} lifecycle-matrix frameKey must match item detail image")
+    if entry["trendKey"] not in trend_keys:
+      raise KeyError(f"{area_key} lifecycle-matrix trendKey missing trend: {entry['trendKey']}")
+    if entry["frameKey"] not in frame_keys:
+      raise KeyError(f"{area_key} lifecycle-matrix frameKey missing frame: {entry['frameKey']}")
+    if not isinstance(entry["dataSlots"], list) or not entry["dataSlots"]:
+      raise ValueError(f"{area_key} lifecycle-matrix dataSlots must be a non-empty list")
+    for slot in entry["dataSlots"]:
+      slot_path = area_dir / slot
+      if not slot_path.is_file():
+        raise FileNotFoundError(slot_path)
+
+    runtime_entry = deepcopy(entry)
+    runtime_entry["formItemCount"] = len(form_rows)
+    runtime_entry["detailItemCount"] = len(details)
+    runtime_entry["lifecycleStageCount"] = len(area["lifecycle"]["stages"])
+    runtime_entry["primaryFlow"] = area["lifecycle"]["primaryFlow"]
+    runtime_entry["auxiliaryOnly"] = area["auxiliaryOnly"]
+    return runtime_entry
+
+
+def validate_primary_area_contract(area_key: str, area_package: dict[str, Any], primary_area: str) -> None:
+    is_primary_area = area_key == primary_area
+    area = area_package["area"]
+    if area["lifecycle"]["primaryFlow"] != is_primary_area:
+      raise ValueError(f"{area_key} lifecycle.primaryFlow must be {is_primary_area}")
+    if area["auxiliaryOnly"] == is_primary_area:
+      raise ValueError(f"{area_key} auxiliaryOnly conflicts with primaryFlow")
+    finding = area_package["finding"]
+    if finding is not None and finding.get("primary", False) != is_primary_area:
+      raise ValueError(f"{area_key} finding.primary must match area-index primaryFlow")
 
 
 def build_data() -> dict[str, Any]:
@@ -172,6 +252,12 @@ def build_data() -> dict[str, Any]:
     require_keys(area_index, ["schemaVersion", "order", "primaryFlow"], "area-index")
     if area_index["schemaVersion"] != 1:
       raise ValueError(f"unsupported area-index schemaVersion: {area_index['schemaVersion']}")
+    require_keys(area_index["primaryFlow"], ["areaKey", "itemKey", "trendKey", "frameKey"], "area-index primaryFlow")
+    lifecycle_matrix = read_lifecycle_matrix(area_index)
+    primary_area_key = area_index["primaryFlow"]["areaKey"]
+    if primary_area_key not in area_index["order"]:
+      raise KeyError(f"primaryFlow areaKey missing from area-index order: {primary_area_key}")
+    scene_order = set(demo["shell"]["sceneOrder"])
 
     result = deepcopy(demo)
     result["shell"]["primaryFlow"] = area_index["primaryFlow"]
@@ -183,8 +269,9 @@ def build_data() -> dict[str, Any]:
     item_details: dict[str, Any] = {}
     trend_series: dict[str, Any] = {}
     frame_sources: dict[str, Any] = {}
+    lifecycle_matrix_runtime: list[dict[str, Any]] = []
 
-    for area_key in area_index["order"]:
+    for area_key, matrix_entry in zip(area_index["order"], lifecycle_matrix, strict=True):
       area_dir = AREAS_DIR / area_key
       area_package = read_json(area_dir / "area.json")
       require_keys(area_package, ["key", "area", "finding"], f"{area_key}/area.json")
@@ -194,7 +281,8 @@ def build_data() -> dict[str, Any]:
       area = area_package["area"]
       validate_area(area_key, area)
       area["questions"] = read_questions(area_key, area_dir)
-      area["lifecycle"] = read_lifecycle(area_key, area_dir)
+      area["lifecycle"] = read_lifecycle(area_key, area_dir, scene_order)
+      validate_primary_area_contract(area_key, area_package, primary_area_key)
       result["areas"][area_key] = area
       if area_package["finding"] is not None:
         result["overview"]["findings"].append(area_package["finding"])
@@ -214,12 +302,23 @@ def build_data() -> dict[str, Any]:
         require_keys(detail, ["evidence", "tags", "trendKey", "image"], f"{area_key} item detail {item_key}")
         item_details[item_key] = detail
 
-      for trend_key, trend in read_trends(area_key, area_dir).items():
+      area_trends = read_trends(area_key, area_dir)
+      for trend_key, trend in area_trends.items():
         if trend_key in trend_series:
           raise KeyError(f"duplicate trend key: {trend_key}")
         trend_series[trend_key] = trend
 
       frame_sources[area_key] = read_frames(area_key, area_dir)
+      lifecycle_matrix_runtime.append(validate_lifecycle_matrix_entry(
+        matrix_entry,
+        area_key,
+        area_dir,
+        area,
+        area_rows,
+        details,
+        set(area_trends.keys()),
+        set(frame_sources[area_key].keys()),
+      ))
 
       if area["trendKey"] not in trend_series:
         raise KeyError(f"{area_key} area trendKey missing trend: {area['trendKey']}")
@@ -230,7 +329,6 @@ def build_data() -> dict[str, Any]:
           raise KeyError(f"{area_key} item {item_key} image missing frame: {detail['image']}")
 
     primary_flow = result["shell"]["primaryFlow"]
-    require_keys(primary_flow, ["areaKey", "itemKey", "trendKey", "frameKey"], "area-index primaryFlow")
     primary_area = primary_flow["areaKey"]
     if primary_area not in result["areas"]:
       raise KeyError(f"primaryFlow areaKey missing area: {primary_area}")
@@ -248,6 +346,7 @@ def build_data() -> dict[str, Any]:
     result["analysis"]["itemDetails"] = item_details
     result["analysis"]["trendSeries"] = trend_series
     result["analysis"]["frameSources"] = frame_sources
+    result["analysis"]["lifecycleMatrix"] = lifecycle_matrix_runtime
     return result
 
 

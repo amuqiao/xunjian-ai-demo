@@ -582,6 +582,39 @@
         "trendKey": "levelStable",
         "image": "current"
       },
+      "valve-main": {
+        "evidence": "已选中阀组区第 12 项:进站阀组阀位状态。当前表单、阀组趋势和路线参考帧一致,作为正常对照,不进入复检主线。",
+        "tags": [
+          "第12项",
+          "阀位状态",
+          "正常对照",
+          "阀组趋势"
+        ],
+        "trendKey": "valveStable",
+        "image": "current"
+      },
+      "pump-video": {
+        "evidence": "已选中泵区第 132 项:泵棚画面视频帧可用。趋势平稳,关键帧用于补充现场状态,作为视觉辅助证据。",
+        "tags": [
+          "第132项",
+          "视频帧",
+          "视觉辅助",
+          "正常对照"
+        ],
+        "trendKey": "pumpStable",
+        "image": "current"
+      },
+      "control-tv": {
+        "evidence": "已选中站控室第 186 项:工业电视图像质量 9/10。该项作为管理侧视频质量材料,不进入主线复检规则。",
+        "tags": [
+          "第186项",
+          "工业电视",
+          "图像质量",
+          "管理侧材料"
+        ],
+        "trendKey": "videoQuality",
+        "image": "current"
+      },
       "plc": {
         "evidence": "已选中 PLC 机柜 POWER 灯项。右侧关键帧切换到 PLC 机房,核验灯态识别结果。",
         "tags": [
@@ -591,6 +624,17 @@
         ],
         "trendKey": "plcHealth",
         "image": "plc"
+      },
+      "power-low-voltage": {
+        "evidence": "已选中配电间第 250 项:低压配电装置运行情况检查。三相电压趋势平稳,低压柜关键帧用于供电侧联动核验。",
+        "tags": [
+          "第250项",
+          "低压配电",
+          "供电侧",
+          "三相电压"
+        ],
+        "trendKey": "powerStable",
+        "image": "current"
       }
     },
     "trendSeries": {
@@ -1186,7 +1230,165 @@
           "showBbox": true
         }
       }
-    }
+    },
+    "lifecycleMatrix": [
+      {
+        "areaKey": "metering",
+        "role": "primary-risk-flow",
+        "entryScene": "form",
+        "formItemKey": "dp",
+        "formEvidence": "表单第 73 项填写正常,触发与差压趋势的冲突核对。",
+        "trendKey": "filterDp",
+        "trendEvidence": "72h 差压趋势末值 0.097MPa,接近 0.1MPa 阈值。",
+        "frameKey": "current",
+        "visualEvidence": "现场关键帧用于定位过滤器、差压表补拍位和 PLC 联动参考。",
+        "questionFocus": "为什么表单正常仍需要复检;复检人员补拍什么;交接班关注什么。",
+        "terminalState": "复检确认后进入报告归档",
+        "dataSlots": [
+          "form-items.csv",
+          "item-details.json",
+          "trends/filter-dp.csv",
+          "frames/current.png",
+          "questions.json",
+          "lifecycle.json"
+        ],
+        "formItemCount": 5,
+        "detailItemCount": 5,
+        "lifecycleStageCount": 6,
+        "primaryFlow": true,
+        "auxiliaryOnly": false
+      },
+      {
+        "areaKey": "valve",
+        "role": "normal-contrast",
+        "entryScene": "form",
+        "formItemKey": "valve-main",
+        "formEvidence": "阀组区表单项完整且结果正常,用于说明系统不会对低风险区域产生无效告警。",
+        "trendKey": "valveStable",
+        "trendEvidence": "阀组区状态趋势保持平稳,作为计量区主疑点的正常对照。",
+        "frameKey": "current",
+        "visualEvidence": "阀位路线参考帧用于补充正常对照的现场语境。",
+        "questionFocus": "正常区域为什么仍展示;如何证明系统按风险聚焦;后续如何补阀位帧。",
+        "terminalState": "作为证据或正常对照返回总览",
+        "dataSlots": [
+          "form-items.csv",
+          "item-details.json",
+          "trends/valve-stable.csv",
+          "frames/current.png",
+          "questions.json",
+          "lifecycle.json"
+        ],
+        "formItemCount": 5,
+        "detailItemCount": 1,
+        "lifecycleStageCount": 4,
+        "primaryFlow": false,
+        "auxiliaryOnly": true
+      },
+      {
+        "areaKey": "pump",
+        "role": "visual-evidence",
+        "entryScene": "form",
+        "formItemKey": "pump-video",
+        "formEvidence": "泵棚画面项确认视频帧可用,用于把视觉素材纳入辅助证据链。",
+        "trendKey": "pumpStable",
+        "trendEvidence": "泵区运行趋势平稳,用于说明泵区不是本轮复检触发源。",
+        "frameKey": "current",
+        "visualEvidence": "泵区关键帧用于观察设备状态、现场环境和后续补拍位置。",
+        "questionFocus": "泵区图像帧如何服务报告;为什么趋势正常仍保留视觉证据;是否需要补拍。",
+        "terminalState": "作为证据或正常对照返回总览",
+        "dataSlots": [
+          "form-items.csv",
+          "item-details.json",
+          "trends/pump-stable.csv",
+          "frames/current.png",
+          "questions.json",
+          "lifecycle.json"
+        ],
+        "formItemCount": 5,
+        "detailItemCount": 1,
+        "lifecycleStageCount": 4,
+        "primaryFlow": false,
+        "auxiliaryOnly": true
+      },
+      {
+        "areaKey": "control",
+        "role": "management-background",
+        "entryScene": "form",
+        "formItemKey": "control-tv",
+        "formEvidence": "工业电视图像质量评分可用,作为管理侧材料和视频质量背景。",
+        "trendKey": "videoQuality",
+        "trendEvidence": "站控室监控质量维持 9/10 水平,不进入主线复检规则。",
+        "frameKey": "current",
+        "visualEvidence": "站控室抽查帧用于解释视频质量和管理侧材料来源。",
+        "questionFocus": "站控室为什么不进主线规则;视频质量如何作为背景材料;报告里如何使用。",
+        "terminalState": "作为证据或正常对照返回总览",
+        "dataSlots": [
+          "form-items.csv",
+          "item-details.json",
+          "trends/video-quality.csv",
+          "frames/current.jpg",
+          "questions.json",
+          "lifecycle.json"
+        ],
+        "formItemCount": 5,
+        "detailItemCount": 1,
+        "lifecycleStageCount": 4,
+        "primaryFlow": false,
+        "auxiliaryOnly": true
+      },
+      {
+        "areaKey": "plc",
+        "role": "visual-evidence",
+        "entryScene": "form",
+        "formItemKey": "plc",
+        "formEvidence": "PLC 机柜 POWER 灯表单项正常,可联动通讯健康度和灯态关键帧。",
+        "trendKey": "plcHealth",
+        "trendEvidence": "PLC 通讯健康度稳定,用于证明控制侧未触发异常。",
+        "frameKey": "plc",
+        "visualEvidence": "PLC 柜体细节帧用于核验灯态、柜体区域和状态标签。",
+        "questionFocus": "PLC 灯态如何辅助判断;通讯趋势和现场帧如何互证;供电侧如何关联。",
+        "terminalState": "作为证据或正常对照返回总览",
+        "dataSlots": [
+          "form-items.csv",
+          "item-details.json",
+          "trends/plc-health.csv",
+          "frames/plc.png",
+          "questions.json",
+          "lifecycle.json"
+        ],
+        "formItemCount": 5,
+        "detailItemCount": 1,
+        "lifecycleStageCount": 4,
+        "primaryFlow": false,
+        "auxiliaryOnly": true
+      },
+      {
+        "areaKey": "power",
+        "role": "power-side-evidence",
+        "entryScene": "form",
+        "formItemKey": "power-low-voltage",
+        "formEvidence": "低压配电装置运行情况正常,用于把供电侧状态纳入联动核验。",
+        "trendKey": "powerStable",
+        "trendEvidence": "三相电压趋势平稳,作为供电侧正常对照。",
+        "frameKey": "current",
+        "visualEvidence": "低压柜关键帧用于核对柜体状态、表计区域和配电间环境。",
+        "questionFocus": "供电侧为何纳入;低压柜画面如何服务视觉证据;三相电压如何作为正常对照。",
+        "terminalState": "作为证据或正常对照返回总览",
+        "dataSlots": [
+          "form-items.csv",
+          "item-details.json",
+          "trends/power-stable.csv",
+          "frames/current.png",
+          "questions.json",
+          "lifecycle.json"
+        ],
+        "formItemCount": 5,
+        "detailItemCount": 1,
+        "lifecycleStageCount": 4,
+        "primaryFlow": false,
+        "auxiliaryOnly": true
+      }
+    ]
   },
   "recheck": {
     "summary": [
@@ -1445,7 +1647,7 @@
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "证据入口",
+          "label": "主线疑点",
           "value": "0"
         },
         {
@@ -1650,7 +1852,7 @@
       "overviewTarget": "form",
       "overviewStats": [
         {
-          "label": "证据入口",
+          "label": "主线疑点",
           "value": "0"
         },
         {
