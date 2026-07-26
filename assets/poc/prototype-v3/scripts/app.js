@@ -27,6 +27,7 @@
       agentContext: "current",
       recheckReady: false,
       evidenceDetail: "",
+      overviewScope: "all",
       stepKey: "task",
       maxStepIndex: 0,
       browseMode: false,
@@ -142,6 +143,7 @@
     if (state.agentContext !== "case") state.agentContext = "current";
     if (!state.archived) state.agentContext = "current";
     if (state.evidenceDetail !== "trend" && state.evidenceDetail !== "vision") state.evidenceDetail = "";
+    if (state.overviewScope !== "area") state.overviewScope = "all";
     if (stepIndex(state.stepKey) < 0) state.stepKey = defaultStepForScene(state.scene);
     if (migratedAnalysis && !savedHadStep) showStep("form");
     if (typeof state.maxStepIndex !== "number") state.maxStepIndex = stepIndex(state.stepKey);
@@ -210,6 +212,7 @@
   function selectOverviewArea(area) {
     enterArea(area, false);
     state.scene = "overview";
+    state.overviewScope = "area";
     state.browseMode = false;
     showStep(defaultStepForScene("overview"));
     if (window.location.hash !== "#overview") window.location.hash = "overview";
@@ -234,11 +237,7 @@
   }
 
   function areaPrimaryAction() {
-    openRiskFlow(state.currentArea);
-  }
-
-  function areaSecondaryAction() {
-    openRiskFlow(state.currentArea);
+    openRiskFlow(q("selectedAreaPrimary").dataset.area || state.currentArea);
   }
 
   function switchFormArea(areaKey) {
@@ -418,8 +417,9 @@
     qa(".scene-nav-btn").forEach(function (btn) {
       var target = btn.dataset.sceneTarget;
       btn.classList.toggle("active", target === state.scene);
-      btn.disabled = !canVisit(target);
-      btn.title = btn.disabled ? "请先完成前序步骤" : DATA.shell.sceneLabels[target];
+      var overviewFormShortcut = state.scene === "overview" && target === "form";
+      btn.disabled = overviewFormShortcut || !canVisit(target);
+      btn.title = overviewFormShortcut ? "请从右侧告警摘要进入表单质检" : btn.disabled ? "请先完成前序步骤" : DATA.shell.sceneLabels[target];
     });
     qa(".scene").forEach(function (scene) {
       scene.classList.toggle("active", scene.dataset.scene === state.scene);
@@ -453,7 +453,31 @@
   function renderOverview() {
     var task = DATA.overview.task;
     var currentArea = assertKey(DATA.areas, state.currentArea, "区域");
-    var currentAreaView = currentArea;
+    var primaryArea = assertKey(DATA.areas, primaryFlow().areaKey, "主线区域");
+    var showAllAlerts = state.overviewScope !== "area";
+    var summaryView = showAllAlerts ? {
+      badgeTone: primaryArea.badgeTone,
+      overviewStatus: "全站告警",
+      overviewTitle: "计量区高优先级疑点",
+      overviewDesc: "本轮覆盖 6 个重点区域,当前仅计量区存在待质检疑点。",
+      overviewStats: [
+        { label: "P1疑点", value: "1" },
+        { label: "覆盖区域", value: String(DATA.overview.areaOrder.length) },
+        { label: "主线项", value: "第73项" },
+      ],
+      tags: ["计量区", "表单冲突", "时序近阈值", "待复检"],
+      overviewAction: "进入计量区表单质检",
+      targetArea: primaryFlow().areaKey,
+    } : {
+      badgeTone: currentArea.badgeTone,
+      overviewStatus: currentArea.overviewStatus,
+      overviewTitle: currentArea.overviewTitle,
+      overviewDesc: currentArea.overviewDesc,
+      overviewStats: currentArea.overviewStats,
+      tags: currentArea.tags,
+      overviewAction: currentArea.overviewAction,
+      targetArea: state.currentArea,
+    };
     q("taskBatch").textContent = DATA.shell.batch;
     q("taskTitle").textContent = task.title;
     q("taskNote").textContent = task.note;
@@ -483,70 +507,37 @@
     });
 
     qa(".map-area").forEach(function (node) {
-      node.classList.toggle("active", node.dataset.area === state.currentArea);
+      var area = assertKey(DATA.areas, node.dataset.area, "区域");
+      node.classList.toggle("active", !showAllAlerts && node.dataset.area === state.currentArea);
+      node.classList.toggle("status-warn", area.badgeTone === "warn" || area.badgeTone === "danger");
+      node.classList.toggle("status-ok", area.badgeTone === "ok");
+      node.classList.toggle("status-info", area.badgeTone !== "warn" && area.badgeTone !== "danger" && area.badgeTone !== "ok");
     });
     q("riskDot").classList.remove("closed");
-    q("riskDot").setAttribute("aria-label", "计量区表单质检入口");
+    q("riskDot").setAttribute("aria-label", "计量区待质检点位");
     q("mapToast").classList.remove("closed");
-    q("mapToastBadge").className = "badge " + currentAreaView.badgeTone;
-    q("mapToastBadge").textContent = currentAreaView.overviewStatus;
-    q("mapToastText").textContent = currentArea.short + ": " + currentArea.overviewDesc;
+    q("mapToastBadge").className = "badge " + primaryArea.badgeTone;
+    q("mapToastBadge").textContent = "全站告警";
+    q("mapToastText").textContent = "全站仅计量区存在待质检疑点,点击区域只切换右侧摘要。";
 
-    var areaGrid = q("areaSummaryGrid");
-    areaGrid.innerHTML = "";
-    DATA.overview.areaOrder.forEach(function (areaKey) {
-      var area = assertKey(DATA.areas, areaKey, "区域");
-      var cardHint = area.overviewDesc;
-      var cls = "area-summary-card" + (state.currentArea === areaKey ? " active" : "");
-      var areaView = area;
-      areaGrid.appendChild(el("button", {
-        class: cls,
-        type: "button",
-        dataset: { area: areaKey },
-        onClick: function () { selectOverviewArea(areaKey); },
-      }, [
-        el("span", { class: "badge " + areaView.badgeTone, text: areaView.overviewStatus }),
-        el("strong", { text: area.short }),
-        el("small", { text: cardHint }),
-      ]));
-    });
-
-    q("selectedAreaBadge").className = "badge " + currentAreaView.badgeTone;
-    q("selectedAreaBadge").textContent = currentAreaView.overviewStatus;
-    q("selectedAreaTitle").textContent = currentAreaView.overviewTitle;
-    q("selectedAreaDesc").textContent = currentAreaView.overviewDesc;
+    q("selectedAreaPanelTitle").textContent = showAllAlerts ? "全站告警" : "当前区域摘要";
+    q("selectedAreaBadge").className = "badge " + summaryView.badgeTone;
+    q("selectedAreaBadge").textContent = summaryView.overviewStatus;
+    q("selectedAreaTitle").textContent = summaryView.overviewTitle;
+    q("selectedAreaDesc").textContent = summaryView.overviewDesc;
     q("selectedAreaStats").innerHTML = "";
-    currentAreaView.overviewStats.forEach(function (item) {
+    summaryView.overviewStats.forEach(function (item) {
       q("selectedAreaStats").appendChild(el("div", { class: "area-stat card" }, [
         el("small", { text: item.label }),
         el("strong", { text: item.value }),
       ]));
     });
     q("selectedAreaTags").innerHTML = "";
-    currentAreaView.tags.forEach(function (tag, i) {
+    summaryView.tags.forEach(function (tag, i) {
       q("selectedAreaTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
     });
-    q("overviewPrimary").textContent = currentAreaView.overviewAction;
-    q("selectedAreaPrimary").textContent = currentAreaView.overviewAction;
-    q("selectedAreaSecondary").textContent = currentAreaView.overviewSecondary;
-
-    var list = q("findingList");
-    list.innerHTML = "";
-    DATA.overview.areaOrder.forEach(function (areaKey) {
-      var area = assertKey(DATA.areas, areaKey, "区域");
-      list.appendChild(el("button", {
-        class: "finding-card" + (areaKey === primaryFlow().areaKey ? " primary" : ""),
-        type: "button",
-        dataset: { area: areaKey },
-        onClick: function () {
-          openRiskFlow(areaKey);
-        },
-      }, [
-        el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
-        el("strong", { text: area.short + " · " + area.overviewTitle }),
-        el("small", { text: area.overviewDesc }),
-      ]));
-    });
+    q("selectedAreaPrimary").textContent = summaryView.overviewAction;
+    q("selectedAreaPrimary").dataset.area = summaryView.targetArea;
   }
 
   function renderInspectionTable() {
@@ -1245,7 +1236,6 @@
       go("recheck", { stepKey: "recheck" });
     }
     else if (action === "go-area-primary") areaPrimaryAction();
-    else if (action === "go-area-secondary") areaSecondaryAction();
     else if (action === "back-main") {
       enterArea(primaryFlow().areaKey, false);
       go("form", { stepKey: "form" });
@@ -1290,11 +1280,11 @@
         }
       });
     });
-    q("riskDot").addEventListener("click", function () { openRiskFlow(primaryFlow().areaKey); });
+    q("riskDot").addEventListener("click", function () { selectOverviewArea(primaryFlow().areaKey); });
     q("riskDot").addEventListener("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        openRiskFlow(primaryFlow().areaKey);
+        selectOverviewArea(primaryFlow().areaKey);
       }
     });
     qa("[data-item]").forEach(function (btn) {

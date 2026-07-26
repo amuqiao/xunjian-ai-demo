@@ -51,7 +51,11 @@
             <section class="panel map-panel" aria-labelledby="overviewTitle">
               <div class="panel-title">
                 <span id="overviewTitle">站场态势总览</span>
-                <button class="action primary" type="button" data-action="go-area-primary" id="overviewPrimary">进入表单质检</button>
+                <div class="map-legend" aria-label="区域状态图例">
+                  <span><i class="legend-dot warn"></i>待质检</span>
+                  <span><i class="legend-dot ok"></i>已覆盖</span>
+                  <span><i class="legend-dot info"></i>辅助记录</span>
+                </div>
               </div>
               <div class="map-wrap">
                 <svg class="site-map" id="siteMap" viewBox="0 0 900 560" aria-label="湘潭站巡检区域图">
@@ -82,14 +86,13 @@
                   <span id="mapToastText">计量区过滤器差压趋势异常，建议生成复检清单。</span>
                 </div>
               </div>
-              <div class="area-summary-grid" id="areaSummaryGrid" aria-label="6 个巡检区域概要"></div>
             </section>
 
             <aside class="overview-right">
               <section class="panel area-detail-panel">
                 <div class="panel-title">
-                  <span>当前区域概要</span>
-                  <span class="mini-hint">地图 / 卡片切换</span>
+                  <span id="selectedAreaPanelTitle">全站告警</span>
+                  <span class="mini-hint">点击区域切换</span>
                 </div>
                 <div class="area-detail-head">
                   <span class="badge danger" id="selectedAreaBadge">高优先级复检</span>
@@ -100,16 +103,7 @@
                 <div class="tag-row" id="selectedAreaTags"></div>
                 <div class="area-detail-actions">
                   <button class="action primary wide" type="button" id="selectedAreaPrimary" data-action="go-area-primary">进入表单质检</button>
-                  <button class="action wide" type="button" id="selectedAreaSecondary" data-action="go-area-secondary">查看区域记录</button>
                 </div>
-              </section>
-
-              <section class="panel findings-panel">
-                <div class="panel-title">
-                  <span>区域质检入口</span>
-                  <span class="mini-hint">从表单开始</span>
-                </div>
-                <div class="finding-list" id="findingList"></div>
               </section>
             </aside>
           </div>

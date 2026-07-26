@@ -373,7 +373,6 @@ button {
 
 .task-panel,
 .map-panel,
-.findings-panel,
 .area-detail-panel {
   padding: 14px;
 }
@@ -486,12 +485,31 @@ button {
   transition: fill var(--dur-fast) var(--ease), stroke var(--dur-fast) var(--ease), filter var(--dur-fast) var(--ease);
 }
 
+.map-area.status-warn polygon {
+  fill: rgba(246, 184, 75, 0.22);
+  stroke: rgba(246, 184, 75, 0.8);
+}
+
+.map-area.status-ok polygon {
+  fill: rgba(127, 227, 145, 0.1);
+  stroke: rgba(127, 227, 145, 0.42);
+}
+
+.map-area.status-info polygon {
+  fill: rgba(88, 228, 210, 0.08);
+  stroke: rgba(88, 228, 210, 0.38);
+}
+
 .map-area:hover polygon,
-.map-area:focus-visible polygon,
-.map-area.active polygon {
-  fill: rgba(246, 184, 75, 0.2);
-  stroke: var(--amber);
+.map-area:focus-visible polygon {
   filter: drop-shadow(0 0 10px rgba(246, 184, 75, 0.55));
+}
+
+.map-area.active polygon {
+  stroke-width: 3;
+  filter:
+    drop-shadow(0 0 12px rgba(246, 184, 75, 0.48))
+    drop-shadow(0 0 3px rgba(255, 255, 255, 0.62));
 }
 
 .map-area text {
@@ -504,6 +522,32 @@ button {
   stroke: rgba(2, 10, 12, 0.85);
   stroke-width: 4px;
 }
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.legend-dot.warn { background: var(--amber); }
+.legend-dot.ok { background: var(--green); }
+.legend-dot.info { background: var(--cyan); }
 
 .risk-dot {
   fill: var(--amber);
@@ -548,53 +592,16 @@ button {
   border-color: rgba(127, 227, 145, 0.46);
 }
 
-.area-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.area-summary-card {
-  display: grid;
-  gap: 4px;
-  min-height: 68px;
-  padding: 8px 10px;
-  border: 1px solid var(--line-soft);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.045);
-}
-
-.area-summary-card.active {
-  border-color: var(--amber);
-  background: rgba(246, 184, 75, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(246, 184, 75, 0.28);
-}
-
-.area-summary-card.risk {
-  border-color: rgba(255, 101, 116, 0.52);
-}
-
-.area-summary-card strong {
-  font-size: 15px;
-}
-
-.area-summary-card small {
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
 .overview-right {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   gap: 14px;
   min-height: 0;
 }
 
 .area-detail-panel {
   display: grid;
+  align-content: start;
   gap: 12px;
 }
 
@@ -640,56 +647,6 @@ button {
 .area-detail-actions {
   display: grid;
   gap: 8px;
-}
-
-.finding-list {
-  display: grid;
-  gap: 10px;
-}
-
-.findings-panel {
-  min-height: 0;
-  overflow: auto;
-}
-
-.finding-card {
-  width: 100%;
-  padding: 14px;
-  border: 1px solid var(--line-soft);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.045);
-}
-
-.finding-card.primary {
-  border-color: rgba(246, 184, 75, 0.78);
-  background: rgba(246, 184, 75, 0.08);
-}
-
-.finding-card strong {
-  display: block;
-  margin: 10px 0 6px;
-  font-size: 17px;
-}
-
-.finding-card small {
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.finding-card.closed {
-  border-color: rgba(127, 227, 145, 0.6);
-  background: rgba(127, 227, 145, 0.08);
-}
-
-.finding-result {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line-soft);
-  color: var(--green);
-  font-size: 13px;
-  font-weight: 800;
 }
 
 /* Form workbench */
@@ -1880,14 +1837,6 @@ button {
     order: 3;
   }
 
-  .area-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .overview-right {
-    grid-template-rows: auto auto;
-  }
-
   .scope-panel {
     grid-template-rows: auto auto;
   }
@@ -1924,7 +1873,6 @@ button {
     width: 100%;
   }
 
-  .area-summary-grid,
   .area-detail-stats,
   .quality-facts {
     grid-template-columns: 1fr;
