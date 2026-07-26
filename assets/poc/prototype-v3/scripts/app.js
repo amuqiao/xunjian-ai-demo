@@ -26,6 +26,7 @@
       archived: false,
       agentContext: "current",
       recheckReady: false,
+      evidenceDetail: "",
       stepKey: "task",
       maxStepIndex: 0,
       browseMode: false,
@@ -140,6 +141,7 @@
     if (!(state.scene in DATA.shell.sceneLabels)) state.scene = "overview";
     if (state.agentContext !== "case") state.agentContext = "current";
     if (!state.archived) state.agentContext = "current";
+    if (state.evidenceDetail !== "trend" && state.evidenceDetail !== "vision") state.evidenceDetail = "";
     if (stepIndex(state.stepKey) < 0) state.stepKey = defaultStepForScene(state.scene);
     if (migratedAnalysis && !savedHadStep) showStep("form");
     if (typeof state.maxStepIndex !== "number") state.maxStepIndex = stepIndex(state.stepKey);
@@ -164,6 +166,7 @@
     assertKey(DATA.shell.sceneLabels, scene, "场景");
     scene = nearestLegalScene(scene);
     opts = opts || {};
+    var previousScene = state.scene;
     if (opts.area) {
       enterArea(opts.area, false);
       state.scene = scene;
@@ -177,6 +180,7 @@
     }
     persistState();
     render();
+    if (previousScene !== scene) q("stage").scrollTop = 0;
     scrollActiveSceneIntoView();
   }
 
@@ -713,6 +717,7 @@
       ? "命中历史案例增强复检建议"
       : "综合证据生成复检建议";
     q("formAgentSummary").textContent = knowledge.summary || (selectedDetail ? selectedDetail.evidence : area.evidence);
+    renderEvidenceDetail(area, selectedDetail);
   }
 
   function renderTrend(container, seriesKey) {
@@ -818,6 +823,129 @@
         el("strong", { class: "num-" + s[2], text: s[1] }),
       ]));
     });
+  }
+
+  function isHotTrendPoint(series, index, value) {
+    if (series.window && index >= series.window.startIndex && index <= series.window.endIndex) return true;
+    if (series.safeSide === "below") return value > series.threshold;
+    return value < series.threshold;
+  }
+
+  function renderAlertList(targetId, items) {
+    var target = q(targetId);
+    target.innerHTML = "";
+    items.forEach(function (item) {
+      target.appendChild(el("div", { class: "model-alert-item card" }, [
+        el("small", { text: item.label }),
+        el("strong", { class: item.tone ? "num-" + item.tone : "", text: item.value }),
+        item.desc ? el("span", { text: item.desc }) : null,
+      ]));
+    });
+  }
+
+  function frameLabel(frameKey) {
+    if (frameKey === "current") return "当前帧";
+    if (frameKey === "compare") return "对比帧";
+    if (frameKey === "plc") return "联动帧";
+    return frameKey;
+  }
+
+  function renderEvidenceDetail(area, selectedDetail) {
+    var mode = state.evidenceDetail;
+    q("evidenceDetailPanel").classList.toggle("hidden", !mode);
+    if (!mode) return;
+
+    var isTrend = mode === "trend";
+    q("evidenceDetailTitle").textContent = isTrend ? "时序模型详情" : "视觉模型详情";
+    q("evidenceDetailSubtitle").textContent = isTrend
+      ? "查看采样点、阈值线、异常窗口和模型告警明细。"
+      : "查看关键帧、识别框、帧列表和现场证据用途。";
+    q("trendDetailTab").classList.toggle("active", isTrend);
+    q("visionDetailTab").classList.toggle("active", !isTrend);
+    q("trendDetailView").classList.toggle("hidden", !isTrend);
+    q("visionDetailView").classList.toggle("hidden", isTrend);
+
+    renderTrendDetail(area, selectedDetail);
+    renderVisionDetail(area, selectedDetail);
+  }
+
+  function renderTrendDetail(area, selectedDetail) {
+    var series = assertKey(DATA.analysis.trendSeries, state.currentTrend, "趋势");
+    var info = renderTrend(q("detailTrendCanvas"), state.currentTrend);
+    q("trendDetailChartTitle").textContent = series.title;
+    q("trendDetailHint").textContent = "阈值 " + formatTrendValue(series.threshold, series.unit) + " · " + (series.window ? series.window.label : "无异常窗口");
+    renderTrendStats(info, "detailTrendStats");
+    renderAlertList("trendAlertList", [
+      { label: "告警等级", value: series.window ? "预警" : "正常", tone: series.window ? "amber" : "green", desc: series.window ? "模型检测到连续逼近阈值窗口。" : "当前趋势未触发异常窗口。" },
+      { label: series.window ? series.window.label : "触发窗口", value: series.window ? (series.points[series.window.startIndex][0] + " 至 " + series.points[series.window.endIndex][0]) : "未触发", tone: series.window ? "amber" : "green" },
+      { label: "阈值余量", value: info.marginText, tone: info.margin >= 0 ? "green" : "red", desc: "按当前最新采样点计算。" },
+      { label: "模型说明", value: series.summary, tone: "cyan" },
+    ]);
+
+    q("trendSampleRows").innerHTML = "";
+    series.points.forEach(function (point, index) {
+      var hot = isHotTrendPoint(series, index, point[1]);
+      q("trendSampleRows").appendChild(el("tr", { class: hot ? "hot" : "" }, [
+        el("td", { text: point[0] }),
+        el("td", { text: formatTrendValue(point[1], series.unit) }),
+        el("td", { text: hot ? (series.window ? "异常窗口" : "越限") : "正常" }),
+      ]));
+    });
+
+    q("trendDetailExplain").innerHTML = "";
+    q("trendDetailExplain").appendChild(el("strong", { text: "表单关联说明" }));
+    q("trendDetailExplain").appendChild(el("p", {
+      text: selectedDetail
+        ? selectedDetail.evidence
+        : area.evidence,
+    }));
+    q("trendDetailExplain").appendChild(el("p", {
+      text: "该详情只说明模型证据和表单记录之间的差异,最终异常结论仍进入人工确认环节。",
+    }));
+  }
+
+  function renderVisionDetail(area, selectedDetail) {
+    var frames = assertKey(DATA.analysis.frameSources, state.currentArea, "关键帧区域");
+    var frame = assertKey(frames, state.frameKey, "关键帧");
+    q("visionDetailFrameTitle").textContent = frame.title;
+    q("visionDetailHint").textContent = frame.scene + " · " + frameLabel(state.frameKey);
+    q("detailFrameImage").src = frame.src;
+    q("detailFrameImage").alt = frame.title;
+    q("detailFrameTitle").textContent = frame.title;
+    q("detailFrameScene").textContent = frame.scene;
+    q("detailFrameBboxLabel").textContent = frame.label || "无显式识别框";
+    q("detailFrameBbox").classList.toggle("hidden", !frame.showBbox);
+    renderAlertList("visionAlertList", [
+      { label: "帧类型", value: frameLabel(state.frameKey), tone: "cyan", desc: frame.scene },
+      { label: "识别结果", value: frame.showBbox ? frame.label : "现场参考帧", tone: frame.showBbox ? "amber" : "green", desc: frame.showBbox ? "可辅助定位复检对象。" : "用于补充现场语境和点位确认。" },
+      { label: "证据用途", value: area.auxiliaryOnly ? "区域对照" : "复检补证", tone: area.auxiliaryOnly ? "green" : "amber" },
+      { label: "报告关系", value: "可随人工结论入报告", tone: "cyan" },
+    ]);
+
+    q("detailFrameOptions").innerHTML = "";
+    Object.keys(frames).forEach(function (key) {
+      var option = frames[key];
+      q("detailFrameOptions").appendChild(el("button", {
+        class: "frame-option" + (state.frameKey === key ? " active" : ""),
+        type: "button",
+        onClick: function () { selectFrame(key); },
+      }, [
+        el("strong", { text: frameLabel(key) }),
+        el("small", { text: option.title }),
+      ]));
+    });
+
+    q("visionDetailExplain").innerHTML = "";
+    q("visionDetailExplain").appendChild(el("strong", { text: "现场证据说明" }));
+    var selectedRow = selectedDetail ? inspectionRowForItem(state.selectedItem) : null;
+    q("visionDetailExplain").appendChild(el("p", {
+      text: selectedRow
+        ? "当前视觉帧用于补充 " + selectedRow.area + " / " + selectedRow.device + " / " + selectedRow.check + " 的现场点位和补拍语境。"
+        : area.evidence,
+    }));
+    q("visionDetailExplain").appendChild(el("p", {
+      text: "视觉模型不直接替代人工复检,只为 Agent 建议和报告证据提供现场上下文。",
+    }));
   }
 
   function renderRecheck() {
@@ -1052,6 +1180,21 @@
     restoreFocus();
   }
 
+  function openEvidenceDetail(kind) {
+    if (kind !== "trend" && kind !== "vision") throw new Error("[v3] 未知证据详情: " + kind);
+    state.evidenceDetail = kind;
+    persistState();
+    render();
+    q("stage").scrollTo({ top: Math.max(0, q("evidenceDetailPanel").offsetTop - 12), behavior: "smooth" });
+    q(kind === "trend" ? "trendDetailTab" : "visionDetailTab").focus({ preventScroll: true });
+  }
+
+  function closeEvidenceDetail() {
+    state.evidenceDetail = "";
+    persistState();
+    render();
+  }
+
   function restoreFocus() {
     if (lastFocus && lastFocus.focus) lastFocus.focus();
     lastFocus = null;
@@ -1123,6 +1266,9 @@
     else if (action === "back-overview") go("overview", { stepKey: "task" });
     else if (action === "open-drawer") openDrawer();
     else if (action === "close-drawer") closeDrawer();
+    else if (action === "open-trend-detail") openEvidenceDetail("trend");
+    else if (action === "open-vision-detail") openEvidenceDetail("vision");
+    else if (action === "close-evidence-detail") closeEvidenceDetail();
     else if (action === "open-image") openImage();
     else if (action === "close-image") closeImage();
     else if (action === "reset-demo") resetDemo();
@@ -1178,6 +1324,7 @@
         if (window.location.hash !== "#" + state.scene) window.location.hash = state.scene;
         persistState();
         render();
+        q("stage").scrollTop = 0;
         scrollActiveSceneIntoView();
       }
     });

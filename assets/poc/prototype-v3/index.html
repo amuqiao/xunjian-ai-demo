@@ -181,6 +181,9 @@
               <div class="trend-canvas assist-trend-canvas" id="formTrendCanvas"></div>
               <div class="trend-stats compact" id="formTrendStats"></div>
               <p class="assist-summary" id="formTrendSummary"></p>
+              <div class="assist-actions">
+                <button class="action wide" type="button" data-action="open-trend-detail">查看时序详情</button>
+              </div>
             </section>
 
             <section class="panel assist-panel visual-assist-panel">
@@ -196,6 +199,9 @@
                 <strong id="formFrameTitle">现场关键帧</strong>
                 <span id="formFrameScene">现场点位</span>
               </div>
+              <div class="assist-actions">
+                <button class="action wide" type="button" data-action="open-vision-detail">查看视觉详情</button>
+              </div>
             </section>
 
             <section class="panel assist-panel agent-assist-panel">
@@ -210,6 +216,82 @@
               <div class="assist-actions">
                 <button class="action wide" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
               </div>
+            </section>
+          </section>
+
+          <section class="panel evidence-detail-panel hidden" id="evidenceDetailPanel" aria-label="模型证据详情">
+            <div class="evidence-detail-head">
+              <div>
+                <strong id="evidenceDetailTitle">模型证据详情</strong>
+                <p id="evidenceDetailSubtitle">展开模型数据、告警明细和表单关联说明。</p>
+              </div>
+              <div class="evidence-detail-actions">
+                <button class="detail-tab" type="button" id="trendDetailTab" data-action="open-trend-detail">时序详情</button>
+                <button class="detail-tab" type="button" id="visionDetailTab" data-action="open-vision-detail">视觉详情</button>
+                <button class="detail-close" type="button" data-action="close-evidence-detail">收起</button>
+              </div>
+            </div>
+
+            <section class="evidence-detail-view" id="trendDetailView">
+              <div class="detail-grid trend-detail-grid">
+                <section class="detail-main">
+                  <div class="panel-title">
+                    <span id="trendDetailChartTitle">时序模型曲线</span>
+                    <span class="mini-hint" id="trendDetailHint">阈值 / 异常窗口 / 采样点</span>
+                  </div>
+                  <div class="trend-canvas trend-canvas-large" id="detailTrendCanvas"></div>
+                  <div class="trend-stats" id="detailTrendStats"></div>
+                </section>
+                <aside class="detail-side">
+                  <div class="detail-block">
+                    <strong>模型告警明细</strong>
+                    <div class="model-alert-list" id="trendAlertList"></div>
+                  </div>
+                  <div class="detail-block">
+                    <strong>采样数据</strong>
+                    <div class="sample-table-wrap">
+                      <table class="sample-table">
+                        <thead>
+                          <tr><th>时间</th><th>数值</th><th>状态</th></tr>
+                        </thead>
+                        <tbody id="trendSampleRows"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+              <div class="detail-explain" id="trendDetailExplain"></div>
+            </section>
+
+            <section class="evidence-detail-view" id="visionDetailView">
+              <div class="detail-grid vision-detail-grid">
+                <section class="detail-main">
+                  <div class="panel-title">
+                    <span id="visionDetailFrameTitle">视觉模型关键帧</span>
+                    <span class="mini-hint" id="visionDetailHint">识别框 / 点位 / 证据用途</span>
+                  </div>
+                  <div class="frame-stage frame-stage-large">
+                    <img id="detailFrameImage" alt="视觉模型关键帧详情" />
+                    <div class="bbox" id="detailFrameBbox"><span id="detailFrameBboxLabel">视觉证据</span></div>
+                  </div>
+                  <div class="frame-caption">
+                    <strong id="detailFrameTitle">现场关键帧</strong>
+                    <span id="detailFrameScene">现场点位</span>
+                  </div>
+                </section>
+                <aside class="detail-side">
+                  <div class="detail-block">
+                    <strong>模型识别明细</strong>
+                    <div class="model-alert-list" id="visionAlertList"></div>
+                  </div>
+                  <div class="detail-block">
+                    <strong>关键帧列表</strong>
+                    <div class="frame-option-list" id="detailFrameOptions"></div>
+                  </div>
+                  <button class="action wide" type="button" data-action="open-image">放大当前关键帧</button>
+                </aside>
+              </div>
+              <div class="detail-explain" id="visionDetailExplain"></div>
             </section>
           </section>
 
