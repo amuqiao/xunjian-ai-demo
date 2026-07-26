@@ -50,10 +50,10 @@ button {
 .app-shell {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(600px, 1fr) 96px;
-  gap: 12px;
+  grid-template-rows: auto minmax(0, 1fr) 70px;
+  gap: 10px;
   min-height: 100vh;
-  padding: 16px 18px;
+  padding: 14px 18px;
 }
 
 .app-shell::before {
@@ -367,34 +367,34 @@ button {
 .overview-left {
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 14px;
+  gap: 10px;
   min-height: 0;
 }
 
 .task-panel,
 .map-panel,
 .area-detail-panel {
-  padding: 14px;
+  padding: 12px;
 }
 
 .task-panel h2 {
-  margin: 0 0 10px;
-  font-size: 18px;
+  margin: 0 0 8px;
+  font-size: 17px;
 }
 
 .task-rows {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .task-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 7px;
+  padding-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.055);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .task-row strong {
@@ -403,26 +403,27 @@ button {
 }
 
 .task-note {
-  margin: 10px 0 0;
-  padding-top: 10px;
+  margin: 8px 0 0;
+  padding-top: 8px;
   border-top: 1px solid var(--line-soft);
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .metric-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
+  min-height: 0;
 }
 
 .metric-card {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-height: 82px;
-  padding: 12px;
+  min-height: 72px;
+  padding: 10px 12px;
 }
 
 .metric-card small {
@@ -430,8 +431,8 @@ button {
 }
 
 .metric-card strong {
-  margin-top: 6px;
-  font-size: 26px;
+  margin-top: 5px;
+  font-size: 24px;
   line-height: 1;
 }
 
@@ -444,7 +445,7 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: 12px;
+  gap: 10px;
 }
 
 .map-wrap {
@@ -1507,8 +1508,8 @@ button {
 .flow-rail {
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 6px;
-  padding: 8px 18px 10px;
+  gap: 4px;
+  padding: 6px 18px 8px;
 }
 
 .flow-hint {
@@ -1523,16 +1524,16 @@ button {
   gap: 8px;
   height: 100%;
   overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 .flow-step {
   position: relative;
-  display: grid;
-  align-content: center;
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
-  padding: 7px 10px 7px 34px;
+  min-height: 34px;
+  padding: 5px 10px 5px 34px;
   border: 1px solid var(--line-soft);
   color: var(--muted);
   text-align: left;
@@ -1557,12 +1558,20 @@ button {
 }
 
 .flow-step strong {
+  flex: none;
   color: var(--text);
   font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .flow-step small {
-  font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .flow-step:disabled {
@@ -1606,12 +1615,19 @@ button {
   z-index: 9;
   width: min(360px, calc(100vw - 48px));
   padding: 18px;
+  pointer-events: none;
   transform: translateX(calc(100% + 36px));
-  transition: transform var(--dur-scene) var(--ease);
+  visibility: hidden;
+  transition:
+    transform var(--dur-scene) var(--ease),
+    visibility 0s linear var(--dur-scene);
 }
 
 .drawer.open {
+  pointer-events: auto;
   transform: translateX(0);
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .drawer-questions {
@@ -1847,8 +1863,158 @@ button {
 
   .flow-track {
     grid-auto-flow: column;
-    grid-auto-columns: minmax(130px, 48vw);
+    grid-auto-columns: minmax(240px, 58vw);
     grid-template-columns: none;
+  }
+}
+
+@media (min-width: 1181px) and (max-height: 820px) {
+  .app-shell {
+    grid-template-rows: auto minmax(0, 1fr) 64px;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .topbar {
+    padding: 8px 16px;
+  }
+
+  .brand {
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand h1 {
+    font-size: 20px;
+  }
+
+  .scene-nav {
+    padding: 5px;
+  }
+
+  .scene-nav-btn {
+    min-height: 30px;
+  }
+
+  .top-status {
+    line-height: 1.35;
+  }
+
+  .top-status .reset-btn {
+    min-height: 32px;
+    margin-top: 3px;
+  }
+
+  .overview-grid {
+    gap: 10px;
+  }
+
+  .overview-left {
+    gap: 8px;
+  }
+
+  .task-panel,
+  .map-panel,
+  .area-detail-panel {
+    padding: 10px;
+  }
+
+  .task-panel h2 {
+    margin-bottom: 6px;
+    font-size: 16px;
+  }
+
+  .task-rows {
+    gap: 4px;
+  }
+
+  .task-row {
+    gap: 8px;
+    padding-bottom: 4px;
+    font-size: 11px;
+  }
+
+  .task-note {
+    display: none;
+  }
+
+  .metric-grid {
+    gap: 6px;
+  }
+
+  .metric-card {
+    min-height: 54px;
+    padding: 8px 10px;
+  }
+
+  .metric-card small {
+    font-size: 11px;
+  }
+
+  .metric-card strong {
+    margin-top: 3px;
+    font-size: 20px;
+  }
+
+  .panel-title {
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .map-panel {
+    gap: 8px;
+  }
+
+  .map-toast {
+    bottom: 12px;
+    padding: 9px 12px;
+  }
+
+  .area-detail-panel {
+    gap: 10px;
+  }
+
+  .area-detail-head {
+    gap: 5px;
+  }
+
+  .area-detail-head strong {
+    font-size: 16px;
+  }
+
+  .area-detail-stats {
+    gap: 6px;
+  }
+
+  .area-stat {
+    padding: 8px;
+  }
+
+  .area-stat strong {
+    margin-top: 3px;
+    font-size: 15px;
+  }
+
+  .area-detail-actions {
+    gap: 6px;
+  }
+
+  .flow-rail {
+    padding: 5px 18px 7px;
+  }
+
+  .flow-track {
+    gap: 7px;
+  }
+
+  .flow-step {
+    min-height: 32px;
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
 }
 
