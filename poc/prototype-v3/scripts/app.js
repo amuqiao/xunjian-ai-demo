@@ -28,6 +28,7 @@
       recheckReady: false,
       evidenceDetail: "",
       overviewScope: "all",
+      dashboardFocus: "issues",
       stepKey: "task",
       maxStepIndex: 0,
       browseMode: false,
@@ -100,6 +101,7 @@
     if (scene === "form") return "form";
     if (scene === "recheck") return "recheck";
     if (scene === "report") return "report";
+    if (scene === "knowledge" || scene === "graph") return state && stepIndex(state.stepKey) >= 0 ? state.stepKey : "task";
     throw new Error("[v3] 未知场景: " + scene);
   }
 
@@ -144,6 +146,7 @@
     if (!state.archived) state.agentContext = "current";
     if (state.evidenceDetail !== "trend" && state.evidenceDetail !== "vision") state.evidenceDetail = "";
     if (state.overviewScope !== "area") state.overviewScope = "all";
+    if (!DATA.dashboard.qualityMetrics.some(function (metric) { return metric.key === state.dashboardFocus; })) state.dashboardFocus = "issues";
     if (stepIndex(state.stepKey) < 0) state.stepKey = defaultStepForScene(state.scene);
     if (migratedAnalysis && !savedHadStep) showStep("form");
     if (typeof state.maxStepIndex !== "number") state.maxStepIndex = stepIndex(state.stepKey);
@@ -154,6 +157,7 @@
     if (scene === "overview" || scene === "form") return true;
     if (scene === "recheck") return isPrimaryArea(state.currentArea) && (state.maxStepIndex >= stepIndex("form") || state.recheckReady || !!state.decision || state.archived);
     if (scene === "report") return !!state.decision || state.archived;
+    if (scene === "knowledge" || scene === "graph") return true;
     throw new Error("[v3] 未知场景: " + scene);
   }
 
@@ -402,7 +406,11 @@
 
     var status;
     if (state.scene === "overview") {
-      status = "本轮任务已加载,请从计量区表单质检进入。";
+      status = "巡检质量大屏已加载,可从异常点进入表单质检。";
+    } else if (state.scene === "knowledge") {
+      status = "知识库用于展示制度、指标口径和归档案例,当前为前端演示数据。";
+    } else if (state.scene === "graph") {
+      status = "知识节点关系用于展示经验沉淀,不代表已接入真实图数据库。";
     } else if (state.archived) {
       status = "报告已归档为案例,供后续表单质检命中相似案例。";
     } else if (state.decision) {
@@ -450,6 +458,50 @@
     });
   }
 
+  function sourceClass(sourceType) {
+    if (sourceType.indexOf("客户数据") >= 0 && sourceType.indexOf("待确认") < 0) return "source-real";
+    if (sourceType.indexOf("待确认") >= 0) return "source-pending";
+    return "source-demo";
+  }
+
+  function priorityTone(priority) {
+    if (priority === "P1") return "danger";
+    if (priority === "P2") return "warn";
+    return "info";
+  }
+
+  function dashboardAreaSummary(areaKey) {
+    var area = assertKey(DATA.areas, areaKey, "区域");
+    return {
+      badgeTone: area.badgeTone,
+      overviewStatus: area.overviewStatus,
+      overviewTitle: area.overviewTitle,
+      overviewDesc: area.overviewDesc,
+      overviewStats: area.overviewStats,
+      tags: area.tags,
+      overviewAction: area.overviewAction,
+      targetArea: areaKey,
+    };
+  }
+
+  function setDashboardFocus(metricKey) {
+    if (!DATA.dashboard.qualityMetrics.some(function (metric) { return metric.key === metricKey; })) {
+      throw new Error("[v3] 未知首页指标: " + metricKey);
+    }
+    state.dashboardFocus = metricKey;
+    state.overviewScope = "all";
+    persistState();
+    render();
+  }
+
+  function dashboardTaskMatchesFocus(item) {
+    if (state.dashboardFocus === "duration") return item.issue.indexOf("时间") >= 0 || item.issue.indexOf("窗口") >= 0;
+    if (state.dashboardFocus === "interval") return item.issue.indexOf("间隔") >= 0 || item.issue.indexOf("快检") >= 0;
+    if (state.dashboardFocus === "offWindow") return item.issue.indexOf("视频") >= 0 || item.issue.indexOf("人员") >= 0;
+    if (state.dashboardFocus === "aiAlerts") return item.areaKey === primaryFlow().areaKey || item.issue.indexOf("视频") >= 0;
+    return true;
+  }
+
   function renderOverview() {
     var task = DATA.overview.task;
     var currentArea = assertKey(DATA.areas, state.currentArea, "区域");
@@ -468,41 +520,31 @@
       tags: ["计量区", "表单冲突", "时序近阈值", "待复检"],
       overviewAction: "进入计量区表单质检",
       targetArea: primaryFlow().areaKey,
-    } : {
-      badgeTone: currentArea.badgeTone,
-      overviewStatus: currentArea.overviewStatus,
-      overviewTitle: currentArea.overviewTitle,
-      overviewDesc: currentArea.overviewDesc,
-      overviewStats: currentArea.overviewStats,
-      tags: currentArea.tags,
-      overviewAction: currentArea.overviewAction,
-      targetArea: state.currentArea,
-    };
-    q("taskBatch").textContent = DATA.shell.batch;
-    q("taskTitle").textContent = task.title;
+    } : dashboardAreaSummary(state.currentArea);
+
     q("taskNote").textContent = task.note;
-    q("taskRows").innerHTML = "";
+
+    q("sourceLegend").innerHTML = "";
     [
-      ["巡检人", task.inspector],
-      ["计划开始", task.planStart],
-      ["实际开始", task.actualStart],
-      ["实际结束", task.actualEnd],
-      ["路线", task.routeCount],
-    ].forEach(function (row) {
-      q("taskRows").appendChild(el("div", { class: "task-row" }, [
-        el("span", { text: row[0] }),
-        el("strong", { text: row[1] }),
-      ]));
+      ["客户数据", "source-real"],
+      ["演示推演", "source-demo"],
+      ["待确认", "source-pending"],
+    ].forEach(function (item) {
+      q("sourceLegend").appendChild(el("span", { class: "source-pill " + item[1], text: item[0] }));
     });
 
     var metricBox = q("overviewMetrics");
     metricBox.innerHTML = "";
-    DATA.overview.metrics.forEach(function (m) {
-      var value = m.value;
-      var tone = m.tone;
-      metricBox.appendChild(el("div", { class: "metric-card card" }, [
+    DATA.dashboard.qualityMetrics.forEach(function (m) {
+      metricBox.appendChild(el("button", {
+        class: "metric-card card dashboard-metric-card" + (state.dashboardFocus === m.key ? " active" : ""),
+        type: "button",
+        onClick: function () { setDashboardFocus(m.key); },
+      }, [
         el("small", { text: m.label }),
-        el("strong", { class: "num-" + tone, text: value }),
+        el("strong", { class: "num-" + m.tone, text: m.value }),
+        el("span", { text: m.delta }),
+        el("em", { class: sourceClass(m.sourceType), text: m.sourceType }),
       ]));
     });
 
@@ -517,8 +559,34 @@
     q("riskDot").setAttribute("aria-label", "计量区待质检点位");
     q("mapToast").classList.remove("closed");
     q("mapToastBadge").className = "badge " + primaryArea.badgeTone;
-    q("mapToastBadge").textContent = "全站告警";
-    q("mapToastText").textContent = "全站仅计量区存在待质检疑点,点击区域只切换右侧摘要。";
+    q("mapToastBadge").textContent = "P1";
+    q("mapToastText").textContent = "计量区差压趋势疑点为本轮主线,点击异常点进入表单质检。";
+
+    var anomalyLayer = q("routeAnomalyLayer");
+    anomalyLayer.innerHTML = "";
+    DATA.dashboard.routeAnomalies.forEach(function (item) {
+      var group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      group.setAttribute("class", "anomaly-node " + priorityTone(item.priority));
+      group.setAttribute("tabindex", "0");
+      group.setAttribute("role", "button");
+      group.setAttribute("aria-label", item.priority + " " + item.label);
+      group.dataset.area = item.areaKey;
+      group.innerHTML =
+        '<circle cx="' + item.x + '" cy="' + item.y + '" r="10"></circle>' +
+        '<text x="' + (item.x + 16) + '" y="' + (item.y - 12) + '">' + item.priority + '</text>';
+      group.addEventListener("click", function () {
+        if (item.areaKey === primaryFlow().areaKey) openRiskFlow(item.areaKey);
+        else browseArea("form", item.areaKey, "form");
+      });
+      group.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          if (item.areaKey === primaryFlow().areaKey) openRiskFlow(item.areaKey);
+          else browseArea("form", item.areaKey, "form");
+        }
+      });
+      anomalyLayer.appendChild(group);
+    });
 
     q("selectedAreaPanelTitle").textContent = showAllAlerts ? "全站告警" : "当前区域摘要";
     q("selectedAreaBadge").className = "badge " + summaryView.badgeTone;
@@ -538,6 +606,73 @@
     });
     q("selectedAreaPrimary").textContent = summaryView.overviewAction;
     q("selectedAreaPrimary").dataset.area = summaryView.targetArea;
+
+    q("dashboardAlerts").innerHTML = "";
+    DATA.dashboard.aiAlerts.forEach(function (alert) {
+      q("dashboardAlerts").appendChild(el("button", {
+        class: "ai-alert-item card",
+        type: "button",
+        onClick: function () {
+          if (alert.areaKey === primaryFlow().areaKey) openRiskFlow(alert.areaKey);
+          else browseArea("form", alert.areaKey, "form");
+        },
+      }, [
+        el("span", { class: "badge " + priorityTone(alert.priority), text: alert.priority + " · " + alert.model }),
+        el("strong", { text: alert.title }),
+        el("small", { text: alert.summary }),
+        el("em", { class: sourceClass(alert.sourceType), text: alert.sourceType }),
+      ]));
+    });
+
+    var activeMetric = DATA.dashboard.qualityMetrics.filter(function (metric) { return metric.key === state.dashboardFocus; })[0];
+    var taskItems = DATA.dashboard.taskQualityList.filter(dashboardTaskMatchesFocus);
+    q("taskQualityTitle").textContent = activeMetric ? activeMetric.label + "明细" : "异常明细";
+    q("taskQualityList").innerHTML = "";
+    taskItems.forEach(function (item) {
+      q("taskQualityList").appendChild(el("button", {
+        class: "quality-task-item",
+        type: "button",
+        onClick: function () {
+          if (item.areaKey === primaryFlow().areaKey) openRiskFlow(item.areaKey);
+          else browseArea("form", item.areaKey, "form");
+        },
+      }, [
+        el("span", { class: "badge " + priorityTone(item.priority), text: item.priority }),
+        el("strong", { text: item.issue }),
+        el("small", { text: item.time + " · " + item.worker + " · " + item.area + " · " + item.status }),
+        el("em", { class: sourceClass(item.sourceType), text: item.sourceType }),
+      ]));
+    });
+    if (!taskItems.length) {
+      q("taskQualityList").appendChild(el("div", { class: "quality-task-item empty" }, [
+        el("strong", { text: "当前指标暂无待复核明细" }),
+        el("small", { text: "可切换其他指标查看演示数据。" }),
+      ]));
+    }
+
+    q("workerRanking").innerHTML = "";
+    DATA.dashboard.workerQualityRanking.forEach(function (worker, index) {
+      q("workerRanking").appendChild(el("div", { class: "worker-rank-item" }, [
+        el("span", { class: "rank-no", text: String(index + 1) }),
+        el("strong", { text: worker.name }),
+        el("small", { text: worker.team + " · " + worker.tasks + " 个任务 · " + worker.risk }),
+        el("b", { text: String(worker.score) }),
+        el("em", { class: sourceClass(worker.sourceType), text: worker.sourceType }),
+      ]));
+    });
+
+    q("recentArchiveList").innerHTML = "";
+    DATA.knowledge.cases.slice(0, 1).forEach(function (caseItem) {
+      q("recentArchiveList").appendChild(el("button", {
+        class: "recent-archive-item",
+        type: "button",
+        onClick: function () { go("knowledge"); },
+      }, [
+        el("span", { class: "badge info", text: "最近归档" }),
+        el("strong", { text: caseItem.title }),
+        el("small", { text: "点击查看知识库沉淀关系" }),
+      ]));
+    });
   }
 
   function renderInspectionTable() {
@@ -996,7 +1131,8 @@
     q("reportStamp").textContent = state.archived ? "已归档" : state.decision ? "报告草稿" : "等待结论";
     q("archiveBtn").disabled = !state.decision || state.archived;
     q("archiveBtn").textContent = state.archived ? "已归档本次检查" : "归档本次检查";
-    q("reportBackBtn").textContent = "返回任务总览";
+    q("reportBackBtn").dataset.action = state.archived ? "go-knowledge" : "back-overview";
+    q("reportBackBtn").textContent = state.archived ? "查看知识库归档" : "返回任务总览";
 
     var caseKnowledge = primaryCaseKnowledge();
     q("caseReusePanel").classList.toggle("active", state.archived);
@@ -1013,6 +1149,83 @@
     } else {
       q("caseTags").appendChild(el("span", { class: "tag", text: "归档标签将在人工结论后生成" }));
     }
+  }
+
+  function renderKnowledge() {
+    q("knowledgeDocList").innerHTML = "";
+    DATA.knowledge.documents.forEach(function (doc) {
+      q("knowledgeDocList").appendChild(el("article", { class: "knowledge-doc-item card" }, [
+        el("span", { class: "badge info", text: doc.type }),
+        el("strong", { text: doc.title }),
+        el("small", { text: doc.status }),
+        el("div", { class: "tag-row" }, doc.tags.map(function (tag, index) {
+          return el("span", { class: "tag" + (index === 0 ? " hot" : ""), text: tag });
+        })),
+        el("em", { class: sourceClass(doc.sourceType), text: doc.sourceType }),
+      ]));
+    });
+
+    q("knowledgeCaseList").innerHTML = "";
+    DATA.knowledge.cases.forEach(function (caseItem) {
+      var isCurrentCase = caseItem.id === primaryCaseKnowledge().caseId;
+      var status = isCurrentCase && state.archived ? "本次已归档" : caseItem.status;
+      var summary = isCurrentCase && state.archived ? primaryCaseKnowledge().archivedCase.summary : caseItem.summary;
+      q("knowledgeCaseList").appendChild(el("article", { class: "knowledge-case-item card" }, [
+        el("span", { class: "badge " + (isCurrentCase && state.archived ? "ok" : caseItem.areaKey === primaryFlow().areaKey ? "warn" : "info"), text: status }),
+        el("strong", { text: caseItem.id }),
+        el("small", { text: caseItem.title }),
+        el("p", { text: summary }),
+        el("em", { class: sourceClass(caseItem.sourceType), text: caseItem.sourceType }),
+      ]));
+    });
+  }
+
+  function svgNode(tag, attrs) {
+    var node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.keys(attrs || {}).forEach(function (key) {
+      if (key === "text") node.textContent = attrs[key];
+      else node.setAttribute(key, attrs[key]);
+    });
+    return node;
+  }
+
+  function renderGraph() {
+    var graph = DATA.knowledge.graph;
+    var graphNode = q("knowledgeGraph");
+    graphNode.innerHTML = "";
+    graph.links.forEach(function (link) {
+      var from = graph.nodes.filter(function (item) { return item.id === link.from; })[0];
+      var to = graph.nodes.filter(function (item) { return item.id === link.to; })[0];
+      if (!from || !to) throw new Error("[v3] 知识图谱连线节点缺失: " + link.from + " -> " + link.to);
+      graphNode.appendChild(svgNode("line", {
+        class: "graph-link",
+        x1: from.x,
+        y1: from.y,
+        x2: to.x,
+        y2: to.y,
+      }));
+      graphNode.appendChild(svgNode("text", {
+        class: "graph-link-label",
+        x: (from.x + to.x) / 2,
+        y: (from.y + to.y) / 2 - 6,
+        text: link.label,
+      }));
+    });
+    graph.nodes.forEach(function (node) {
+      var group = svgNode("g", { class: "graph-node" });
+      group.appendChild(svgNode("circle", { cx: node.x, cy: node.y, r: 34 }));
+      group.appendChild(svgNode("text", { class: "graph-node-label", x: node.x, y: node.y - 4, text: node.label }));
+      group.appendChild(svgNode("text", { class: "graph-node-type", x: node.x, y: node.y + 15, text: node.type }));
+      graphNode.appendChild(group);
+    });
+
+    q("graphQaList").innerHTML = "";
+    DATA.knowledge.qaExamples.forEach(function (item) {
+      q("graphQaList").appendChild(el("article", { class: "graph-qa-item card" }, [
+        el("strong", { text: item.q }),
+        el("p", { text: item.a }),
+      ]));
+    });
   }
 
   function canVisitStep(stepKey) {
@@ -1118,6 +1331,8 @@
     renderForm();
     renderRecheck();
     renderReport();
+    renderKnowledge();
+    renderGraph();
     renderDrawer();
     renderFlow();
   }
@@ -1248,6 +1463,8 @@
       go("report", { stepKey: "report" });
     } else if (action === "archive-report") archiveReport();
     else if (action === "back-overview") go("overview", { stepKey: "task" });
+    else if (action === "go-knowledge") go("knowledge");
+    else if (action === "go-graph") go("graph");
     else if (action === "open-drawer") openDrawer();
     else if (action === "close-drawer") closeDrawer();
     else if (action === "open-trend-detail") openEvidenceDetail("trend");
@@ -1280,11 +1497,11 @@
         }
       });
     });
-    q("riskDot").addEventListener("click", function () { selectOverviewArea(primaryFlow().areaKey); });
+    q("riskDot").addEventListener("click", function () { openRiskFlow(primaryFlow().areaKey); });
     q("riskDot").addEventListener("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        selectOverviewArea(primaryFlow().areaKey);
+        openRiskFlow(primaryFlow().areaKey);
       }
     });
     qa("[data-item]").forEach(function (btn) {

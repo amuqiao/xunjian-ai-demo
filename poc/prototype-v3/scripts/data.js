@@ -11,13 +11,17 @@
       "overview",
       "form",
       "recheck",
-      "report"
+      "report",
+      "knowledge",
+      "graph"
     ],
     "sceneLabels": {
-      "overview": "任务总览",
+      "overview": "质量大屏",
       "form": "表单质检",
       "recheck": "复检确认",
-      "report": "报告归档"
+      "report": "报告归档",
+      "knowledge": "知识库",
+      "graph": "知识图谱"
     },
     "flowSteps": [
       {
@@ -1405,6 +1409,356 @@
       "复检闭环"
     ],
     "version": "任务批次 XJ-20260721-A / 巡检质检规则库 / 交接班归档模板"
+  },
+  "dashboard": {
+    "qualityMetrics": [
+      {
+        "key": "completion",
+        "label": "巡检完成率",
+        "value": "96.8%",
+        "delta": "+2.1%",
+        "tone": "blue",
+        "sourceType": "客户数据 + 待确认",
+        "desc": "按本批次已完成任务 / 应巡任务推演"
+      },
+      {
+        "key": "issues",
+        "label": "发现问题数",
+        "value": "18",
+        "delta": "P1 3",
+        "tone": "red",
+        "sourceType": "演示推演",
+        "desc": "基于表单、轨迹、时序、视觉综合造数"
+      },
+      {
+        "key": "duration",
+        "label": "时长异常",
+        "value": "5",
+        "delta": "<10min",
+        "tone": "amber",
+        "sourceType": "演示推演 / 待确认",
+        "desc": "秒级开始结束时间由 demo 补齐"
+      },
+      {
+        "key": "interval",
+        "label": "间隔异常",
+        "value": "7",
+        "delta": "<10s",
+        "tone": "amber",
+        "sourceType": "演示推演 / 待确认",
+        "desc": "区域边界和采样时间由 demo 补齐"
+      },
+      {
+        "key": "offWindow",
+        "label": "时段异常",
+        "value": "2",
+        "delta": "夜间偏移",
+        "tone": "purple",
+        "sourceType": "演示推演",
+        "desc": "工业电视识别结果为演示数据"
+      },
+      {
+        "key": "aiAlerts",
+        "label": "AI 待复核",
+        "value": "4",
+        "delta": "时序/视觉",
+        "tone": "blue",
+        "sourceType": "演示推演",
+        "desc": "模型告警用于辅助人工复核"
+      }
+    ],
+    "taskQualityList": [
+      {
+        "id": "XJ-20260721-A-073",
+        "time": "04:43",
+        "worker": "廖震宇",
+        "areaKey": "metering",
+        "area": "计量区",
+        "issue": "过滤器差压表单正常但趋势逼近阈值",
+        "priority": "P1",
+        "status": "待人工复核",
+        "sourceType": "演示推演"
+      },
+      {
+        "id": "XJ-20260721-A-041",
+        "time": "04:18",
+        "worker": "周文涛",
+        "areaKey": "valve",
+        "area": "阀组区",
+        "issue": "两点位间隔过短,需核对是否快检",
+        "priority": "P2",
+        "status": "待抽查",
+        "sourceType": "演示推演 / 待确认"
+      },
+      {
+        "id": "XJ-20260721-A-088",
+        "time": "03:56",
+        "worker": "唐璐",
+        "areaKey": "plc",
+        "area": "PLC机房",
+        "issue": "视频核验未识别到人员进入画面",
+        "priority": "P2",
+        "status": "待视频复核",
+        "sourceType": "演示推演"
+      },
+      {
+        "id": "XJ-20260721-A-112",
+        "time": "03:44",
+        "worker": "陈力",
+        "areaKey": "power",
+        "area": "配电间",
+        "issue": "任务开始时间晚于计划窗口",
+        "priority": "P3",
+        "status": "已记录",
+        "sourceType": "客户数据 + 待确认"
+      }
+    ],
+    "workerQualityRanking": [
+      {
+        "name": "廖震宇",
+        "team": "湘潭站 A 班",
+        "score": 92,
+        "tasks": 14,
+        "risk": "1 个 P1 待复核",
+        "sourceType": "客户数据 + 演示推演"
+      },
+      {
+        "name": "周文涛",
+        "team": "湘潭站 A 班",
+        "score": 87,
+        "tasks": 11,
+        "risk": "2 个间隔异常",
+        "sourceType": "演示推演 / 待确认"
+      },
+      {
+        "name": "唐璐",
+        "team": "湘潭站 B 班",
+        "score": 84,
+        "tasks": 9,
+        "risk": "1 个视频核验疑点",
+        "sourceType": "演示推演"
+      },
+      {
+        "name": "陈力",
+        "team": "湘潭站 B 班",
+        "score": 79,
+        "tasks": 8,
+        "risk": "计划窗口偏移",
+        "sourceType": "客户数据 + 待确认"
+      }
+    ],
+    "routeAnomalies": [
+      {
+        "key": "metering-dp",
+        "areaKey": "metering",
+        "label": "差压趋势疑点",
+        "x": 386,
+        "y": 222,
+        "priority": "P1",
+        "sourceType": "演示推演",
+        "action": "进入表单质检"
+      },
+      {
+        "key": "valve-fast",
+        "areaKey": "valve",
+        "label": "区域间隔过短",
+        "x": 165,
+        "y": 352,
+        "priority": "P2",
+        "sourceType": "演示推演 / 待确认",
+        "action": "查看轨迹详情"
+      },
+      {
+        "key": "plc-video",
+        "areaKey": "plc",
+        "label": "视频核验疑点",
+        "x": 782,
+        "y": 318,
+        "priority": "P2",
+        "sourceType": "演示推演",
+        "action": "查看视觉详情"
+      }
+    ],
+    "aiAlerts": [
+      {
+        "title": "过滤器差压趋势下降余量不足",
+        "areaKey": "metering",
+        "model": "时序模型",
+        "priority": "P1",
+        "summary": "72h 末值 0.097MPa,距离 0.1MPa 阈值仅 0.003MPa。",
+        "sourceType": "演示推演 / 待确认",
+        "action": "查看时序证据"
+      },
+      {
+        "title": "PLC 关键帧需联动核验",
+        "areaKey": "plc",
+        "model": "视觉模型",
+        "priority": "P2",
+        "summary": "现场关键帧用于补充点位状态,最终仍需人工确认。",
+        "sourceType": "演示推演",
+        "action": "查看视觉证据"
+      },
+      {
+        "title": "阀组区轨迹间隔过短",
+        "areaKey": "valve",
+        "model": "轨迹分析",
+        "priority": "P2",
+        "summary": "相邻点位间隔低于 10 秒,建议抽查是否快检。",
+        "sourceType": "演示推演 / 待确认",
+        "action": "查看轨迹明细"
+      }
+    ]
+  },
+  "knowledge": {
+    "documents": [
+      {
+        "id": "DOC-001",
+        "title": "油气站场巡检及交接班工作指引",
+        "type": "制度",
+        "tags": [
+          "巡检制度",
+          "交接班",
+          "复检步骤"
+        ],
+        "status": "已入库",
+        "sourceType": "演示推演"
+      },
+      {
+        "id": "DOC-002",
+        "title": "长郴-湘潭站巡检质量核心指标",
+        "type": "指标口径",
+        "tags": [
+          "完成率",
+          "快检",
+          "漏检",
+          "时段异常"
+        ],
+        "status": "待口径确认",
+        "sourceType": "客户材料 + 待确认"
+      },
+      {
+        "id": "DOC-003",
+        "title": "计量区过滤器差压复检报告",
+        "type": "归档案例",
+        "tags": [
+          "计量区",
+          "差压趋势",
+          "表单冲突"
+        ],
+        "status": "演示归档",
+        "sourceType": "演示推演"
+      }
+    ],
+    "cases": [
+      {
+        "id": "CASE-XJ-20260721-001",
+        "title": "计量区过滤器差压趋势复检案例",
+        "areaKey": "metering",
+        "status": "归档后可复用",
+        "summary": "表单填写正常,时序趋势接近阈值,人工复检后沉淀为同类案例。",
+        "sourceType": "演示推演"
+      },
+      {
+        "id": "CASE-XJ-20260721-002",
+        "title": "阀组区快检抽查案例",
+        "areaKey": "valve",
+        "status": "待归档",
+        "summary": "区域间隔低于阈值,需结合轨迹和视频核验是否快检。",
+        "sourceType": "演示推演 / 待确认"
+      }
+    ],
+    "graph": {
+      "nodes": [
+        {
+          "id": "rule-duration",
+          "label": "时长规则",
+          "type": "制度条款",
+          "x": 130,
+          "y": 90
+        },
+        {
+          "id": "task-073",
+          "label": "第73项巡检",
+          "type": "巡检项",
+          "x": 330,
+          "y": 150
+        },
+        {
+          "id": "trend-dp",
+          "label": "差压趋势",
+          "type": "时序指标",
+          "x": 530,
+          "y": 90
+        },
+        {
+          "id": "frame-plc",
+          "label": "现场关键帧",
+          "type": "视觉证据",
+          "x": 550,
+          "y": 260
+        },
+        {
+          "id": "agent-advice",
+          "label": "复检建议",
+          "type": "Agent 问答",
+          "x": 330,
+          "y": 330
+        },
+        {
+          "id": "report-case",
+          "label": "归档案例",
+          "type": "复检报告",
+          "x": 130,
+          "y": 260
+        }
+      ],
+      "links": [
+        {
+          "from": "rule-duration",
+          "to": "task-073",
+          "label": "约束"
+        },
+        {
+          "from": "task-073",
+          "to": "trend-dp",
+          "label": "触发"
+        },
+        {
+          "from": "trend-dp",
+          "to": "agent-advice",
+          "label": "证据"
+        },
+        {
+          "from": "frame-plc",
+          "to": "agent-advice",
+          "label": "补证"
+        },
+        {
+          "from": "agent-advice",
+          "to": "report-case",
+          "label": "人工确认"
+        },
+        {
+          "from": "report-case",
+          "to": "rule-duration",
+          "label": "沉淀"
+        }
+      ]
+    },
+    "qaExamples": [
+      {
+        "q": "为什么不能直接让 AI 下异常结论?",
+        "a": "AI 负责把表单、轨迹、时序和视觉证据汇总成复检建议,最终确认仍由人工完成。"
+      },
+      {
+        "q": "归档案例对下一次检查有什么帮助?",
+        "a": "下一次遇到相似差压趋势疑点时,Agent 可以引用历史复检清单、报告结构和交接班关注项。"
+      },
+      {
+        "q": "哪些指标目前还需要客户补充?",
+        "a": "秒级轨迹时间、区域边界、真实视频识别结果、时序库字段和问题判定规则仍需后续对齐。"
+      }
+    ]
   },
   "areas": {
     "metering": {

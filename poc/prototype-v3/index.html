@@ -18,10 +18,12 @@
         </div>
 
         <nav class="scene-nav" aria-label="演示场景">
-          <button class="scene-nav-btn active" type="button" data-scene-target="overview">任务总览</button>
+          <button class="scene-nav-btn active" type="button" data-scene-target="overview">质量大屏</button>
           <button class="scene-nav-btn" type="button" data-scene-target="form">表单质检</button>
           <button class="scene-nav-btn" type="button" data-scene-target="recheck">复检确认</button>
           <button class="scene-nav-btn" type="button" data-scene-target="report">报告归档</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="knowledge">知识库</button>
+          <button class="scene-nav-btn" type="button" data-scene-target="graph">知识图谱</button>
         </nav>
 
         <div class="top-status">
@@ -33,32 +35,30 @@
 
       <main class="stage" id="stage">
         <section class="scene active" id="scene-overview" data-scene="overview" aria-labelledby="overviewTitle">
-          <div class="overview-grid">
-            <aside class="overview-left">
-              <section class="panel task-panel">
-                <div class="panel-title">
-                  <span>本轮任务</span>
-                  <span id="taskBatch">XJ-20260721-A</span>
+          <div class="dashboard-grid">
+            <section class="panel dashboard-hero" aria-labelledby="overviewTitle">
+              <div class="dashboard-hero-head">
+                <div>
+                  <span class="eyebrow">巡检质量态势</span>
+                  <h2 id="overviewTitle">湘潭站巡检质量智能分析大屏</h2>
+                  <p id="taskNote">任务、人员、轨迹、模型预警和知识沉淀统一呈现。</p>
                 </div>
-                <h2 id="taskTitle">计量区例行巡检</h2>
-                <div class="task-rows" id="taskRows"></div>
-                <p id="taskNote" class="task-note">本轮从计量区表单质检进入，在同一工作台并联查看时序模型、视觉模型、规则依据和 Agent 建议。</p>
-              </section>
+                <div class="source-legend" id="sourceLegend" aria-label="数据来源说明"></div>
+              </div>
+              <div class="metric-grid dashboard-metrics" id="overviewMetrics" aria-label="巡检质量指标"></div>
+            </section>
 
-              <section class="metric-grid" id="overviewMetrics" aria-label="巡检指标"></section>
-            </aside>
-
-            <section class="panel map-panel" aria-labelledby="overviewTitle">
+            <section class="panel map-panel business-map-panel">
               <div class="panel-title">
-                <span id="overviewTitle">站场态势总览</span>
+                <span>巡检轨迹与异常点</span>
                 <div class="map-legend" aria-label="区域状态图例">
-                  <span><i class="legend-dot warn"></i>待质检</span>
+                  <span><i class="legend-dot warn"></i>待复核</span>
                   <span><i class="legend-dot ok"></i>已覆盖</span>
-                  <span><i class="legend-dot info"></i>辅助记录</span>
+                  <span><i class="legend-dot info"></i>辅助证据</span>
                 </div>
               </div>
               <div class="map-wrap">
-                <svg class="site-map" id="siteMap" viewBox="0 0 900 560" aria-label="湘潭站巡检区域图">
+                <svg class="site-map" id="siteMap" viewBox="60 70 820 390" aria-label="湘潭站巡检质量态势图">
                   <path class="route-line" d="M105 338 C210 248, 260 170, 390 190 C520 210, 552 314, 670 270 C740 244, 792 186, 832 120"></path>
                   <g class="map-area" data-area="valve" tabindex="0" role="button" aria-label="阀组区">
                     <polygon points="95,330 205,270 250,352 154,430"></polygon><text x="122" y="384">阀组区</text>
@@ -78,21 +78,21 @@
                   <g class="map-area" data-area="power" tabindex="0" role="button" aria-label="配电间">
                     <polygon points="186,122 270,92 318,150 248,214"></polygon><text x="214" y="164">配电间</text>
                   </g>
+                  <g id="routeAnomalyLayer"></g>
                   <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" tabindex="0" role="button" aria-label="计量区表单质检入口"></circle>
                 </svg>
-                <div class="scan-band" aria-hidden="true"></div>
                 <div class="map-toast" id="mapToast">
-                  <span class="badge danger" id="mapToastBadge">AI 提示</span>
-                  <span id="mapToastText">计量区过滤器差压趋势异常，建议生成复检清单。</span>
+                  <span class="badge danger" id="mapToastBadge">P1</span>
+                  <span id="mapToastText">计量区过滤器差压趋势异常，建议进入表单质检。</span>
                 </div>
               </div>
             </section>
 
-            <aside class="overview-right">
+            <aside class="dashboard-side">
               <section class="panel area-detail-panel">
                 <div class="panel-title">
-                  <span id="selectedAreaPanelTitle">全站告警</span>
-                  <span class="mini-hint">点击区域切换</span>
+                  <span id="selectedAreaPanelTitle">当前区域摘要</span>
+                  <span class="mini-hint">点击图形切换</span>
                 </div>
                 <div class="area-detail-head">
                   <span class="badge danger" id="selectedAreaBadge">高优先级复检</span>
@@ -105,7 +105,23 @@
                   <button class="action primary wide" type="button" id="selectedAreaPrimary" data-action="go-area-primary">进入表单质检</button>
                 </div>
               </section>
+
+              <section class="panel ai-alert-panel">
+                <div class="panel-title"><span>AI 智能提醒</span><span class="mini-hint">辅助复核</span></div>
+                <div class="ai-alert-list" id="dashboardAlerts"></div>
+              </section>
             </aside>
+
+            <section class="panel dashboard-list-panel tasks-panel">
+              <div class="panel-title"><span id="taskQualityTitle">异常明细</span><span class="mini-hint">任务 / 区域 / 状态</span></div>
+              <div class="quality-task-list" id="taskQualityList"></div>
+            </section>
+
+            <section class="panel dashboard-list-panel workers-panel">
+              <div class="panel-title"><span>人员质量排行</span><span class="mini-hint">最近归档</span></div>
+              <div class="worker-ranking" id="workerRanking"></div>
+              <div class="recent-archive-list" id="recentArchiveList"></div>
+            </section>
           </div>
         </section>
 
@@ -354,6 +370,52 @@
                 <button class="action primary wide" type="button" id="archiveBtn" data-action="archive-report">归档为案例</button>
                 <button class="action wide" type="button" id="reportBackBtn" data-action="back-overview">返回任务总览</button>
               </section>
+            </aside>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-knowledge" data-scene="knowledge" aria-labelledby="knowledgeTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="knowledgeTitle">知识库管理</h2>
+              <p>制度、指标口径、历史报告和归档案例统一维护，首版为前端演示状态。</p>
+            </div>
+            <span class="badge info">演示知识库</span>
+          </div>
+          <div class="knowledge-grid">
+            <section class="panel knowledge-doc-panel">
+              <div class="panel-title"><span>知识库文档</span><span class="mini-hint">制度 / 口径 / 案例</span></div>
+              <div class="knowledge-doc-list" id="knowledgeDocList"></div>
+              <div class="knowledge-upload-mock">
+                <strong>演示上传入口</strong>
+                <span>制度文档 / 巡检记录 / 复检报告</span>
+                <button class="action" type="button" data-action="go-graph">查看入库关系</button>
+              </div>
+            </section>
+            <aside class="panel knowledge-case-panel">
+              <div class="panel-title"><span>案例归档</span><span class="mini-hint">报告沉淀</span></div>
+              <div class="knowledge-case-list" id="knowledgeCaseList"></div>
+              <button class="action primary wide" type="button" data-action="go-graph">查看知识节点关系</button>
+            </aside>
+          </div>
+        </section>
+
+        <section class="scene" id="scene-graph" data-scene="graph" aria-labelledby="graphTitle">
+          <div class="scene-head">
+            <div>
+              <h2 id="graphTitle">知识节点关系</h2>
+              <p>用前端关系图表达规则、任务、证据、建议、报告和案例之间的沉淀关系。</p>
+            </div>
+            <span class="badge info">非真实图数据库</span>
+          </div>
+          <div class="graph-grid">
+            <section class="panel graph-panel">
+              <div class="panel-title"><span>知识关系图</span><span class="mini-hint">前端演示</span></div>
+              <svg class="knowledge-graph" id="knowledgeGraph" viewBox="0 0 680 420" aria-label="知识节点关系图"></svg>
+            </section>
+            <aside class="panel graph-side-panel">
+              <div class="panel-title"><span>Agent 问答样例</span><span class="mini-hint">知识增强</span></div>
+              <div class="graph-qa-list" id="graphQaList"></div>
             </aside>
           </div>
         </section>

@@ -1,0 +1,29 @@
+[
+  {
+    "title": "过滤器差压趋势下降余量不足",
+    "areaKey": "metering",
+    "model": "时序模型",
+    "priority": "P1",
+    "summary": "72h 末值 0.097MPa,距离 0.1MPa 阈值仅 0.003MPa。",
+    "sourceType": "演示推演 / 待确认",
+    "action": "查看时序证据"
+  },
+  {
+    "title": "PLC 关键帧需联动核验",
+    "areaKey": "plc",
+    "model": "视觉模型",
+    "priority": "P2",
+    "summary": "现场关键帧用于补充点位状态,最终仍需人工确认。",
+    "sourceType": "演示推演",
+    "action": "查看视觉证据"
+  },
+  {
+    "title": "阀组区轨迹间隔过短",
+    "areaKey": "valve",
+    "model": "轨迹分析",
+    "priority": "P2",
+    "summary": "相邻点位间隔低于 10 秒,建议抽查是否快检。",
+    "sourceType": "演示推演 / 待确认",
+    "action": "查看轨迹明细"
+  }
+]

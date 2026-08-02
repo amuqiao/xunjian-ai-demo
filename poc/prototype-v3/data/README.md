@@ -8,6 +8,8 @@
 data/demo.json
 data/area-index.json
 data/lifecycle-matrix.json
+data/dashboard/*
+data/knowledge/*
 data/areas/<area>/*
         ↓
 tools/build-data.py
@@ -18,6 +20,35 @@ index.html
 ```
 
 `assets/data/` 只作为原始素材库。v3 展示需要的图片已经复制到各区域自己的 `frames/` 目录；原始路径只允许作为 `frames.json` 里的 `sourcePath` 元数据存在，不参与页面展示。
+
+## 业务大屏数据
+
+`dashboard/` 是首页业务指标大屏的数据包，负责表达巡检质量指标、异常任务、人员排行、轨迹异常点和 AI 提醒。
+
+```text
+dashboard/
+  quality-metrics.json        # 首页核心指标卡
+  task-quality-list.json      # 异常明细 / 待复核任务
+  worker-quality-ranking.json # 人员质量排行
+  route-anomalies.json        # 轨迹主画布异常点
+  ai-alerts.json              # AI 智能提醒
+```
+
+这些数据是 demo 演示数据，可以参考附件3客户材料构造，但页面运行不依赖附件3原始 Excel。每条指标应保留 `sourceType`，用于区分“客户数据”“演示推演”和“待确认口径”。
+
+## 知识库数据
+
+`knowledge/` 是知识库管理和知识节点关系页的数据包，负责表达制度文档、归档案例、图谱节点和问答样例。
+
+```text
+knowledge/
+  documents.json   # 知识库文档列表
+  cases.json       # 归档案例列表
+  graph.json       # 前端关系图节点和连线
+  qa-examples.json # 知识增强问答样例
+```
+
+首版只做前端演示，不表示已接入真实上传、文档解析、向量检索或图数据库。
 
 ## 区域目录
 

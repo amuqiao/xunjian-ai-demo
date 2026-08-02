@@ -1,0 +1,32 @@
+[
+  {
+    "key": "metering-dp",
+    "areaKey": "metering",
+    "label": "差压趋势疑点",
+    "x": 386,
+    "y": 222,
+    "priority": "P1",
+    "sourceType": "演示推演",
+    "action": "进入表单质检"
+  },
+  {
+    "key": "valve-fast",
+    "areaKey": "valve",
+    "label": "区域间隔过短",
+    "x": 165,
+    "y": 352,
+    "priority": "P2",
+    "sourceType": "演示推演 / 待确认",
+    "action": "查看轨迹详情"
+  },
+  {
+    "key": "plc-video",
+    "areaKey": "plc",
+    "label": "视频核验疑点",
+    "x": 782,
+    "y": 318,
+    "priority": "P2",
+    "sourceType": "演示推演",
+    "action": "查看视觉详情"
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "廖震宇",
+    "team": "湘潭站 A 班",
+    "score": 92,
+    "tasks": 14,
+    "risk": "1 个 P1 待复核",
+    "sourceType": "客户数据 + 演示推演"
+  },
+  {
+    "name": "周文涛",
+    "team": "湘潭站 A 班",
+    "score": 87,
+    "tasks": 11,
+    "risk": "2 个间隔异常",
+    "sourceType": "演示推演 / 待确认"
+  },
+  {
+    "name": "唐璐",
+    "team": "湘潭站 B 班",
+    "score": 84,
+    "tasks": 9,
+    "risk": "1 个视频核验疑点",
+    "sourceType": "演示推演"
+  },
+  {
+    "name": "陈力",
+    "team": "湘潭站 B 班",
+    "score": 79,
+    "tasks": 8,
+    "risk": "计划窗口偏移",
+    "sourceType": "客户数据 + 待确认"
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "XJ-20260721-A-073",
+    "time": "04:43",
+    "worker": "廖震宇",
+    "areaKey": "metering",
+    "area": "计量区",
+    "issue": "过滤器差压表单正常但趋势逼近阈值",
+    "priority": "P1",
+    "status": "待人工复核",
+    "sourceType": "演示推演"
+  },
+  {
+    "id": "XJ-20260721-A-041",
+    "time": "04:18",
+    "worker": "周文涛",
+    "areaKey": "valve",
+    "area": "阀组区",
+    "issue": "两点位间隔过短,需核对是否快检",
+    "priority": "P2",
+    "status": "待抽查",
+    "sourceType": "演示推演 / 待确认"
+  },
+  {
+    "id": "XJ-20260721-A-088",
+    "time": "03:56",
+    "worker": "唐璐",
+    "areaKey": "plc",
+    "area": "PLC机房",
+    "issue": "视频核验未识别到人员进入画面",
+    "priority": "P2",
+    "status": "待视频复核",
+    "sourceType": "演示推演"
+  },
+  {
+    "id": "XJ-20260721-A-112",
+    "time": "03:44",
+    "worker": "陈力",
+    "areaKey": "power",
+    "area": "配电间",
+    "issue": "任务开始时间晚于计划窗口",
+    "priority": "P3",
+    "status": "已记录",
+    "sourceType": "客户数据 + 待确认"
+  }
+]

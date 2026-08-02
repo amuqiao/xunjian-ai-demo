@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    { "id": "rule-duration", "label": "时长规则", "type": "制度条款", "x": 130, "y": 90 },
+    { "id": "task-073", "label": "第73项巡检", "type": "巡检项", "x": 330, "y": 150 },
+    { "id": "trend-dp", "label": "差压趋势", "type": "时序指标", "x": 530, "y": 90 },
+    { "id": "frame-plc", "label": "现场关键帧", "type": "视觉证据", "x": 550, "y": 260 },
+    { "id": "agent-advice", "label": "复检建议", "type": "Agent 问答", "x": 330, "y": 330 },
+    { "id": "report-case", "label": "归档案例", "type": "复检报告", "x": 130, "y": 260 }
+  ],
+  "links": [
+    { "from": "rule-duration", "to": "task-073", "label": "约束" },
+    { "from": "task-073", "to": "trend-dp", "label": "触发" },
+    { "from": "trend-dp", "to": "agent-advice", "label": "证据" },
+    { "from": "frame-plc", "to": "agent-advice", "label": "补证" },
+    { "from": "agent-advice", "to": "report-case", "label": "人工确认" },
+    { "from": "report-case", "to": "rule-duration", "label": "沉淀" }
+  ]
+}

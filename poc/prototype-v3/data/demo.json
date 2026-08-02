@@ -8,13 +8,17 @@
       "overview",
       "form",
       "recheck",
-      "report"
+      "report",
+      "knowledge",
+      "graph"
     ],
     "sceneLabels": {
-      "overview": "任务总览",
+      "overview": "质量大屏",
       "form": "表单质检",
       "recheck": "复检确认",
-      "report": "报告归档"
+      "report": "报告归档",
+      "knowledge": "知识库",
+      "graph": "知识图谱"
     },
     "flowSteps": [
       {

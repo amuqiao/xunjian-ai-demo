@@ -13,6 +13,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 AREAS_DIR = DATA_DIR / "areas"
+DASHBOARD_DIR = DATA_DIR / "dashboard"
+KNOWLEDGE_DIR = DATA_DIR / "knowledge"
 OUT_FILE = ROOT / "scripts" / "data.js"
 
 FORM_COLUMNS = ["item", "areaKey", "no", "area", "device", "check", "result", "hot"]
@@ -36,6 +38,19 @@ CASE_KNOWLEDGE_KEYS = ["schemaVersion", "areaKey", "caseId", "title", "firstPass
 CASE_PASS_KEYS = ["label", "summary", "sources", "questions"]
 ARCHIVED_CASE_KEYS = ["label", "summary", "sources", "facts"]
 SOURCE_TYPES = ["current", "standard", "archive", "case"]
+DASHBOARD_FILES = {
+    "qualityMetrics": "quality-metrics.json",
+    "taskQualityList": "task-quality-list.json",
+    "workerQualityRanking": "worker-quality-ranking.json",
+    "routeAnomalies": "route-anomalies.json",
+    "aiAlerts": "ai-alerts.json",
+}
+KNOWLEDGE_FILES = {
+    "documents": "documents.json",
+    "cases": "cases.json",
+    "graph": "graph.json",
+    "qaExamples": "qa-examples.json",
+}
 
 
 def read_json(path: Path) -> Any:
@@ -43,6 +58,16 @@ def read_json(path: Path) -> Any:
       raise FileNotFoundError(path)
     with path.open("r", encoding="utf-8") as handle:
       return json.load(handle)
+
+
+def read_named_json_package(package_dir: Path, files: dict[str, str], label: str) -> dict[str, Any]:
+    package: dict[str, Any] = {}
+    for runtime_key, filename in files.items():
+      value = read_json(package_dir / filename)
+      if not value:
+        raise ValueError(f"{label}/{filename} must not be empty")
+      package[runtime_key] = value
+    return package
 
 
 def require_keys(obj: dict[str, Any], keys: list[str], label: str) -> None:
@@ -196,6 +221,75 @@ def validate_string_list(items: Any, label: str) -> None:
       validate_non_empty_string(item, f"{label}[{index}]")
 
 
+def validate_area_key(value: Any, area_keys: set[str], label: str) -> None:
+    validate_non_empty_string(value, label)
+    if value not in area_keys:
+      raise KeyError(f"{label} must be one of {sorted(area_keys)}: {value}")
+
+
+def validate_source_type_text(value: Any, label: str) -> None:
+    validate_non_empty_string(value, label)
+    allowed_markers = ["客户数据", "演示推演", "待确认", "客户材料"]
+    if not any(marker in value for marker in allowed_markers):
+      raise ValueError(f"{label} must describe data source boundary: {value}")
+
+
+def validate_dashboard_package(package: dict[str, Any], area_keys: set[str]) -> None:
+    for index, item in enumerate(package["qualityMetrics"]):
+      require_keys(item, ["key", "label", "value", "delta", "tone", "sourceType", "desc"], f"dashboard.qualityMetrics[{index}]")
+      validate_source_type_text(item["sourceType"], f"dashboard.qualityMetrics[{index}].sourceType")
+    for index, item in enumerate(package["taskQualityList"]):
+      require_keys(item, ["id", "time", "worker", "areaKey", "area", "issue", "priority", "status", "sourceType"], f"dashboard.taskQualityList[{index}]")
+      validate_area_key(item["areaKey"], area_keys, f"dashboard.taskQualityList[{index}].areaKey")
+      validate_source_type_text(item["sourceType"], f"dashboard.taskQualityList[{index}].sourceType")
+    for index, item in enumerate(package["workerQualityRanking"]):
+      require_keys(item, ["name", "team", "score", "tasks", "risk", "sourceType"], f"dashboard.workerQualityRanking[{index}]")
+      if not isinstance(item["score"], int) or not isinstance(item["tasks"], int):
+        raise ValueError(f"dashboard.workerQualityRanking[{index}] score/tasks must be integers")
+      validate_source_type_text(item["sourceType"], f"dashboard.workerQualityRanking[{index}].sourceType")
+    for index, item in enumerate(package["routeAnomalies"]):
+      require_keys(item, ["key", "areaKey", "label", "x", "y", "priority", "sourceType", "action"], f"dashboard.routeAnomalies[{index}]")
+      validate_area_key(item["areaKey"], area_keys, f"dashboard.routeAnomalies[{index}].areaKey")
+      if not isinstance(item["x"], int) or not isinstance(item["y"], int):
+        raise ValueError(f"dashboard.routeAnomalies[{index}] x/y must be integers")
+      validate_source_type_text(item["sourceType"], f"dashboard.routeAnomalies[{index}].sourceType")
+    for index, item in enumerate(package["aiAlerts"]):
+      require_keys(item, ["title", "areaKey", "model", "priority", "summary", "sourceType", "action"], f"dashboard.aiAlerts[{index}]")
+      validate_area_key(item["areaKey"], area_keys, f"dashboard.aiAlerts[{index}].areaKey")
+      validate_source_type_text(item["sourceType"], f"dashboard.aiAlerts[{index}].sourceType")
+
+
+def validate_knowledge_package(package: dict[str, Any], area_keys: set[str]) -> None:
+    for index, item in enumerate(package["documents"]):
+      require_keys(item, ["id", "title", "type", "tags", "status", "sourceType"], f"knowledge.documents[{index}]")
+      validate_string_list(item["tags"], f"knowledge.documents[{index}].tags")
+      validate_source_type_text(item["sourceType"], f"knowledge.documents[{index}].sourceType")
+    for index, item in enumerate(package["cases"]):
+      require_keys(item, ["id", "title", "areaKey", "status", "summary", "sourceType"], f"knowledge.cases[{index}]")
+      validate_area_key(item["areaKey"], area_keys, f"knowledge.cases[{index}].areaKey")
+      validate_source_type_text(item["sourceType"], f"knowledge.cases[{index}].sourceType")
+    graph = package["graph"]
+    require_keys(graph, ["nodes", "links"], "knowledge.graph")
+    if not isinstance(graph["nodes"], list) or not graph["nodes"]:
+      raise ValueError("knowledge.graph.nodes must be a non-empty list")
+    if not isinstance(graph["links"], list) or not graph["links"]:
+      raise ValueError("knowledge.graph.links must be a non-empty list")
+    node_ids: set[str] = set()
+    for index, node in enumerate(graph["nodes"]):
+      require_keys(node, ["id", "label", "type", "x", "y"], f"knowledge.graph.nodes[{index}]")
+      validate_non_empty_string(node["id"], f"knowledge.graph.nodes[{index}].id")
+      if node["id"] in node_ids:
+        raise KeyError(f"duplicate knowledge graph node id: {node['id']}")
+      node_ids.add(node["id"])
+      if not isinstance(node["x"], int) or not isinstance(node["y"], int):
+        raise ValueError(f"knowledge.graph.nodes[{index}] x/y must be integers")
+    for index, link in enumerate(graph["links"]):
+      require_keys(link, ["from", "to", "label"], f"knowledge.graph.links[{index}]")
+      if link["from"] not in node_ids or link["to"] not in node_ids:
+        raise KeyError(f"knowledge.graph.links[{index}] references missing node: {link}")
+    validate_qa_items(package["qaExamples"], "knowledge.qaExamples")
+
+
 def read_case_knowledge(area_key: str, area_dir: Path) -> dict[str, Any]:
     case_knowledge = read_json(area_dir / "case-knowledge.json")
     require_keys(case_knowledge, CASE_KNOWLEDGE_KEYS, f"{area_key}/case-knowledge.json")
@@ -316,9 +410,17 @@ def build_data() -> dict[str, Any]:
       raise KeyError(f"primaryFlow areaKey missing from area-index order: {primary_area_key}")
     scene_order = set(demo["shell"]["sceneOrder"])
 
+    dashboard = read_named_json_package(DASHBOARD_DIR, DASHBOARD_FILES, "dashboard")
+    knowledge = read_named_json_package(KNOWLEDGE_DIR, KNOWLEDGE_FILES, "knowledge")
+    area_keys = set(area_index["order"])
+    validate_dashboard_package(dashboard, area_keys)
+    validate_knowledge_package(knowledge, area_keys)
+
     result = deepcopy(demo)
     result["shell"]["primaryFlow"] = area_index["primaryFlow"]
     result["overview"]["areaOrder"] = area_index["order"]
+    result["dashboard"] = dashboard
+    result["knowledge"] = knowledge
     result["areas"] = {}
 
     inspection_rows: list[dict[str, Any]] = []
