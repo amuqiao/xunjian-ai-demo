@@ -30,6 +30,7 @@
       evidenceDetail: "",
       overviewScope: "all",
       dashboardFocus: "issues",
+      allowFormEntry: false,
       stepKey: "task",
       maxStepIndex: 0,
       browseMode: false,
@@ -58,6 +59,18 @@
     Object.keys(charts).forEach(function (id) {
       charts[id].resize();
     });
+  }
+
+  function isChartVisible(id) {
+    var node = q(id);
+    if (node.classList.contains("sr-only")) return false;
+    var rect = node.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  }
+
+  function setChartOption(id, option) {
+    if (!isChartVisible(id)) return;
+    chart(id).setOption(option);
   }
 
   function qa(selector, root) {
@@ -117,6 +130,7 @@
 
   function defaultStepForScene(scene) {
     if (scene === "overview") return "task";
+    if (scene === "station") return "task";
     if (scene === "form") return "form";
     if (scene === "recheck") return "recheck";
     if (scene === "report") return "report";
@@ -173,7 +187,8 @@
 
   function canVisit(scene) {
     if (scene === state.scene) return true;
-    if (scene === "overview" || scene === "form") return true;
+    if (scene === "overview" || scene === "station") return true;
+    if (scene === "form") return !!state.allowFormEntry;
     if (scene === "recheck") return isPrimaryArea(state.currentArea) && (state.maxStepIndex >= stepIndex("form") || state.recheckReady || !!state.decision || state.archived);
     if (scene === "report") return !!state.decision || state.archived;
     if (scene === "knowledge" || scene === "graph") return true;
@@ -183,7 +198,9 @@
   function nearestLegalScene(scene) {
     if (canVisit(scene)) return scene;
     if (scene === "report" && canVisit("recheck")) return "recheck";
-    if (scene !== "overview") return "form";
+    if (scene === "report" || scene === "recheck") return canVisit("form") ? "form" : "overview";
+    if (scene === "form") return "overview";
+    if (scene !== "overview") return "overview";
     return "overview";
   }
 
@@ -192,6 +209,7 @@
     scene = nearestLegalScene(scene);
     opts = opts || {};
     var previousScene = state.scene;
+    if (scene !== "form") state.allowFormEntry = false;
     if (opts.area) {
       enterArea(opts.area, false);
       state.scene = scene;
@@ -243,7 +261,24 @@
     render();
   }
 
+  function selectStationArea(area) {
+    enterArea(area, false);
+    state.scene = "station";
+    state.overviewScope = "area";
+    state.browseMode = false;
+    showStep(defaultStepForScene("station"));
+    if (window.location.hash !== "#station") window.location.hash = "station";
+    persistState();
+    render();
+  }
+
+  function selectMapArea(area) {
+    if (state.scene === "station") selectStationArea(area);
+    else selectOverviewArea(area);
+  }
+
   function openRiskFlow(area) {
+    state.allowFormEntry = true;
     state.browseMode = false;
     go("form", { area: area || primaryFlow().areaKey, stepKey: "form" });
   }
@@ -420,12 +455,15 @@
   }
 
   function renderShell() {
+    document.body.dataset.scene = state.scene;
     q("brandSub").textContent = DATA.shell.siteName + " · " + DATA.shell.subtitle + " · 任务批次 " + DATA.shell.batch;
     q("clock").textContent = DATA.shell.clock + " · 任务批次 " + DATA.shell.batch;
 
     var status;
     if (state.scene === "overview") {
-      status = "巡检质量大屏已加载,可从异常点进入表单质检。";
+      status = "巡检质量大屏已加载,首页展示指标与 Top 告警,站场态势可进入详情查看。";
+    } else if (state.scene === "station") {
+      status = "站场态势详情展示巡检轨迹、区域覆盖和空间异常点。";
     } else if (state.scene === "knowledge") {
       status = "知识库用于展示制度、指标口径和归档案例,当前为前端演示数据。";
     } else if (state.scene === "graph") {
@@ -446,7 +484,7 @@
       btn.classList.toggle("active", target === state.scene);
       var overviewFormShortcut = state.scene === "overview" && target === "form";
       btn.disabled = overviewFormShortcut || !canVisit(target);
-      btn.title = overviewFormShortcut ? "请从右侧告警摘要进入表单质检" : btn.disabled ? "请先完成前序步骤" : DATA.shell.sceneLabels[target];
+      btn.title = overviewFormShortcut ? "请从当前告警入口进入表单质检" : btn.disabled ? "请先完成前序步骤" : DATA.shell.sceneLabels[target];
     });
     qa(".scene").forEach(function (scene) {
       scene.classList.toggle("active", scene.dataset.scene === state.scene);
@@ -580,7 +618,7 @@
     var trend = chartsData.taskTrend;
     var aiTrend = chartsData.aiModelTrend;
 
-    chart("completionGauge").setOption(mergeOption(dashboardChartBase(), {
+    setChartOption("completionGauge", mergeOption(dashboardChartBase(), {
       color: ["#25d9ff", "rgba(142,169,200,.16)"],
       graphic: [{
         type: "text",
@@ -618,7 +656,7 @@
       }],
     }));
 
-    chart("resultPie").setOption(mergeOption(dashboardChartBase(), {
+    setChartOption("resultPie", mergeOption(dashboardChartBase(), {
       color: ["#4ade80", "#fbbf24", "#25d9ff"],
       legend: { bottom: 0, itemWidth: 8, itemHeight: 8, textStyle: { color: chartTextColor(), fontSize: 11 } },
       series: [{
@@ -631,7 +669,7 @@
       }],
     }));
 
-    chart("workerScoreChart").setOption(mergeOption(dashboardChartBase(), {
+    setChartOption("workerScoreChart", mergeOption(dashboardChartBase(), {
       grid: chartGrid({ left: 8, top: 10, bottom: 4 }),
       xAxis: { type: "value", max: 100, splitLine: { lineStyle: { color: "rgba(148,198,255,.12)" } }, axisLabel: { color: chartTextColor() } },
       yAxis: {
@@ -651,7 +689,7 @@
       }],
     }));
 
-    chart("anomalyTypeChart").setOption(mergeOption(dashboardChartBase(), {
+    setChartOption("anomalyTypeChart", mergeOption(dashboardChartBase(), {
       color: ["#ff5c7a"],
       grid: chartGrid({ left: 12, right: 8, top: 18, bottom: 4 }),
       xAxis: {
@@ -675,7 +713,7 @@
       }],
     }));
 
-    chart("aiModelTrendChart").setOption(mergeOption(dashboardChartBase(), {
+    setChartOption("aiModelTrendChart", mergeOption(dashboardChartBase(), {
       color: ["#25d9ff", "#a78bfa"],
       legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 8, textStyle: { color: chartTextColor(), fontSize: 11 } },
       grid: chartGrid({ top: 28, left: 12, right: 8, bottom: 6 }),
@@ -687,10 +725,10 @@
       ],
     }));
 
-    chart("taskTrendChart").setOption(mergeOption(dashboardChartBase(), {
+    setChartOption("taskTrendChart", mergeOption(dashboardChartBase(), {
       color: ["#25d9ff", "#4ade80", "#ff5c7a"],
       legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 8, textStyle: { color: chartTextColor(), fontSize: 11 } },
-      grid: chartGrid({ top: 28, left: 16, right: 10, bottom: 8 }),
+      grid: chartGrid({ top: 28, left: 16, right: 34, bottom: 8 }),
       xAxis: { type: "category", boundaryGap: false, data: trend.labels, axisLabel: { color: chartTextColor() }, axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,198,255,.18)" } } },
       yAxis: { type: "value", splitLine: { lineStyle: { color: "rgba(148,198,255,.12)" } }, axisLabel: { color: chartTextColor() } },
       series: [
@@ -735,7 +773,7 @@
 
     var metricBox = q("overviewMetrics");
     metricBox.innerHTML = "";
-    DATA.dashboard.qualityMetrics.forEach(function (m) {
+    ["completion", "issues", "aiAlerts", "duration"].map(metricByKey).forEach(function (m) {
       metricBox.appendChild(el("button", {
         class: "metric-card card dashboard-metric-card" + (state.dashboardFocus === m.key ? " active" : ""),
         type: "button",
@@ -774,11 +812,11 @@
         '<circle class="anomaly-hit" cx="' + item.x + '" cy="' + item.y + '" r="24"></circle>' +
         '<circle cx="' + item.x + '" cy="' + item.y + '" r="10"></circle>' +
         '<text x="' + (item.x + 16) + '" y="' + (item.y - 12) + '">' + item.priority + '</text>';
-      group.addEventListener("click", function () { focusDashboardArea(item.areaKey); });
+      group.addEventListener("click", function () { selectMapArea(item.areaKey); });
       group.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          focusDashboardArea(item.areaKey);
+          selectMapArea(item.areaKey);
         }
       });
       anomalyLayer.appendChild(group);
@@ -804,7 +842,7 @@
     q("selectedAreaPrimary").dataset.area = primaryFlow().areaKey;
 
     q("dashboardAlerts").innerHTML = "";
-    DATA.dashboard.aiAlerts.forEach(function (alert) {
+    DATA.dashboard.aiAlerts.slice(0, 1).forEach(function (alert) {
       q("dashboardAlerts").appendChild(el("button", {
         class: "ai-alert-item card",
         type: "button",
@@ -821,7 +859,7 @@
     var taskItems = DATA.dashboard.taskQualityList.filter(dashboardTaskMatchesFocus);
     q("taskQualityTitle").textContent = activeMetric ? "告警流水 · " + activeMetric.label : "告警流水";
     q("taskQualityList").innerHTML = "";
-    taskItems.forEach(function (item) {
+    taskItems.slice(0, 2).forEach(function (item) {
       q("taskQualityList").appendChild(el("button", {
         class: "quality-task-item",
         type: "button",
@@ -861,6 +899,29 @@
         el("span", { class: "badge info", text: "最近归档" }),
         el("strong", { text: caseItem.title }),
         el("small", { text: "点击查看知识库沉淀关系" }),
+      ]));
+    });
+    q("stationAnomalyList").innerHTML = "";
+    DATA.dashboard.routeAnomalies.forEach(function (item) {
+      q("stationAnomalyList").appendChild(el("button", {
+        class: "quality-task-item",
+        type: "button",
+        onClick: function () { selectStationArea(item.areaKey); },
+      }, [
+        el("span", { class: "badge " + priorityTone(item.priority), text: item.priority }),
+        el("strong", { text: item.label }),
+        el("small", { text: assertKey(DATA.areas, item.areaKey, "区域").short + " · " + item.action }),
+      ]));
+    });
+    q("stationAreaStats").innerHTML = "";
+    [
+      { label: "覆盖区域", value: String(DATA.overview.areaOrder.length) },
+      { label: "空间疑点", value: String(DATA.dashboard.routeAnomalies.length) },
+      { label: "主线入口", value: "计量区" },
+    ].forEach(function (item) {
+      q("stationAreaStats").appendChild(el("div", { class: "area-stat card" }, [
+        el("small", { text: item.label }),
+        el("strong", { text: item.value }),
       ]));
     });
     window.requestAnimationFrame(renderDashboardCharts);
@@ -1631,6 +1692,7 @@
 
   function handleAction(action) {
     if (action === "go-form") {
+      state.allowFormEntry = true;
       if (state.scene === "overview") go("form", { area: primaryFlow().areaKey, stepKey: "form" });
       else go("form", { stepKey: "form" });
     }
@@ -1644,6 +1706,8 @@
       go("recheck", { stepKey: "recheck" });
     }
     else if (action === "go-area-primary") areaPrimaryAction();
+    else if (action === "go-primary-form") openRiskFlow(primaryFlow().areaKey);
+    else if (action === "go-station") go("station", { stepKey: "task" });
     else if (action === "back-main") {
       enterArea(primaryFlow().areaKey, false);
       go("form", { stepKey: "form" });
@@ -1682,11 +1746,11 @@
       node.addEventListener("click", function () { handleAction(node.dataset.action); });
     });
     qa(".map-area").forEach(function (node) {
-      node.addEventListener("click", function () { selectOverviewArea(node.dataset.area); });
+      node.addEventListener("click", function () { selectMapArea(node.dataset.area); });
       node.addEventListener("keydown", function (event) {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          selectOverviewArea(node.dataset.area);
+          selectMapArea(node.dataset.area);
         }
       });
     });

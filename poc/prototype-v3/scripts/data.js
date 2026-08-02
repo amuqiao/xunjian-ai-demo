@@ -9,6 +9,7 @@
     "clock": "2026-07-21 04:43:22",
     "sceneOrder": [
       "overview",
+      "station",
       "form",
       "recheck",
       "report",
@@ -17,6 +18,7 @@
     ],
     "sceneLabels": {
       "overview": "质量大屏",
+      "station": "站场态势",
       "form": "表单质检",
       "recheck": "复检确认",
       "report": "报告归档",

@@ -324,6 +324,10 @@ button {
   margin-top: 4px;
 }
 
+#statusLine {
+  display: none;
+}
+
 #clock {
   color: var(--cyan);
   font-weight: 700;
@@ -2747,6 +2751,194 @@ button {
   display: none;
 }
 
+.compact-dashboard {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 320px;
+  grid-template-rows: 74px minmax(0, 1fr) 132px;
+  grid-template-areas:
+    "kpis kpis kpis"
+    "trend trend side"
+    "tasks alerts side";
+}
+
+.compact-dashboard .dashboard-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.compact-dashboard .task-trend-panel {
+  grid-area: trend;
+}
+
+.compact-dashboard .anomaly-panel {
+  grid-area: anomaly;
+}
+
+.compact-dashboard .result-panel {
+  grid-area: result;
+}
+
+.compact-dashboard .anomaly-panel,
+.compact-dashboard .result-panel,
+.compact-dashboard .ai-model-panel {
+  display: none;
+}
+
+.compact-dashboard .compact-side {
+  display: grid;
+  grid-area: side;
+  grid-template-rows: minmax(0, 1fr) 132px;
+  gap: 8px;
+  min-height: 0;
+}
+
+.compact-dashboard .tasks-panel {
+  grid-area: tasks;
+}
+
+.compact-dashboard .ai-alert-panel {
+  grid-area: alerts;
+}
+
+.compact-dashboard .priority-alert-panel {
+  min-height: 0;
+}
+
+.station-mini-card {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(96px, 0.65fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: calc(100% - 26px);
+  min-height: 82px;
+  padding: 8px;
+  border: 1px solid rgba(71, 184, 255, 0.24);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  background:
+    radial-gradient(circle at 42% 40%, rgba(37, 217, 255, 0.14), transparent 42%),
+    rgba(6, 17, 31, 0.62);
+}
+
+.station-mini-card:hover {
+  border-color: rgba(37, 217, 255, 0.72);
+  box-shadow: 0 0 20px rgba(37, 217, 255, 0.13);
+}
+
+.station-mini-card strong,
+.station-mini-card small {
+  display: block;
+}
+
+.station-mini-card small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.station-mini-map {
+  width: 100%;
+  height: 100%;
+  min-height: 70px;
+}
+
+.mini-route {
+  stroke-width: 3;
+  stroke-dasharray: 7 6;
+}
+
+.mini-area {
+  fill: rgba(47, 128, 255, 0.12);
+  stroke-width: 2;
+}
+
+.mini-area.warn {
+  stroke: rgba(251, 191, 36, 0.86);
+  fill: rgba(251, 191, 36, 0.2);
+}
+
+.mini-area.info {
+  stroke: rgba(37, 217, 255, 0.56);
+}
+
+.mini-area.ok {
+  stroke: rgba(74, 222, 128, 0.58);
+}
+
+.mini-alarm {
+  fill: var(--amber);
+  stroke: rgba(255, 255, 255, 0.86);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.58));
+}
+
+.mini-alarm.p1 {
+  fill: var(--red);
+  filter: drop-shadow(0 0 12px rgba(255, 92, 122, 0.58));
+}
+
+.mini-label {
+  fill: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgba(4, 13, 26, 0.88);
+  stroke-width: 4px;
+}
+
+body[data-scene="overview"] .app-shell {
+  grid-template-rows: auto minmax(0, 1fr) 36px;
+}
+
+body[data-scene="overview"] .flow-rail {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+}
+
+body[data-scene="overview"] .flow-hint {
+  font-size: 11px;
+}
+
+body[data-scene="overview"] .flow-step {
+  min-height: 24px;
+  padding: 3px 8px 3px 28px;
+}
+
+body[data-scene="overview"] .flow-step strong,
+body[data-scene="overview"] .flow-step small {
+  font-size: 11px;
+}
+
+.compact-dashboard .quality-task-list,
+.compact-dashboard .ai-alert-list {
+  overflow: hidden;
+}
+
+.station-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 12px;
+  height: calc(100% - 68px);
+  min-height: 0;
+}
+
+.station-map-panel,
+.station-side {
+  min-height: 0;
+}
+
+.station-map-wrap {
+  min-height: 0;
+}
+
+.station-side {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
 @keyframes dash {
   to { stroke-dashoffset: -36; }
 }
@@ -2821,6 +3013,19 @@ button {
     grid-template-columns: 230px minmax(0, 1fr) 286px;
     grid-template-rows: 68px minmax(0, 1fr) 132px;
     gap: 7px;
+  }
+
+  .compact-dashboard {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 286px;
+    grid-template-rows: 66px minmax(0, 1fr) 118px;
+    grid-template-areas:
+      "kpis kpis kpis"
+      "trend trend side"
+      "tasks alerts side";
+  }
+
+  .compact-dashboard .dashboard-kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .monitor-dashboard .dashboard-left {
@@ -2995,6 +3200,20 @@ button {
       "tasks"
       "alerts";
     grid-template-rows: auto;
+  }
+
+  .compact-dashboard {
+    grid-template-areas:
+      "kpis"
+      "trend"
+      "side"
+      "tasks"
+      "alerts";
+    grid-template-rows: auto;
+  }
+
+  .compact-dashboard .dashboard-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboard-kpis {
