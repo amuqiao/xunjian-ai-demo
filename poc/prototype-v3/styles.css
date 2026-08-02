@@ -2752,16 +2752,15 @@ button {
 }
 
 .compact-dashboard {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 320px;
-  grid-template-rows: 74px minmax(0, 1fr) 132px;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr) 360px;
+  grid-template-rows: 74px minmax(0, 1fr);
   grid-template-areas:
     "kpis kpis kpis"
-    "trend trend side"
-    "tasks alerts side";
+    "trend anomaly side";
 }
 
 .compact-dashboard .dashboard-kpis {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .compact-dashboard .task-trend-panel {
@@ -2776,7 +2775,6 @@ button {
   grid-area: result;
 }
 
-.compact-dashboard .anomaly-panel,
 .compact-dashboard .result-panel,
 .compact-dashboard .ai-model-panel {
   display: none;
@@ -2785,9 +2783,17 @@ button {
 .compact-dashboard .compact-side {
   display: grid;
   grid-area: side;
-  grid-template-rows: minmax(0, 1fr) 132px;
-  gap: 8px;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  gap: 10px;
   min-height: 0;
+}
+
+.compact-dashboard .area-detail-panel {
+  gap: 6px;
+}
+
+.compact-dashboard .area-detail-head small {
+  -webkit-line-clamp: 1;
 }
 
 .compact-dashboard .tasks-panel {
@@ -2916,6 +2922,115 @@ body[data-scene="overview"] .flow-step small {
   overflow: hidden;
 }
 
+.compact-dashboard .dashboard-metric-card {
+  padding: 7px 9px;
+}
+
+.compact-dashboard .dashboard-metric-card strong {
+  font-size: 21px;
+}
+
+.compact-dashboard .dashboard-metric-card span {
+  font-size: 10px;
+}
+
+.compact-dashboard .tasks-panel,
+.compact-dashboard .ai-alert-panel {
+  padding: 8px;
+}
+
+.compact-dashboard .tasks-panel .quality-task-list {
+  gap: 5px;
+}
+
+.compact-dashboard .quality-task-item,
+.compact-dashboard .ai-alert-item {
+  min-height: 0;
+  padding: 5px 7px;
+}
+
+.compact-dashboard .quality-task-item strong,
+.compact-dashboard .ai-alert-item strong {
+  font-size: 12px;
+  line-height: 1.25;
+  -webkit-line-clamp: 1;
+}
+
+.compact-dashboard .quality-task-item small,
+.compact-dashboard .ai-alert-item small {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.unified-insight-panel {
+  overflow: hidden;
+}
+
+.unified-insight-panel .area-detail-stats {
+  gap: 6px;
+}
+
+.unified-insight-panel .area-stat {
+  padding: 7px;
+}
+
+.unified-insight-panel .area-stat small {
+  font-size: 10px;
+}
+
+.unified-insight-panel .area-stat strong {
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+.insight-streams {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.unified-insight-panel[data-detail-mode="ai-heavy"] .insight-streams {
+  grid-template-rows: 104px minmax(0, 1fr);
+}
+
+.unified-insight-panel[data-detail-mode="alert-heavy"] .insight-streams {
+  grid-template-rows: minmax(0, 1fr) 92px;
+}
+
+.insight-stream {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  padding: 8px;
+  border: 1px solid rgba(71, 184, 255, 0.2);
+  background: rgba(6, 17, 31, 0.42);
+}
+
+.compact-title {
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.unified-insight-panel .quality-task-list,
+.unified-insight-panel .ai-alert-list {
+  gap: 5px;
+  overflow: hidden;
+}
+
+.unified-insight-panel .quality-task-item,
+.unified-insight-panel .ai-alert-item {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.unified-insight-panel .quality-task-item small,
+.unified-insight-panel .ai-alert-item small {
+  grid-column: 1 / -1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .station-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -2984,9 +3099,19 @@ body[data-scene="overview"] .flow-step small {
     font-size: 18px;
   }
 
-  .brand small,
   #statusLine {
     display: none;
+  }
+
+  .brand small {
+    display: block;
+    max-width: 300px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .top-status {
@@ -3016,16 +3141,33 @@ body[data-scene="overview"] .flow-step small {
   }
 
   .compact-dashboard {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 286px;
-    grid-template-rows: 66px minmax(0, 1fr) 118px;
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr) 300px;
+    grid-template-rows: 66px minmax(0, 1fr);
     grid-template-areas:
       "kpis kpis kpis"
-      "trend trend side"
-      "tasks alerts side";
+      "trend anomaly side";
   }
 
   .compact-dashboard .dashboard-kpis {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .compact-dashboard .compact-side {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .station-mini-card {
+    grid-template-columns: minmax(0, 1fr) 84px;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .station-mini-map {
+    min-height: 54px;
+  }
+
+  .station-mini-card small {
+    font-size: 10px;
   }
 
   .monitor-dashboard .dashboard-left {
@@ -3101,6 +3243,18 @@ body[data-scene="overview"] .flow-step small {
   .monitor-dashboard .dashboard-side {
     grid-template-rows: 112px minmax(0, 1fr) minmax(0, 1fr);
     gap: 7px;
+  }
+
+  .monitor-dashboard.compact-dashboard .compact-side {
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .monitor-dashboard.compact-dashboard .priority-alert-panel .area-detail-stats {
+    display: none;
+  }
+
+  .monitor-dashboard.compact-dashboard .priority-alert-panel .area-detail-actions .action {
+    min-height: 32px;
   }
 
   .dashboard-side .area-detail-panel,
@@ -3206,9 +3360,8 @@ body[data-scene="overview"] .flow-step small {
     grid-template-areas:
       "kpis"
       "trend"
-      "side"
-      "tasks"
-      "alerts";
+      "anomaly"
+      "side";
     grid-template-rows: auto;
   }
 

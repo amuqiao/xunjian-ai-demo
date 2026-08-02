@@ -13,7 +13,7 @@
           <div class="brand-mark" aria-hidden="true"></div>
           <div>
             <h1>巡检质量智能分析助手</h1>
-            <small id="brandSub">长郴-湘潭站 · 巡检质量智能分析 · 任务批次 XJ-20260721-A</small>
+            <small id="brandSub">长郴-湘潭站 · 巡检质量智能分析 · 统计周期 2026-07-17~2026-07-21 · 任务批次 XJ-20260721-A</small>
           </div>
         </div>
 
@@ -44,12 +44,12 @@
             <section class="dashboard-kpis" id="overviewMetrics" aria-label="巡检质量指标"></section>
 
             <section class="panel chart-panel task-trend-panel">
-              <div class="panel-title"><span>任务趋势</span><span class="mini-hint">完成 / 问题</span></div>
+              <div class="panel-title"><span>质量态势趋势</span><span class="mini-hint">完成率 / 问题数</span></div>
               <div class="chart-box" id="taskTrendChart"></div>
             </section>
 
             <section class="panel chart-panel anomaly-panel">
-              <div class="panel-title"><span>异常类型</span><span class="mini-hint">规则指标</span></div>
+              <div class="panel-title"><span>规则异常分布</span><span class="mini-hint">时长 / 间隔 / 时段</span></div>
               <div class="chart-box" id="anomalyTypeChart"></div>
             </section>
 
@@ -58,11 +58,10 @@
               <div class="chart-box" id="resultPie"></div>
             </section>
 
-            <aside class="dashboard-side compact-side">
-              <section class="panel area-detail-panel priority-alert-panel">
+            <aside class="panel area-detail-panel priority-alert-panel unified-insight-panel compact-side" id="dashboardInsightPanel">
                 <div class="panel-title">
-                  <span id="selectedAreaPanelTitle">当前告警</span>
-                  <span class="mini-hint">表单入口</span>
+                  <span id="selectedAreaPanelTitle">指标详情</span>
+                  <span class="mini-hint">随状态卡切换</span>
                 </div>
                 <div class="area-detail-head">
                   <span class="badge danger" id="selectedAreaBadge">高优先级复检</span>
@@ -71,47 +70,27 @@
                 </div>
                 <div class="area-detail-stats" id="selectedAreaStats"></div>
                 <div class="tag-row" id="selectedAreaTags"></div>
-                <div class="area-detail-actions">
-                  <button class="action primary wide" type="button" id="selectedAreaPrimary" data-action="go-area-primary">进入表单质检</button>
+
+                <div class="insight-streams">
+                  <section class="insight-stream">
+                    <div class="panel-title compact-title"><span id="taskQualityTitle">告警摘要</span><span class="mini-hint">最新关联</span></div>
+                    <div class="quality-task-list" id="taskQualityList"></div>
+                  </section>
+
+                  <section class="insight-stream">
+                    <div class="panel-title compact-title"><span>AI 辅助</span><span class="mini-hint">模型提醒</span></div>
+                    <div class="ai-alert-list" id="dashboardAlerts"></div>
+                  </section>
                 </div>
-              </section>
 
-              <section class="panel station-card-panel">
-                <div class="panel-title"><span>站场态势</span><span class="mini-hint">摘要入口</span></div>
-                <button class="station-mini-card" type="button" data-action="go-station">
-                  <svg class="station-mini-map" viewBox="0 0 360 150" aria-hidden="true">
-                    <path class="route-line mini-route" d="M34 116 C88 70, 132 44, 182 62 C232 80, 254 116, 326 30"></path>
-                    <polygon class="mini-area warn" points="130,38 198,34 224,84 164,112 116,78"></polygon>
-                    <polygon class="mini-area info" points="246,86 318,74 334,120 270,136"></polygon>
-                    <polygon class="mini-area ok" points="42,92 96,64 118,104 68,134"></polygon>
-                    <text class="mini-label" x="150" y="78">计量区</text>
-                    <text class="mini-label" x="268" y="104">PLC</text>
-                    <circle class="mini-alarm p1" cx="174" cy="70" r="7"></circle>
-                    <circle class="mini-alarm p2" cx="296" cy="103" r="6"></circle>
-                    <circle class="mini-alarm p2" cx="72" cy="110" r="6"></circle>
-                  </svg>
-                  <span><strong>3 个空间疑点</strong><small>查看完整站场图</small></span>
-                </button>
-              </section>
-
-              <section class="panel chart-panel ai-model-panel">
-                <div class="panel-title"><span>模型预警</span><span class="mini-hint">时序 / 视觉</span></div>
-                <div class="chart-box" id="aiModelTrendChart"></div>
-              </section>
+                <div class="area-detail-actions">
+                  <button class="action primary wide" type="button" id="selectedAreaPrimary" data-action="go-area-primary">查看风险详情</button>
+                </div>
             </aside>
-
-            <section class="panel dashboard-list-panel tasks-panel">
-              <div class="panel-title"><span id="taskQualityTitle">Top 告警</span><span class="mini-hint">定位摘要</span></div>
-              <div class="quality-task-list" id="taskQualityList"></div>
-            </section>
-
-            <section class="panel ai-alert-panel">
-              <div class="panel-title"><span>AI 提醒</span><span class="mini-hint">最高优先级</span></div>
-              <div class="ai-alert-list" id="dashboardAlerts"></div>
-            </section>
 
             <div class="sr-only" id="completionGauge"></div>
             <div class="sr-only" id="workerScoreChart"></div>
+            <div class="sr-only" id="aiModelTrendChart"></div>
             <div class="sr-only" id="workerRanking"></div>
             <div class="sr-only" id="recentArchiveList"></div>
           </div>

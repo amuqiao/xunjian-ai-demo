@@ -1,5 +1,14 @@
 [
   {
+    "key": "risk",
+    "label": "当前风险",
+    "value": "P1",
+    "delta": "1项",
+    "tone": "red",
+    "sourceType": "演示推演",
+    "desc": "当前最高优先级风险用于进入人工复核"
+  },
+  {
     "key": "completion",
     "label": "巡检完成率",
     "value": "96.8%",
@@ -39,16 +48,16 @@
     "key": "offWindow",
     "label": "时段异常",
     "value": "2",
-    "delta": "夜间偏移",
+    "delta": "偏移30min",
     "tone": "purple",
     "sourceType": "演示推演",
     "desc": "工业电视识别结果为演示数据"
   },
   {
     "key": "aiAlerts",
-    "label": "AI 待复核",
-    "value": "4",
-    "delta": "时序/视觉",
+    "label": "AI 提醒",
+    "value": "3",
+    "delta": "时序/轨迹",
     "tone": "blue",
     "sourceType": "演示推演",
     "desc": "模型告警用于辅助人工复核"

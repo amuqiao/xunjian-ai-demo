@@ -1,0 +1,121 @@
+[
+  {
+    "key": "risk",
+    "status": "当前风险",
+    "title": "计量区高优先级疑点",
+    "desc": "最高风险来自计量区,需人工复核。",
+    "stats": [
+      { "label": "级别", "value": "P1" },
+      { "label": "区域", "value": "计量区" },
+      { "label": "主线项", "value": "第73项" }
+    ],
+    "tags": ["当前风险", "计量区", "复核入口"],
+    "targetArea": "metering",
+    "targetScene": "form",
+    "taskIds": ["XJ-20260721-A-073"],
+    "alertIds": [],
+    "action": "查看风险详情"
+  },
+  {
+    "key": "completion",
+    "status": "巡检完成率",
+    "title": "巡检完成率 96.8%",
+    "desc": "长郴-湘潭站在统计周期内完成率保持高位,问题数同步纳入质量态势趋势。",
+    "stats": [
+      { "label": "机构", "value": "湘潭站" },
+      { "label": "周期", "value": "5天" },
+      { "label": "完成率", "value": "96.8%" }
+    ],
+    "tags": ["基础信息", "完成率", "趋势看板"],
+    "targetArea": "metering",
+    "targetScene": "station",
+    "taskIds": [],
+    "alertIds": [],
+    "action": "查看站场态势"
+  },
+  {
+    "key": "issues",
+    "status": "发现问题数",
+    "title": "发现问题数 18",
+    "desc": "当前问题由表单质检、规则异常、时序和视觉辅助证据共同汇总。",
+    "stats": [
+      { "label": "问题数", "value": "18" },
+      { "label": "P1", "value": "3" },
+      { "label": "最新", "value": "04:43" }
+    ],
+    "tags": ["问题总量", "告警流水", "人工复核"],
+    "targetArea": "metering",
+    "targetScene": "form",
+    "taskIds": ["XJ-20260721-A-073", "XJ-20260721-A-041"],
+    "alertIds": [],
+    "action": "查看关联详情"
+  },
+  {
+    "key": "duration",
+    "status": "时长异常",
+    "title": "巡检时长异常 5 次",
+    "desc": "按低于 10 分钟的规则口径识别异常,用于发现过快完成或疑似漏检。",
+    "stats": [
+      { "label": "异常数", "value": "5" },
+      { "label": "阈值", "value": "<10min" },
+      { "label": "口径", "value": "待确认" }
+    ],
+    "tags": ["规则质检", "<10min", "待确认"],
+    "targetArea": "metering",
+    "targetScene": "station",
+    "taskIds": [],
+    "alertIds": [],
+    "action": "查看规则详情"
+  },
+  {
+    "key": "interval",
+    "status": "间隔异常",
+    "title": "巡检间隔异常 7 次",
+    "desc": "按区域内和区域间低于 10 秒的规则口径识别快检风险。",
+    "stats": [
+      { "label": "异常数", "value": "7" },
+      { "label": "阈值", "value": "<10s" },
+      { "label": "关联", "value": "轨迹" }
+    ],
+    "tags": ["规则质检", "<10s", "轨迹分析"],
+    "targetArea": "valve",
+    "targetScene": "station",
+    "taskIds": ["XJ-20260721-A-041"],
+    "alertIds": ["valve-route-interval"],
+    "action": "查看轨迹明细"
+  },
+  {
+    "key": "offWindow",
+    "status": "时段异常",
+    "title": "巡检时段异常 2 次",
+    "desc": "按工业电视时段偏差 30 分钟和无人员画面识别异常。",
+    "stats": [
+      { "label": "异常数", "value": "2" },
+      { "label": "偏差", "value": "30min" },
+      { "label": "来源", "value": "工业电视" }
+    ],
+    "tags": ["规则质检", "偏移30min", "工业电视"],
+    "targetArea": "plc",
+    "targetScene": "form",
+    "taskIds": ["XJ-20260721-A-088"],
+    "alertIds": [],
+    "action": "查看视频复核"
+  },
+  {
+    "key": "aiAlerts",
+    "status": "AI 提醒",
+    "title": "AI 智能分析提醒 3 条",
+    "desc": "AI 提醒只辅助人工巡检,当前重点包含电池电压下降和污油罐液位增加。",
+    "stats": [
+      { "label": "提醒数", "value": "3" },
+      { "label": "最高", "value": "P1" },
+      { "label": "模型", "value": "时序/轨迹" }
+    ],
+    "tags": ["AI辅助", "时序模型", "人工确认"],
+    "targetArea": "power",
+    "targetScene": "form",
+    "taskIds": [],
+    "alertIds": ["battery-voltage-drop", "oil-tank-level-rise", "valve-route-interval"],
+    "action": "查看 AI 关联项"
+  }
+]

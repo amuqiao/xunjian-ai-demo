@@ -29,7 +29,7 @@
       recheckReady: false,
       evidenceDetail: "",
       overviewScope: "all",
-      dashboardFocus: "issues",
+      dashboardFocus: "risk",
       allowFormEntry: false,
       stepKey: "task",
       maxStepIndex: 0,
@@ -295,7 +295,12 @@
   }
 
   function areaPrimaryAction() {
-    openRiskFlow(q("selectedAreaPrimary").dataset.area || state.currentArea);
+    var button = q("selectedAreaPrimary");
+    var area = button.dataset.area || state.currentArea;
+    var scene = button.dataset.scene || "form";
+    if (scene === "station") selectStationArea(area);
+    else if (scene === "form") openRiskFlow(area);
+    else go(scene, { area: area, stepKey: defaultStepForScene(scene) });
   }
 
   function switchFormArea(areaKey) {
@@ -456,8 +461,8 @@
 
   function renderShell() {
     document.body.dataset.scene = state.scene;
-    q("brandSub").textContent = DATA.shell.siteName + " · " + DATA.shell.subtitle + " · 任务批次 " + DATA.shell.batch;
-    q("clock").textContent = DATA.shell.clock + " · 任务批次 " + DATA.shell.batch;
+    q("brandSub").textContent = DATA.shell.siteName + " · " + DATA.shell.subtitle + " · 统计周期 " + DATA.shell.period + " · 任务批次 " + DATA.shell.batch;
+    q("clock").textContent = DATA.shell.clock + " · " + DATA.shell.siteName + " · " + DATA.shell.period;
 
     var status;
     if (state.scene === "overview") {
@@ -562,18 +567,50 @@
     render();
   }
 
+  function dashboardTaskMatchesMetric(metricKey, item) {
+    return metricInsightByKey(metricKey).taskIds.indexOf(item.id) >= 0;
+  }
+
   function dashboardTaskMatchesFocus(item) {
-    if (state.dashboardFocus === "duration") return item.issue.indexOf("时间") >= 0 || item.issue.indexOf("窗口") >= 0;
-    if (state.dashboardFocus === "interval") return item.issue.indexOf("间隔") >= 0 || item.issue.indexOf("快检") >= 0;
-    if (state.dashboardFocus === "offWindow") return item.issue.indexOf("视频") >= 0 || item.issue.indexOf("人员") >= 0;
-    if (state.dashboardFocus === "aiAlerts") return item.areaKey === primaryFlow().areaKey || item.issue.indexOf("视频") >= 0;
-    return true;
+    return dashboardTaskMatchesMetric(state.dashboardFocus, item);
+  }
+
+  function dashboardAiMatchesMetric(metricKey, alert) {
+    return metricInsightByKey(metricKey).alertIds.indexOf(alert.id) >= 0;
   }
 
   function metricByKey(key) {
     var metric = DATA.dashboard.qualityMetrics.filter(function (item) { return item.key === key; })[0];
     if (!metric) throw new Error("[v3] 首页指标缺失: " + key);
     return metric;
+  }
+
+  function metricBadgeTone(metric) {
+    if (metric.tone === "red") return "danger";
+    if (metric.tone === "amber") return "warn";
+    return "info";
+  }
+
+  function metricInsightByKey(key) {
+    var insight = DATA.dashboard.metricInsights.filter(function (item) { return item.key === key; })[0];
+    if (!insight) throw new Error("[v3] 首页指标缺少详情合同: " + key);
+    return insight;
+  }
+
+  function dashboardMetricSummary(metricKey) {
+    var metric = metricByKey(metricKey);
+    var insight = metricInsightByKey(metricKey);
+    return {
+      badgeTone: metricBadgeTone(metric),
+      overviewStatus: insight.status,
+      overviewTitle: insight.title,
+      overviewDesc: insight.desc,
+      overviewStats: insight.stats,
+      tags: insight.tags,
+      overviewAction: insight.action,
+      targetArea: insight.targetArea,
+      targetScene: insight.targetScene,
+    };
   }
 
   function metricNumber(key) {
@@ -617,6 +654,10 @@
     var completion = metricNumber("completion");
     var trend = chartsData.taskTrend;
     var aiTrend = chartsData.aiModelTrend;
+    var completionTrend = trend.completed.map(function (value, index) {
+      if (!trend.planned[index]) throw new Error("[v3] 质量趋势计划数不能为 0: " + trend.labels[index]);
+      return Number((value / trend.planned[index] * 100).toFixed(1));
+    });
 
     setChartOption("completionGauge", mergeOption(dashboardChartBase(), {
       color: ["#25d9ff", "rgba(142,169,200,.16)"],
@@ -726,15 +767,23 @@
     }));
 
     setChartOption("taskTrendChart", mergeOption(dashboardChartBase(), {
-      color: ["#25d9ff", "#4ade80", "#ff5c7a"],
+      color: ["#25d9ff", "#ff5c7a"],
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(6, 17, 31, 0.94)",
+        borderColor: "rgba(37, 217, 255, 0.42)",
+        textStyle: { color: "#eef7ff" },
+      },
       legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 8, textStyle: { color: chartTextColor(), fontSize: 11 } },
       grid: chartGrid({ top: 28, left: 16, right: 34, bottom: 8 }),
-      xAxis: { type: "category", boundaryGap: false, data: trend.labels, axisLabel: { color: chartTextColor() }, axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,198,255,.18)" } } },
-      yAxis: { type: "value", splitLine: { lineStyle: { color: "rgba(148,198,255,.12)" } }, axisLabel: { color: chartTextColor() } },
+      xAxis: { type: "category", data: trend.labels, axisLabel: { color: chartTextColor() }, axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,198,255,.18)" } } },
+      yAxis: [
+        { type: "value", min: 88, max: 100, splitLine: { lineStyle: { color: "rgba(148,198,255,.12)" } }, axisLabel: { color: chartTextColor(), formatter: "{value}%" } },
+        { type: "value", splitLine: { show: false }, axisLabel: { color: chartTextColor() } },
+      ],
       series: [
-        { name: "计划", type: "line", smooth: true, data: trend.planned, symbolSize: 5 },
-        { name: "完成", type: "line", smooth: true, data: trend.completed, symbolSize: 5 },
-        { name: "问题", type: "bar", barWidth: 10, data: trend.issues, itemStyle: { borderRadius: [5, 5, 0, 0] } },
+        { name: "完成率", type: "line", smooth: true, data: completionTrend, symbolSize: 6, areaStyle: { opacity: 0.12 } },
+        { name: "问题数", type: "bar", yAxisIndex: 1, barWidth: 12, data: trend.issues, itemStyle: { borderRadius: [5, 5, 0, 0] } },
       ],
     }));
     window.requestAnimationFrame(resizeCharts);
@@ -744,21 +793,9 @@
     var task = DATA.overview.task;
     var currentArea = assertKey(DATA.areas, state.currentArea, "区域");
     var primaryArea = assertKey(DATA.areas, primaryFlow().areaKey, "主线区域");
+    var activeMetric = metricByKey(state.dashboardFocus);
     var showAllAlerts = state.overviewScope !== "area";
-    var summaryView = showAllAlerts ? {
-      badgeTone: primaryArea.badgeTone,
-      overviewStatus: "全站告警",
-      overviewTitle: "计量区高优先级疑点",
-      overviewDesc: "本轮覆盖 6 个重点区域,当前仅计量区存在待质检疑点。",
-      overviewStats: [
-        { label: "P1疑点", value: "1" },
-        { label: "覆盖区域", value: String(DATA.overview.areaOrder.length) },
-        { label: "主线项", value: "第73项" },
-      ],
-      tags: ["计量区", "表单冲突", "时序近阈值", "待复检"],
-      overviewAction: "进入计量区表单质检",
-      targetArea: primaryFlow().areaKey,
-    } : dashboardAreaSummary(state.currentArea);
+    var summaryView = showAllAlerts ? dashboardMetricSummary(state.dashboardFocus) : dashboardAreaSummary(state.currentArea);
 
     q("taskNote").textContent = task.note;
 
@@ -773,10 +810,11 @@
 
     var metricBox = q("overviewMetrics");
     metricBox.innerHTML = "";
-    ["completion", "issues", "aiAlerts", "duration"].map(metricByKey).forEach(function (m) {
+    DATA.dashboard.qualityMetrics.forEach(function (m) {
       metricBox.appendChild(el("button", {
         class: "metric-card card dashboard-metric-card" + (state.dashboardFocus === m.key ? " active" : ""),
         type: "button",
+        "aria-pressed": state.dashboardFocus === m.key ? "true" : "false",
         onClick: function () { setDashboardFocus(m.key); },
       }, [
         el("small", { text: m.label }),
@@ -822,7 +860,7 @@
       anomalyLayer.appendChild(group);
     });
 
-    q("selectedAreaPanelTitle").textContent = showAllAlerts ? "全站告警" : "当前区域摘要";
+    q("selectedAreaPanelTitle").textContent = showAllAlerts ? "指标详情 · " + activeMetric.label : "当前区域摘要";
     q("selectedAreaBadge").className = "badge " + summaryView.badgeTone;
     q("selectedAreaBadge").textContent = summaryView.overviewStatus;
     q("selectedAreaTitle").textContent = summaryView.overviewTitle;
@@ -838,15 +876,17 @@
     summaryView.tags.forEach(function (tag, i) {
       q("selectedAreaTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
     });
-    q("selectedAreaPrimary").textContent = "进入计量区表单质检";
-    q("selectedAreaPrimary").dataset.area = primaryFlow().areaKey;
+    q("selectedAreaPrimary").textContent = summaryView.overviewAction || "查看风险详情";
+    q("selectedAreaPrimary").dataset.area = summaryView.targetArea;
+    q("selectedAreaPrimary").dataset.scene = summaryView.targetScene || "form";
 
     q("dashboardAlerts").innerHTML = "";
-    DATA.dashboard.aiAlerts.slice(0, 1).forEach(function (alert) {
+    var aiItems = DATA.dashboard.aiAlerts.filter(function (alert) { return dashboardAiMatchesMetric(state.dashboardFocus, alert); });
+    aiItems.slice(0, 3).forEach(function (alert) {
       q("dashboardAlerts").appendChild(el("button", {
         class: "ai-alert-item card",
         type: "button",
-        onClick: function () { focusDashboardArea(alert.areaKey, "aiAlerts"); },
+        onClick: function () { openRiskFlow(alert.areaKey); },
       }, [
         el("span", { class: "badge " + priorityTone(alert.priority), text: alert.priority + " · " + alert.model }),
         el("strong", { text: alert.title }),
@@ -854,16 +894,22 @@
         el("em", { class: sourceClass(alert.sourceType), text: alert.sourceType }),
       ]));
     });
+    if (!aiItems.length) {
+      q("dashboardAlerts").appendChild(el("div", { class: "ai-alert-item empty" }, [
+        el("strong", { text: "当前指标暂无 AI 提醒" }),
+        el("small", { text: "AI 仅作为辅助复核信息展示。" }),
+      ]));
+    }
 
-    var activeMetric = DATA.dashboard.qualityMetrics.filter(function (metric) { return metric.key === state.dashboardFocus; })[0];
     var taskItems = DATA.dashboard.taskQualityList.filter(dashboardTaskMatchesFocus);
-    q("taskQualityTitle").textContent = activeMetric ? "告警流水 · " + activeMetric.label : "告警流水";
+    q("dashboardInsightPanel").dataset.detailMode = !taskItems.length && aiItems.length ? "ai-heavy" : taskItems.length && !aiItems.length ? "alert-heavy" : "balanced";
+    q("taskQualityTitle").textContent = "告警摘要 · " + activeMetric.label;
     q("taskQualityList").innerHTML = "";
     taskItems.slice(0, 2).forEach(function (item) {
       q("taskQualityList").appendChild(el("button", {
         class: "quality-task-item",
         type: "button",
-        onClick: function () { focusDashboardArea(item.areaKey); },
+        onClick: function () { openRiskFlow(item.areaKey); },
       }, [
         el("span", { class: "badge " + priorityTone(item.priority), text: item.priority }),
         el("strong", { text: item.issue }),

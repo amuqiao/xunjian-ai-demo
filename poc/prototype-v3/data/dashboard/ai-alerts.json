@@ -1,23 +1,26 @@
 [
   {
-    "title": "过滤器差压趋势下降余量不足",
-    "areaKey": "metering",
+    "id": "battery-voltage-drop",
+    "title": "电池电压下降",
+    "areaKey": "power",
     "model": "时序模型",
     "priority": "P1",
-    "summary": "72h 末值 0.097MPa,距离 0.1MPa 阈值仅 0.003MPa。",
+    "summary": "近 72h 电压斜率持续下探,建议人工复核供电状态。",
     "sourceType": "演示推演 / 待确认",
     "action": "查看时序证据"
   },
   {
-    "title": "PLC 关键帧需联动核验",
-    "areaKey": "plc",
-    "model": "视觉模型",
+    "id": "oil-tank-level-rise",
+    "title": "污油罐液位增加",
+    "areaKey": "pump",
+    "model": "时序模型",
     "priority": "P2",
-    "summary": "现场关键帧用于补充点位状态,最终仍需人工确认。",
+    "summary": "液位低速上行但未越限,建议下一班交接持续观察。",
     "sourceType": "演示推演",
-    "action": "查看视觉证据"
+    "action": "查看趋势证据"
   },
   {
+    "id": "valve-route-interval",
     "title": "阀组区轨迹间隔过短",
     "areaKey": "valve",
     "model": "轨迹分析",

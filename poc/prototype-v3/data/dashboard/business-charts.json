@@ -14,8 +14,7 @@
   "anomalyTypes": [
     { "name": "时长异常", "value": 5, "sourceType": "演示推演 / 待确认" },
     { "name": "间隔异常", "value": 7, "sourceType": "演示推演 / 待确认" },
-    { "name": "时段异常", "value": 2, "sourceType": "演示推演" },
-    { "name": "AI待复核", "value": 4, "sourceType": "演示推演" }
+    { "name": "时段异常", "value": 2, "sourceType": "演示推演" }
   ],
   "aiModelTrend": {
     "labels": ["00:00", "01:00", "02:00", "03:00", "04:00"],

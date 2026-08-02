@@ -44,6 +44,7 @@ DASHBOARD_FILES = {
     "workerQualityRanking": "worker-quality-ranking.json",
     "routeAnomalies": "route-anomalies.json",
     "aiAlerts": "ai-alerts.json",
+    "metricInsights": "metric-insights.json",
     "businessCharts": "business-charts.json",
 }
 KNOWLEDGE_FILES = {
@@ -252,14 +253,20 @@ def parse_percent(value: Any, label: str) -> float:
       raise ValueError(f"{label} must be percent text") from exc
 
 
-def validate_dashboard_package(package: dict[str, Any], area_keys: set[str]) -> None:
+def validate_dashboard_package(package: dict[str, Any], area_keys: set[str], scene_order: set[str]) -> None:
     for index, item in enumerate(package["qualityMetrics"]):
       require_keys(item, ["key", "label", "value", "delta", "tone", "sourceType", "desc"], f"dashboard.qualityMetrics[{index}]")
       validate_source_type_text(item["sourceType"], f"dashboard.qualityMetrics[{index}].sourceType")
+    required_metric_keys = ["completion", "issues", "duration", "interval", "offWindow", "aiAlerts", "risk"]
+    metric_keys = {item["key"] for item in package["qualityMetrics"]}
+    missing_metric_keys = [key for key in required_metric_keys if key not in metric_keys]
+    if missing_metric_keys:
+      raise ValueError(f"dashboard.qualityMetrics missing required keys: {', '.join(missing_metric_keys)}")
     for index, item in enumerate(package["taskQualityList"]):
       require_keys(item, ["id", "time", "worker", "areaKey", "area", "issue", "priority", "status", "sourceType"], f"dashboard.taskQualityList[{index}]")
       validate_area_key(item["areaKey"], area_keys, f"dashboard.taskQualityList[{index}].areaKey")
       validate_source_type_text(item["sourceType"], f"dashboard.taskQualityList[{index}].sourceType")
+    task_ids = {item["id"] for item in package["taskQualityList"]}
     for index, item in enumerate(package["workerQualityRanking"]):
       require_keys(item, ["name", "team", "score", "tasks", "risk", "sourceType"], f"dashboard.workerQualityRanking[{index}]")
       if not isinstance(item["score"], int) or not isinstance(item["tasks"], int):
@@ -272,9 +279,42 @@ def validate_dashboard_package(package: dict[str, Any], area_keys: set[str]) -> 
         raise ValueError(f"dashboard.routeAnomalies[{index}] x/y must be integers")
       validate_source_type_text(item["sourceType"], f"dashboard.routeAnomalies[{index}].sourceType")
     for index, item in enumerate(package["aiAlerts"]):
-      require_keys(item, ["title", "areaKey", "model", "priority", "summary", "sourceType", "action"], f"dashboard.aiAlerts[{index}]")
+      require_keys(item, ["id", "title", "areaKey", "model", "priority", "summary", "sourceType", "action"], f"dashboard.aiAlerts[{index}]")
       validate_area_key(item["areaKey"], area_keys, f"dashboard.aiAlerts[{index}].areaKey")
       validate_source_type_text(item["sourceType"], f"dashboard.aiAlerts[{index}].sourceType")
+    alert_ids = {item["id"] for item in package["aiAlerts"]}
+    if len(alert_ids) != len(package["aiAlerts"]):
+      raise ValueError("dashboard.aiAlerts ids must be unique")
+    ai_metric = next(item for item in package["qualityMetrics"] if item["key"] == "aiAlerts")
+    if not str(ai_metric["value"]).isdigit() or int(ai_metric["value"]) != len(package["aiAlerts"]):
+      raise ValueError("dashboard.qualityMetrics aiAlerts value must equal dashboard.aiAlerts length")
+    insight_keys = set()
+    for index, item in enumerate(package["metricInsights"]):
+      require_keys(item, ["key", "status", "title", "desc", "stats", "tags", "targetArea", "targetScene", "taskIds", "alertIds", "action"], f"dashboard.metricInsights[{index}]")
+      if item["key"] not in metric_keys:
+        raise KeyError(f"dashboard.metricInsights[{index}] key missing quality metric: {item['key']}")
+      if item["key"] in insight_keys:
+        raise ValueError(f"dashboard.metricInsights duplicate key: {item['key']}")
+      insight_keys.add(item["key"])
+      validate_area_key(item["targetArea"], area_keys, f"dashboard.metricInsights[{index}].targetArea")
+      if item["targetScene"] not in scene_order:
+        raise KeyError(f"dashboard.metricInsights[{index}] targetScene not in demo sceneOrder: {item['targetScene']}")
+      if not isinstance(item["stats"], list) or not item["stats"]:
+        raise ValueError(f"dashboard.metricInsights[{index}].stats must be a non-empty list")
+      for stat_index, stat in enumerate(item["stats"]):
+        require_keys(stat, ["label", "value"], f"dashboard.metricInsights[{index}].stats[{stat_index}]")
+      if not isinstance(item["tags"], list) or not item["tags"]:
+        raise ValueError(f"dashboard.metricInsights[{index}].tags must be a non-empty list")
+      for task_id in item["taskIds"]:
+        if task_id not in task_ids:
+          raise KeyError(f"dashboard.metricInsights[{index}] taskIds missing task: {task_id}")
+      for alert_id in item["alertIds"]:
+        if alert_id not in alert_ids:
+          raise KeyError(f"dashboard.metricInsights[{index}] alertIds missing alert: {alert_id}")
+    if insight_keys != metric_keys:
+      missing = sorted(metric_keys - insight_keys)
+      extra = sorted(insight_keys - metric_keys)
+      raise ValueError(f"dashboard.metricInsights keys mismatch, missing={missing}, extra={extra}")
     charts = package["businessCharts"]
     require_keys(charts, ["taskTrend", "resultDistribution", "anomalyTypes", "aiModelTrend"], "dashboard.businessCharts")
     require_keys(charts["taskTrend"], ["labels", "planned", "completed", "issues", "sourceType"], "dashboard.businessCharts.taskTrend")
@@ -451,6 +491,8 @@ def validate_primary_area_contract(area_key: str, area_package: dict[str, Any], 
 
 def build_data() -> dict[str, Any]:
     demo = read_json(DATA_DIR / "demo.json")
+    require_keys(demo, ["shell", "overview", "analysis", "recheck", "report"], "demo")
+    require_keys(demo["shell"], ["siteName", "subtitle", "batch", "period", "clock", "sceneOrder", "sceneLabels", "flowSteps"], "demo.shell")
     area_index = read_json(DATA_DIR / "area-index.json")
     require_keys(area_index, ["schemaVersion", "order", "primaryFlow"], "area-index")
     if area_index["schemaVersion"] != 1:
@@ -465,7 +507,7 @@ def build_data() -> dict[str, Any]:
     dashboard = read_named_json_package(DASHBOARD_DIR, DASHBOARD_FILES, "dashboard")
     knowledge = read_named_json_package(KNOWLEDGE_DIR, KNOWLEDGE_FILES, "knowledge")
     area_keys = set(area_index["order"])
-    validate_dashboard_package(dashboard, area_keys)
+    validate_dashboard_package(dashboard, area_keys, scene_order)
     validate_knowledge_package(knowledge, area_keys)
 
     result = deepcopy(demo)
