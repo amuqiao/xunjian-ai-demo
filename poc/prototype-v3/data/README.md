@@ -32,9 +32,12 @@ dashboard/
   worker-quality-ranking.json # 人员质量排行
   route-anomalies.json        # 轨迹主画布异常点
   ai-alerts.json              # AI 智能提醒
+  business-charts.json        # ECharts 图表序列和分布数据
 ```
 
 这些数据是 demo 演示数据，可以参考附件3客户材料构造，但页面运行不依赖附件3原始 Excel。每条指标应保留 `sourceType`，用于区分“客户数据”“演示推演”和“待确认口径”。
+
+`business-charts.json` 专门服务质量大屏首页，当前包含任务趋势、巡检结果分布、异常类型分布和时序/视觉模型预警趋势。后续调整柱状图、环形图、折线图时优先改这个文件，再运行构建脚本。
 
 ## 知识库数据
 
@@ -106,13 +109,13 @@ metering, valve, pump, control, plc, power
 3. 运行构建：
 
 ```bash
-uv run python assets/poc/prototype-v3/tools/build-data.py
+uv run python poc/prototype-v3/tools/build-data.py
 ```
 
 4. 验证生成产物：
 
 ```bash
-node --check assets/poc/prototype-v3/scripts/data.js
+node --check poc/prototype-v3/scripts/data.js
 ```
 
 ## 维护边界

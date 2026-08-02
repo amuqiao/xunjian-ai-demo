@@ -44,6 +44,7 @@ DASHBOARD_FILES = {
     "workerQualityRanking": "worker-quality-ranking.json",
     "routeAnomalies": "route-anomalies.json",
     "aiAlerts": "ai-alerts.json",
+    "businessCharts": "business-charts.json",
 }
 KNOWLEDGE_FILES = {
     "documents": "documents.json",
@@ -234,6 +235,23 @@ def validate_source_type_text(value: Any, label: str) -> None:
       raise ValueError(f"{label} must describe data source boundary: {value}")
 
 
+def validate_numeric_series(values: Any, label: str, expected_length: int) -> None:
+    if not isinstance(values, list) or len(values) != expected_length:
+      raise ValueError(f"{label} length must be {expected_length}")
+    for index, value in enumerate(values):
+      if not isinstance(value, int | float):
+        raise ValueError(f"{label}[{index}] must be numeric")
+
+
+def parse_percent(value: Any, label: str) -> float:
+    if not isinstance(value, str) or not value.endswith("%"):
+      raise ValueError(f"{label} must be percent text")
+    try:
+      return float(value[:-1])
+    except ValueError as exc:
+      raise ValueError(f"{label} must be percent text") from exc
+
+
 def validate_dashboard_package(package: dict[str, Any], area_keys: set[str]) -> None:
     for index, item in enumerate(package["qualityMetrics"]):
       require_keys(item, ["key", "label", "value", "delta", "tone", "sourceType", "desc"], f"dashboard.qualityMetrics[{index}]")
@@ -257,6 +275,40 @@ def validate_dashboard_package(package: dict[str, Any], area_keys: set[str]) -> 
       require_keys(item, ["title", "areaKey", "model", "priority", "summary", "sourceType", "action"], f"dashboard.aiAlerts[{index}]")
       validate_area_key(item["areaKey"], area_keys, f"dashboard.aiAlerts[{index}].areaKey")
       validate_source_type_text(item["sourceType"], f"dashboard.aiAlerts[{index}].sourceType")
+    charts = package["businessCharts"]
+    require_keys(charts, ["taskTrend", "resultDistribution", "anomalyTypes", "aiModelTrend"], "dashboard.businessCharts")
+    require_keys(charts["taskTrend"], ["labels", "planned", "completed", "issues", "sourceType"], "dashboard.businessCharts.taskTrend")
+    validate_source_type_text(charts["taskTrend"]["sourceType"], "dashboard.businessCharts.taskTrend.sourceType")
+    trend_length = len(charts["taskTrend"]["labels"])
+    if trend_length == 0:
+      raise ValueError("dashboard.businessCharts.taskTrend.labels must not be empty")
+    validate_numeric_series(charts["taskTrend"]["planned"], "dashboard.businessCharts.taskTrend.planned", trend_length)
+    validate_numeric_series(charts["taskTrend"]["completed"], "dashboard.businessCharts.taskTrend.completed", trend_length)
+    validate_numeric_series(charts["taskTrend"]["issues"], "dashboard.businessCharts.taskTrend.issues", trend_length)
+    planned_total = sum(charts["taskTrend"]["planned"])
+    completed_total = sum(charts["taskTrend"]["completed"])
+    if planned_total <= 0:
+      raise ValueError("dashboard.businessCharts.taskTrend.planned total must be greater than 0")
+    completion_metric = next((item for item in package["qualityMetrics"] if item["key"] == "completion"), None)
+    if completion_metric is None:
+      raise ValueError("dashboard.qualityMetrics must include completion")
+    completion_rate = round(completed_total / planned_total * 100, 1)
+    metric_rate = parse_percent(completion_metric["value"], "dashboard.qualityMetrics.completion.value")
+    if completion_rate != metric_rate:
+      raise ValueError(f"dashboard completion mismatch: chart={completion_rate}%, metric={metric_rate}%")
+    require_keys(charts["aiModelTrend"], ["labels", "timeSeries", "vision", "sourceType"], "dashboard.businessCharts.aiModelTrend")
+    validate_source_type_text(charts["aiModelTrend"]["sourceType"], "dashboard.businessCharts.aiModelTrend.sourceType")
+    model_length = len(charts["aiModelTrend"]["labels"])
+    if model_length == 0:
+      raise ValueError("dashboard.businessCharts.aiModelTrend.labels must not be empty")
+    validate_numeric_series(charts["aiModelTrend"]["timeSeries"], "dashboard.businessCharts.aiModelTrend.timeSeries", model_length)
+    validate_numeric_series(charts["aiModelTrend"]["vision"], "dashboard.businessCharts.aiModelTrend.vision", model_length)
+    for group_key in ["resultDistribution", "anomalyTypes"]:
+      for index, item in enumerate(charts[group_key]):
+        require_keys(item, ["name", "value", "sourceType"], f"dashboard.businessCharts.{group_key}[{index}]")
+        if not isinstance(item["value"], int):
+          raise ValueError(f"dashboard.businessCharts.{group_key}[{index}].value must be integer")
+        validate_source_type_text(item["sourceType"], f"dashboard.businessCharts.{group_key}[{index}].sourceType")
 
 
 def validate_knowledge_package(package: dict[str, Any], area_keys: set[str]) -> None:

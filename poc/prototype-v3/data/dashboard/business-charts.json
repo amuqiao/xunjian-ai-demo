@@ -1,0 +1,26 @@
+{
+  "taskTrend": {
+    "labels": ["07-17", "07-18", "07-19", "07-20", "07-21"],
+    "planned": [48, 50, 49, 51, 52],
+    "completed": [46, 48, 47, 50, 51],
+    "issues": [11, 14, 12, 16, 18],
+    "sourceType": "客户数据 + 演示推演 / 待确认"
+  },
+  "resultDistribution": [
+    { "name": "正常项", "value": 846, "sourceType": "客户数据 + 演示推演" },
+    { "name": "待复核", "value": 18, "sourceType": "演示推演" },
+    { "name": "已归档", "value": 7, "sourceType": "演示推演" }
+  ],
+  "anomalyTypes": [
+    { "name": "时长异常", "value": 5, "sourceType": "演示推演 / 待确认" },
+    { "name": "间隔异常", "value": 7, "sourceType": "演示推演 / 待确认" },
+    { "name": "时段异常", "value": 2, "sourceType": "演示推演" },
+    { "name": "AI待复核", "value": 4, "sourceType": "演示推演" }
+  ],
+  "aiModelTrend": {
+    "labels": ["00:00", "01:00", "02:00", "03:00", "04:00"],
+    "timeSeries": [1, 1, 2, 3, 5],
+    "vision": [0, 1, 1, 2, 3],
+    "sourceType": "演示推演"
+  }
+}

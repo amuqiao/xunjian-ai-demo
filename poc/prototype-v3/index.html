@@ -35,18 +35,27 @@
 
       <main class="stage" id="stage">
         <section class="scene active" id="scene-overview" data-scene="overview" aria-labelledby="overviewTitle">
-          <div class="dashboard-grid">
-            <section class="panel dashboard-hero" aria-labelledby="overviewTitle">
-              <div class="dashboard-hero-head">
-                <div>
-                  <span class="eyebrow">巡检质量态势</span>
-                  <h2 id="overviewTitle">湘潭站巡检质量智能分析大屏</h2>
-                  <p id="taskNote">任务、人员、轨迹、模型预警和知识沉淀统一呈现。</p>
-                </div>
-                <div class="source-legend" id="sourceLegend" aria-label="数据来源说明"></div>
-              </div>
-              <div class="metric-grid dashboard-metrics" id="overviewMetrics" aria-label="巡检质量指标"></div>
-            </section>
+          <div class="dashboard-grid monitor-dashboard">
+            <h2 class="sr-only" id="overviewTitle">湘潭站巡检质量智能分析大屏</h2>
+            <p class="sr-only" id="taskNote">任务、人员、轨迹、模型预警和知识沉淀统一呈现。</p>
+            <div class="sr-only" id="sourceLegend" aria-label="数据来源说明"></div>
+
+            <section class="dashboard-kpis" id="overviewMetrics" aria-label="巡检质量指标"></section>
+
+            <aside class="dashboard-left">
+              <section class="panel chart-panel gauge-panel">
+                <div class="panel-title"><span>完成率</span><span class="mini-hint">任务质量</span></div>
+                <div class="chart-box" id="completionGauge"></div>
+              </section>
+              <section class="panel chart-panel result-panel">
+                <div class="panel-title"><span>结果分布</span><span class="mini-hint">巡检项</span></div>
+                <div class="chart-box" id="resultPie"></div>
+              </section>
+              <section class="panel chart-panel worker-panel">
+                <div class="panel-title"><span>人员质量</span><span class="mini-hint">排行</span></div>
+                <div class="chart-box" id="workerScoreChart"></div>
+              </section>
+            </aside>
 
             <section class="panel map-panel business-map-panel">
               <div class="panel-title">
@@ -79,7 +88,7 @@
                     <polygon points="186,122 270,92 318,150 248,214"></polygon><text x="214" y="164">配电间</text>
                   </g>
                   <g id="routeAnomalyLayer"></g>
-                  <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" tabindex="0" role="button" aria-label="计量区表单质检入口"></circle>
+                  <circle class="risk-dot" id="riskDot" data-area="metering" cx="386" cy="222" r="13" aria-hidden="true"></circle>
                 </svg>
                 <div class="map-toast" id="mapToast">
                   <span class="badge danger" id="mapToastBadge">P1</span>
@@ -91,8 +100,8 @@
             <aside class="dashboard-side">
               <section class="panel area-detail-panel">
                 <div class="panel-title">
-                  <span id="selectedAreaPanelTitle">当前区域摘要</span>
-                  <span class="mini-hint">点击图形切换</span>
+                  <span id="selectedAreaPanelTitle">当前告警</span>
+                  <span class="mini-hint">表单入口</span>
                 </div>
                 <div class="area-detail-head">
                   <span class="badge danger" id="selectedAreaBadge">高优先级复检</span>
@@ -106,22 +115,34 @@
                 </div>
               </section>
 
-              <section class="panel ai-alert-panel">
-                <div class="panel-title"><span>AI 智能提醒</span><span class="mini-hint">辅助复核</span></div>
-                <div class="ai-alert-list" id="dashboardAlerts"></div>
+              <section class="panel chart-panel anomaly-panel">
+                <div class="panel-title"><span>异常类型</span><span class="mini-hint">规则指标</span></div>
+                <div class="chart-box" id="anomalyTypeChart"></div>
+              </section>
+
+              <section class="panel chart-panel ai-model-panel">
+                <div class="panel-title"><span>模型预警</span><span class="mini-hint">时序 / 视觉</span></div>
+                <div class="chart-box" id="aiModelTrendChart"></div>
               </section>
             </aside>
 
+            <section class="panel chart-panel task-trend-panel">
+              <div class="panel-title"><span>任务趋势</span><span class="mini-hint">完成 / 问题</span></div>
+              <div class="chart-box" id="taskTrendChart"></div>
+            </section>
+
             <section class="panel dashboard-list-panel tasks-panel">
-              <div class="panel-title"><span id="taskQualityTitle">异常明细</span><span class="mini-hint">任务 / 区域 / 状态</span></div>
+              <div class="panel-title"><span id="taskQualityTitle">告警流水</span><span class="mini-hint">点击定位告警</span></div>
               <div class="quality-task-list" id="taskQualityList"></div>
             </section>
 
-            <section class="panel dashboard-list-panel workers-panel">
-              <div class="panel-title"><span>人员质量排行</span><span class="mini-hint">最近归档</span></div>
-              <div class="worker-ranking" id="workerRanking"></div>
-              <div class="recent-archive-list" id="recentArchiveList"></div>
+            <section class="panel ai-alert-panel">
+              <div class="panel-title"><span>AI 智能提醒</span><span class="mini-hint">待人工复核</span></div>
+              <div class="ai-alert-list" id="dashboardAlerts"></div>
             </section>
+
+            <div class="sr-only" id="workerRanking"></div>
+            <div class="sr-only" id="recentArchiveList"></div>
           </div>
         </section>
 
@@ -448,6 +469,7 @@
       </div>
     </div>
 
+    <script src="vendor/echarts.min.js"></script>
     <script src="scripts/data.js"></script>
     <script src="scripts/app.js"></script>
   </body>
