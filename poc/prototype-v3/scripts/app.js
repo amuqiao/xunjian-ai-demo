@@ -30,6 +30,10 @@
       evidenceDetail: "",
       overviewScope: "all",
       dashboardFocus: "risk",
+      knowledgeDocId: "DOC-001",
+      knowledgeUploaded: false,
+      knowledgeEditedDocId: "",
+      knowledgeDeletedDocId: "",
       allowFormEntry: false,
       stepKey: "task",
       maxStepIndex: 0,
@@ -180,6 +184,10 @@
     if (state.evidenceDetail !== "trend" && state.evidenceDetail !== "vision") state.evidenceDetail = "";
     if (state.overviewScope !== "area") state.overviewScope = "all";
     if (!DATA.dashboard.qualityMetrics.some(function (metric) { return metric.key === state.dashboardFocus; })) state.dashboardFocus = "issues";
+    if (typeof state.knowledgeDocId !== "string") state.knowledgeDocId = "DOC-001";
+    if (typeof state.knowledgeUploaded !== "boolean") state.knowledgeUploaded = false;
+    if (typeof state.knowledgeEditedDocId !== "string") state.knowledgeEditedDocId = "";
+    if (typeof state.knowledgeDeletedDocId !== "string") state.knowledgeDeletedDocId = "";
     if (stepIndex(state.stepKey) < 0) state.stepKey = defaultStepForScene(state.scene);
     if (migratedAnalysis && !savedHadStep) showStep("form");
     if (typeof state.maxStepIndex !== "number") state.maxStepIndex = stepIndex(state.stepKey);
@@ -1449,17 +1457,214 @@
     }
   }
 
+  function mockUploadedDocument() {
+    return {
+      id: "DOC-UPLOAD-001",
+      title: "巡检标准补充说明",
+      type: "用户上传",
+      tags: ["时段异常", "配电间", "AI 提醒"],
+      status: "已入库",
+      updated: "2026-07-21",
+      size: "312KB",
+      summary: "演示上传文档已完成解析、切片、向量化和入库,可被 Agent 检索引用。",
+      preview: "工业电视画面与巡检到位时间偏差超过 30 分钟时,应进入人工复核。",
+      sourceType: "演示推演",
+    };
+  }
+
+  function knowledgeDocuments() {
+    var docs = DATA.knowledge.documents.slice();
+    if (state.knowledgeUploaded) docs.push(mockUploadedDocument());
+    return docs.map(function (doc) {
+      var current = doc;
+      if (state.knowledgeEditedDocId === doc.id) {
+        current = Object.assign({}, current);
+        current.status = "已编辑";
+        current.tags = doc.tags.concat(["人工校订"]);
+        current.summary = doc.summary + " 已补充适用区域和问答标签。";
+      }
+      if (state.knowledgeDeletedDocId === doc.id) {
+        current = Object.assign({}, current);
+        current.status = "已停用";
+        current.summary = current.summary + " 当前仅保留追溯记录,不参与新增问答发布。";
+      }
+      return current;
+    });
+  }
+
+  function currentKnowledgeDocument() {
+    var docs = knowledgeDocuments();
+    var doc = docs.filter(function (item) { return item.id === state.knowledgeDocId; })[0] || docs[0];
+    if (!doc) throw new Error("[v3] 知识库缺少文档数据");
+    state.knowledgeDocId = doc.id;
+    return doc;
+  }
+
+  function selectKnowledgeDoc(docId) {
+    state.knowledgeDocId = docId;
+    persistState();
+    renderKnowledge();
+  }
+
+  function uploadKnowledgeDoc() {
+    state.knowledgeUploaded = true;
+    state.knowledgeDeletedDocId = "";
+    state.knowledgeDocId = "DOC-UPLOAD-001";
+    persistState();
+    renderKnowledge();
+  }
+
+  function editKnowledgeDoc() {
+    var doc = currentKnowledgeDocument();
+    state.knowledgeEditedDocId = doc.id;
+    if (state.knowledgeDeletedDocId === doc.id) state.knowledgeDeletedDocId = "";
+    persistState();
+    renderKnowledge();
+  }
+
+  function deleteKnowledgeDoc() {
+    var doc = currentKnowledgeDocument();
+    state.knowledgeDeletedDocId = doc.id;
+    if (state.knowledgeEditedDocId === doc.id) state.knowledgeEditedDocId = "";
+    persistState();
+    renderKnowledge();
+  }
+
+  function downloadKnowledgeDoc() {
+    var doc = currentKnowledgeDocument();
+    var text = "# " + doc.title + "\n\n" + doc.summary + "\n\n片段:\n" + doc.preview + "\n";
+    var blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = doc.id + "-knowledge-summary.md";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function ragProfileForDoc(docId) {
+    var profile = DATA.knowledge.rag.profiles.filter(function (item) { return item.docId === docId; })[0];
+    if (!profile) throw new Error("[v3] RAG profile 缺失: " + docId);
+    return profile;
+  }
+
+  function chunkById(profile, chunkId) {
+    var chunk = profile.chunks.filter(function (item) { return item.id === chunkId; })[0];
+    if (!chunk) throw new Error("[v3] RAG chunk 缺失: " + chunkId);
+    return chunk;
+  }
+
   function renderKnowledge() {
+    var selectedDoc = currentKnowledgeDocument();
+    var rag = ragProfileForDoc(selectedDoc.id);
+    var isDisabled = state.knowledgeDeletedDocId === selectedDoc.id;
+    var feedbackApplied = state.archived || (state.knowledgeUploaded && selectedDoc.id === "DOC-UPLOAD-001");
+    var feedbackVerb = selectedDoc.id === "DOC-UPLOAD-001" ? "上传后" : "归档后";
+
     q("knowledgeDocList").innerHTML = "";
-    DATA.knowledge.documents.forEach(function (doc) {
-      q("knowledgeDocList").appendChild(el("article", { class: "knowledge-doc-item card" }, [
+    knowledgeDocuments().forEach(function (doc) {
+      var docDisabled = state.knowledgeDeletedDocId === doc.id;
+      q("knowledgeDocList").appendChild(el("button", {
+        class: "knowledge-doc-item card" + (doc.id === selectedDoc.id ? " active" : "") + (docDisabled ? " disabled" : ""),
+        type: "button",
+        onClick: function () { selectKnowledgeDoc(doc.id); },
+      }, [
         el("span", { class: "badge info", text: doc.type }),
         el("strong", { text: doc.title }),
-        el("small", { text: doc.status }),
+        el("small", { text: doc.status + " · " + doc.updated + " · " + doc.size }),
         el("div", { class: "tag-row" }, doc.tags.map(function (tag, index) {
           return el("span", { class: "tag" + (index === 0 ? " hot" : ""), text: tag });
         })),
         el("em", { class: sourceClass(doc.sourceType), text: doc.sourceType }),
+      ]));
+    });
+
+    q("knowledgeCrudStatus").innerHTML = "";
+    q("knowledgeCrudStatus").appendChild(el("strong", { text: isDisabled ? "当前文档已软停用" : state.knowledgeUploaded ? "演示文档已入库" : "待上传演示文档" }));
+    q("knowledgeCrudStatus").appendChild(el("span", {
+      text: isDisabled
+        ? "文档仍保留在知识库中,用于追溯和恢复。"
+        : state.knowledgeEditedDocId
+          ? "文档 " + state.knowledgeEditedDocId + " 已模拟编辑,标签已更新。"
+          : "上传、编辑、下载、停用均为前端演示动作。",
+    }));
+
+    q("knowledgeDocPreview").innerHTML = "";
+    q("knowledgeDocPreview").appendChild(el("span", { class: "badge info", text: selectedDoc.type }));
+    q("knowledgeDocPreview").appendChild(el("strong", { text: selectedDoc.title }));
+    q("knowledgeDocPreview").appendChild(el("p", { text: selectedDoc.summary }));
+    q("knowledgeDocPreview").appendChild(el("small", { text: selectedDoc.preview }));
+
+    q("ragSummaryStrip").innerHTML = "";
+    [
+      { label: "文档", value: String(knowledgeDocuments().length) },
+      { label: "当前状态", value: selectedDoc.status },
+      { label: "Chunk", value: String(rag.chunks.length) },
+      { label: "向量维度", value: "1024" },
+      { label: "TopK", value: String(rag.retrieval.topK.length) },
+    ].forEach(function (item) {
+      q("ragSummaryStrip").appendChild(el("div", { class: "rag-summary-item" }, [
+        el("small", { text: item.label }),
+        el("strong", { text: item.value }),
+      ]));
+    });
+
+    q("ragPipeline").innerHTML = "";
+    rag.pipeline.forEach(function (step, index) {
+      q("ragPipeline").appendChild(el("div", { class: "rag-step", style: "animation-delay:" + (index * 90) + "ms" }, [
+        el("span", { text: String(index + 1) }),
+        el("strong", { text: step.label }),
+        el("small", { text: step.value }),
+        el("em", { text: step.desc }),
+      ]));
+    });
+
+    q("ragChunkList").innerHTML = "";
+    rag.chunks.forEach(function (chunk, index) {
+      q("ragChunkList").appendChild(el("article", { class: "rag-chunk", style: "animation-delay:" + (index * 100) + "ms" }, [
+        el("strong", { text: chunk.id }),
+        el("small", { text: chunk.title + " · " + chunk.tokens + " tokens" }),
+        el("p", { text: chunk.text }),
+      ]));
+    });
+
+    q("ragQuery").innerHTML = "";
+    q("ragQuery").appendChild(el("span", { class: "badge info", text: "Query" }));
+    q("ragQuery").appendChild(el("strong", { text: rag.retrieval.query }));
+
+    q("ragHitList").innerHTML = "";
+    rag.retrieval.topK.forEach(function (hit, index) {
+      var chunk = chunkById(rag, hit.chunkId);
+      q("ragHitList").appendChild(el("article", { class: "rag-hit", style: "animation-delay:" + (index * 120) + "ms" }, [
+        el("div", {}, [
+          el("strong", { text: chunk.title }),
+          el("small", { text: hit.source }),
+        ]),
+        el("span", { text: hit.score.toFixed(2) }),
+        el("i", { style: "width:" + Math.round(hit.score * 100) + "%" }),
+      ]));
+    });
+
+    q("ragAgentAnswer").innerHTML = "";
+    q("ragAgentAnswer").appendChild(el("span", { class: "badge " + (isDisabled ? "info" : "warn"), text: isDisabled ? "已停用追溯" : "Agent 回答" }));
+    q("ragAgentAnswer").appendChild(el("p", { text: rag.agentAnswer.text }));
+
+    q("ragCitationList").innerHTML = "";
+    rag.agentAnswer.citations.forEach(function (chunkId, index) {
+      var chunk = chunkById(rag, chunkId);
+      q("ragCitationList").appendChild(el("div", { class: "rag-citation" }, [
+        el("span", { text: "[" + (index + 1) + "]" }),
+        el("strong", { text: chunk.title }),
+        el("small", { text: chunk.id }),
+      ]));
+    });
+
+    q("ragFeedbackList").innerHTML = "";
+    rag.feedback.forEach(function (item) {
+      var delta = item.after - item.before;
+      q("ragFeedbackList").appendChild(el("div", { class: "rag-feedback" + (feedbackApplied ? " applied" : "") }, [
+        el("small", { text: item.label }),
+        el("strong", { text: feedbackApplied ? item.before + " → " + item.after : String(item.before) }),
+        el("small", { text: feedbackApplied ? "已生效" : feedbackVerb + " +" + delta }),
       ]));
     });
 
@@ -1768,6 +1973,10 @@
     else if (action === "back-overview") go("overview", { stepKey: "task" });
     else if (action === "go-knowledge") go("knowledge");
     else if (action === "go-graph") go("graph");
+    else if (action === "mock-upload-doc") uploadKnowledgeDoc();
+    else if (action === "mock-edit-doc") editKnowledgeDoc();
+    else if (action === "mock-download-doc") downloadKnowledgeDoc();
+    else if (action === "mock-delete-doc") deleteKnowledgeDoc();
     else if (action === "open-drawer") openDrawer();
     else if (action === "close-drawer") closeDrawer();
     else if (action === "open-trend-detail") openEvidenceDetail("trend");

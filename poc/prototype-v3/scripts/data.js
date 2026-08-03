@@ -1954,6 +1954,10 @@
           "复检步骤"
         ],
         "status": "已入库",
+        "updated": "2026-07-18",
+        "size": "2.4MB",
+        "summary": "覆盖站场巡检、复检步骤、交接班关注项和异常闭环要求。",
+        "preview": "过滤分离器差压接近阈值时，应核对现场差压表、趋势曲线与交接班关注项。",
         "sourceType": "演示推演"
       },
       {
@@ -1967,6 +1971,10 @@
           "时段异常"
         ],
         "status": "待口径确认",
+        "updated": "2026-07-20",
+        "size": "186KB",
+        "summary": "定义巡检完成率、发现问题数、时长异常、间隔异常、时段异常和 AI 提醒口径。",
+        "preview": "巡检时间间隔异常按区域内低于 10 秒、区域之间低于 10 秒进行演示判定。",
         "sourceType": "客户材料 + 待确认"
       },
       {
@@ -1979,6 +1987,10 @@
           "表单冲突"
         ],
         "status": "演示归档",
+        "updated": "2026-07-21",
+        "size": "428KB",
+        "summary": "沉淀计量区差压趋势接近阈值时的复检清单、报告结构和交接班建议。",
+        "preview": "本次复检结论用于后续相似差压趋势疑点的 Agent 问答引用。",
         "sourceType": "演示推演"
       }
     ],
@@ -2091,7 +2103,495 @@
         "q": "哪些指标目前还需要客户补充?",
         "a": "秒级轨迹时间、区域边界、真实视频识别结果、时序库字段和问题判定规则仍需后续对齐。"
       }
-    ]
+    ],
+    "rag": {
+      "profiles": [
+        {
+          "docId": "DOC-001",
+          "pipeline": [
+            {
+              "key": "upload",
+              "label": "上传",
+              "value": "制度",
+              "desc": "巡检制度进入待解析队列"
+            },
+            {
+              "key": "parse",
+              "label": "解析",
+              "value": "12页",
+              "desc": "抽取巡检、复检、交接班条款"
+            },
+            {
+              "key": "chunk",
+              "label": "切片",
+              "value": "86段",
+              "desc": "按设备、指标和处置步骤拆分"
+            },
+            {
+              "key": "embed",
+              "label": "向量化",
+              "value": "1024维",
+              "desc": "生成制度条款检索向量"
+            },
+            {
+              "key": "index",
+              "label": "入库",
+              "value": "已完成",
+              "desc": "写入演示向量索引"
+            },
+            {
+              "key": "search",
+              "label": "可检索",
+              "value": "TopK",
+              "desc": "Agent 可引用制度来源"
+            }
+          ],
+          "chunks": [
+            {
+              "id": "doc001-threshold",
+              "title": "过滤分离器差压标准",
+              "text": "过滤分离器差压应小于 0.1MPa，接近阈值时需要复核现场仪表和趋势。",
+              "tokens": 182,
+              "tags": [
+                "计量区",
+                "差压",
+                "阈值"
+              ]
+            },
+            {
+              "id": "doc001-recheck-step",
+              "title": "差压复核步骤",
+              "text": "复检需核对现场差压表、设备铭牌、趋势曲线和巡检表填写结果。",
+              "tokens": 164,
+              "tags": [
+                "复检",
+                "人工确认",
+                "交接班"
+              ]
+            },
+            {
+              "id": "doc001-handover",
+              "title": "交接班关注项",
+              "text": "交接班应说明本班异常、处置建议和下一班持续观察指标。",
+              "tokens": 146,
+              "tags": [
+                "交接班",
+                "闭环",
+                "观察"
+              ]
+            }
+          ],
+          "retrieval": {
+            "query": "过滤器差压接近 0.1MPa 是否需要复检?",
+            "topK": [
+              {
+                "chunkId": "doc001-threshold",
+                "score": 0.91,
+                "source": "油气站场巡检及交接班工作指引"
+              },
+              {
+                "chunkId": "doc001-recheck-step",
+                "score": 0.87,
+                "source": "油气站场巡检及交接班工作指引"
+              },
+              {
+                "chunkId": "doc001-handover",
+                "score": 0.78,
+                "source": "油气站场巡检及交接班工作指引"
+              }
+            ]
+          },
+          "agentAnswer": {
+            "text": "建议人工复核现场差压表，并将差压趋势纳入交接班持续观察。AI 只提供证据汇总和复检建议，最终结论由人工确认。",
+            "citations": [
+              "doc001-threshold",
+              "doc001-recheck-step",
+              "doc001-handover"
+            ]
+          },
+          "feedback": [
+            {
+              "label": "历史案例",
+              "before": 7,
+              "after": 8
+            },
+            {
+              "label": "知识节点",
+              "before": 42,
+              "after": 45
+            },
+            {
+              "label": "可检索片段",
+              "before": 184,
+              "after": 270
+            }
+          ]
+        },
+        {
+          "docId": "DOC-002",
+          "pipeline": [
+            {
+              "key": "upload",
+              "label": "上传",
+              "value": "指标",
+              "desc": "指标口径进入待解析队列"
+            },
+            {
+              "key": "parse",
+              "label": "解析",
+              "value": "8项",
+              "desc": "识别完成率、时长、间隔和时段规则"
+            },
+            {
+              "key": "chunk",
+              "label": "切片",
+              "value": "45段",
+              "desc": "按质量指标和判定条件拆分"
+            },
+            {
+              "key": "embed",
+              "label": "向量化",
+              "value": "1024维",
+              "desc": "生成指标口径检索向量"
+            },
+            {
+              "key": "index",
+              "label": "入库",
+              "value": "待确认",
+              "desc": "保留客户口径确认标记"
+            },
+            {
+              "key": "search",
+              "label": "可检索",
+              "value": "TopK",
+              "desc": "Agent 可解释指标来源"
+            }
+          ],
+          "chunks": [
+            {
+              "id": "doc002-completion",
+              "title": "巡检完成率口径",
+              "text": "巡检完成率用于衡量计划任务与实际完成任务的覆盖情况。",
+              "tokens": 132,
+              "tags": [
+                "完成率",
+                "任务",
+                "覆盖"
+              ]
+            },
+            {
+              "id": "doc002-fast-check",
+              "title": "快检疑点口径",
+              "text": "区域内检查间隔低于 10 秒或区域之间间隔低于 10 秒，进入快检疑点。",
+              "tokens": 174,
+              "tags": [
+                "间隔异常",
+                "快检",
+                "轨迹"
+              ]
+            },
+            {
+              "id": "doc002-off-window",
+              "title": "时段异常口径",
+              "text": "工业电视时段、巡检到位时间和任务计划窗口偏差过大时，需要人工复核。",
+              "tokens": 158,
+              "tags": [
+                "时段异常",
+                "视频",
+                "人工复核"
+              ]
+            }
+          ],
+          "retrieval": {
+            "query": "如何解释巡检快检和时段异常指标?",
+            "topK": [
+              {
+                "chunkId": "doc002-fast-check",
+                "score": 0.9,
+                "source": "长郴-湘潭站巡检质量核心指标"
+              },
+              {
+                "chunkId": "doc002-off-window",
+                "score": 0.86,
+                "source": "长郴-湘潭站巡检质量核心指标"
+              },
+              {
+                "chunkId": "doc002-completion",
+                "score": 0.8,
+                "source": "长郴-湘潭站巡检质量核心指标"
+              }
+            ]
+          },
+          "agentAnswer": {
+            "text": "快检和时段异常用于辅助判断人工巡检质量：系统先提示疑点，再由管理人员结合轨迹、视频和表单明细确认。",
+            "citations": [
+              "doc002-fast-check",
+              "doc002-off-window",
+              "doc002-completion"
+            ]
+          },
+          "feedback": [
+            {
+              "label": "指标节点",
+              "before": 18,
+              "after": 21
+            },
+            {
+              "label": "规则片段",
+              "before": 64,
+              "after": 83
+            },
+            {
+              "label": "待确认口径",
+              "before": 5,
+              "after": 4
+            }
+          ]
+        },
+        {
+          "docId": "DOC-003",
+          "pipeline": [
+            {
+              "key": "upload",
+              "label": "归档",
+              "value": "案例",
+              "desc": "复检报告沉淀为案例文档"
+            },
+            {
+              "key": "parse",
+              "label": "解析",
+              "value": "结论",
+              "desc": "抽取异常、证据、处置和结论"
+            },
+            {
+              "key": "chunk",
+              "label": "切片",
+              "value": "32段",
+              "desc": "按证据链和复检动作拆分"
+            },
+            {
+              "key": "embed",
+              "label": "向量化",
+              "value": "1024维",
+              "desc": "生成相似案例检索向量"
+            },
+            {
+              "key": "index",
+              "label": "入库",
+              "value": "可复用",
+              "desc": "写入案例库和问答上下文"
+            },
+            {
+              "key": "search",
+              "label": "可检索",
+              "value": "相似案例",
+              "desc": "供下一次表单 Agent 引用"
+            }
+          ],
+          "chunks": [
+            {
+              "id": "doc003-conflict",
+              "title": "表单与趋势冲突",
+              "text": "巡检表记录正常，但差压趋势连续升高并接近阈值，需进入人工复检。",
+              "tokens": 148,
+              "tags": [
+                "表单冲突",
+                "趋势",
+                "复检"
+              ]
+            },
+            {
+              "id": "doc003-evidence",
+              "title": "证据组合",
+              "text": "案例引用巡检表、趋势曲线、关键帧和人工确认结论作为完整证据链。",
+              "tokens": 166,
+              "tags": [
+                "证据链",
+                "视觉",
+                "人工确认"
+              ]
+            },
+            {
+              "id": "doc003-next-pass",
+              "title": "二次巡检引用方式",
+              "text": "下一次相似差压异常时，Agent 可引用本案例补充复检建议和交接班要点。",
+              "tokens": 152,
+              "tags": [
+                "二次巡检",
+                "知识复用",
+                "Agent"
+              ]
+            }
+          ],
+          "retrieval": {
+            "query": "相似差压案例对本次复检有什么帮助?",
+            "topK": [
+              {
+                "chunkId": "doc003-conflict",
+                "score": 0.93,
+                "source": "计量区过滤器差压复检报告"
+              },
+              {
+                "chunkId": "doc003-evidence",
+                "score": 0.89,
+                "source": "计量区过滤器差压复检报告"
+              },
+              {
+                "chunkId": "doc003-next-pass",
+                "score": 0.85,
+                "source": "计量区过滤器差压复检报告"
+              }
+            ]
+          },
+          "agentAnswer": {
+            "text": "该归档案例可作为相似异常的上下文：说明为什么表单正常仍要复核，并提示应补充趋势、视觉帧和人工确认结论。",
+            "citations": [
+              "doc003-conflict",
+              "doc003-evidence",
+              "doc003-next-pass"
+            ]
+          },
+          "feedback": [
+            {
+              "label": "案例节点",
+              "before": 7,
+              "after": 8
+            },
+            {
+              "label": "证据片段",
+              "before": 28,
+              "after": 35
+            },
+            {
+              "label": "问答模板",
+              "before": 11,
+              "after": 14
+            }
+          ]
+        },
+        {
+          "docId": "DOC-UPLOAD-001",
+          "pipeline": [
+            {
+              "key": "upload",
+              "label": "上传",
+              "value": "1份",
+              "desc": "补充说明进入演示上传队列"
+            },
+            {
+              "key": "parse",
+              "label": "解析",
+              "value": "4页",
+              "desc": "抽取时段异常和视频复核条款"
+            },
+            {
+              "key": "chunk",
+              "label": "切片",
+              "value": "19段",
+              "desc": "按时间偏差、摄像机和区域拆分"
+            },
+            {
+              "key": "embed",
+              "label": "向量化",
+              "value": "1024维",
+              "desc": "生成上传文档检索向量"
+            },
+            {
+              "key": "index",
+              "label": "入库",
+              "value": "刚完成",
+              "desc": "写入临时演示索引"
+            },
+            {
+              "key": "search",
+              "label": "可检索",
+              "value": "TopK",
+              "desc": "上传后立即可被 Agent 引用"
+            }
+          ],
+          "chunks": [
+            {
+              "id": "upload-tv-window",
+              "title": "工业电视时段偏差",
+              "text": "工业电视画面与巡检到位时间偏差超过 30 分钟时，应进入人工复核。",
+              "tokens": 126,
+              "tags": [
+                "工业电视",
+                "时段异常",
+                "人工复核"
+              ]
+            },
+            {
+              "id": "upload-power-room",
+              "title": "配电间补充说明",
+              "text": "配电间巡检需结合门禁、摄像机和表单到位时间判断是否存在漏检。",
+              "tokens": 142,
+              "tags": [
+                "配电间",
+                "漏检",
+                "门禁"
+              ]
+            },
+            {
+              "id": "upload-ai-remind",
+              "title": "AI 提醒边界",
+              "text": "AI 提醒只给出疑点和证据来源，最终处置仍需人工确认和归档。",
+              "tokens": 118,
+              "tags": [
+                "AI 提醒",
+                "人工确认",
+                "归档"
+              ]
+            }
+          ],
+          "retrieval": {
+            "query": "上传的补充说明如何影响时段异常复核?",
+            "topK": [
+              {
+                "chunkId": "upload-tv-window",
+                "score": 0.94,
+                "source": "巡检标准补充说明"
+              },
+              {
+                "chunkId": "upload-power-room",
+                "score": 0.88,
+                "source": "巡检标准补充说明"
+              },
+              {
+                "chunkId": "upload-ai-remind",
+                "score": 0.84,
+                "source": "巡检标准补充说明"
+              }
+            ]
+          },
+          "agentAnswer": {
+            "text": "上传文档补充了时段异常的判定边界：系统会把视频时间、到位时间和表单结果并列给出，人工再确认是否漏检或快检。",
+            "citations": [
+              "upload-tv-window",
+              "upload-power-room",
+              "upload-ai-remind"
+            ]
+          },
+          "feedback": [
+            {
+              "label": "上传文档",
+              "before": 3,
+              "after": 4
+            },
+            {
+              "label": "新增片段",
+              "before": 184,
+              "after": 203
+            },
+            {
+              "label": "可引用规则",
+              "before": 42,
+              "after": 45
+            }
+          ]
+        }
+      ]
+    }
   },
   "areas": {
     "metering": {

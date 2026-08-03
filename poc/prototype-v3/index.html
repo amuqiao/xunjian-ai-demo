@@ -409,23 +409,47 @@
         <section class="scene" id="scene-knowledge" data-scene="knowledge" aria-labelledby="knowledgeTitle">
           <div class="scene-head">
             <div>
-              <h2 id="knowledgeTitle">知识库管理</h2>
-              <p>制度、指标口径、历史报告和归档案例统一维护，首版为前端演示状态。</p>
+              <h2 id="knowledgeTitle">RAG 知识库管理</h2>
+              <p>文档上传后完成解析、切片、向量化和入库，Agent 问答可检索、引用并回溯来源。</p>
             </div>
-            <span class="badge info">演示知识库</span>
+            <span class="badge info">前端演示 RAG</span>
           </div>
-          <div class="knowledge-grid">
-            <section class="panel knowledge-doc-panel">
-              <div class="panel-title"><span>知识库文档</span><span class="mini-hint">制度 / 口径 / 案例</span></div>
+          <div class="knowledge-grid rag-knowledge-grid">
+            <section class="panel knowledge-doc-panel rag-doc-panel">
+              <div class="panel-title"><span>文档资产</span><span class="mini-hint">CRUD / 上传 / 下载</span></div>
+              <div class="knowledge-toolbar">
+                <button class="action primary" type="button" data-action="mock-upload-doc">上传</button>
+                <button class="action" type="button" data-action="mock-edit-doc">编辑</button>
+                <button class="action" type="button" data-action="mock-download-doc">下载</button>
+                <button class="action danger" type="button" data-action="mock-delete-doc">停用</button>
+              </div>
               <div class="knowledge-doc-list" id="knowledgeDocList"></div>
-              <div class="knowledge-upload-mock">
-                <strong>演示上传入口</strong>
-                <span>制度文档 / 巡检记录 / 复检报告</span>
-                <button class="action" type="button" data-action="go-graph">查看入库关系</button>
+              <div class="knowledge-upload-mock" id="knowledgeCrudStatus"></div>
+            </section>
+
+            <section class="panel rag-workbench-panel">
+              <div class="panel-title"><span>解析入库流水</span><span class="mini-hint">上传 → 解析 → 切片 → 向量化</span></div>
+              <div class="rag-summary-strip" id="ragSummaryStrip"></div>
+              <div class="rag-pipeline" id="ragPipeline"></div>
+              <div class="rag-preview-grid">
+                <article class="rag-doc-preview card" id="knowledgeDocPreview"></article>
+                <article class="rag-chunk-panel card">
+                  <div class="panel-title compact-title"><span>切片预览</span><span class="mini-hint">chunk</span></div>
+                  <div class="rag-chunk-list" id="ragChunkList"></div>
+                </article>
+                <article class="rag-retrieval card">
+                  <div class="panel-title compact-title"><span>向量检索测试</span><span class="mini-hint">TopK 命中</span></div>
+                  <div class="rag-query" id="ragQuery"></div>
+                  <div class="rag-hit-list" id="ragHitList"></div>
+                </article>
               </div>
             </section>
-            <aside class="panel knowledge-case-panel">
-              <div class="panel-title"><span>案例归档</span><span class="mini-hint">报告沉淀</span></div>
+
+            <aside class="panel rag-agent-panel">
+              <div class="panel-title"><span>Agent 引用与反哺</span><span class="mini-hint">可追溯回答</span></div>
+              <div class="rag-agent-answer" id="ragAgentAnswer"></div>
+              <div class="rag-citation-list" id="ragCitationList"></div>
+              <div class="rag-feedback-list" id="ragFeedbackList"></div>
               <div class="knowledge-case-list" id="knowledgeCaseList"></div>
               <button class="action primary wide" type="button" data-action="go-graph">查看知识节点关系</button>
             </aside>

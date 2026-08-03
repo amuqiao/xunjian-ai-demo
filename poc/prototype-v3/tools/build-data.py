@@ -52,6 +52,7 @@ KNOWLEDGE_FILES = {
     "cases": "cases.json",
     "graph": "graph.json",
     "qaExamples": "qa-examples.json",
+    "rag": "rag.json",
 }
 
 
@@ -353,7 +354,7 @@ def validate_dashboard_package(package: dict[str, Any], area_keys: set[str], sce
 
 def validate_knowledge_package(package: dict[str, Any], area_keys: set[str]) -> None:
     for index, item in enumerate(package["documents"]):
-      require_keys(item, ["id", "title", "type", "tags", "status", "sourceType"], f"knowledge.documents[{index}]")
+      require_keys(item, ["id", "title", "type", "tags", "status", "updated", "size", "summary", "preview", "sourceType"], f"knowledge.documents[{index}]")
       validate_string_list(item["tags"], f"knowledge.documents[{index}].tags")
       validate_source_type_text(item["sourceType"], f"knowledge.documents[{index}].sourceType")
     for index, item in enumerate(package["cases"]):
@@ -380,6 +381,52 @@ def validate_knowledge_package(package: dict[str, Any], area_keys: set[str]) -> 
       if link["from"] not in node_ids or link["to"] not in node_ids:
         raise KeyError(f"knowledge.graph.links[{index}] references missing node: {link}")
     validate_qa_items(package["qaExamples"], "knowledge.qaExamples")
+    rag = package["rag"]
+    require_keys(rag, ["profiles"], "knowledge.rag")
+    if not isinstance(rag["profiles"], list) or not rag["profiles"]:
+      raise ValueError("knowledge.rag.profiles must be a non-empty list")
+    document_ids = {item["id"] for item in package["documents"]}
+    required_profile_ids = document_ids | {"DOC-UPLOAD-001"}
+    profile_ids: set[str] = set()
+    for profile_index, profile in enumerate(rag["profiles"]):
+      label = f"knowledge.rag.profiles[{profile_index}]"
+      require_keys(profile, ["docId", "pipeline", "chunks", "retrieval", "agentAnswer", "feedback"], label)
+      if profile["docId"] in profile_ids:
+        raise KeyError(f"duplicate knowledge rag profile docId: {profile['docId']}")
+      profile_ids.add(profile["docId"])
+      if profile["docId"] not in required_profile_ids:
+        raise KeyError(f"{label}.docId missing document or upload mock: {profile['docId']}")
+      if not isinstance(profile["pipeline"], list) or not profile["pipeline"]:
+        raise ValueError(f"{label}.pipeline must be a non-empty list")
+      for index, step in enumerate(profile["pipeline"]):
+        require_keys(step, ["key", "label", "value", "desc"], f"{label}.pipeline[{index}]")
+      chunk_ids: set[str] = set()
+      for index, chunk in enumerate(profile["chunks"]):
+        require_keys(chunk, ["id", "title", "text", "tokens", "tags"], f"{label}.chunks[{index}]")
+        if chunk["id"] in chunk_ids:
+          raise KeyError(f"duplicate knowledge rag chunk id: {chunk['id']}")
+        chunk_ids.add(chunk["id"])
+        if not isinstance(chunk["tokens"], int):
+          raise ValueError(f"{label}.chunks[{index}].tokens must be integer")
+        validate_string_list(chunk["tags"], f"{label}.chunks[{index}].tags")
+      require_keys(profile["retrieval"], ["query", "topK"], f"{label}.retrieval")
+      for index, item in enumerate(profile["retrieval"]["topK"]):
+        require_keys(item, ["chunkId", "score", "source"], f"{label}.retrieval.topK[{index}]")
+        if item["chunkId"] not in chunk_ids:
+          raise KeyError(f"{label}.retrieval.topK[{index}] missing chunk: {item['chunkId']}")
+        if not isinstance(item["score"], (int, float)):
+          raise ValueError(f"{label}.retrieval.topK[{index}].score must be numeric")
+      require_keys(profile["agentAnswer"], ["text", "citations"], f"{label}.agentAnswer")
+      for citation in profile["agentAnswer"]["citations"]:
+        if citation not in chunk_ids:
+          raise KeyError(f"{label}.agentAnswer citation missing chunk: {citation}")
+      for index, item in enumerate(profile["feedback"]):
+        require_keys(item, ["label", "before", "after"], f"{label}.feedback[{index}]")
+        if not isinstance(item["before"], int) or not isinstance(item["after"], int):
+          raise ValueError(f"{label}.feedback[{index}] before/after must be integers")
+    missing_profiles = sorted(required_profile_ids - profile_ids)
+    if missing_profiles:
+      raise ValueError(f"knowledge.rag.profiles missing docId: {', '.join(missing_profiles)}")
 
 
 def read_case_knowledge(area_key: str, area_dir: Path) -> dict[str, Any]:
