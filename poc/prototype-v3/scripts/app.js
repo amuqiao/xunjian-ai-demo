@@ -186,6 +186,7 @@
     if (state.overviewScope !== "area") state.overviewScope = "all";
     if (!DATA.dashboard.timeRanges.some(function (range) { return range.key === state.dashboardRange; })) state.dashboardRange = "batch";
     if (!dashboardQualityMetrics().some(function (metric) { return metric.key === state.dashboardFocus; })) state.dashboardFocus = activeDashboardRange().defaultFocus;
+    normalizeSelectedItemForArea();
     if (typeof state.knowledgeDocId !== "string") state.knowledgeDocId = "DOC-001";
     if (typeof state.knowledgeUploaded !== "boolean") state.knowledgeUploaded = false;
     if (typeof state.knowledgeEditedDocId !== "string") state.knowledgeEditedDocId = "";
@@ -249,6 +250,7 @@
     var areaInfo = assertKey(DATA.areas, area, "区域");
     state.currentArea = area;
     if (areaInfo.auxiliaryOnly) {
+      state.selectedItem = defaultItemForArea(area);
       state.currentTrend = areaInfo.trendKey;
       state.frameKey = "current";
     } else {
@@ -336,6 +338,17 @@
     return row;
   }
 
+  function defaultItemForArea(areaKey) {
+    return inspectionRowsForArea(areaKey)[0].item;
+  }
+
+  function normalizeSelectedItemForArea() {
+    var currentRows = inspectionRowsForArea(state.currentArea);
+    if (!currentRows.some(function (row) { return row.item === state.selectedItem; })) {
+      state.selectedItem = currentRows[0].item;
+    }
+  }
+
   function primaryFlowRow() {
     return inspectionRowForItem(primaryFlow().itemKey);
   }
@@ -404,20 +417,6 @@
     })[0];
     if (!row) return null;
     return DATA.analysis.itemDetails[itemKey] || null;
-  }
-
-  function browseRowsForArea(areaKey) {
-    return inspectionRowsForArea(areaKey).map(function (row) {
-      return {
-        no: row.no,
-        area: row.area,
-        device: row.device,
-        check: row.check,
-        result: row.result,
-        hot: false,
-        item: row.item,
-      };
-    });
   }
 
   function selectItem(itemKey, targetScene) {
@@ -506,30 +505,6 @@
     });
     qa(".scene").forEach(function (scene) {
       scene.classList.toggle("active", scene.dataset.scene === state.scene);
-    });
-  }
-
-  function renderAreaScope() {
-    var list = q("areaScopeList");
-    list.innerHTML = "";
-    DATA.overview.areaOrder.forEach(function (areaKey) {
-      var area = assertKey(DATA.areas, areaKey, "区域");
-      list.appendChild(el("button", {
-        class: "scope-item" + (state.currentArea === areaKey ? " active" : "") + (!area.auxiliaryOnly ? " risk" : ""),
-        type: "button",
-        onClick: function () { switchFormArea(areaKey); },
-      }, [
-        el("span", { class: "badge " + area.badgeTone, text: area.overviewStatus }),
-        el("strong", { text: area.short }),
-        el("small", { text: area.overviewDesc }),
-      ]));
-    });
-
-    var assets = q("areaAssetList");
-    var areaInfo = assertKey(DATA.areas, state.currentArea, "区域");
-    assets.innerHTML = "";
-    areaInfo.assets.forEach(function (asset) {
-      assets.appendChild(el("span", { class: "asset-pill", text: asset }));
     });
   }
 
@@ -1073,43 +1048,6 @@
     window.requestAnimationFrame(renderDashboardCharts);
   }
 
-  function renderInspectionTable() {
-    var tbody = q("inspectionTable").querySelector("tbody");
-    tbody.innerHTML = "";
-    var area = assertKey(DATA.areas, state.currentArea, "区域");
-    var rows = state.browseMode || area.auxiliaryOnly ? browseRowsForArea(state.currentArea) : inspectionRowsForArea(state.currentArea);
-    rows.forEach(function (row) {
-      var hasDetail = !!DATA.analysis.itemDetails[row.item];
-      var selected = state.selectedItem === row.item && hasDetail;
-      var interactive = hasDetail;
-      var tr = el("tr", {
-        class: (row.hot ? "hot " : "") + (selected ? "selected" : "") + (!interactive ? "readonly" : ""),
-        tabindex: interactive ? "0" : "-1",
-        role: interactive ? "button" : "row",
-        "aria-selected": selected ? "true" : "false",
-        dataset: { item: row.item },
-        onClick: interactive ? function () { selectItem(row.item); } : null,
-        onKeydown: function (event) {
-          if (!interactive) return;
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            selectItem(row.item);
-          }
-        },
-      }, [
-        el("td", { text: String(row.no) }),
-        el("td", { text: row.area }),
-        el("td", { text: row.device }),
-        el("td", { text: row.check }),
-        el("td", {}, [
-          row.result === "正常" ? el("span", { class: "badge ok", text: "正常" }) : el("strong", { text: row.result }),
-          row.hot ? el("small", { class: "conflict-note", text: "与趋势冲突" }) : null,
-        ]),
-      ]);
-      tbody.appendChild(tr);
-    });
-  }
-
   function renderExplainList(id, items) {
     var list = q(id);
     list.innerHTML = "";
@@ -1184,19 +1122,25 @@
 
   function renderForm() {
     var area = assertKey(DATA.areas, state.currentArea, "区域");
-    q("formTitle").textContent = area.auxiliaryOnly ? area.short + "质检记录" : "表单质检工作台";
-    q("formSubtitle").textContent = area.sub;
+    var primaryRow = primaryFlowRow();
+    q("formTitle").textContent = area.auxiliaryOnly ? area.short + "质检记录" : "表单质检";
+    q("formSubtitle").textContent = area.auxiliaryOnly ? area.sub : "围绕第" + primaryRow.no + "项" + primaryRow.device + primaryRow.check + "做 AI 辅助复核。";
     q("formBadge").className = "badge " + area.badgeTone;
     q("formBadge").textContent = area.short + " · " + area.badge;
-    q("inspectionPanelTitle").textContent = area.short + "巡检表明细";
-
-    renderAreaScope();
-    renderInspectionTable();
 
     q("evidenceTags").innerHTML = "";
     var selectedDetail = itemDetailForCurrentArea(state.selectedItem);
+    var selectedRow = inspectionRowForItem(state.selectedItem);
+    q("formItemMeta").textContent = selectedRow.area + " / 第" + selectedRow.no + "项";
+    q("formItemResult").className = "badge " + (selectedRow.result === "正常" ? "ok" : "warn");
+    q("formItemResult").textContent = selectedRow.result;
+    q("formItemTitle").textContent = selectedRow.device + " · " + selectedRow.check;
+    q("formItemArea").textContent = selectedRow.area;
+    q("formItemDevice").textContent = selectedRow.device;
+    q("formItemCheck").textContent = selectedRow.check;
+
     if (state.browseMode || !selectedDetail) {
-      q("evidenceTitle").textContent = "区域证据摘要";
+      q("evidenceTitle").textContent = "表单项摘要";
       q("evidenceText").textContent = area.evidence;
       area.tags.forEach(function (tag, i) {
         q("evidenceTags").appendChild(el("span", { class: "tag" + (i === 0 ? " hot" : ""), text: tag }));
@@ -1218,7 +1162,6 @@
     q("conflictTitle").textContent = content.title;
     q("conflictText").textContent = content.text;
     renderQualityFacts(content.facts);
-    renderExplainList("formExplainList", area.formExplain);
     renderFormAssist(area, selectedDetail);
   }
 

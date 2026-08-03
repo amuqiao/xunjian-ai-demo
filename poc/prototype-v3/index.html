@@ -208,60 +208,29 @@
             <span class="badge danger" id="formBadge">计量区 · 高优先级复检</span>
           </div>
 
-          <div class="form-grid">
-            <aside class="panel scope-panel">
+          <div class="form-focus-grid" aria-label="表单质检核心证据">
+            <section class="panel form-focus-card form-item-card">
               <div class="panel-title">
-                <span>区域质检范围</span>
-                <span class="mini-hint">6 区域</span>
+                <span>表单项</span>
+                <span class="mini-hint" id="formItemMeta">计量区 / 第73项</span>
               </div>
-              <div class="scope-list" id="areaScopeList"></div>
-              <div class="asset-card card">
-                <strong>本区数据资产</strong>
-                <div class="asset-list" id="areaAssetList"></div>
+              <div class="form-item-head">
+                <span class="badge ok" id="formItemResult">正常</span>
+                <strong id="formItemTitle">过滤器差压</strong>
               </div>
-            </aside>
-
-            <section class="panel table-panel">
-              <div class="panel-title">
-                <span id="inspectionPanelTitle">巡检表明细</span>
-                <span class="mini-hint">表单 / 设备 / 结果</span>
-              </div>
-              <div class="table-scroll">
-                <table class="data-table" id="inspectionTable">
-                  <thead>
-                    <tr><th>序号</th><th>区域</th><th>设备</th><th>检查项</th><th>结果</th></tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
+              <div class="form-item-facts">
+                <div class="area-stat card"><small>区域</small><strong id="formItemArea">计量区</strong></div>
+                <div class="area-stat card"><small>设备</small><strong id="formItemDevice">过滤器</strong></div>
+                <div class="area-stat card"><small>检查项</small><strong id="formItemCheck">差压</strong></div>
               </div>
               <div class="evidence-card card">
-                <strong id="evidenceTitle">证据摘要</strong>
+                <strong id="evidenceTitle">表单项证据摘要</strong>
                 <p id="evidenceText"></p>
                 <div class="tag-row" id="evidenceTags"></div>
               </div>
             </section>
 
-            <aside class="panel form-explain-panel">
-              <div class="panel-title">
-                <span>AI 质检结论</span>
-                <span class="mini-hint">规则 / 时序 / 视觉</span>
-              </div>
-              <div class="conflict-card inline" id="conflictCard">
-                <span class="conflict-icon">!</span>
-                <strong id="conflictTitle">表单正常 vs 趋势逼近阈值</strong>
-                <p id="conflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
-              </div>
-              <div class="quality-facts" id="formQualityFacts"></div>
-              <div class="evidence-shortcuts" aria-label="模型证据详情入口">
-                <button class="evidence-shortcut-btn" type="button" data-action="open-trend-detail">时序详情</button>
-                <button class="evidence-shortcut-btn" type="button" data-action="open-vision-detail">视觉详情</button>
-              </div>
-              <div class="explain-list" id="formExplainList"></div>
-            </aside>
-          </div>
-
-          <section class="assist-workbench" aria-label="表单辅助证据">
-            <section class="panel assist-panel trend-assist-panel">
+            <section class="panel form-focus-card trend-assist-panel">
               <div class="panel-title">
                 <span>时序模型预警</span>
                 <button class="mini-detail-btn" type="button" data-action="open-trend-detail" aria-label="查看时序模型详情">查看详情</button>
@@ -274,7 +243,7 @@
               </div>
             </section>
 
-            <section class="panel assist-panel visual-assist-panel">
+            <section class="panel form-focus-card visual-assist-panel">
               <div class="panel-title">
                 <span>视觉模型预警</span>
                 <button class="mini-detail-btn" type="button" data-action="open-vision-detail" aria-label="查看视觉模型详情">查看详情</button>
@@ -292,10 +261,23 @@
               </div>
             </section>
 
-            <section class="panel assist-panel agent-assist-panel">
+            <section class="panel form-focus-card ai-quality-card">
               <div class="panel-title">
-                <span>Agent 复检建议</span>
-                <span class="mini-hint">表单 / 模型 / 规则</span>
+                <span>AI 质检卡片</span>
+                <span class="mini-hint">表单 / 时序 / 视觉</span>
+              </div>
+              <div class="conflict-card inline" id="conflictCard">
+                <span class="conflict-icon">!</span>
+                <strong id="conflictTitle">表单正常 vs 趋势逼近阈值</strong>
+                <p id="conflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
+              </div>
+              <div class="quality-facts" id="formQualityFacts"></div>
+            </section>
+
+            <section class="panel form-focus-card agent-assist-panel">
+              <div class="panel-title">
+                <span>AI 复检卡片</span>
+                <span class="mini-hint">建议 / 问答 / 确认</span>
               </div>
               <div class="agent-assist-copy">
                 <strong id="formAgentTitle">综合证据生成复检建议</strong>
@@ -303,9 +285,10 @@
               </div>
               <div class="assist-actions">
                 <button class="action wide" type="button" data-action="open-drawer">查看 AI 辅助问答</button>
+                <button class="action primary wide" type="button" id="formPrimary" data-action="go-recheck">进入人工确认</button>
               </div>
             </section>
-          </section>
+          </div>
 
           <section class="panel evidence-detail-panel hidden" id="evidenceDetailPanel" aria-label="模型证据详情">
             <div class="evidence-detail-head">
@@ -379,9 +362,6 @@
             </section>
           </section>
 
-          <div class="scene-actions">
-            <button class="action primary" type="button" id="formPrimary" data-action="go-recheck">进入人工确认</button>
-          </div>
         </section>
 
         <section class="scene" id="scene-recheck" data-scene="recheck" aria-labelledby="recheckTitle">
