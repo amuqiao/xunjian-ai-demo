@@ -2338,7 +2338,7 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .rag-knowledge-grid {
-  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  grid-template-columns: 280px minmax(0, 1.6fr) 320px;
   height: calc(100% - 66px);
   overflow: hidden;
 }
@@ -2359,7 +2359,7 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .rag-agent-panel {
-  grid-template-rows: auto auto minmax(82px, 0.85fr) auto minmax(100px, 1fr) auto;
+  grid-template-rows: auto auto minmax(72px, 0.72fr) auto minmax(82px, 0.9fr) auto;
 }
 
 .knowledge-toolbar {
@@ -2368,9 +2368,14 @@ body[data-scene="overview"] .time-range-text {
   gap: 6px;
 }
 
+.knowledge-toolbar .primary {
+  grid-column: 1 / -1;
+}
+
 .knowledge-toolbar .action {
-  min-height: 32px;
-  padding: 0 6px;
+  min-height: 30px;
+  padding: 0 5px;
+  font-size: 12px;
 }
 
 .knowledge-toolbar .danger {
@@ -2385,7 +2390,22 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .knowledge-doc-item {
+  display: grid;
+  gap: 7px;
+  min-height: 118px;
   cursor: pointer;
+}
+
+.knowledge-doc-head,
+.rag-doc-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.knowledge-doc-head em {
+  max-width: 112px;
 }
 
 .knowledge-doc-item.active {
@@ -2401,7 +2421,7 @@ body[data-scene="overview"] .time-range-text {
 .rag-pipeline {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .rag-summary-strip {
@@ -2411,7 +2431,7 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .rag-summary-item {
-  padding: 8px;
+  padding: 7px 9px;
   border: 1px solid rgba(71, 184, 255, 0.2);
   background: rgba(37, 217, 255, 0.07);
 }
@@ -2426,19 +2446,36 @@ body[data-scene="overview"] .time-range-text {
   display: block;
   margin-top: 2px;
   color: var(--cyan);
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .rag-step {
+  position: relative;
   display: grid;
-  gap: 4px;
-  min-height: 70px;
-  padding: 7px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 4px 7px;
+  min-height: 88px;
+  padding: 9px;
   border: 1px solid rgba(37, 217, 255, 0.24);
-  background: rgba(6, 17, 31, 0.52);
+  background:
+    linear-gradient(135deg, rgba(37, 217, 255, 0.12), transparent 62%),
+    rgba(6, 17, 31, 0.52);
   opacity: 0;
   transform: translateY(8px);
   animation: ragStepIn 520ms ease forwards;
+}
+
+.rag-step::after {
+  content: "";
+  position: absolute;
+  top: 21px;
+  right: -10px;
+  width: 10px;
+  border-top: 1px solid rgba(37, 217, 255, 0.44);
+}
+
+.rag-step.terminal::after {
+  display: none;
 }
 
 .rag-step span {
@@ -2453,11 +2490,13 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .rag-step strong {
+  min-width: 0;
   color: var(--text);
 }
 
 .rag-step small,
 .rag-step em {
+  grid-column: 2;
   color: var(--muted);
   font-size: 11px;
   font-style: normal;
@@ -2465,12 +2504,15 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .rag-step em {
-  display: none;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .rag-preview-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr) minmax(0, 0.9fr);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
   gap: 10px;
   min-height: 0;
   overflow: hidden;
@@ -2481,7 +2523,7 @@ body[data-scene="overview"] .time-range-text {
 .rag-retrieval,
 .rag-agent-answer {
   min-height: 0;
-  padding: 8px;
+  padding: 10px;
   overflow: hidden;
 }
 
@@ -2506,6 +2548,15 @@ body[data-scene="overview"] .time-range-text {
 .rag-agent-answer p {
   color: var(--muted);
   line-height: 1.5;
+}
+
+.rag-doc-preview p,
+.rag-agent-answer p,
+.knowledge-case-item p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .rag-chunk-list,
@@ -2617,6 +2668,11 @@ body[data-scene="overview"] .time-range-text {
   overflow: hidden auto;
 }
 
+.rag-agent-panel .knowledge-case-item {
+  display: grid;
+  gap: 5px;
+}
+
 .rag-feedback {
   text-align: center;
 }
@@ -2643,15 +2699,13 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .knowledge-upload-mock {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 12px;
-  margin-top: 14px;
-  padding: 12px;
+  margin-top: 0;
+  padding: 10px;
   border: 1px dashed rgba(22, 119, 255, 0.38);
   border-radius: 8px;
-  background: #f8fbff;
+  background: rgba(37, 217, 255, 0.06);
 }
 
 .knowledge-upload-mock span {
@@ -2660,6 +2714,74 @@ body[data-scene="overview"] .time-range-text {
 
 .knowledge-case-item p {
   margin: 0;
+}
+
+.tiny-action {
+  min-height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.doc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.66);
+}
+
+.doc-modal.open {
+  display: flex;
+}
+
+.doc-modal-inner {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  width: min(860px, 94vw);
+  max-height: 78vh;
+  padding: 14px;
+}
+
+.doc-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.doc-modal-head small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.doc-modal-body {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden auto;
+  padding-right: 4px;
+}
+
+.doc-modal-section {
+  padding: 12px;
+  border: 1px solid rgba(71, 184, 255, 0.18);
+  background: rgba(6, 17, 31, 0.52);
+}
+
+.doc-modal-section strong {
+  color: var(--cyan);
+}
+
+.doc-modal-section p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  color: var(--text);
+  line-height: 1.7;
 }
 
 .knowledge-graph {
@@ -3910,6 +4032,29 @@ body[data-scene="overview"] .flow-step small {
 
   .knowledge-doc-list {
     grid-template-columns: 1fr;
+  }
+
+  .rag-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rag-pipeline,
+  .rag-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rag-step::after {
+    display: none;
+  }
+
+  .rag-step {
+    min-height: auto;
+  }
+
+  .rag-doc-panel,
+  .rag-workbench-panel,
+  .rag-agent-panel {
+    overflow: visible;
   }
 
   .top-status {

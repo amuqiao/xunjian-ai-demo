@@ -435,17 +435,18 @@
         <section class="scene" id="scene-knowledge" data-scene="knowledge" aria-labelledby="knowledgeTitle">
           <div class="scene-head">
             <div>
-              <h2 id="knowledgeTitle">RAG 知识库管理</h2>
-              <p>文档上传后完成解析、切片、向量化和入库，Agent 问答可检索、引用并回溯来源。</p>
+              <h2 id="knowledgeTitle">RAG 知识库演示台</h2>
+              <p>案例归档和手动上传的文档进入知识库，Agent 问答可检索、引用并回溯来源。</p>
             </div>
-            <span class="badge info">前端演示 RAG</span>
+            <span class="badge info">上传 / 解析 / 检索</span>
           </div>
           <div class="knowledge-grid rag-knowledge-grid">
             <section class="panel knowledge-doc-panel rag-doc-panel">
-              <div class="panel-title"><span>文档资产</span><span class="mini-hint">CRUD / 上传 / 下载</span></div>
+              <div class="panel-title"><span>知识来源</span><span class="mini-hint">案例归档 / 手动上传</span></div>
               <div class="knowledge-toolbar">
-                <button class="action primary" type="button" data-action="mock-upload-doc">上传</button>
-                <button class="action" type="button" data-action="mock-edit-doc">编辑</button>
+                <button class="action primary" type="button" data-action="mock-upload-doc">上传入库</button>
+                <button class="action" type="button" data-action="open-knowledge-doc">查看</button>
+                <button class="action" type="button" data-action="mock-edit-doc">校订</button>
                 <button class="action" type="button" data-action="mock-download-doc">下载</button>
                 <button class="action danger" type="button" data-action="mock-delete-doc">停用</button>
               </div>
@@ -454,7 +455,7 @@
             </section>
 
             <section class="panel rag-workbench-panel">
-              <div class="panel-title"><span>解析入库流水</span><span class="mini-hint">上传 → 解析 → 切片 → 向量化</span></div>
+              <div class="panel-title"><span>RAG 入库流水</span><span class="mini-hint">上传 → 解析 → 切片 → 向量化 → 入库 → 检索</span></div>
               <div class="rag-summary-strip" id="ragSummaryStrip"></div>
               <div class="rag-pipeline" id="ragPipeline"></div>
               <div class="rag-preview-grid">
@@ -472,7 +473,7 @@
             </section>
 
             <aside class="panel rag-agent-panel">
-              <div class="panel-title"><span>Agent 引用与反哺</span><span class="mini-hint">可追溯回答</span></div>
+              <div class="panel-title"><span>Agent 检索引用</span><span class="mini-hint">证据来源可回溯</span></div>
               <div class="rag-agent-answer" id="ragAgentAnswer"></div>
               <div class="rag-citation-list" id="ragCitationList"></div>
               <div class="rag-feedback-list" id="ragFeedbackList"></div>
@@ -527,6 +528,18 @@
           <button class="action" type="button" data-action="close-image">关闭</button>
         </div>
         <img id="modalImage" src="" alt="关键帧放大预览" />
+      </div>
+    </div>
+    <div class="doc-modal" id="knowledgeDocModal" role="dialog" aria-modal="true" aria-label="知识库文档查看" tabindex="-1">
+      <div class="doc-modal-inner panel">
+        <div class="doc-modal-head">
+          <div>
+            <strong id="knowledgeModalTitle">知识库文档</strong>
+            <small id="knowledgeModalMeta"></small>
+          </div>
+          <button class="action" type="button" data-action="close-knowledge-doc">关闭</button>
+        </div>
+        <div class="doc-modal-body" id="knowledgeModalBody"></div>
       </div>
     </div>
 
