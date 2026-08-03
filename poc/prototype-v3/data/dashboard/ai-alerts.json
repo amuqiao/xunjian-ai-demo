@@ -1,5 +1,15 @@
 [
   {
+    "id": "metering-filter-dp",
+    "title": "过滤器差压接近阈值",
+    "areaKey": "metering",
+    "model": "时序模型",
+    "priority": "P1",
+    "summary": "差压趋势升至 0.097MPa,建议结合表单第73项人工复核。",
+    "sourceType": "演示推演",
+    "action": "查看时序证据"
+  },
+  {
     "id": "battery-voltage-drop",
     "title": "电池电压下降",
     "areaKey": "power",

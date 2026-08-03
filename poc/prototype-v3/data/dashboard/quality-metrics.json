@@ -56,7 +56,7 @@
   {
     "key": "aiAlerts",
     "label": "AI 提醒",
-    "value": "3",
+    "value": "4",
     "delta": "时序/轨迹",
     "tone": "blue",
     "sourceType": "演示推演",

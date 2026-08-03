@@ -13,7 +13,7 @@
     "targetArea": "metering",
     "targetScene": "form",
     "taskIds": ["XJ-20260721-A-073"],
-    "alertIds": [],
+    "alertIds": ["metering-filter-dp"],
     "action": "查看风险详情"
   },
   {
@@ -104,10 +104,10 @@
   {
     "key": "aiAlerts",
     "status": "AI 提醒",
-    "title": "AI 智能分析提醒 3 条",
-    "desc": "AI 提醒只辅助人工巡检,当前重点包含电池电压下降和污油罐液位增加。",
+    "title": "AI 智能分析提醒 4 条",
+    "desc": "AI 提醒只辅助人工巡检,当前重点包含计量区差压、电池电压和污油罐液位。",
     "stats": [
-      { "label": "提醒数", "value": "3" },
+      { "label": "提醒数", "value": "4" },
       { "label": "最高", "value": "P1" },
       { "label": "模型", "value": "时序/轨迹" }
     ],
@@ -115,7 +115,7 @@
     "targetArea": "power",
     "targetScene": "form",
     "taskIds": [],
-    "alertIds": ["battery-voltage-drop", "oil-tank-level-rise", "valve-route-interval"],
+    "alertIds": ["metering-filter-dp", "battery-voltage-drop", "oil-tank-level-rise", "valve-route-interval"],
     "action": "查看 AI 关联项"
   }
 ]

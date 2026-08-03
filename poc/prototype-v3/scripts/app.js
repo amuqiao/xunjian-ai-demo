@@ -739,26 +739,15 @@
     }));
 
     setChartOption("anomalyTypeChart", mergeOption(dashboardChartBase(), {
-      color: ["#ff5c7a"],
-      grid: chartGrid({ left: 12, right: 8, top: 18, bottom: 4 }),
-      xAxis: {
-        type: "category",
-        data: chartsData.anomalyTypes.map(function (item) { return item.name; }),
-        axisLabel: { color: chartTextColor(), interval: 0, fontSize: 10 },
-        axisTick: { show: false },
-        axisLine: { lineStyle: { color: "rgba(148,198,255,.18)" } },
-      },
-      yAxis: {
-        type: "value",
-        splitLine: { lineStyle: { color: "rgba(148,198,255,.12)" } },
-        axisLabel: { color: chartTextColor() },
-      },
+      color: ["#fbbf24", "#25d9ff", "#a78bfa"],
+      legend: { orient: "vertical", right: 4, top: "center", itemWidth: 8, itemHeight: 8, textStyle: { color: chartTextColor(), fontSize: 11 } },
       series: [{
-        type: "bar",
-        barWidth: 16,
-        data: chartsData.anomalyTypes.map(function (item) { return item.value; }),
-        itemStyle: { borderRadius: [6, 6, 0, 0], color: "#fbbf24" },
-        label: { show: true, position: "top", color: "#fbbf24", fontWeight: 800 },
+        type: "pie",
+        radius: ["54%", "76%"],
+        center: ["36%", "52%"],
+        label: { color: "#eef7ff", formatter: "{b}\n{c}", fontSize: 11 },
+        labelLine: { length: 8, length2: 4 },
+        data: chartsData.anomalyTypes,
       }],
     }));
 
@@ -786,12 +775,12 @@
       grid: chartGrid({ top: 28, left: 16, right: 34, bottom: 8 }),
       xAxis: { type: "category", data: trend.labels, axisLabel: { color: chartTextColor() }, axisTick: { show: false }, axisLine: { lineStyle: { color: "rgba(148,198,255,.18)" } } },
       yAxis: [
-        { type: "value", min: 88, max: 100, splitLine: { lineStyle: { color: "rgba(148,198,255,.12)" } }, axisLabel: { color: chartTextColor(), formatter: "{value}%" } },
-        { type: "value", splitLine: { show: false }, axisLabel: { color: chartTextColor() } },
+        { type: "value", min: 88, max: 100, splitLine: { lineStyle: { color: "rgba(148,198,255,.08)" } }, axisLabel: { color: chartTextColor(), formatter: "{value}%" } },
+        { type: "value", splitLine: { show: false }, axisLabel: { show: false } },
       ],
       series: [
-        { name: "完成率", type: "line", smooth: true, data: completionTrend, symbolSize: 6, areaStyle: { opacity: 0.12 } },
-        { name: "问题数", type: "bar", yAxisIndex: 1, barWidth: 12, data: trend.issues, itemStyle: { borderRadius: [5, 5, 0, 0] } },
+        { name: "完成率", type: "line", smooth: true, data: completionTrend, symbolSize: 7, areaStyle: { opacity: 0.14 }, lineStyle: { width: 3 } },
+        { name: "问题数", type: "bar", yAxisIndex: 1, barWidth: 8, data: trend.issues, itemStyle: { borderRadius: [5, 5, 0, 0], opacity: 0.42 } },
       ],
     }));
     window.requestAnimationFrame(resizeCharts);
@@ -832,43 +821,51 @@
       ]));
     });
 
-    qa(".map-area").forEach(function (node) {
+    qa("#scene-overview .map-area, #scene-station .map-area").forEach(function (node) {
       var area = assertKey(DATA.areas, node.dataset.area, "区域");
       node.classList.toggle("active", !showAllAlerts && node.dataset.area === state.currentArea);
       node.classList.toggle("status-warn", area.badgeTone === "warn" || area.badgeTone === "danger");
       node.classList.toggle("status-ok", area.badgeTone === "ok");
       node.classList.toggle("status-info", area.badgeTone !== "warn" && area.badgeTone !== "danger" && area.badgeTone !== "ok");
     });
-    q("riskDot").classList.remove("closed");
-    q("mapToast").classList.remove("closed");
-    q("mapToastBadge").className = "badge " + primaryArea.badgeTone;
-    q("mapToastBadge").textContent = "P1";
-    q("mapToastText").textContent = "计量区差压趋势疑点为本轮主线,点击异常点查看摘要。";
-
-    var anomalyLayer = q("routeAnomalyLayer");
-    anomalyLayer.innerHTML = "";
-    DATA.dashboard.routeAnomalies.forEach(function (item) {
-      var group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      group.setAttribute("class", "anomaly-node " + priorityTone(item.priority));
-      group.setAttribute("tabindex", "0");
-      group.setAttribute("role", "button");
-      group.setAttribute("aria-label", item.priority + " " + item.label);
-      group.dataset.area = item.areaKey;
-      group.innerHTML =
-        '<circle class="anomaly-hit" cx="' + item.x + '" cy="' + item.y + '" r="24"></circle>' +
-        '<circle cx="' + item.x + '" cy="' + item.y + '" r="10"></circle>' +
-        '<text x="' + (item.x + 16) + '" y="' + (item.y - 12) + '">' + item.priority + '</text>';
-      group.addEventListener("click", function () { selectMapArea(item.areaKey); });
-      group.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          selectMapArea(item.areaKey);
-        }
-      });
-      anomalyLayer.appendChild(group);
+    ["overview", ""].forEach(function (prefix) {
+      var riskId = prefix ? "overviewRiskDot" : "riskDot";
+      var toastId = prefix ? "overviewMapToast" : "mapToast";
+      var badgeId = prefix ? "overviewMapToastBadge" : "mapToastBadge";
+      var textId = prefix ? "overviewMapToastText" : "mapToastText";
+      q(riskId).classList.remove("closed");
+      q(toastId).classList.remove("closed");
+      q(badgeId).className = "badge " + primaryArea.badgeTone;
+      q(badgeId).textContent = "P1";
+      q(textId).textContent = prefix ? "计量区差压趋势疑点,建议进入表单质检。" : "计量区差压趋势疑点为本轮主线,点击异常点查看摘要。";
     });
 
-    q("selectedAreaPanelTitle").textContent = showAllAlerts ? "指标详情 · " + activeMetric.label : "当前区域摘要";
+    ["overviewRouteAnomalyLayer", "routeAnomalyLayer"].forEach(function (layerId) {
+      var anomalyLayer = q(layerId);
+      anomalyLayer.innerHTML = "";
+      DATA.dashboard.routeAnomalies.forEach(function (item) {
+        var group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.setAttribute("class", "anomaly-node " + priorityTone(item.priority));
+        group.setAttribute("tabindex", "0");
+        group.setAttribute("role", "button");
+        group.setAttribute("aria-label", item.priority + " " + item.label);
+        group.dataset.area = item.areaKey;
+        group.innerHTML =
+          '<circle class="anomaly-hit" cx="' + item.x + '" cy="' + item.y + '" r="24"></circle>' +
+          '<circle cx="' + item.x + '" cy="' + item.y + '" r="10"></circle>' +
+          '<text x="' + (item.x + 16) + '" y="' + (item.y - 12) + '">' + item.priority + '</text>';
+        group.addEventListener("click", function () { selectMapArea(item.areaKey); });
+        group.addEventListener("keydown", function (event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectMapArea(item.areaKey);
+          }
+        });
+        anomalyLayer.appendChild(group);
+      });
+    });
+
+    q("selectedAreaPanelTitle").textContent = showAllAlerts ? "当前焦点 · " + activeMetric.label : "当前区域摘要";
     q("selectedAreaBadge").className = "badge " + summaryView.badgeTone;
     q("selectedAreaBadge").textContent = summaryView.overviewStatus;
     q("selectedAreaTitle").textContent = summaryView.overviewTitle;
@@ -921,7 +918,7 @@
       }, [
         el("span", { class: "badge " + priorityTone(item.priority), text: item.priority }),
         el("strong", { text: item.issue }),
-        el("small", { text: item.time + " · " + item.worker + " · " + item.area + " · " + item.status }),
+        el("small", { text: item.time + " · " + item.area + " · " + item.status }),
         el("em", { class: sourceClass(item.sourceType), text: item.sourceType }),
       ]));
     });

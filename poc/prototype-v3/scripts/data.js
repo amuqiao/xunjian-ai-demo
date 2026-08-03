@@ -1472,7 +1472,7 @@
       {
         "key": "aiAlerts",
         "label": "AI 提醒",
-        "value": "3",
+        "value": "4",
         "delta": "时序/轨迹",
         "tone": "blue",
         "sourceType": "演示推演",
@@ -1593,6 +1593,16 @@
     ],
     "aiAlerts": [
       {
+        "id": "metering-filter-dp",
+        "title": "过滤器差压接近阈值",
+        "areaKey": "metering",
+        "model": "时序模型",
+        "priority": "P1",
+        "summary": "差压趋势升至 0.097MPa,建议结合表单第73项人工复核。",
+        "sourceType": "演示推演",
+        "action": "查看时序证据"
+      },
+      {
         "id": "battery-voltage-drop",
         "title": "电池电压下降",
         "areaKey": "power",
@@ -1653,7 +1663,9 @@
         "taskIds": [
           "XJ-20260721-A-073"
         ],
-        "alertIds": [],
+        "alertIds": [
+          "metering-filter-dp"
+        ],
         "action": "查看风险详情"
       },
       {
@@ -1818,12 +1830,12 @@
       {
         "key": "aiAlerts",
         "status": "AI 提醒",
-        "title": "AI 智能分析提醒 3 条",
-        "desc": "AI 提醒只辅助人工巡检,当前重点包含电池电压下降和污油罐液位增加。",
+        "title": "AI 智能分析提醒 4 条",
+        "desc": "AI 提醒只辅助人工巡检,当前重点包含计量区差压、电池电压和污油罐液位。",
         "stats": [
           {
             "label": "提醒数",
-            "value": "3"
+            "value": "4"
           },
           {
             "label": "最高",
@@ -1843,6 +1855,7 @@
         "targetScene": "form",
         "taskIds": [],
         "alertIds": [
+          "metering-filter-dp",
           "battery-voltage-drop",
           "oil-tank-level-rise",
           "valve-route-interval"
