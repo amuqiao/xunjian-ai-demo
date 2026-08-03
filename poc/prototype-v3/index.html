@@ -210,6 +210,10 @@
                 <p id="conflictText">过滤器差压最新值接近 0.1MPa，需复检确认。</p>
               </div>
               <div class="quality-facts" id="formQualityFacts"></div>
+              <div class="evidence-shortcuts" aria-label="模型证据详情入口">
+                <button class="evidence-shortcut-btn" type="button" data-action="open-trend-detail">时序详情</button>
+                <button class="evidence-shortcut-btn" type="button" data-action="open-vision-detail">视觉详情</button>
+              </div>
               <div class="explain-list" id="formExplainList"></div>
             </aside>
           </div>
@@ -218,7 +222,7 @@
             <section class="panel assist-panel trend-assist-panel">
               <div class="panel-title">
                 <span>时序模型预警</span>
-                <span class="mini-hint">辅助表单判断</span>
+                <button class="mini-detail-btn" type="button" data-action="open-trend-detail" aria-label="查看时序模型详情">查看详情</button>
               </div>
               <div class="trend-canvas assist-trend-canvas" id="formTrendCanvas"></div>
               <div class="trend-stats compact" id="formTrendStats"></div>
@@ -231,7 +235,7 @@
             <section class="panel assist-panel visual-assist-panel">
               <div class="panel-title">
                 <span>视觉模型预警</span>
-                <span class="mini-hint">现场关键帧</span>
+                <button class="mini-detail-btn" type="button" data-action="open-vision-detail" aria-label="查看视觉模型详情">查看详情</button>
               </div>
               <div class="frame-stage assist-frame-stage">
                 <img id="formFrameImage" alt="表单质检现场关键帧" />
