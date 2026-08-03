@@ -3653,19 +3653,20 @@ body[data-scene="overview"] .time-range-text {
 }
 
 .executive-dashboard {
-  grid-template-columns: 230px minmax(0, 1fr) 320px 330px;
-  grid-template-rows: minmax(0, 0.66fr) minmax(250px, 0.34fr);
+  grid-template-columns: 250px minmax(0, 1fr) 320px 330px;
+  grid-template-rows: minmax(0, 3fr) minmax(230px, 2fr);
   grid-template-areas:
     "kpis map map side"
-    "trend trend anomaly side";
+    "kpis trend anomaly side";
   gap: 10px;
 }
 
 .executive-dashboard .dashboard-kpis {
   grid-template-columns: 1fr;
-  grid-auto-rows: minmax(66px, 1fr);
+  grid-auto-rows: minmax(58px, 1fr);
+  gap: 8px;
   align-content: stretch;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .executive-dashboard .dashboard-map-panel {
@@ -4114,15 +4115,16 @@ body[data-scene="overview"] .flow-step small {
   }
 
   .executive-dashboard {
-    grid-template-columns: 210px minmax(0, 1fr) 280px 300px;
-    grid-template-rows: minmax(0, 0.62fr) minmax(200px, 0.38fr);
+    grid-template-columns: 220px minmax(0, 1fr) 280px 300px;
+    grid-template-rows: minmax(0, 3fr) minmax(190px, 2fr);
     grid-template-areas:
       "kpis map map side"
-      "trend trend anomaly side";
+      "kpis trend anomaly side";
   }
 
   .executive-dashboard .dashboard-kpis {
-    grid-auto-rows: minmax(58px, 1fr);
+    grid-auto-rows: minmax(50px, 1fr);
+    gap: 6px;
   }
 
   .executive-dashboard .compact-side {
