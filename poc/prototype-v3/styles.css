@@ -3150,7 +3150,7 @@ body[data-scene="overview"] .time-range-text {
 
 .executive-dashboard {
   grid-template-columns: 230px minmax(0, 1fr) 320px 330px;
-  grid-template-rows: minmax(0, 1fr) 150px;
+  grid-template-rows: minmax(0, 0.66fr) minmax(250px, 0.34fr);
   grid-template-areas:
     "kpis map map side"
     "trend trend anomaly side";
@@ -3183,6 +3183,11 @@ body[data-scene="overview"] .time-range-text {
 
 .executive-dashboard .anomaly-panel {
   grid-area: anomaly;
+}
+
+.executive-dashboard .task-trend-panel,
+.executive-dashboard .anomaly-panel {
+  min-height: 0;
 }
 
 .executive-dashboard .result-panel,
@@ -3580,7 +3585,7 @@ body[data-scene="overview"] .flow-step small {
 
   .executive-dashboard {
     grid-template-columns: 210px minmax(0, 1fr) 280px 300px;
-    grid-template-rows: minmax(0, 1fr) 128px;
+    grid-template-rows: minmax(0, 0.62fr) minmax(200px, 0.38fr);
     grid-template-areas:
       "kpis map map side"
       "trend trend anomaly side";
