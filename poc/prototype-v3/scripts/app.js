@@ -6,6 +6,7 @@
   var STORAGE_KEY = "xunjian-prototype-v3-state";
   var lastFocus = null;
   var charts = {};
+  var uploadDemoTimer = null;
   var LEGACY_SCENE_TARGETS = {
     analysis: "form",
     trend: "form",
@@ -32,6 +33,7 @@
       dashboardFocus: "risk",
       dashboardRange: "batch",
       knowledgeDocId: "DOC-001",
+      knowledgeCollection: "rules",
       knowledgeUploaded: false,
       knowledgeEditedDocId: "",
       knowledgeDeletedDocId: "",
@@ -188,6 +190,7 @@
     if (!dashboardQualityMetrics().some(function (metric) { return metric.key === state.dashboardFocus; })) state.dashboardFocus = activeDashboardRange().defaultFocus;
     normalizeSelectedItemForArea();
     if (typeof state.knowledgeDocId !== "string") state.knowledgeDocId = "DOC-001";
+    if (typeof state.knowledgeCollection !== "string") state.knowledgeCollection = "rules";
     if (typeof state.knowledgeUploaded !== "boolean") state.knowledgeUploaded = false;
     if (typeof state.knowledgeEditedDocId !== "string") state.knowledgeEditedDocId = "";
     if (typeof state.knowledgeDeletedDocId !== "string") state.knowledgeDeletedDocId = "";
@@ -1527,6 +1530,66 @@
     });
   }
 
+  function knowledgeCollections() {
+    return [
+      {
+        key: "rules",
+        title: "制度规范",
+        desc: "巡检制度、复检步骤和交接班要求。",
+        badge: "制度",
+        docTypes: ["制度"],
+      },
+      {
+        key: "metrics",
+        title: "指标口径",
+        desc: "客户关注的完成率、快检、漏检和时段异常口径。",
+        badge: "指标",
+        docTypes: ["指标口径"],
+      },
+      {
+        key: "cases",
+        title: "归档案例",
+        desc: "人工确认后的复检报告沉淀为相似案例。",
+        badge: "案例",
+        docTypes: ["归档案例"],
+      },
+      {
+        key: "uploads",
+        title: "上传资料",
+        desc: "业务方可补充制度、说明和现场材料。",
+        badge: "上传",
+        docTypes: ["用户上传"],
+      },
+    ];
+  }
+
+  function collectionByKey(key) {
+    var collection = knowledgeCollections().filter(function (item) { return item.key === key; })[0];
+    if (!collection) throw new Error("[v3] 未知知识库分类: " + key);
+    return collection;
+  }
+
+  function collectionForDoc(doc) {
+    return knowledgeCollections().filter(function (item) {
+      return item.docTypes.indexOf(doc.type) >= 0;
+    })[0] || collectionByKey("rules");
+  }
+
+  function documentsForCollection(key) {
+    var collection = collectionByKey(key);
+    return knowledgeDocuments().filter(function (doc) {
+      return collection.docTypes.indexOf(doc.type) >= 0;
+    });
+  }
+
+  function selectKnowledgeCollection(key) {
+    var docs = documentsForCollection(key);
+    state.knowledgeCollection = key;
+    if (docs.length) state.knowledgeDocId = docs[0].id;
+    persistState();
+    renderKnowledge();
+  }
+
   function currentKnowledgeDocument() {
     var docs = knowledgeDocuments();
     var doc = docs.filter(function (item) { return item.id === state.knowledgeDocId; })[0] || docs[0];
@@ -1537,16 +1600,88 @@
 
   function selectKnowledgeDoc(docId) {
     state.knowledgeDocId = docId;
+    state.knowledgeCollection = collectionForDoc(currentKnowledgeDocument()).key;
     persistState();
     renderKnowledge();
   }
 
+  function openKnowledgeArticle(docId) {
+    state.knowledgeDocId = docId;
+    state.knowledgeCollection = collectionForDoc(currentKnowledgeDocument()).key;
+    persistState();
+    renderKnowledge();
+    openKnowledgeDoc(document.querySelector('[data-doc-id="' + docId + '"]'));
+  }
+
   function uploadKnowledgeDoc() {
+    openUploadAnimation();
+  }
+
+  function finishKnowledgeUpload() {
     state.knowledgeUploaded = true;
     state.knowledgeDeletedDocId = "";
+    state.knowledgeCollection = "uploads";
     state.knowledgeDocId = "DOC-UPLOAD-001";
     persistState();
     renderKnowledge();
+  }
+
+  function uploadAnimationSteps() {
+    return ragProfileForDoc("DOC-UPLOAD-001").pipeline;
+  }
+
+  function renderUploadAnimation(done) {
+    q("knowledgeUploadSteps").innerHTML = "";
+    uploadAnimationSteps().forEach(function (step, index) {
+      q("knowledgeUploadSteps").appendChild(el("div", {
+        class: "upload-step" + (done ? " done" : ""),
+        style: "animation-delay:" + (index * 560) + "ms",
+      }, [
+        el("span", { text: String(index + 1) }),
+        el("strong", { text: step.label }),
+        el("small", { text: step.desc }),
+      ]));
+    });
+    q("knowledgeUploadResult").innerHTML = "";
+    q("knowledgeUploadResult").appendChild(el("strong", { text: done ? "入库完成，可在上传资料中查看" : "正在演示入库过程" }));
+    q("knowledgeUploadResult").appendChild(el("span", { text: done ? "文档已生成片段、知识节点和 Agent 可引用来源。" : "该动画用于讲解 RAG 入库链路，可反复播放。" }));
+  }
+
+  function openUploadAnimation() {
+    lastFocus = document.activeElement;
+    clearTimeout(uploadDemoTimer);
+    renderUploadAnimation(false);
+    q("knowledgeUploadModal").classList.remove("done");
+    q("knowledgeUploadModal").classList.add("open");
+    q("knowledgeUploadModal").querySelector("button").focus();
+    uploadDemoTimer = window.setTimeout(function () {
+      finishUploadAnimation();
+    }, 4300);
+  }
+
+  function replayUploadAnimation() {
+    clearTimeout(uploadDemoTimer);
+    renderUploadAnimation(false);
+    q("knowledgeUploadModal").classList.remove("done");
+    uploadDemoTimer = window.setTimeout(function () {
+      finishUploadAnimation();
+    }, 4300);
+  }
+
+  function finishUploadAnimation() {
+    clearTimeout(uploadDemoTimer);
+    uploadDemoTimer = null;
+    finishKnowledgeUpload();
+    renderUploadAnimation(true);
+    q("knowledgeUploadModal").classList.add("done");
+  }
+
+  function closeUploadAnimation() {
+    if (!q("knowledgeUploadModal").classList.contains("open")) return;
+    clearTimeout(uploadDemoTimer);
+    uploadDemoTimer = null;
+    q("knowledgeUploadModal").classList.remove("open");
+    restoreFocus();
   }
 
   function editKnowledgeDoc() {
@@ -1603,10 +1738,10 @@
     });
   }
 
-  function openKnowledgeDoc() {
+  function openKnowledgeDoc(focusOrigin) {
     var doc = currentKnowledgeDocument();
     var rag = ragProfileForDoc(doc.id);
-    lastFocus = document.activeElement;
+    lastFocus = focusOrigin || document.activeElement;
     renderKnowledgeDocModal(doc, rag);
     q("knowledgeDocModal").classList.add("open");
     q("knowledgeDocModal").querySelector("button").focus();
@@ -1630,139 +1765,133 @@
     return chunk;
   }
 
+  function knowledgeStatsForDocs(docs) {
+    return docs.reduce(function (acc, doc) {
+      var rag = ragProfileForDoc(doc.id);
+      acc.chunks += rag.chunks.length;
+      acc.topK += rag.retrieval.topK.length;
+      acc.nodes += rag.feedback.reduce(function (sum, item) { return sum + item.after; }, 0);
+      return acc;
+    }, { chunks: 0, topK: 0, nodes: 0 });
+  }
+
+  function newestDocDate(docs) {
+    return docs.reduce(function (latest, doc) {
+      return latest && latest > doc.updated ? latest : doc.updated;
+    }, "");
+  }
+
   function renderKnowledge() {
-    var selectedDoc = currentKnowledgeDocument();
-    var rag = ragProfileForDoc(selectedDoc.id);
-    var isDisabled = state.knowledgeDeletedDocId === selectedDoc.id;
-    var feedbackApplied = state.archived || (state.knowledgeUploaded && selectedDoc.id === "DOC-UPLOAD-001");
-    var feedbackVerb = selectedDoc.id === "DOC-UPLOAD-001" ? "上传后" : "归档后";
+    var docs = knowledgeDocuments();
+    var activeCollection = collectionByKey(state.knowledgeCollection);
+    var activeDocs = documentsForCollection(activeCollection.key);
+    if (activeDocs.length && activeDocs.every(function (doc) { return doc.id !== state.knowledgeDocId; })) {
+      state.knowledgeDocId = activeDocs[0].id;
+    }
+    var selectedDoc = activeDocs.filter(function (doc) { return doc.id === state.knowledgeDocId; })[0] || activeDocs[0] || null;
+    var rag = selectedDoc ? ragProfileForDoc(selectedDoc.id) : null;
 
-    q("knowledgeDocList").innerHTML = "";
-    knowledgeDocuments().forEach(function (doc) {
-      var docDisabled = state.knowledgeDeletedDocId === doc.id;
-      q("knowledgeDocList").appendChild(el("button", {
-        class: "knowledge-doc-item card" + (doc.id === selectedDoc.id ? " active" : "") + (docDisabled ? " disabled" : ""),
-        type: "button",
-        onClick: function () { selectKnowledgeDoc(doc.id); },
-      }, [
-        el("div", { class: "knowledge-doc-head" }, [
-          el("span", { class: "badge info", text: doc.type }),
-          el("em", { class: sourceClass(doc.sourceType), text: doc.sourceType }),
-        ]),
-        el("strong", { text: doc.title }),
-        el("small", { text: doc.status + " · " + doc.updated }),
-        el("div", { class: "tag-row" }, doc.tags.map(function (tag, index) {
-          return el("span", { class: "tag" + (index === 0 ? " hot" : ""), text: tag });
-        })),
-      ]));
-    });
-
-    q("knowledgeCrudStatus").innerHTML = "";
-    q("knowledgeCrudStatus").appendChild(el("strong", { text: isDisabled ? "停用保留追溯" : state.knowledgeUploaded ? "上传文档已入库" : "点击上传播放入库" }));
-    q("knowledgeCrudStatus").appendChild(el("span", {
-      text: isDisabled
-        ? "不参与新增问答,仍可查看来源。"
-        : state.knowledgeEditedDocId
-          ? "标签已校订,检索上下文同步刷新。"
-          : "演示新增、查看、下载、停用。",
-    }));
-
-    q("knowledgeDocPreview").innerHTML = "";
-    q("knowledgeDocPreview").appendChild(el("div", { class: "rag-doc-preview-head" }, [
-      el("span", { class: "badge info", text: selectedDoc.type }),
-      el("button", { class: "action tiny-action", type: "button", onClick: openKnowledgeDoc, text: "查看原文" }),
-    ]));
-    q("knowledgeDocPreview").appendChild(el("strong", { text: selectedDoc.title }));
-    q("knowledgeDocPreview").appendChild(el("p", { text: selectedDoc.summary }));
-    q("knowledgeDocPreview").appendChild(el("div", { class: "tag-row" }, selectedDoc.tags.map(function (tag, index) {
-      return el("span", { class: "tag" + (index === 0 ? " hot" : ""), text: tag });
-    })));
-
-    q("ragSummaryStrip").innerHTML = "";
+    q("knowledgeOverviewStrip").innerHTML = "";
     [
-      { label: "知识文档", value: String(knowledgeDocuments().length) },
-      { label: "当前状态", value: selectedDoc.status },
-      { label: "Chunk", value: String(rag.chunks.length) },
-      { label: "向量维度", value: "1024" },
-      { label: "TopK", value: String(rag.retrieval.topK.length) },
+      { label: "知识库", value: String(knowledgeCollections().length) },
+      { label: "文章", value: String(docs.length) },
+      { label: "可检索片段", value: String(knowledgeStatsForDocs(docs).chunks) },
+      { label: "最近更新", value: newestDocDate(docs) },
     ].forEach(function (item) {
-      q("ragSummaryStrip").appendChild(el("div", { class: "rag-summary-item" }, [
+      q("knowledgeOverviewStrip").appendChild(el("div", { class: "knowledge-overview-item" }, [
         el("small", { text: item.label }),
         el("strong", { text: item.value }),
       ]));
     });
 
-    q("ragPipeline").innerHTML = "";
-    rag.pipeline.forEach(function (step, index) {
-      q("ragPipeline").appendChild(el("div", { class: "rag-step" + (index === rag.pipeline.length - 1 ? " terminal" : ""), style: "animation-delay:" + (index * 90) + "ms" }, [
-        el("span", { text: String(index + 1) }),
-        el("strong", { text: step.label }),
-        el("small", { text: step.value }),
-        el("em", { text: step.desc }),
-      ]));
-    });
-
-    q("ragChunkList").innerHTML = "";
-    rag.chunks.forEach(function (chunk, index) {
-      q("ragChunkList").appendChild(el("article", { class: "rag-chunk", style: "animation-delay:" + (index * 100) + "ms" }, [
-        el("strong", { text: chunk.id }),
-        el("small", { text: chunk.title + " · " + chunk.tokens + " tokens" }),
-        el("p", { text: chunk.text }),
-      ]));
-    });
-
-    q("ragQuery").innerHTML = "";
-    q("ragQuery").appendChild(el("span", { class: "badge info", text: "Query" }));
-    q("ragQuery").appendChild(el("strong", { text: rag.retrieval.query }));
-
-    q("ragHitList").innerHTML = "";
-    rag.retrieval.topK.forEach(function (hit, index) {
-      var chunk = chunkById(rag, hit.chunkId);
-      q("ragHitList").appendChild(el("article", { class: "rag-hit", style: "animation-delay:" + (index * 120) + "ms" }, [
-        el("div", {}, [
-          el("strong", { text: chunk.title }),
-          el("small", { text: hit.source }),
+    q("knowledgeCollectionList").innerHTML = "";
+    knowledgeCollections().forEach(function (collection) {
+      var collectionDocs = documentsForCollection(collection.key);
+      var stats = collectionDocs.length ? knowledgeStatsForDocs(collectionDocs) : { chunks: 0, nodes: 0 };
+      q("knowledgeCollectionList").appendChild(el("button", {
+        class: "knowledge-collection-card" + (collection.key === activeCollection.key ? " active" : ""),
+        type: "button",
+        "aria-pressed": collection.key === activeCollection.key ? "true" : "false",
+        onClick: function () { selectKnowledgeCollection(collection.key); },
+      }, [
+        el("div", { class: "knowledge-collection-head" }, [
+          el("span", { class: "badge info", text: collection.badge }),
+          el("small", { text: collectionDocs.length ? newestDocDate(collectionDocs) : "待上传" }),
         ]),
-        el("span", { text: hit.score.toFixed(2) }),
-        el("i", { style: "width:" + Math.round(hit.score * 100) + "%" }),
+        el("strong", { text: collection.title }),
+        el("p", { text: collection.desc }),
+        el("div", { class: "knowledge-node-row" }, [
+          el("span", { text: collectionDocs.length + " 篇" }),
+          el("span", { text: stats.chunks + " 片段" }),
+          el("span", { text: stats.nodes + " 节点" }),
+        ]),
       ]));
     });
 
-    q("ragAgentAnswer").innerHTML = "";
-    q("ragAgentAnswer").appendChild(el("span", { class: "badge " + (isDisabled ? "info" : "warn"), text: isDisabled ? "追溯模式" : "Agent 回答" }));
-    q("ragAgentAnswer").appendChild(el("p", { text: rag.agentAnswer.text }));
+    q("knowledgeArticleTitle").textContent = activeCollection.title + " · 文章列表";
+    q("knowledgeArticleHint").textContent = activeDocs.length ? "点击文章查看全文" : "暂无文章";
+    q("knowledgeArticleList").innerHTML = "";
+    if (!activeDocs.length) {
+      q("knowledgeArticleList").appendChild(el("div", { class: "knowledge-empty" }, [
+        el("strong", { text: "暂无文档" }),
+        el("span", { text: "点击上传文档，播放入库动画后会出现在这里。" }),
+      ]));
+    }
+    activeDocs.forEach(function (doc) {
+      var docRag = ragProfileForDoc(doc.id);
+      var docDisabled = state.knowledgeDeletedDocId === doc.id;
+      q("knowledgeArticleList").appendChild(el("button", {
+        class: "knowledge-article-item" + (doc.id === selectedDoc.id ? " active" : "") + (docDisabled ? " disabled" : ""),
+        type: "button",
+        "data-doc-id": doc.id,
+        onClick: function () { openKnowledgeArticle(doc.id); },
+      }, [
+        el("div", {}, [
+          el("span", { class: "badge " + (docDisabled ? "danger" : "info"), text: doc.status }),
+          el("strong", { text: doc.title }),
+          el("small", { text: doc.updated + " · " + doc.size + " · " + doc.sourceType }),
+        ]),
+        el("p", { text: doc.summary }),
+        el("div", { class: "knowledge-node-row" }, [
+          el("span", { text: docRag.chunks.length + " 片段" }),
+          el("span", { text: docRag.feedback.reduce(function (sum, item) { return sum + item.after; }, 0) + " 节点" }),
+          el("span", { text: docRag.retrieval.topK.length + " 引用" }),
+        ]),
+      ]));
+    });
 
-    q("ragCitationList").innerHTML = "";
+    q("knowledgeAgentPanel").innerHTML = "";
+    if (!selectedDoc || !rag) {
+      qa('[data-action="open-knowledge-doc"]').forEach(function (button) { button.disabled = true; });
+      q("knowledgeAgentPanel").appendChild(el("div", { class: "knowledge-agent-empty" }, [
+        el("strong", { text: "等待知识来源" }),
+        el("span", { text: "上传资料后可演示 Agent 如何引用新增文档。" }),
+      ]));
+      q("knowledgeAgentCitations").innerHTML = "";
+      return;
+    }
+    qa('[data-action="open-knowledge-doc"]').forEach(function (button) { button.disabled = false; });
+
+    q("knowledgeAgentPanel").appendChild(el("div", { class: "agent-bubble question" }, [
+      el("span", { text: "推荐问题" }),
+      el("strong", { text: rag.retrieval.query }),
+    ]));
+    q("knowledgeAgentPanel").appendChild(el("div", { class: "agent-bubble answer" }, [
+      el("span", { text: "Agent 回答" }),
+      el("p", { text: rag.agentAnswer.text }),
+    ]));
+
+    q("knowledgeAgentCitations").innerHTML = "";
     rag.agentAnswer.citations.forEach(function (chunkId, index) {
       var chunk = chunkById(rag, chunkId);
-      q("ragCitationList").appendChild(el("div", { class: "rag-citation" }, [
+      q("knowledgeAgentCitations").appendChild(el("button", {
+        class: "knowledge-citation-item",
+        type: "button",
+        onClick: openKnowledgeDoc,
+      }, [
         el("span", { text: "[" + (index + 1) + "]" }),
         el("strong", { text: chunk.title }),
         el("small", { text: chunk.id }),
-      ]));
-    });
-
-    q("ragFeedbackList").innerHTML = "";
-    rag.feedback.forEach(function (item) {
-      var delta = item.after - item.before;
-      q("ragFeedbackList").appendChild(el("div", { class: "rag-feedback" + (feedbackApplied ? " applied" : "") }, [
-        el("small", { text: item.label }),
-        el("strong", { text: feedbackApplied ? item.before + " → " + item.after : String(item.before) }),
-        el("small", { text: feedbackApplied ? "已生效" : feedbackVerb + " +" + delta }),
-      ]));
-    });
-
-    q("knowledgeCaseList").innerHTML = "";
-    DATA.knowledge.cases.forEach(function (caseItem) {
-      var isCurrentCase = caseItem.id === primaryCaseKnowledge().caseId;
-      var status = isCurrentCase && state.archived ? "本次已归档" : caseItem.status;
-      var summary = isCurrentCase && state.archived ? primaryCaseKnowledge().archivedCase.summary : caseItem.summary;
-      q("knowledgeCaseList").appendChild(el("article", { class: "knowledge-case-item card" }, [
-        el("span", { class: "badge " + (isCurrentCase && state.archived ? "ok" : caseItem.areaKey === primaryFlow().areaKey ? "warn" : "info"), text: status }),
-        el("strong", { text: caseItem.id }),
-        el("small", { text: caseItem.title }),
-        el("p", { text: summary }),
-        el("em", { class: sourceClass(caseItem.sourceType), text: caseItem.sourceType }),
       ]));
     });
   }
@@ -1993,6 +2122,7 @@
     if (q("agentDrawer").classList.contains("open")) return q("agentDrawer");
     if (q("imageModal").classList.contains("open")) return q("imageModal");
     if (q("knowledgeDocModal").classList.contains("open")) return q("knowledgeDocModal");
+    if (q("knowledgeUploadModal").classList.contains("open")) return q("knowledgeUploadModal");
     return null;
   }
 
@@ -2064,6 +2194,9 @@
     else if (action === "mock-delete-doc") deleteKnowledgeDoc();
     else if (action === "open-knowledge-doc") openKnowledgeDoc();
     else if (action === "close-knowledge-doc") closeKnowledgeDoc();
+    else if (action === "close-upload-animation") closeUploadAnimation();
+    else if (action === "replay-upload-animation") replayUploadAnimation();
+    else if (action === "finish-upload-animation") finishUploadAnimation();
     else if (action === "open-drawer") openDrawer();
     else if (action === "close-drawer") closeDrawer();
     else if (action === "open-trend-detail") openEvidenceDetail("trend");
@@ -2108,6 +2241,9 @@
     q("knowledgeDocModal").addEventListener("click", function (event) {
       if (event.target.id === "knowledgeDocModal") closeKnowledgeDoc();
     });
+    q("knowledgeUploadModal").addEventListener("click", function (event) {
+      if (event.target.id === "knowledgeUploadModal") closeUploadAnimation();
+    });
     window.addEventListener("hashchange", function () {
       var scene = window.location.hash.replace("#", "");
       scene = LEGACY_SCENE_TARGETS[scene] || scene;
@@ -2130,6 +2266,7 @@
         closeDrawer();
         closeImage();
         closeKnowledgeDoc();
+        closeUploadAnimation();
       }
       trapDialogFocus(event);
       var idx = Number(event.key) - 1;
