@@ -30,6 +30,7 @@
       evidenceDetail: "",
       overviewScope: "all",
       dashboardFocus: "risk",
+      dashboardRange: "batch",
       knowledgeDocId: "DOC-001",
       knowledgeUploaded: false,
       knowledgeEditedDocId: "",
@@ -183,7 +184,8 @@
     if (!state.archived) state.agentContext = "current";
     if (state.evidenceDetail !== "trend" && state.evidenceDetail !== "vision") state.evidenceDetail = "";
     if (state.overviewScope !== "area") state.overviewScope = "all";
-    if (!DATA.dashboard.qualityMetrics.some(function (metric) { return metric.key === state.dashboardFocus; })) state.dashboardFocus = "issues";
+    if (!DATA.dashboard.timeRanges.some(function (range) { return range.key === state.dashboardRange; })) state.dashboardRange = "batch";
+    if (!dashboardQualityMetrics().some(function (metric) { return metric.key === state.dashboardFocus; })) state.dashboardFocus = activeDashboardRange().defaultFocus;
     if (typeof state.knowledgeDocId !== "string") state.knowledgeDocId = "DOC-001";
     if (typeof state.knowledgeUploaded !== "boolean") state.knowledgeUploaded = false;
     if (typeof state.knowledgeEditedDocId !== "string") state.knowledgeEditedDocId = "";
@@ -468,9 +470,12 @@
   }
 
   function renderShell() {
+    var dashboardRange = activeDashboardRange();
+    var shellPeriod = state.scene === "overview" ? dashboardRange.period : DATA.shell.period;
     document.body.dataset.scene = state.scene;
-    q("brandSub").textContent = DATA.shell.siteName + " · " + DATA.shell.subtitle + " · 统计周期 " + DATA.shell.period + " · 任务批次 " + DATA.shell.batch;
-    q("clock").textContent = DATA.shell.clock + " · " + DATA.shell.siteName + " · " + DATA.shell.period;
+    q("brandSub").textContent = DATA.shell.siteName + " · " + DATA.shell.subtitle + " · 统计周期 " + shellPeriod + " · 任务批次 " + DATA.shell.batch;
+    q("clock").textContent = DATA.shell.clock + " · " + DATA.shell.siteName + " · " + shellPeriod;
+    renderDashboardTimeFilter();
 
     var status;
     if (state.scene === "overview") {
@@ -554,8 +559,75 @@
     };
   }
 
+  function dashboardRangeByKey(key) {
+    var range = DATA.dashboard.timeRanges.filter(function (item) { return item.key === key; })[0];
+    if (!range) throw new Error("[v3] 未知首页时间范围: " + key);
+    return range;
+  }
+
+  function activeDashboardRange() {
+    return dashboardRangeByKey(state.dashboardRange);
+  }
+
+  function dashboardQualityMetrics() {
+    var range = activeDashboardRange();
+    return DATA.dashboard.qualityMetrics.map(function (baseMetric) {
+      var override = range.qualityMetrics.filter(function (item) { return item.key === baseMetric.key; })[0];
+      if (!override) throw new Error("[v3] 时间范围缺少指标覆盖: " + range.key + " / " + baseMetric.key);
+      return Object.assign({}, baseMetric, {
+        value: override.value,
+        delta: override.delta,
+      });
+    });
+  }
+
+  function dashboardBusinessCharts() {
+    var rangeCharts = activeDashboardRange().businessCharts;
+    return Object.assign({}, DATA.dashboard.businessCharts, rangeCharts);
+  }
+
+  function selectDashboardRange(rangeKey) {
+    var range = dashboardRangeByKey(rangeKey);
+    state.dashboardRange = range.key;
+    if (!dashboardQualityMetrics().some(function (metric) { return metric.key === state.dashboardFocus; })) {
+      state.dashboardFocus = range.defaultFocus;
+    }
+    state.overviewScope = "all";
+    persistState();
+    render();
+  }
+
+  function renderDashboardTimeFilter() {
+    var range = activeDashboardRange();
+    var node = q("dashboardTimeFilter");
+    var rangeOrder = ["1h", "24h", "7d", "batch"];
+    node.innerHTML = "";
+    rangeOrder.map(dashboardRangeByKey).forEach(function (item, index) {
+      node.appendChild(el("button", {
+        class: "time-range-btn" + (item.key === range.key ? " active" : "") + (item.key === "batch" ? " batch-range" : ""),
+        type: "button",
+        "aria-pressed": item.key === range.key ? "true" : "false",
+        onClick: function () { selectDashboardRange(item.key); },
+        onKeydown: function (event) {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          event.preventDefault();
+          var direction = event.key === "ArrowRight" ? 1 : -1;
+          var next = dashboardRangeByKey(rangeOrder[(index + direction + rangeOrder.length) % rangeOrder.length]);
+          selectDashboardRange(next.key);
+          window.requestAnimationFrame(function () {
+            var focused = qa("#dashboardTimeFilter .time-range-btn").filter(function (btn) {
+              return btn.textContent === next.label;
+            })[0];
+            if (focused) focused.focus();
+          });
+        },
+      }, item.label));
+    });
+    q("dashboardTimeText").textContent = "当前：" + range.label + " · " + range.period;
+  }
+
   function setDashboardFocus(metricKey) {
-    if (!DATA.dashboard.qualityMetrics.some(function (metric) { return metric.key === metricKey; })) {
+    if (!dashboardQualityMetrics().some(function (metric) { return metric.key === metricKey; })) {
       throw new Error("[v3] 未知首页指标: " + metricKey);
     }
     state.dashboardFocus = metricKey;
@@ -576,7 +648,7 @@
   }
 
   function dashboardTaskMatchesMetric(metricKey, item) {
-    return metricInsightByKey(metricKey).taskIds.indexOf(item.id) >= 0;
+    return metricInsightByKey(metricKey).taskIds.indexOf(item.id) >= 0 && activeDashboardRange().taskIds.indexOf(item.id) >= 0;
   }
 
   function dashboardTaskMatchesFocus(item) {
@@ -584,11 +656,11 @@
   }
 
   function dashboardAiMatchesMetric(metricKey, alert) {
-    return metricInsightByKey(metricKey).alertIds.indexOf(alert.id) >= 0;
+    return metricInsightByKey(metricKey).alertIds.indexOf(alert.id) >= 0 && activeDashboardRange().alertIds.indexOf(alert.id) >= 0;
   }
 
   function metricByKey(key) {
-    var metric = DATA.dashboard.qualityMetrics.filter(function (item) { return item.key === key; })[0];
+    var metric = dashboardQualityMetrics().filter(function (item) { return item.key === key; })[0];
     if (!metric) throw new Error("[v3] 首页指标缺失: " + key);
     return metric;
   }
@@ -605,15 +677,38 @@
     return insight;
   }
 
+  function rangeMetricTitle(metricKey, metric, insight) {
+    if (metricKey === "risk") return insight.title;
+    return metric.label + " " + metric.value;
+  }
+
+  function rangeMetricDesc(metricKey, metric, insight, range) {
+    if (metricKey === "risk") return insight.desc + " 当前范围：" + range.label + "。";
+    return "当前范围：" + range.period + "，" + metric.label + "为 " + metric.value + "（" + metric.delta + "）。";
+  }
+
+  function rangeMetricStats(metricKey, metric, insight, range) {
+    return insight.stats.map(function (stat) {
+      var next = Object.assign({}, stat);
+      if (["完成率", "问题数", "异常数", "提醒数"].indexOf(next.label) >= 0) next.value = metric.value;
+      if (next.label === "周期") next.value = range.label;
+      if (metricKey === "issues" && next.label === "P1") next.value = String(metric.delta).replace("P1 ", "");
+      if (metricKey === "aiAlerts" && next.label === "模型") next.value = metric.delta;
+      if (next.label === "最新") next.value = range.period.split(" ~ ").pop();
+      return next;
+    });
+  }
+
   function dashboardMetricSummary(metricKey) {
     var metric = metricByKey(metricKey);
     var insight = metricInsightByKey(metricKey);
+    var range = activeDashboardRange();
     return {
       badgeTone: metricBadgeTone(metric),
       overviewStatus: insight.status,
-      overviewTitle: insight.title,
-      overviewDesc: insight.desc,
-      overviewStats: insight.stats,
+      overviewTitle: rangeMetricTitle(metricKey, metric, insight),
+      overviewDesc: rangeMetricDesc(metricKey, metric, insight, range),
+      overviewStats: rangeMetricStats(metricKey, metric, insight, range),
       tags: insight.tags,
       overviewAction: insight.action,
       targetArea: insight.targetArea,
@@ -658,7 +753,7 @@
 
   function renderDashboardCharts() {
     if (state.scene !== "overview") return;
-    var chartsData = DATA.dashboard.businessCharts;
+    var chartsData = dashboardBusinessCharts();
     var completion = metricNumber("completion");
     var trend = chartsData.taskTrend;
     var aiTrend = chartsData.aiModelTrend;
@@ -807,7 +902,7 @@
 
     var metricBox = q("overviewMetrics");
     metricBox.innerHTML = "";
-    DATA.dashboard.qualityMetrics.forEach(function (m) {
+    dashboardQualityMetrics().forEach(function (m) {
       metricBox.appendChild(el("button", {
         class: "metric-card card dashboard-metric-card" + (state.dashboardFocus === m.key ? " active" : ""),
         type: "button",

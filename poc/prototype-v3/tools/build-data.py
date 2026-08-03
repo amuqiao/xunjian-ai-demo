@@ -46,7 +46,9 @@ DASHBOARD_FILES = {
     "aiAlerts": "ai-alerts.json",
     "metricInsights": "metric-insights.json",
     "businessCharts": "business-charts.json",
+    "timeRanges": "time-ranges.json",
 }
+TIME_RANGE_KEYS = ["1h", "24h", "7d", "batch"]
 KNOWLEDGE_FILES = {
     "documents": "documents.json",
     "cases": "cases.json",
@@ -254,6 +256,89 @@ def parse_percent(value: Any, label: str) -> float:
       raise ValueError(f"{label} must be percent text") from exc
 
 
+def parse_int_text(value: Any, label: str) -> int:
+    text = str(value)
+    if not text.isdigit():
+      raise ValueError(f"{label} must be integer text")
+    return int(text)
+
+
+def validate_metric_values(metrics: Any, required_keys: list[str], label: str) -> set[str]:
+    if not isinstance(metrics, list) or not metrics:
+      raise ValueError(f"{label} must be a non-empty list")
+    metric_keys = set()
+    for index, item in enumerate(metrics):
+      require_keys(item, ["key", "value", "delta"], f"{label}[{index}]")
+      validate_non_empty_string(item["key"], f"{label}[{index}].key")
+      validate_non_empty_string(str(item["value"]), f"{label}[{index}].value")
+      validate_non_empty_string(item["delta"], f"{label}[{index}].delta")
+      if item["key"] in metric_keys:
+        raise ValueError(f"{label} duplicate key: {item['key']}")
+      metric_keys.add(item["key"])
+    missing_metric_keys = [key for key in required_keys if key not in metric_keys]
+    if missing_metric_keys:
+      raise ValueError(f"{label} missing required keys: {', '.join(missing_metric_keys)}")
+    return metric_keys
+
+
+def validate_result_distribution(items: Any, issues_count: int, label: str) -> None:
+    if not isinstance(items, list) or not items:
+      raise ValueError(f"{label} must be a non-empty list")
+    pending_value = None
+    names = set()
+    for index, item in enumerate(items):
+      require_keys(item, ["name", "value", "sourceType"], f"{label}[{index}]")
+      validate_non_empty_string(item["name"], f"{label}[{index}].name")
+      if item["name"] in names:
+        raise ValueError(f"{label} duplicate name: {item['name']}")
+      names.add(item["name"])
+      if not isinstance(item["value"], int):
+        raise ValueError(f"{label}[{index}].value must be integer")
+      validate_source_type_text(item["sourceType"], f"{label}[{index}].sourceType")
+      if item["name"] == "待复核":
+        pending_value = item["value"]
+    if pending_value is None:
+      raise ValueError(f"{label} must include 待复核")
+    if pending_value != issues_count:
+      raise ValueError(f"{label} 待复核 value must equal issues metric: chart={pending_value}, metric={issues_count}")
+
+
+def validate_dashboard_charts(charts: dict[str, Any], metrics: list[dict[str, Any]], label: str) -> None:
+    require_keys(charts, ["taskTrend", "resultDistribution", "anomalyTypes"], label)
+    require_keys(charts["taskTrend"], ["labels", "planned", "completed", "issues", "sourceType"], f"{label}.taskTrend")
+    validate_source_type_text(charts["taskTrend"]["sourceType"], f"{label}.taskTrend.sourceType")
+    trend_length = len(charts["taskTrend"]["labels"])
+    if trend_length == 0:
+      raise ValueError(f"{label}.taskTrend.labels must not be empty")
+    validate_numeric_series(charts["taskTrend"]["planned"], f"{label}.taskTrend.planned", trend_length)
+    validate_numeric_series(charts["taskTrend"]["completed"], f"{label}.taskTrend.completed", trend_length)
+    validate_numeric_series(charts["taskTrend"]["issues"], f"{label}.taskTrend.issues", trend_length)
+    planned_total = sum(charts["taskTrend"]["planned"])
+    completed_total = sum(charts["taskTrend"]["completed"])
+    if planned_total <= 0:
+      raise ValueError(f"{label}.taskTrend.planned total must be greater than 0")
+    completion_metric = next((item for item in metrics if item["key"] == "completion"), None)
+    if completion_metric is None:
+      raise ValueError(f"{label}.metrics must include completion")
+    completion_rate = round(completed_total / planned_total * 100, 1)
+    metric_rate = parse_percent(completion_metric["value"], f"{label}.metrics.completion.value")
+    if completion_rate != metric_rate:
+      raise ValueError(f"{label} completion mismatch: chart={completion_rate}%, metric={metric_rate}%")
+    issues_metric = next((item for item in metrics if item["key"] == "issues"), None)
+    if issues_metric is None:
+      raise ValueError(f"{label}.metrics must include issues")
+    validate_result_distribution(
+      charts["resultDistribution"],
+      parse_int_text(issues_metric["value"], f"{label}.metrics.issues.value"),
+      f"{label}.resultDistribution",
+    )
+    for index, item in enumerate(charts["anomalyTypes"]):
+      require_keys(item, ["name", "value", "sourceType"], f"{label}.anomalyTypes[{index}]")
+      if not isinstance(item["value"], int):
+        raise ValueError(f"{label}.anomalyTypes[{index}].value must be integer")
+      validate_source_type_text(item["sourceType"], f"{label}.anomalyTypes[{index}].sourceType")
+
+
 def validate_dashboard_package(package: dict[str, Any], area_keys: set[str], scene_order: set[str]) -> None:
     for index, item in enumerate(package["qualityMetrics"]):
       require_keys(item, ["key", "label", "value", "delta", "tone", "sourceType", "desc"], f"dashboard.qualityMetrics[{index}]")
@@ -317,26 +402,8 @@ def validate_dashboard_package(package: dict[str, Any], area_keys: set[str], sce
       extra = sorted(insight_keys - metric_keys)
       raise ValueError(f"dashboard.metricInsights keys mismatch, missing={missing}, extra={extra}")
     charts = package["businessCharts"]
-    require_keys(charts, ["taskTrend", "resultDistribution", "anomalyTypes", "aiModelTrend"], "dashboard.businessCharts")
-    require_keys(charts["taskTrend"], ["labels", "planned", "completed", "issues", "sourceType"], "dashboard.businessCharts.taskTrend")
-    validate_source_type_text(charts["taskTrend"]["sourceType"], "dashboard.businessCharts.taskTrend.sourceType")
-    trend_length = len(charts["taskTrend"]["labels"])
-    if trend_length == 0:
-      raise ValueError("dashboard.businessCharts.taskTrend.labels must not be empty")
-    validate_numeric_series(charts["taskTrend"]["planned"], "dashboard.businessCharts.taskTrend.planned", trend_length)
-    validate_numeric_series(charts["taskTrend"]["completed"], "dashboard.businessCharts.taskTrend.completed", trend_length)
-    validate_numeric_series(charts["taskTrend"]["issues"], "dashboard.businessCharts.taskTrend.issues", trend_length)
-    planned_total = sum(charts["taskTrend"]["planned"])
-    completed_total = sum(charts["taskTrend"]["completed"])
-    if planned_total <= 0:
-      raise ValueError("dashboard.businessCharts.taskTrend.planned total must be greater than 0")
-    completion_metric = next((item for item in package["qualityMetrics"] if item["key"] == "completion"), None)
-    if completion_metric is None:
-      raise ValueError("dashboard.qualityMetrics must include completion")
-    completion_rate = round(completed_total / planned_total * 100, 1)
-    metric_rate = parse_percent(completion_metric["value"], "dashboard.qualityMetrics.completion.value")
-    if completion_rate != metric_rate:
-      raise ValueError(f"dashboard completion mismatch: chart={completion_rate}%, metric={metric_rate}%")
+    require_keys(charts, ["resultDistribution", "aiModelTrend"], "dashboard.businessCharts")
+    validate_dashboard_charts(charts, package["qualityMetrics"], "dashboard.businessCharts")
     require_keys(charts["aiModelTrend"], ["labels", "timeSeries", "vision", "sourceType"], "dashboard.businessCharts.aiModelTrend")
     validate_source_type_text(charts["aiModelTrend"]["sourceType"], "dashboard.businessCharts.aiModelTrend.sourceType")
     model_length = len(charts["aiModelTrend"]["labels"])
@@ -350,6 +417,38 @@ def validate_dashboard_package(package: dict[str, Any], area_keys: set[str], sce
         if not isinstance(item["value"], int):
           raise ValueError(f"dashboard.businessCharts.{group_key}[{index}].value must be integer")
         validate_source_type_text(item["sourceType"], f"dashboard.businessCharts.{group_key}[{index}].sourceType")
+    if not isinstance(package["timeRanges"], list) or not package["timeRanges"]:
+      raise ValueError("dashboard.timeRanges must be a non-empty list")
+    range_keys = set()
+    for index, item in enumerate(package["timeRanges"]):
+      label = f"dashboard.timeRanges[{index}]"
+      require_keys(item, ["key", "label", "period", "hint", "defaultFocus", "qualityMetrics", "businessCharts", "taskIds", "alertIds"], label)
+      if item["key"] in range_keys:
+        raise ValueError(f"dashboard.timeRanges duplicate key: {item['key']}")
+      range_keys.add(item["key"])
+      validate_non_empty_string(item["label"], f"{label}.label")
+      validate_non_empty_string(item["period"], f"{label}.period")
+      validate_non_empty_string(item["hint"], f"{label}.hint")
+      if item["defaultFocus"] not in metric_keys:
+        raise KeyError(f"{label}.defaultFocus missing quality metric: {item['defaultFocus']}")
+      range_metric_keys = validate_metric_values(item["qualityMetrics"], required_metric_keys, f"{label}.qualityMetrics")
+      if range_metric_keys != metric_keys:
+        missing = sorted(metric_keys - range_metric_keys)
+        extra = sorted(range_metric_keys - metric_keys)
+        raise ValueError(f"{label}.qualityMetrics keys mismatch, missing={missing}, extra={extra}")
+      ai_range_metric = next(metric for metric in item["qualityMetrics"] if metric["key"] == "aiAlerts")
+      if not str(ai_range_metric["value"]).isdigit() or int(ai_range_metric["value"]) != len(item["alertIds"]):
+        raise ValueError(f"{label}.qualityMetrics aiAlerts value must equal alertIds length")
+      validate_dashboard_charts(item["businessCharts"], item["qualityMetrics"], f"{label}.businessCharts")
+      for task_id in item["taskIds"]:
+        if task_id not in task_ids:
+          raise KeyError(f"{label}.taskIds missing task: {task_id}")
+      for alert_id in item["alertIds"]:
+        if alert_id not in alert_ids:
+          raise KeyError(f"{label}.alertIds missing alert: {alert_id}")
+    expected_range_keys = set(TIME_RANGE_KEYS)
+    if range_keys != expected_range_keys:
+      raise ValueError(f"dashboard.timeRanges keys must be {TIME_RANGE_KEYS}, got {sorted(range_keys)}")
 
 
 def validate_knowledge_package(package: dict[str, Any], area_keys: set[str]) -> None:

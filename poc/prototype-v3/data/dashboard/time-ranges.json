@@ -1,0 +1,150 @@
+[
+  {
+    "key": "batch",
+    "label": "本批次",
+    "period": "2026-07-17 ~ 2026-07-21",
+    "hint": "任务批次 XJ-20260721-A",
+    "defaultFocus": "risk",
+    "qualityMetrics": [
+      { "key": "risk", "value": "P1", "delta": "1项" },
+      { "key": "completion", "value": "96.8%", "delta": "+2.1%" },
+      { "key": "issues", "value": "18", "delta": "P1 3" },
+      { "key": "duration", "value": "5", "delta": "<10min" },
+      { "key": "interval", "value": "7", "delta": "<10s" },
+      { "key": "offWindow", "value": "2", "delta": "偏移30min" },
+      { "key": "aiAlerts", "value": "4", "delta": "时序/轨迹" }
+    ],
+    "businessCharts": {
+      "taskTrend": {
+        "labels": ["07-17", "07-18", "07-19", "07-20", "07-21"],
+        "planned": [48, 50, 49, 51, 52],
+        "completed": [46, 48, 47, 50, 51],
+        "issues": [11, 14, 12, 16, 18],
+        "sourceType": "客户数据 + 演示推演 / 待确认"
+      },
+      "resultDistribution": [
+        { "name": "正常项", "value": 846, "sourceType": "客户数据 + 演示推演" },
+        { "name": "待复核", "value": 18, "sourceType": "演示推演" },
+        { "name": "已归档", "value": 7, "sourceType": "演示推演" }
+      ],
+      "anomalyTypes": [
+        { "name": "时长异常", "value": 5, "sourceType": "演示推演 / 待确认" },
+        { "name": "间隔异常", "value": 7, "sourceType": "演示推演 / 待确认" },
+        { "name": "时段异常", "value": 2, "sourceType": "演示推演" }
+      ]
+    },
+    "taskIds": ["XJ-20260721-A-073", "XJ-20260721-A-041", "XJ-20260721-A-088"],
+    "alertIds": ["metering-filter-dp", "battery-voltage-drop", "oil-tank-level-rise", "valve-route-interval"]
+  },
+  {
+    "key": "24h",
+    "label": "近24小时",
+    "period": "2026-07-21 00:00 ~ 04:43",
+    "hint": "今日巡检窗口",
+    "defaultFocus": "risk",
+    "qualityMetrics": [
+      { "key": "risk", "value": "P1", "delta": "1项" },
+      { "key": "completion", "value": "98.1%", "delta": "+0.8%" },
+      { "key": "issues", "value": "6", "delta": "P1 1" },
+      { "key": "duration", "value": "1", "delta": "<10min" },
+      { "key": "interval", "value": "2", "delta": "<10s" },
+      { "key": "offWindow", "value": "1", "delta": "偏移30min" },
+      { "key": "aiAlerts", "value": "2", "delta": "时序/轨迹" }
+    ],
+    "businessCharts": {
+      "taskTrend": {
+        "labels": ["00:00", "01:00", "02:00", "03:00", "04:00"],
+        "planned": [8, 10, 11, 12, 12],
+        "completed": [8, 10, 11, 11, 12],
+        "issues": [1, 1, 2, 4, 6],
+        "sourceType": "演示推演 / 待确认"
+      },
+      "resultDistribution": [
+        { "name": "正常项", "value": 146, "sourceType": "客户数据 + 演示推演 / 待确认" },
+        { "name": "待复核", "value": 6, "sourceType": "演示推演" },
+        { "name": "已归档", "value": 2, "sourceType": "演示推演" }
+      ],
+      "anomalyTypes": [
+        { "name": "时长异常", "value": 1, "sourceType": "演示推演 / 待确认" },
+        { "name": "间隔异常", "value": 2, "sourceType": "演示推演 / 待确认" },
+        { "name": "时段异常", "value": 1, "sourceType": "演示推演" }
+      ]
+    },
+    "taskIds": ["XJ-20260721-A-073", "XJ-20260721-A-041"],
+    "alertIds": ["metering-filter-dp", "valve-route-interval"]
+  },
+  {
+    "key": "1h",
+    "label": "近1小时",
+    "period": "2026-07-21 03:43 ~ 04:43",
+    "hint": "最新巡检态势",
+    "defaultFocus": "risk",
+    "qualityMetrics": [
+      { "key": "risk", "value": "P1", "delta": "1项" },
+      { "key": "completion", "value": "100.0%", "delta": "已完成" },
+      { "key": "issues", "value": "3", "delta": "P1 1" },
+      { "key": "duration", "value": "0", "delta": "<10min" },
+      { "key": "interval", "value": "1", "delta": "<10s" },
+      { "key": "offWindow", "value": "0", "delta": "偏移30min" },
+      { "key": "aiAlerts", "value": "1", "delta": "时序" }
+    ],
+    "businessCharts": {
+      "taskTrend": {
+        "labels": ["03:45", "04:00", "04:15", "04:30", "04:43"],
+        "planned": [2, 3, 4, 5, 5],
+        "completed": [2, 3, 4, 5, 5],
+        "issues": [0, 1, 1, 2, 3],
+        "sourceType": "演示推演"
+      },
+      "resultDistribution": [
+        { "name": "正常项", "value": 32, "sourceType": "客户数据 + 演示推演 / 待确认" },
+        { "name": "待复核", "value": 3, "sourceType": "演示推演" },
+        { "name": "已归档", "value": 1, "sourceType": "演示推演" }
+      ],
+      "anomalyTypes": [
+        { "name": "时长异常", "value": 0, "sourceType": "演示推演 / 待确认" },
+        { "name": "间隔异常", "value": 1, "sourceType": "演示推演 / 待确认" },
+        { "name": "时段异常", "value": 0, "sourceType": "演示推演" }
+      ]
+    },
+    "taskIds": ["XJ-20260721-A-073"],
+    "alertIds": ["metering-filter-dp"]
+  },
+  {
+    "key": "7d",
+    "label": "近7天",
+    "period": "2026-07-15 ~ 2026-07-21",
+    "hint": "周维度质量波动",
+    "defaultFocus": "issues",
+    "qualityMetrics": [
+      { "key": "risk", "value": "P1", "delta": "2项" },
+      { "key": "completion", "value": "95.9%", "delta": "+1.4%" },
+      { "key": "issues", "value": "31", "delta": "P1 5" },
+      { "key": "duration", "value": "8", "delta": "<10min" },
+      { "key": "interval", "value": "12", "delta": "<10s" },
+      { "key": "offWindow", "value": "4", "delta": "偏移30min" },
+      { "key": "aiAlerts", "value": "4", "delta": "时序/视觉" }
+    ],
+    "businessCharts": {
+      "taskTrend": {
+        "labels": ["07-15", "07-16", "07-17", "07-18", "07-19", "07-20", "07-21"],
+        "planned": [44, 46, 48, 50, 49, 51, 52],
+        "completed": [41, 43, 46, 48, 47, 50, 51],
+        "issues": [9, 13, 11, 14, 12, 16, 18],
+        "sourceType": "客户数据 + 演示推演 / 待确认"
+      },
+      "resultDistribution": [
+        { "name": "正常项", "value": 1480, "sourceType": "客户数据 + 演示推演 / 待确认" },
+        { "name": "待复核", "value": 31, "sourceType": "演示推演" },
+        { "name": "已归档", "value": 13, "sourceType": "演示推演" }
+      ],
+      "anomalyTypes": [
+        { "name": "时长异常", "value": 8, "sourceType": "演示推演 / 待确认" },
+        { "name": "间隔异常", "value": 12, "sourceType": "演示推演 / 待确认" },
+        { "name": "时段异常", "value": 4, "sourceType": "演示推演" }
+      ]
+    },
+    "taskIds": ["XJ-20260721-A-073", "XJ-20260721-A-041", "XJ-20260721-A-088"],
+    "alertIds": ["metering-filter-dp", "battery-voltage-drop", "oil-tank-level-rise", "valve-route-interval"]
+  }
+]
