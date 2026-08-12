@@ -1,0 +1,185 @@
+.inspection-map {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pump-train-3d {
+  cursor: grab;
+  touch-action: none;
+}
+
+.pump-train-3d.dragging {
+  cursor: grabbing;
+}
+
+.pump3d-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+
+.pump3d-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.inspection-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-width: 66px;
+  border: 0;
+  padding: 0;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  background: transparent;
+  pointer-events: auto;
+  will-change: transform;
+}
+
+.inspection-pin:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 5px;
+  border-radius: 8px;
+}
+
+.pin-core {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  background: var(--green);
+  box-shadow: 0 0 0 7px rgba(49, 214, 144, 0.15), 0 0 20px rgba(49, 214, 144, 0.35);
+}
+
+.inspection-pin.warn .pin-core {
+  background: var(--amber);
+  box-shadow: 0 0 0 7px rgba(232, 184, 74, 0.16), 0 0 20px rgba(232, 184, 74, 0.35);
+}
+
+.inspection-pin.danger .pin-core {
+  background: var(--red);
+  box-shadow: 0 0 0 7px rgba(255, 95, 87, 0.18), 0 0 24px rgba(255, 95, 87, 0.46);
+  animation: inspectionDangerPulse 1.8s ease-in-out infinite;
+}
+
+.inspection-pin.active .pin-core {
+  width: 24px;
+  height: 24px;
+  background: var(--cyan);
+  box-shadow: 0 0 0 9px rgba(104, 216, 255, 0.22), 0 0 30px rgba(104, 216, 255, 0.72);
+}
+
+.pin-label {
+  max-width: 84px;
+  min-height: 24px;
+  padding: 3px 8px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(116, 211, 221, 0.45);
+  border-radius: 6px;
+  background: rgba(7, 13, 17, 0.88);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.36);
+  color: #f4fffc;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.inspection-pin.warn .pin-label {
+  border-color: rgba(232, 184, 74, 0.48);
+}
+
+.inspection-pin.danger .pin-label {
+  border-color: rgba(255, 95, 87, 0.55);
+}
+
+.route-agent-label {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid rgba(49, 214, 144, 0.36);
+  border-radius: 8px;
+  background: rgba(8, 17, 17, 0.78);
+  color: var(--muted);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.route-agent-label strong {
+  color: #d9fff1;
+  font-size: 12px;
+}
+
+.orbit-note {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 4;
+  padding: 5px 9px;
+  border: 1px solid rgba(116, 211, 221, 0.3);
+  border-radius: 6px;
+  background: rgba(8, 15, 20, 0.62);
+  color: var(--muted);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+@keyframes inspectionDangerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(255, 95, 87, 0.18), 0 0 24px rgba(255, 95, 87, 0.46);
+  }
+
+  50% {
+    box-shadow: 0 0 0 13px rgba(255, 95, 87, 0.28), 0 0 34px rgba(255, 95, 87, 0.62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inspection-pin.danger .pin-core {
+    animation: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .pump-train-3d {
+    cursor: default;
+    touch-action: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .inspection-pin {
+    min-width: 72px;
+  }
+
+  .pin-core {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pin-label {
+    min-height: 26px;
+    font-size: 12px;
+  }
+
+  .orbit-note {
+    display: none;
+  }
+}
