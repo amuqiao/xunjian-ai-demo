@@ -1,0 +1,54 @@
+/* 07-arealist.css: 左栏 12 区列表（scripts/scenes/map.js 的 renderAreaList()）。
+   DOM 结构复用 scripts/ui/selectlist.js 的 variant="row"（SelectList 组件本身
+   的选中态/键盘可达样式在 03-cards.css，本文件只管外层滚动容器）：
+
+     section.panel.area-list-panel
+       div.area-list-head > p.kicker + h3
+       div.area-list-scroll
+         div.sl.sl-row[data-select="area"]
+           button.sl-item.ok|.warn|.danger[.active] x12
+
+   .sl-row 默认是 flex-direction:column（03-cards.css），本文件只需要让
+   .area-list-scroll 承担纵向滚动、不撑破左栏固定宽度，其余交给 SelectList
+   自身的样式。 */
+
+.area-list-scroll {
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.area-list-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.area-list-scroll::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(56, 198, 236, 0.35);
+}
+
+.area-list-scroll .sl-row {
+  gap: 8px;
+}
+
+.area-list-scroll .sl-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+/* 每行右侧追加"发现问题 N 项"角标（note 字段落在 .sl-item-note，已有基础样式），
+   这里只在有问题时把它的颜色改成警示色，突出"这个区需要关注"。 */
+.area-list-scroll .sl-item.warn .sl-item-note,
+.area-list-scroll .sl-item.danger .sl-item-note {
+  color: var(--status-danger);
+  font-weight: 700;
+}
+
+/* 站场全景态的哨兵项（scripts/scenes/map.js 的 renderAreaList() 追加，
+   id="__none__"）：只用来让 SelectList 的 activeId 校验在"没有任何区域选中"
+   时仍然合法，不应该真的显示成一行。display:none 的按钮天然退出 Tab 序列，
+   不影响键盘可达性。 */
+.area-list-scroll [data-select-id="__none__"] {
+  display: none;
+}

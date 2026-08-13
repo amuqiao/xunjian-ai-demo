@@ -1,0 +1,260 @@
+/* 02-shell.css: app-shell / topbar / brand / stage / flow-rail / flow-track /
+   panel / kicker / dot（三色语义点） / tool-btn（含 primary-action / plain-button）
+   / muted / panel-title —— 全场景通用的“外壳级”基元。
+
+   移植自 beng-ai-demo/poc/pump-demo/styles/02-shell.css，并把参考项目里散在
+   03-cards.css 顶部的 .panel / .dot / 按钮三件套一起收进本文件：这些类在参考
+   项目的 DOM 里本来就和 .topbar / .flow-rail 绑在一起使用（如
+   `<header class="topbar panel">`、`<footer class="flow-rail panel">`），
+   放在“外壳”这一层比放进“卡片”这一层更贴合它们的实际职责。
+
+   本文件不包含 .stage 内部的三列三行网格——那是 06-map-scene.css 的职责，
+   这里的 .stage 只保证自己是“能让子网格撑满、min-height:0 不会被内容顶破”的
+   容器：用 display:grid + 隐式单格，让唯一的子节点（未来的场景网格容器）
+   天然拉伸铺满，规避 flex/grid 链路里常见的“子内容把 min-height:0 顶破”的坑。
+
+   .topbar 的排布契约（写给后续负责任务卡 / 模式切换 / 时钟状态的文件）：
+   .topbar 本身只是一个 flex 行，.brand 用 flex:0 0 auto 固定在最左；中间的
+   任务卡横排预期用 flex:1 1 auto; min-width:0 撑满剩余空间；最右的模式切换 +
+   时钟状态组预期用 flex:0 0 auto 贴右——这三段各自的内部样式由各自的文件
+   （如 10-taskcard.css）负责，本文件不假设它们的具体类名。 */
+
+.app-shell {
+  position: fixed;
+  left: var(--screen-offset-x);
+  top: var(--screen-offset-y);
+  width: var(--screen-design-width);
+  max-width: none;
+  height: var(--screen-design-height);
+  min-height: 0;
+  margin: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) 62px;
+  gap: 8px;
+  overflow: hidden;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+  will-change: transform;
+}
+
+.topbar {
+  min-height: 76px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid var(--cyan);
+  display: grid;
+  place-items: center;
+  background: rgba(56, 198, 236, 0.14);
+  color: #e2f8ff;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+}
+
+.brand h1 {
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.brand small {
+  color: var(--muted);
+}
+
+.stage {
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+  outline: none;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(18, 34, 46, 0.96), rgba(10, 20, 28, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.kicker {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--status-ok);
+}
+
+.dot.warn {
+  background: var(--status-warn);
+}
+
+.dot.danger {
+  background: var(--status-danger);
+}
+
+.dot.ok {
+  background: var(--status-ok);
+}
+
+.primary-action,
+.plain-button,
+.tool-btn {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  padding: 0 13px;
+}
+
+.primary-action {
+  background: linear-gradient(135deg, #1a9bc4, #2fbf95);
+  border-color: rgba(96, 220, 220, 0.72);
+  color: #f8ffff;
+  font-weight: 800;
+}
+
+.primary-action:disabled {
+  background: #232f39;
+  border-color: #3a4a56;
+  color: #758797;
+}
+
+.tool-btn:hover,
+.plain-button:hover,
+.primary-action:hover {
+  border-color: var(--cyan);
+}
+
+.muted,
+.panel-title small {
+  color: var(--muted);
+}
+
+.panel-title {
+  min-height: 32px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #dff5fb;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panel-title small {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.flow-rail {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 8px 14px;
+}
+
+.flow-hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* 6 步流程轨（永州清管站巡检闸的固定步数），与参考项目的 8 步不同，直接按本
+   项目真实步数写死 repeat(6, ...)，不做成任意步数的通用网格。 */
+.flow-track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.flow-track .flow-step {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--ink);
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-areas:
+    "idx title"
+    "idx desc";
+  align-content: center;
+  gap: 0 6px;
+  padding: 5px 8px;
+  text-align: left;
+}
+
+.flow-track .flow-step::before {
+  grid-area: idx;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  content: attr(data-idx);
+  color: #dff8ff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.flow-track .flow-step strong {
+  grid-area: title;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.flow-track .flow-step small {
+  grid-area: desc;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-track .flow-step.done {
+  border-color: rgba(48, 198, 157, 0.42);
+  background: rgba(48, 198, 157, 0.1);
+}
+
+.flow-track .flow-step.active {
+  border-color: var(--cyan);
+  background: linear-gradient(135deg, rgba(26, 155, 196, 0.32), rgba(47, 191, 149, 0.22));
+}
+
+.flow-track .flow-step:disabled {
+  opacity: 0.42;
+}

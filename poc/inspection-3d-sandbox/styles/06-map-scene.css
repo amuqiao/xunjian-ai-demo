@@ -1,0 +1,80 @@
+/* 06-map-scene.css: 唯一场景（scripts/scenes/map.js）的骨架网格。
+   顶栏任务卡（.task-card）按 02-shell.css/10-taskcard.css 已经冻结的契约挂在
+   .topbar 里（app-shell 的外层网格），不在本文件的网格范围内——本文件只管
+   .stage 内部那一层，三列两行：
+
+     div.map-scene
+       section.panel.area-list-panel   grid-area: arealist（左栏，固定 360px）
+       section.panel.station-map-panel grid-area: map（中间 3D，styles/05-map3d.css
+                                        已冻结其内部结构，本文件只负责给它分配的
+                                        那个网格格子尺寸）
+       section.item-panel              grid-area: items（右栏，固定 500px）
+       div.map-bottom-row              grid-area: bottom（底部指标行，横跨三列）
+
+   保守 CSS：无嵌套、无 @layer、无容器查询，全部复用 01-tokens.css 的变量，
+   不另起色板。
+
+   ⚠️ 注释纪律：本文件内的任何注释都不得出现字面的两个字符 "星号+斜杠"
+   连写（会被浏览器解析成注释提前结束，导致后面一大段规则被当成普通文本
+   吞掉、面板高度塌成 0，且没有任何报错）——这里改用文字描述而不是在注释里
+   敲这两个符号本身来提醒这件事。 */
+
+.map-scene {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 500px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "arealist map items"
+    "bottom bottom bottom";
+  gap: 10px;
+}
+
+.area-list-panel {
+  grid-area: arealist;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.station-map-panel {
+  grid-area: map;
+}
+
+.item-panel {
+  grid-area: items;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.item-list-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.item-list-head h3,
+.area-list-head h3 {
+  margin-top: 2px;
+  color: #f4fbff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.map-bottom-row {
+  grid-area: bottom;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}

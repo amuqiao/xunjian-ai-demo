@@ -1,0 +1,166 @@
+/* 09-actionbar.css: 地图底部悬浮操作栏（scripts/ui/actionbar.js）。
+   DOM 契约：
+     div.map-actionbar
+       div.map-actionbar-status > span.map-actionbar-icon + strong.map-actionbar-state
+       ul.map-actionbar-list[role=list]
+         li > button.map-action[.map-action-warn]
+                span.map-action-icon > span.map-action-badge(可选)
+                span.map-action-label
+
+   .map-actionbar 假定被挂载在 .station-map 内部（与 canvas / map3d-labels /
+   map-zoom 同级），复用 .station-map 已建立的 position:relative 定位基准，
+   绝对定位悬浮在地图底部居中——它和 05-map3d.css 的 .map-zoom 是同一层级的
+   "浮在 3D 视口上方的 UI 覆盖物"，只是分属两个不同职责的文件（05 管 3D 契约
+   本身，09 管这条操作栏），因此各自独立成文件，不写进 05-map3d.css。
+
+   半透明玻璃质感 + 圆形图标横排，默认色走 --status-ok/--cyan 一带的绿青
+   （表示"安全/常规"操作），问题上报走 .map-action-warn 用 --status-warn 橙色
+   （表示"需要打断常规流程去处理"）——这条色彩语义和三色状态契约是两件不同的
+   事：三色状态描述"巡检结果"，这里的绿/橙描述"操作本身的性质"，只是恰好共用
+   同一组变量取值，不额外定义新变量。
+
+   宽度和高度都克制：它悬浮在 3D 视口里，不能挡住太多画面，所以图标做小尺寸
+   圆形按钮，整条栏用半透明背景而不是实心面板，尽量让人能透过它看到下方的
+   地图内容。 */
+
+.map-actionbar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 4;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(18, 34, 46, 0.8), rgba(9, 18, 25, 0.84));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.42);
+  padding: 9px 18px;
+  /* 玻璃质感：背景半透明 + 轻微高斯模糊，让底下的 3D 画面透出来又不至于
+     糊成一片影响图标可读性。不依赖任何外部资源，纯本地滤镜。 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.map-actionbar-status {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-right: 1px solid var(--line);
+  padding-right: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.map-actionbar-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(48, 198, 157, 0.18);
+  color: var(--status-ok);
+  font-size: 11px;
+}
+
+.map-actionbar-state {
+  color: var(--status-ok);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.map-actionbar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-actionbar-list li {
+  display: flex;
+}
+
+.map-action {
+  position: relative;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 52px;
+  padding: 2px 0;
+}
+
+.map-action-icon {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 198, 236, 0.4);
+  background: rgba(56, 198, 236, 0.1);
+  color: var(--cyan);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.map-action-label {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-action:hover .map-action-icon {
+  border-color: var(--cyan);
+  background: rgba(56, 198, 236, 0.2);
+}
+
+.map-action:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/* 问题上报：橙色变体，与三色语义的 warn 共用取值，表达"需要打断常规流程"。 */
+.map-action.map-action-warn .map-action-icon {
+  border-color: rgba(238, 180, 74, 0.5);
+  background: rgba(238, 180, 74, 0.12);
+  color: var(--status-warn);
+}
+
+.map-action.map-action-warn:hover .map-action-icon {
+  border-color: var(--status-warn);
+  background: rgba(238, 180, 74, 0.22);
+}
+
+/* 角标：未处理数量一类的强提醒，固定用危险色——角标本身就是"有几件事等着你"，
+   不需要跟随按钮本身的绿/橙语义变化。 */
+.map-action-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--status-danger);
+  color: #fff2f1;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  /* 描边而不是投影：让角标从深色图标底色上分离出来，避免颜色相近时糊在一起。 */
+  box-shadow: 0 0 0 2px rgba(9, 18, 25, 0.9);
+}

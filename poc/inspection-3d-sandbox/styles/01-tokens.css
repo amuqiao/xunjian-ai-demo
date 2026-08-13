@@ -1,0 +1,107 @@
+/* 01-tokens.css: CSS 变量 / reset / 排版基元
+   —— 站场 3D 巡检地图，深色地图/态势基调。整体结构从
+   beng-ai-demo/poc/pump-demo/styles/01-tokens.css 移植，色板与背景网格按
+   "地图/态势"做了微调（见下方“地图化调整”），保留原有的固定画布缩放机制。
+
+   【三色语义契约——全仓库唯一真源】
+   --status-danger / --status-warn / --status-ok 分别对应“异常 / 关注 / 正常”，
+   以下三处必须与这三个变量保持同一套色值口径，改这里要同步改那两处，不能只改
+   这一个文件：
+     1) 本文件（.dot / .badge / 各卡片状态色，见 02/03/04 三片 CSS）
+     2) scripts/pump3d/engine.js 的 HOTSPOT.colors（3D 热点材质 emissive/发光色）
+        —— 目前已硬编码 ok #30c69d / warn #eeb44a / danger #ff625c，与下方取值
+        字面一致，未来 map3d 层的模型/引擎要延续这套色值。
+     3) 未来图表层 chartopts.js 的 ChartOptions 系列（ECharts series 状态色）
+   三处色值字面必须完全一致，否则“3D 高亮红了、面板圆点却还是绿的”这种割裂
+   会立刻在演示里露出来。 */
+
+:root {
+  /* 固定画布模式：页面内部始终按这组设计尺寸排版，外层只做等比缩放，与
+     scripts/core/screen-scale.js 的 DESIGN_WIDTH/DESIGN_HEIGHT 保持一致
+     （2471 × 1289，与参考项目相同的画布尺寸口径）。 */
+  --screen-design-width: 2471px;
+  --screen-design-height: 1289px;
+  --screen-scale: 1;
+  --screen-offset-x: 0px;
+  --screen-offset-y: 0px;
+
+  /* 基底色板【地图化调整 1】：比参考项目更深、更偏蓝黑，贴近夜间地图/态势
+     大屏的观感（参考项目 --bg 是 #0b1117，偏工业机房；这里下探到 #070f16，
+     让 3D 地图场景和青色标注在深色画布上更“亮”）。 */
+  --bg: #070f16;
+  --panel: #0d1a24;
+  --panel-2: #12222e;
+  --panel-3: #182f3d;
+  --ink: #eaf6fb;
+  --muted: #87a3b8;
+  --line: rgba(129, 166, 194, 0.22);
+  --line-strong: rgba(112, 190, 224, 0.5);
+
+  /* 强调色【地图化调整 2】：青色调亮做“地图定位/框选/激活态”专用强调色
+     （参考项目 --cyan 是 #4bb3d3，这里提到 #38c6ec，更接近 GIS/态势图里
+     常见的电光青）；--blue 保留给巡检轨迹/路线一类的图形元素，不参与下面
+     的三色语义判定，避免和状态色混淆。 */
+  --cyan: #38c6ec;
+  --blue: #5a8cff;
+
+  /* 三色语义（危险/关注/正常）——见文件头“三色语义契约”，禁止只改这里。
+     取值与 scripts/pump3d/engine.js 现有的 HOTSPOT.colors 完全相同，不是
+     凑巧一致，是照抄它以保持三处色值口径统一。 */
+  --status-danger: #ff625c;
+  --status-warn: #eeb44a;
+  --status-ok: #30c69d;
+
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  /* 背景【地图化调整 3】：参考项目是单层 38px 网格 + 一处光斑，这里叠成
+     “细网格 + 粗网格”双层坐标网格（23px / 92px，即 4:1）模拟地图坐标刻度，
+     再加两处柔光斑（左上青、右下蓝）呼应场景里的定位标注和巡检轨迹配色，
+     纯 CSS 渐变实现，不引入任何外部图片/字体资源。 */
+  background:
+    linear-gradient(rgba(56, 198, 236, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 198, 236, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(56, 198, 236, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 198, 236, 0.1) 1px, transparent 1px),
+    radial-gradient(circle at 18% 0%, rgba(56, 198, 236, 0.16), transparent 36%),
+    radial-gradient(circle at 90% 94%, rgba(90, 140, 255, 0.12), transparent 42%),
+    var(--bg);
+  background-size: 23px 23px, 23px 23px, 92px 92px, 92px 92px, auto, auto, auto;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}

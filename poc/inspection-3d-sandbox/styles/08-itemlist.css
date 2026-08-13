@@ -1,0 +1,294 @@
+/* 08-itemlist.css: 巡检项列表（scripts/ui/itemlist.js）。
+   DOM 契约：
+     ul.item-list[role=list]
+       li.item-row[.ok|.warn|.danger][.active][data-item-id][tabindex]
+         span.item-dot
+         div.item-main
+           p.item-title > span.item-seq + span.item-name + span.item-tag(可选)
+           p.item-standard
+         div.item-control
+           bool:   span.item-switch-text + button.item-switch[role=switch][aria-checked]
+                                             > span.item-switch-track > span.item-switch-knob
+           number: div.item-stepper[role=spinbutton]
+                     > button.item-step.item-step-minus + span.item-value
+                     + button.item-step.item-step-plus + span.item-unit
+       li.item-empty（空态提示行）
+
+   视觉参照真实巡检 App（移动端）的列表页：项名是较大的亮色主文字，"标准"是明显
+   更小更暗的灰色副文字——这不是随手的字号选择，是"标准 vs 实测"这条业务语义
+   本身的视觉载体：巡检员扫一眼要先看清"这一项叫什么"，标准值只在需要核对时
+   才低头细看，两者的字号/亮度差必须足够大，否则整行看起来"一样重要"，反而
+   丢失了列表最需要传达的层级。
+
+   本组件不知道自己被放进多宽/多高的容器——右栏给它多少空间、要不要滚动，
+   全部由外层决定；.item-list 只负责"给定高度内自己纵向滚动、不撑破外层"这一
+   条约束，这与 03-cards.css 的 .sl-table 说明是同一原则（组件自己绝不设
+   height，只设 overflow 行为）。真实数据里机柜间一个区域有 67 项，这份 CSS
+   把单行高度压得足够紧，让固定高度的右栏能一屏看到尽量多的项。 */
+
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px 0 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.item-list::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(56, 198, 236, 0.35);
+}
+
+/* ---------- 单行：状态色左边条 + 圆点 + 主区块 + 右侧控件 ---------- */
+
+.item-row {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  padding: 7px 9px 7px 10px;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.item-row.ok {
+  border-left-color: var(--status-ok);
+}
+
+.item-row.warn {
+  border-left-color: var(--status-warn);
+}
+
+.item-row.danger {
+  border-left-color: var(--status-danger);
+}
+
+.item-row.active {
+  border-color: var(--cyan);
+  background: rgba(56, 198, 236, 0.12);
+}
+
+.item-row:hover {
+  border-color: var(--cyan);
+}
+
+.item-row:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: -2px;
+}
+
+/* item-dot 与 .item-row 左边条的状态色同源，是"扫视密集列表时比色条更抓眼"的
+   第二重状态提示——真实 App 列表里每一行前面确实有个小圆点，不是本项目自创。 */
+.item-dot {
+  flex: 0 0 auto;
+  margin-top: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-ok);
+}
+
+.item-row.warn .item-dot {
+  background: var(--status-warn);
+}
+
+.item-row.danger .item-dot {
+  background: var(--status-danger);
+}
+
+.item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.item-title {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.item-seq {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 10px;
+}
+
+/* 项名：主文字，全行视觉权重最高的部分。 */
+.item-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: #f2fbff;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-tag {
+  flex: 0 0 auto;
+  border: 1px solid rgba(56, 198, 236, 0.32);
+  border-radius: 4px;
+  background: rgba(56, 198, 236, 0.08);
+  color: var(--muted);
+  padding: 1px 5px;
+  font-size: 9px;
+}
+
+/* 标准值：副文字，明显更小更暗，字号和颜色都要与 .item-name 拉开足够差距——
+   这是本组件唯一的核心视觉规则，改动前先想清楚是不是在破坏"标准 vs 实测"的
+   层级对比。颜色比 --muted 更暗一档（--muted 是 #87a3b8，这里用更深的
+   #5c7386），因为标准这一行在列表里出现频率是每行必有，如果亮度只比主文字
+   略低，密集列表会显得每一行都在喊"看我"，反而没有重点。 */
+.item-standard {
+  margin: 0;
+  overflow: hidden;
+  color: #5c7386;
+  font-size: 10.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 右侧控件：bool 用拨杆，number 用步进器，统一靠自身宽度右对齐 ---------- */
+
+.item-control {
+  flex: 0 0 auto;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.item-switch-text {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* iOS 风格拨杆：button 本身只是可聚焦的交互载体，视觉完全交给内部的
+   track/knob 两层。aria-checked 是唯一的状态源，颜色和 knob 位置都从它派生，
+   不额外用 class 维护第二份状态（避免"aria 说 true，class 却还是 false"
+   这类不同步）。 */
+.item-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0;
+}
+
+.item-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--status-danger);
+  transition: background-color 160ms ease;
+}
+
+.item-switch[aria-checked="true"] .item-switch-track {
+  background: var(--status-ok);
+}
+
+.item-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 160ms ease;
+}
+
+.item-switch[aria-checked="true"] .item-switch-knob {
+  transform: translateX(16px);
+}
+
+.item-switch:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* 数值步进器：− 值 + ，单位小字跟在 + 按钮之后。role=spinbutton 的容器本身
+   不需要额外的视觉边框——三个子元素（−、值、+）自身的边框已经足够勾勒出
+   "这是一组控件"的轮廓，容器再加一层框会显得多余。 */
+.item-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.item-step {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+}
+
+.item-step:hover {
+  border-color: var(--cyan);
+}
+
+.item-step:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.item-step:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.item-value {
+  min-width: 40px;
+  text-align: center;
+  color: #f4fbff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.item-unit {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ---------- 空态：无匹配项/未展开区域时的占位行 ---------- */
+
+.item-empty {
+  padding: 24px 10px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
