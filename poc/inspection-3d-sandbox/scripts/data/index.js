@@ -76,6 +76,8 @@
     issues: Task.issues,
     issueDraft: Task.issueDraft,
     otherTasks: Task.otherTasks,
+    inspectorCandidates: Task.inspectorCandidates,
+    addInspector: Task.addInspector,
 
     // ---- 巡检轨迹（scripts/data/track.js） ----
     track: Track.track,

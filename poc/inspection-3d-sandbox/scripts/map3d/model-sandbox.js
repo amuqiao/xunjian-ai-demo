@@ -1,6 +1,6 @@
 // 站场 3D 巡检地图——程序化三维沙盘模型：window.Map3DModel。
 //
-// 与 scripts/pump3d/model.js 同构的两调用契约（engine.js 按同样的方式消费）：
+// 与 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 同构的两调用契约（engine.js 按同样的方式消费）：
 //   createMaterials(THREE) -> materials
 //   build(THREE, materials) -> { group, anchors, areaMeshes, itemPins, refreshItemPins }
 // anchors 是 { areaId: THREE.Vector3 }（区块顶面中心，供 engine.js 的热点引线用），
@@ -11,7 +11,7 @@
 // window.DemoStation.areas()（station.js 是这份坐标系的唯一定义处，见该文件头部
 // 注释）。改一个区的位置/尺寸只改 station.js，本文件自动跟着变。
 //
-// 视觉风格延续 scripts/pump3d/model.js：PBR MeshStandardMaterial + 程序化
+// 视觉风格延续 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js：PBR MeshStandardMaterial + 程序化
 // CanvasTexture（通过 scripts/map3d/model-shared.js 的共享工具），零 TextureLoader、
 // 零对外部图片的 drawImage（file:// 下的纹理污染陷阱，见 model-shared.js 文件头）。
 //

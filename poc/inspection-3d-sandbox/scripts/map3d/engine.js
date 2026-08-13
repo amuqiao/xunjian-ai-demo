@@ -1,6 +1,6 @@
 // 站场 3D 巡检地图引擎：window.Map3D。
 //
-// 本文件是从 scripts/pump3d/engine.js 抄写改造而来，不是重新设计——那份 1109 行的
+// 本文件是从 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 抄写改造而来，不是重新设计——那份 1109 行的
 // 文件里，与"渲染的是泵还是站场"完全无关的免费资产（约 700 行）逐字保留：
 //   1) createGLContext + GL_ATTRS（自建 context 再交给 three；preserveDrawingBuffer +
 //      focus/pageshow/visibilitychange 唤醒钩子）
@@ -161,7 +161,7 @@
     return window.Map3DContract;
   }
 
-  // ==== 段 1：createGLContext + GL_ATTRS —— 逐字抄自 pump3d/engine.js ====
+  // ==== 段 1：createGLContext + GL_ATTRS —— 逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js ====
   var GL_ATTRS = { antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true };
 
   function createGLContext(canvas) {
@@ -223,7 +223,7 @@
     return texture;
   }
 
-  // ==== 段 2：createOrbit —— 主体逐字抄自 pump3d/engine.js，见文件头关于
+  // ==== 段 2：createOrbit —— 主体逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js，见文件头关于
   // retarget()/initialTarget 两处必要扩展的说明 ====
   function createOrbit(camera, canvas, preset, notifyDirty, initialTarget) {
     var theta = preset.theta;
@@ -629,7 +629,7 @@
     markDirty(engine);
   }
 
-  // ==== 段 4：sweepLabels / fitLabelsVertically —— 逐字抄自 pump3d/engine.js ====
+  // ==== 段 4：sweepLabels / fitLabelsVertically —— 逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js ====
   function labelsCollide(a, b, minDy, minDx) {
     return Math.abs(a.y - b.y) < minDy && Math.abs(a.x - b.x) < minDx;
   }
@@ -849,7 +849,7 @@
     engine.orbit.applyPreset(name, animated, targetOverride);
   }
 
-  // ==== 段 3：markDirty / startLoop —— 逐字抄自 pump3d/engine.js ====
+  // ==== 段 3：markDirty / startLoop —— 逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js ====
   function markDirty(engine) {
     engine.dirty = true;
     if (!engine.frameScheduled) {
@@ -923,7 +923,7 @@
 
     var gl = createGLContext(canvas);
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, context: gl });
-    // ==== 段 6：contextCreated 紧跟 renderer 构造之后（逐字抄自 pump3d/engine.js 的
+    // ==== 段 6：contextCreated 紧跟 renderer 构造之后（逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的
     // 位置纪律，理由见该文件对应注释：中途抛错也不能漏计） ====
     contextCreated += 1;
     renderer.setClearColor(0x000000, 0);
@@ -932,7 +932,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // ==== 段 5：autoUpdate=false + needsUpdate=true 必须配对（逐字抄自
-    // pump3d/engine.js；只设第一行会导致阴影从头到尾都不生成） ====
+    // /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js；只设第一行会导致阴影从头到尾都不生成） ====
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
@@ -1045,7 +1045,7 @@
     window.addEventListener("focus", function () { markDirty(instance); });
     window.addEventListener("pageshow", function () { markDirty(instance); });
     canvas.addEventListener("webglcontextrestored", function () { markDirty(instance); });
-    // ==== 段 7：webglcontextlost -> throw（逐字抄自 pump3d/engine.js） ====
+    // ==== 段 7：webglcontextlost -> throw（逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js） ====
     canvas.addEventListener("webglcontextlost", function () {
       throw new Error("3D 站场巡检地图的 WebGL 上下文已丢失（通常是 GPU 驱动重置或显存不足），请刷新页面");
     });

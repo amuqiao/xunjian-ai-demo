@@ -14,10 +14,13 @@
 //   showTrack      巡检轨迹光带是否可见。ActionBar 的"轨迹"按钮切它；从 false
 //                  切到 true 的那一刻，scripts/map3d/model-track.js 会额外播放一段
 //                  有限时长的流动动画（见该文件顶部注释），不是永久滚动。
-//   overlay        当前打开的弹层：{ kind: null|"area-picker"|"issue-report",
-//                  areaId, itemId, query }。kind 决定 scenes/areapicker.js /
-//                  scenes/issuereport.js 谁可见；areaId/itemId 是"问题上报"单
-//                  要用到的目标（选择哪个区域/哪一条巡检项来生成上报单）；
+//   overlay        当前打开的弹层：{ kind: null|"area-picker"|"issue-report"|
+//                  "inspector-picker", areaId, itemId, query }。kind 决定
+//                  scenes/areapicker.js / scenes/issuereport.js /
+//                  scenes/inspectorpicker.js 谁可见；areaId/itemId 是"问题上报"单
+//                  要用到的目标（选择哪个区域/哪一条巡检项来生成上报单），
+//                  "inspector-picker" 不需要 areaId/itemId（候选名单现场从
+//                  window.DemoData.inspectorCandidates() 取，不依赖 focus/pick）；
 //                  query 是"选择区域"弹层搜索框的当前输入（自由文本，不做字典
 //                  校验，只在 kind==="area-picker" 时有意义）。
 //   flowVisited    页脚 6 步流程轨里已经"走到过"的步骤 key 集合，用于渲染
@@ -35,7 +38,7 @@
   // 现场最不容易翻车的处理方式，与参考项目 v4->v5 换 key 的理由一致。
   var STORAGE_KEY = "xj-sandbox-v1-state";
 
-  var OVERLAY_KINDS = ["area-picker", "issue-report"];
+  var OVERLAY_KINDS = ["area-picker", "issue-report", "inspector-picker"];
 
   function defaultState() {
     return {

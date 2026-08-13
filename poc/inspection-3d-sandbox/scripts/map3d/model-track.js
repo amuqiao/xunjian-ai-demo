@@ -12,11 +12,11 @@
 // texture.offset.x 推进制造"流动"观感——这是 three r160 UMD 下能做到"看起来在流动
 // 的粗线条"的唯一低成本路径。
 //
-// 播放纪律（与引擎"有限入场巡航"同构，参见 scripts/pump3d/engine.js 的
+// 播放纪律（与引擎"有限入场巡航"同构，参见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的
 // INTRO_CRUISE_DURATION_MS 注释）：光带流动只在明确的"播放路线"动作期间播放
 // FLOW_DURATION_MS 毫秒，播完自行停止，不是持续滚动的永久动画。持续滚动会让
 // texture.offset 永远在变，从而让引擎的按需渲染判定（markDirty/startLoop）永远
-// 拿不到"真正静止"这个状态——这与 pump3d/engine.js 把选中态高亮/脉冲环从"逐帧
+// 拿不到"真正静止"这个状态——这与 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 把选中态高亮/脉冲环从"逐帧
 // 动画"改成"一次性设定固定值"是同一条纪律，静止是本项目的核心不变量，不允许
 // 为了视觉效果破例。
 //

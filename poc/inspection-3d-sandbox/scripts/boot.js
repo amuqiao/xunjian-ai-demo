@@ -47,6 +47,7 @@
   assertGlobal("Overlay", window.Overlay);
   assertGlobal("MapScene", window.MapScene);
   assertGlobal("AreaPickerScene", window.AreaPickerScene);
+  assertGlobal("InspectorPickerScene", window.InspectorPickerScene);
   assertGlobal("IssueReportScene", window.IssueReportScene);
 
   var DATA = window.DemoData;
@@ -142,6 +143,7 @@
         window.MapScene.renderBottomRow(),
       ]),
       window.AreaPickerScene.render(state),
+      window.InspectorPickerScene.render(state),
       window.IssueReportScene.render(state),
     ]);
   }
@@ -307,6 +309,20 @@
     render();
   }
 
+  function openInspectorPicker() {
+    state.overlay = { kind: "inspector-picker", areaId: null, itemId: null, query: "" };
+    AppState.save();
+    render();
+  }
+
+  // 「添加人员」弹层选中一位候选人后的写入口：DemoTask.addInspector 已经做了
+  // "必须在候选池里 / 不能重复添加"两条校验，这里只负责关掉弹层、落一次持久化、
+  // 重渲染让顶栏任务卡的巡检人字段立刻变成逗号分隔的多人格式。
+  function addInspectorFromPicker(name) {
+    DATA.addInspector(name);
+    closeOverlay();
+  }
+
   function openIssueReport() {
     var target = deriveIssueTarget();
     state.overlay = { kind: "issue-report", areaId: target.areaId, itemId: target.itemId, query: "" };
@@ -359,12 +375,7 @@
   // ==========================================================================
 
   function handleAction(action, element) {
-    if (action === "add-inspector") {
-      // 演示范围外：原始需求没有给出"添加人员"对应的数据模型（应该新增哪条
-      // 记录、写到哪里都没有依据），按"不擅自编造事实"的约束，这里不模拟一条
-      // 假的巡检人记录，保持为一个已知的无操作按钮。
-      return;
-    }
+    if (action === "add-inspector") return openInspectorPicker();
     if (action === "toggle-track") {
       state.showTrack = !state.showTrack;
       AppState.save();
@@ -413,6 +424,9 @@
 
     var pickerRowEl = target.closest("[data-area-id]");
     if (pickerRowEl) { selectAreaFromPicker(pickerRowEl.getAttribute("data-area-id")); return; }
+
+    var inspectorRowEl = target.closest("[data-inspector-name]");
+    if (inspectorRowEl) { addInspectorFromPicker(inspectorRowEl.getAttribute("data-inspector-name")); return; }
 
     var selectEl = target.closest("[data-select][data-select-id]");
     if (selectEl) {
@@ -483,6 +497,9 @@
       if (el.hasAttribute("data-area-id")) {
         return { kind: "picker-row", areaId: el.getAttribute("data-area-id") };
       }
+      if (el.hasAttribute("data-inspector-name")) {
+        return { kind: "inspector-row", inspectorName: el.getAttribute("data-inspector-name") };
+      }
       if (el.classList && el.classList.contains("item-row") && el.hasAttribute("data-item-id")) {
         return { kind: "item-row", itemId: el.getAttribute("data-item-id") };
       }
@@ -501,6 +518,7 @@
       else if (mark.kind === "select") el = root.querySelector("[data-select='" + mark.select + "'][data-select-id='" + mark.selectId + "']");
       else if (mark.kind === "hotspot") el = root.querySelector("[" + C.PIN_ATTR + "='" + mark.areaId + "']");
       else if (mark.kind === "picker-row") el = root.querySelector("[data-area-id='" + mark.areaId + "']");
+      else if (mark.kind === "inspector-row") el = root.querySelector("[data-inspector-name='" + mark.inspectorName + "']");
       else if (mark.kind === "item-row") el = root.querySelector(".item-row[data-item-id='" + mark.itemId + "']");
       else if (mark.kind === "flow-step") el = root.querySelector("[data-flow-step='" + mark.stepKey + "']");
       else if (mark.kind === "action") {

@@ -32,9 +32,10 @@
    架构下算出来的是"真实视口"，与 .app-shell 的坐标系不是一回事，混用会在
    浏览器窗口比例和设计画布比例不一致时出现覆盖层尺寸对不上的问题。
 
-   ---------- 本文件为「选择区域」「问题上报」两个浮层新增的内容钩子 ----------
-   （组 5 落地这两个浮层的 body 时必须照下面的类名写 DOM，这是本文件确立的
-   契约，不得另起字面量类名）：
+   ---------- 本文件为「选择区域」「问题上报」「添加人员」三个浮层新增的内容钩子
+   ----------
+   （落地这三个浮层的 body 时必须照下面的类名写 DOM，这是本文件确立的契约，不得
+   另起字面量类名）：
 
    选择区域（Overlay.render 的 body，标题"选择区域"）：
      div.area-picker
@@ -65,11 +66,20 @@
            select.issue-form-control 或
            textarea.issue-form-control
 
-   这两个浮层通过 Overlay.render() 的 panelClass 字段分别传入
-   "area-picker-overlay" / "issue-form-overlay"，让 <aside> 额外带上这个类，
-   本文件据此把默认的右侧抽屉皮肤覆盖成居中弹窗（选择区域/问题上报都是需要
-   专注操作的表单/列表，居中弹窗比贴边抽屉更合适，这与参考项目对
-   kb-doc-overlay / kb-ingest-overlay 的处理是同一种取舍）。 */
+   添加人员（Overlay.render 的 body，标题"添加人员"）：
+     div.inspector-picker
+       p.inspector-picker-hint
+       ul.inspector-picker-list[role=list]
+         li > button.inspector-picker-row[.disabled][data-inspector-name]
+                span.inspector-picker-row-name
+                + span.inspector-picker-row-badge         —— 仅已在列（禁用）行显示
+                | span.inspector-picker-row-arrow          —— 仅可选行显示，"›"
+
+   这三个浮层通过 Overlay.render() 的 panelClass 字段分别传入
+   "area-picker-overlay" / "issue-form-overlay" / "inspector-picker-overlay"，让
+   <aside> 额外带上这个类，本文件据此把默认的右侧抽屉皮肤覆盖成居中弹窗（选择区域/
+   问题上报/添加人员都是需要专注操作的表单/列表，居中弹窗比贴边抽屉更合适，这与
+   参考项目对 kb-doc-overlay / kb-ingest-overlay 的处理是同一种取舍）。 */
 
 /* ---------- 通用外壳：默认右侧抽屉皮肤 ---------- */
 
@@ -167,7 +177,8 @@
 /* ---------- 居中弹窗皮肤：选择区域 / 问题上报共用的定位覆盖 ---------- */
 
 .overlay-panel.area-picker-overlay,
-.overlay-panel.issue-form-overlay {
+.overlay-panel.issue-form-overlay,
+.overlay-panel.inspector-picker-overlay {
   top: 70px;
   left: 50%;
   right: auto;
@@ -178,7 +189,8 @@
 }
 
 .overlay-layer.open .overlay-panel.area-picker-overlay,
-.overlay-layer.open .overlay-panel.issue-form-overlay {
+.overlay-layer.open .overlay-panel.issue-form-overlay,
+.overlay-layer.open .overlay-panel.inspector-picker-overlay {
   transform: translate(-50%, 0) scale(1);
 }
 
@@ -192,8 +204,15 @@
   width: min(960px, calc(var(--screen-design-width) - 120px));
 }
 
+.overlay-panel.inspector-picker-overlay {
+  width: min(480px, calc(var(--screen-design-width) - 120px));
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
 .area-picker-overlay .overlay-body,
-.issue-form-overlay .overlay-body {
+.issue-form-overlay .overlay-body,
+.inspector-picker-overlay .overlay-body {
   min-height: 0;
   overflow: auto;
 }
@@ -452,4 +471,81 @@ textarea.issue-form-control {
   min-height: 76px;
   padding: 8px 10px;
   resize: vertical;
+}
+
+/* ---------- 「添加人员」内容钩子 ---------- */
+
+.inspector-picker {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+}
+
+.inspector-picker-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inspector-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.inspector-picker-row {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-left: 2px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.inspector-picker-row:hover {
+  background: rgba(56, 198, 236, 0.08);
+}
+
+.inspector-picker-row:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+
+.inspector-picker-row.disabled {
+  cursor: default;
+  opacity: 0.56;
+}
+
+.inspector-picker-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-picker-row-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.inspector-picker-row-arrow {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 14px;
 }

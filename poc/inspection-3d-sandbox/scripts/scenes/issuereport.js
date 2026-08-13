@@ -84,7 +84,12 @@
       kicker: "IMS 事件中心 · 日常巡检",
       open: isOpen,
       body: body,
-      actions: isOpen ? [{ action: "submit-issue-report", text: "提交上报单", primary: true }] : [],
+      actions: isOpen
+        ? [
+            { action: "close-overlay", text: "取消" },
+            { action: "submit-issue-report", text: "提交上报单", primary: true },
+          ]
+        : [],
       panelClass: "issue-form-overlay",
       wide: true,
       onCloseAction: "close-overlay",

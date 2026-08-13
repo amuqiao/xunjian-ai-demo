@@ -22,7 +22,8 @@ scripts/
     model-shared.js            L3 共享程序化贴图/材质工具（沙盘地面、状态材质等）
     model-sandbox.js           L3 程序化三维沙盘模型（12 区设备造型 + 250 点位 InstancedMesh）
     model-track.js             L3 巡检轨迹模型（TubeGeometry 流动光带 + 起点/终点/巡检人 Sprite）
-    engine.js                  L3 3D 引擎（WebGL 生命周期/相机轨道/标签投影/按需渲染，从 pump3d/engine.js 抄写改造）
+    engine.js                  L3 3D 引擎（WebGL 生命周期/相机轨道/标签投影/按需渲染，从
+                               /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 抄写改造）
   data/
     items-entry.js / items-process.js / items-room.js   256 条真实巡检项（tools/build-items.py 生成，不要手改）
     station.js                 12 区站场态势数据 + 世界坐标系定义（全仓库坐标真源）
@@ -43,7 +44,8 @@ scripts/
   scenes/
     map.js                     唯一场景：任务卡、左栏区域列表、3D 面板、右栏详情+列表、底部图表行
     areapicker.js               「选择区域」弹层
-    issuereport.js               「问题上报」弹层（IMS 事件中心字段）
+    inspectorpicker.js           「添加人员」弹层（候选名单来自 DemoTask.inspectorCandidates()）
+    issuereport.js               「问题上报」弹层（IMS 事件中心字段，foot 有「取消」「提交上报单」两个按钮）
   boot.js                       引导层：render 管线 + 事件委托 + 状态写入口
 styles/
   01-tokens.css ... 11-overlay.css   见各文件头注释的类名契约
@@ -57,14 +59,15 @@ tools/
 - **250 个巡检点位是 InstancedMesh**，按状态分 3 组，不是可单独点击的对象；点击选中一条具体巡检项目前只更新右栏 UI 和 `debugInfo().activeItemId`，不驱动额外的 3D 高亮（见 `scripts/map3d/engine.js` 的 `setActiveItem` 注释）。
 - **数值型巡检项的 `+`/`−`** 只改 `value`，不重新计算 `status`：数据模型没有给出"读数变化 → 状态判定"的公式，不擅自发明一套阈值逻辑。
 - **区域下钻（`area` 预设）只显示当前区 + 相邻区域的标签**，其余 9-10 个区域收敛为纯 3D 点位（热点球体/光环仍渲染，只是不再叠加 DOM 标签）——这是应对"12 个标签在近距离取景下必然拥挤"的根本手段，比单纯依赖去碰撞算法更有效。相邻关系从 `station.js` 的 `grid.col/grid.row` 现场算出 4 方向邻接，不再手写第二份邻接表。
+- **「添加人员」的候选名单不新编姓名**：候选池只从 `scripts/data/task.js` 已有的两处真实姓名字段（主任务卡巡检人"唐爱纯"、郴州输油站任务卡巡检人"王泽宇,周理斌"）现场收集去重，得到 3 个真实姓名。选中一位后追加进当前任务的 `inspector` 字段（逗号分隔，与真实 App 多人巡检显示格式一致），**只改内存对象，不写 `localStorage`**——刷新页面即还原成"唐爱纯"一人的初始演示数据，与巡检项读数改动同一条纪律。
 
 ## 与 `poc/inspection-3d-aerial` 的关系
 
 两个刻意互不耦合的独立 POC：本目录做「程序化工程沙盘」视觉表达，`poc/inspection-3d-aerial` 做「俯视/卫星」视觉表达。两者共享同一份真实巡检标准来源（`附件1-3.湖南公司油气站场、阀室通用巡检标准.xlsx`），但巡检项数据由 `tools/build-items.py` **各自独立生成一份副本**（两个目录各有一份 `items-entry.js`/`items-process.js`/`items-room.js`），运行时零共享、零 import，改一个不会影响另一个。`scripts/map3d/contract.js` 顶部注释记录了这次拆分的历史与理由（2026-08-13，原设计过双模式，后来发现双模式会要求一条真正的 dispose 路径，与"终生单例"的既有形态冲突，拆分成本更低）。
 
-## 待清理的旧文件（未提交，本轮任务未删除，需要用户确认后清理）
+## 已清理的旧文件（历史记录）
 
-以下文件是更早期迭代留下的残留，`index.html` 已不再引用它们：
+以下文件是更早期迭代留下的残留，`index.html` 早已不再引用它们，现已从本目录删除：
 
 - `scripts/app.js`
 - `scripts/data.js`
@@ -72,4 +75,8 @@ tools/
 - `styles/card.css`
 - `styles/pump3d.css`
 
-`scripts/pump3d/`（`contract.js`/`engine.js`/`model.js`）**保留**，它是 `scripts/map3d/engine.js` 的抄写源，仍有对照价值，不属于待清理列表。
+`scripts/pump3d/`（`contract.js`/`engine.js`/`model.js`）也已于 2026-08-13 删除：新
+`scripts/map3d/engine.js` 抄写改造完成后不再需要在本目录里保留一份对照副本。权威原件
+仍在 `/Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/` 下（`contract.js` /
+`engine.js` / `model.js` / `README.md`），本目录代码注释里所有"逐字抄自 pump3d/xxx.js"
+一类的引用都已改成指向这个绝对路径，不再指向本目录内早已不存在的相对路径。

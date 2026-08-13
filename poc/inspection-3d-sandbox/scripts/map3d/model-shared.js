@@ -30,7 +30,8 @@
 //     便宜一到两个数量级）。
 //
 // ==== THREE 注入风格 ====
-// 与 scripts/pump3d/model.js 保持一致：THREE 通过函数参数传入，本文件顶层不读取 window.THREE。
+// 与 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 保持一致：
+// THREE 通过函数参数传入，本文件顶层不读取 window.THREE。
 //
 // ==== 代码风格约束 ====
 // 纯 ES5 IIFE + 挂 window.Map3DShared。不用 ESM / const / let / 箭头函数 / 模板字符串 / class。
@@ -48,16 +49,13 @@
   // 通用小工具
   // ---------------------------------------------------------------------
 
-  // 摘自 scripts/pump3d/model.js 的 createCanvas，原样保留（本来就是通用工具，无需泛化）。
+  // 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的
+  // createCanvas，原样保留（本来就是通用工具，无需泛化）。
   function createCanvas(width, height) {
     var canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     return canvas;
-  }
-
-  function clamp(value, min, max) {
-    return value < min ? min : value > max ? max : value;
   }
 
   function requireTHREE(THREE, fnName) {
@@ -97,120 +95,20 @@
   }
 
   // ---------------------------------------------------------------------
-  // 摘自 scripts/pump3d/model.js 的纹理工具（泛化：把泵专用的硬编码尺寸/颜色/密度
-  // 提成参数，核心算法与绘制顺序原样保留，不做"顺手改进"）
+  // 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的纹理
+  // 工具（泛化：把泵专用的硬编码尺寸/颜色/密度提成参数，核心算法与绘制顺序原样
+  // 保留，不做"顺手改进"）
   // ---------------------------------------------------------------------
+  //
+  // buildPerforatedTexture（联轴器护罩穿孔钢网）/ buildGrilleTexture（电机风罩通风
+  // 格栅）/ buildGroundFadeTexture（泵地面圆盘径向渐变）三个函数已于 2026-08-13
+  // 删除：本 POC（沙盘）与 poc/inspection-3d-aerial 里都是 0 引用的死代码，全量 grep
+  // 排除本文件自身内部调用后确认过。三者原文仍在权威原件
+  // /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 里，如果未来
+  // 真的需要"穿孔钢网"/"通风格栅"/"地面径向渐变淡出"这类纹理，应从那份原件重新摘取，
+  // 不要凭这条注释臆测参数细节。
 
-  // 摘自 scripts/pump3d/model.js 的 buildPerforatedTexture，原用途是联轴器护罩的穿孔钢网
-  // alphaMap（底色不透明=金属实体，圆孔区域透明=通风孔）。
-  // 泛化：size/spacing/holeRadius/repeatX/repeatY 原来是写死的 256/22/6/8/2，现在都是参数。
-  // 陷阱保留：three r160 的 alphamap_fragment.glsl 实际只取 .g 通道，灰度图 r=g=b 时不受影响，
-  // 若改成彩色遮罩需注意只有 g 通道生效。
-  function buildPerforatedTexture(THREE, options) {
-    requireTHREE(THREE, "buildPerforatedTexture");
-    var opts = options || {};
-    var size = opts.size || 256;
-    var spacing = opts.spacing || 22;
-    var holeRadius = opts.holeRadius != null ? opts.holeRadius : 6;
-    var repeatX = opts.repeatX != null ? opts.repeatX : 8;
-    var repeatY = opts.repeatY != null ? opts.repeatY : 2;
-
-    var canvas = createCanvas(size, size);
-    var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = "#000000";
-    var x;
-    var y;
-    for (y = spacing / 2; y < size; y += spacing) {
-      for (x = spacing / 2; x < size; x += spacing) {
-        ctx.beginPath();
-        ctx.arc(x, y, holeRadius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    assertUntainted(canvas);
-    var texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(repeatX, repeatY);
-    return texture;
-  }
-
-  // 摘自 scripts/pump3d/model.js 的 buildGrilleTexture，原用途是电机风罩的通风格栅
-  // alphaMap（底色透明=通风口，同心圆环+放射辐条不透明=金属框）。
-  // 泛化：size/ringStart/ringStep/ringLineWidth/spokeCount/spokeLineWidth 原来写死为
-  // 256/26/24/6/12/5，现在都是参数。
-  function buildGrilleTexture(THREE, options) {
-    requireTHREE(THREE, "buildGrilleTexture");
-    var opts = options || {};
-    var size = opts.size || 256;
-    var ringStart = opts.ringStart != null ? opts.ringStart : 26;
-    var ringStep = opts.ringStep != null ? opts.ringStep : 24;
-    var ringLineWidth = opts.ringLineWidth != null ? opts.ringLineWidth : 6;
-    var spokeCount = opts.spokeCount != null ? opts.spokeCount : 12;
-    var spokeLineWidth = opts.spokeLineWidth != null ? opts.spokeLineWidth : 5;
-
-    var canvas = createCanvas(size, size);
-    var ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, size, size);
-    ctx.strokeStyle = "#ffffff";
-    var cx = size / 2;
-    var cy = size / 2;
-    var ring;
-    ctx.lineWidth = ringLineWidth;
-    for (ring = ringStart; ring < size / 2; ring += ringStep) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, ring, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.lineWidth = spokeLineWidth;
-    var i;
-    for (i = 0; i < spokeCount; i += 1) {
-      var angle = (i * 2 * Math.PI) / spokeCount;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(angle) * (size / 2 - 4), cy + Math.sin(angle) * (size / 2 - 4));
-      ctx.stroke();
-    }
-
-    assertUntainted(canvas);
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  // 摘自 scripts/pump3d/model.js 的 buildGroundFadeTexture，原用途是泵地面圆盘的径向渐变
-  // alphaMap（中心 alpha=1、边缘 alpha=0，配合 transparent:true 让地面自然淡出、消除硬边圆盘）。
-  // 泛化：size 与渐变 stops（原来写死 [0,1]/[0.55,0.85]/[1,0]，颜色写死白色）现在都是参数。
-  function buildGroundFadeTexture(THREE, options) {
-    requireTHREE(THREE, "buildGroundFadeTexture");
-    var opts = options || {};
-    var size = opts.size || 256;
-    var color = opts.color || "255,255,255";
-    var stops = opts.stops || [
-      { offset: 0, alpha: 1 },
-      { offset: 0.55, alpha: 0.85 },
-      { offset: 1, alpha: 0 }
-    ];
-
-    var canvas = createCanvas(size, size);
-    var ctx = canvas.getContext("2d");
-    var cx = size / 2;
-    var cy = size / 2;
-    var gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
-    var i;
-    for (i = 0; i < stops.length; i += 1) {
-      gradient.addColorStop(stops[i].offset, "rgba(" + color + "," + stops[i].alpha + ")");
-    }
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-
-    assertUntainted(canvas);
-    return new THREE.CanvasTexture(canvas);
-  }
-
-  // 摘自 scripts/pump3d/model.js 的 buildNameplateTexture，原用途是电机铭牌（写死 "P-1" /
+  // 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的 buildNameplateTexture，原用途是电机铭牌（写死 "P-1" /
   // "250kW" / "2980 r/min" 三行文字）。
   // 泛化：文字内容改成 text 参数（{ title, lines }），背景/字色/字号/画布尺寸改成 options 参数。
   function buildNameplateTexture(THREE, text, options) {
@@ -422,7 +320,8 @@
   // 沙盘地面专用：规则坐标网格
   // ---------------------------------------------------------------------
 
-  // 网格线配色沿用旧 scripts/pump3d/model.js buildGround 里 THREE.GridHelper(64, 32,
+  // 网格线配色沿用旧 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js
+  // buildGround 里 THREE.GridHelper(64, 32,
   // 0x1c3a49, 0x14262f) 的两色，延续"工程沙盘"视觉语言——这里改成画进纹理而不是叠加
   // 一个 GridHelper 对象，因为沙盘地面还要同时承载硬化地坪/道路等构筑物图层，统一烘进
   // 一张纹理比"一个 GridHelper + 一个贴图地面"两个对象叠放更好控制层次关系。
@@ -510,7 +409,7 @@
 
   // 三色状态材质。颜色必须与以下两处字面一致，改色要三处同步：
   //   styles/01-tokens.css 的 --status-danger/--status-warn/--status-ok
-  //   scripts/pump3d/engine.js 的 HOTSPOT.colors
+  //   /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的 HOTSPOT.colors
   function createStatusMaterials(THREE) {
     requireTHREE(THREE, "createStatusMaterials");
     return {
@@ -526,7 +425,8 @@
     };
   }
 
-  // 管道/罐体/机柜/地坪等常用 PBR 材质集。数值取自 scripts/pump3d/model.js 里已在泵项目上
+  // 管道/罐体/机柜/地坪等常用 PBR 材质集。数值取自
+  // /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 里已在泵项目上
   // 验证过视觉效果的钢铁/涂层参数（casing/bareSteel/paintedSteel/stainless/concrete），
   // 只是按用途换了更通用的键名，参数本身原样复用、不重新调参。
   function createMetalMaterials(THREE) {
@@ -541,64 +441,33 @@
   }
 
   // ---------------------------------------------------------------------
-  // 资源释放
+  // 资源释放（disposeGroup 已删除，见下方决策记录）
   // ---------------------------------------------------------------------
 
-  // 新增：遍历 group，释放每个 Mesh 的 geometry、全部材质、以及材质上所有纹理型属性。
+  // disposeGroup 已于 2026-08-13 删除，决策记录如下：
   //
-  // 为什么这是本次新增的关键防线：旧 scripts/pump3d/engine.js 全文件只有 2 处 dispose
-  // （都是环境贴图的临时产物），因为它是终生单例、模型从建好到页面关闭都不换。而新引擎要
-  // 支持沙盘 <-> 卫星 setMode 切换——引入"切换"就是引入"泄漏"：12 个区域热点、每个热点
-  // 4 个几何 + 4 个材质、彼此完全不共享，12 个区域 * 4 = 48 个几何 + 48 个材质，一个模式
-  // 就是 96 个 GPU 对象；不在切换前 dispose 掉旧模式的 96 个对象，每切一次模式就漏 96 个，
-  // 反复切换几次显存就会爆。
+  // 它当初是为"沙盘/卫星双模式可切换"准备的防线——旧引擎设想的 setMode 会反复换模型，
+  // 而区域热点是每个 4 几何 + 4 材质、完全不共享，12 区每模式 96 个 GPU 对象，不释放
+  // 每切一次就漏 96 个。原始注释里覆盖纹理属性的逻辑是遍历材质对象每个键、凡是值带
+  // isTexture===true 就 dispose()，不写死属性名清单，这样不管未来 three.js 新增哪个
+  // 贴图槏位都能自动覆盖到——如果将来要重新引入这个函数，这条"不写死属性名清单"的
+  // 设计仍然值得保留。
   //
-  // 覆盖的纹理属性名（典型 MeshStandardMaterial / MeshPhysicalMaterial 会用到的槏位）：
-  // map / alphaMap / aoMap / bumpMap / displacementMap / emissiveMap / envMap / lightMap /
-  // metalnessMap / normalMap / roughnessMap / specularMap / clearcoatMap /
-  // clearcoatRoughnessMap / clearcoatNormalMap / sheenColorMap / sheenRoughnessMap /
-  // transmissionMap / thicknessMap / iridescenceMap / iridescenceThicknessMap 等。
-  // 这里不写死这份属性名清单去逐个取——而是遍历材质对象上的每一个键，凡是值带有
-  // isTexture===true（所有 THREE.Texture 实例的通用标记）就调用它的 dispose()。这样
-  // 不管材质用了上面列的哪一个槏位、或者未来 three.js 版本新增了别的贴图槏位，都会被
-  // 自动覆盖到，不需要每次新增材质类型都回来改这个函数。
-  //
-  // 纪律（写在这里，供调用方遵守）：每个模式必须在自己的 createMaterials 里独占创建材质，
-  // 不得跨模式共享同一个材质实例——一旦共享，切换到另一个模式时对旧模式调用 disposeGroup
-  // 会把仍在用的材质/纹理一并释放掉，等于把另一个模式打死。
-  function disposeGroup(group) {
-    if (!group) {
-      throw new Error("[Map3DShared] disposeGroup 缺少 group 参数");
-    }
-    group.traverse(function (obj) {
-      if (obj.geometry) {
-        obj.geometry.dispose();
-      }
-      var material = obj.material;
-      if (!material) return;
-      var materials = Array.isArray(material) ? material : [material];
-      materials.forEach(function (mat) {
-        if (!mat) return;
-        Object.keys(mat).forEach(function (key) {
-          var value = mat[key];
-          if (value && value.isTexture) {
-            value.dispose();
-          }
-        });
-        mat.dispose();
-      });
-    });
-  }
+  // 现在为什么可以删：双模式已经拆成了两个互不耦合的独立 POC（本 POC 只做沙盘，
+  // poc/inspection-3d-aerial 只做卫星俯视），两边引擎都回到"终生单例、单模型、无
+  // setMode"的形态，全量 grep 确认本文件之外 0 处引用。实测过 5 次 detach/mount 之后
+  // debugInfo().memory.geometries 恒为 173 不增长、contextCreated 恒为 1，确实不存在
+  // 需要它来防的泄漏。**如果将来有人要重新引入换模型能力，必须先把它加回来**——原文
+  // 仍在权威原件 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js
+  // 里可以对照（那份文件全文件只有 2 处 dispose，都是环境贴图的临时产物，因为它是终生
+  // 单例、模型从建好到页面关闭都不换——disposeGroup 这套"遍历释放"的完整实现，是本
+  // 项目为了双模式切换才新增的，不是从那份原件抄来的）。
 
   window.Map3DShared = {
     createCanvas: createCanvas,
-    buildPerforatedTexture: buildPerforatedTexture,
-    buildGrilleTexture: buildGrilleTexture,
-    buildGroundFadeTexture: buildGroundFadeTexture,
     buildNameplateTexture: buildNameplateTexture,
     buildSandboxGround: buildSandboxGround,
     createStatusMaterials: createStatusMaterials,
-    createMetalMaterials: createMetalMaterials,
-    disposeGroup: disposeGroup
+    createMetalMaterials: createMetalMaterials
   };
 })();

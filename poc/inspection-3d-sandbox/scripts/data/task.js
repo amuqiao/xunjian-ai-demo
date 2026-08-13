@@ -28,6 +28,14 @@
 // 如果要接入真实 IMS 事件中心，这几处取值需要换成真实枚举。eventLocation
 // 固定为"站场"、eventSource 固定为"日常巡检"是原始需求明确给出的真实默认值，
 // 不属于占位。
+//
+// inspectorCandidates()/addInspector(name)（2026-08 新增，支撑 ActionBar「添加人员」
+// 按钮）：候选姓名池**只从本文件已有的真实姓名字段现场收集去重**（TASK.inspector 与
+// 全部 OTHER_TASKS[].inspector，两者都是真实 App 截图里逐字抄的逗号分隔多人格式），
+// 不新编任何姓名、也不另维护一份姓名列表。当前得到 4 个真实姓名：
+// 唐爱纯（主任务）、王泽宇、周理斌（郴州 08:00 那班）、金彪（郴州 04:00 那班）。
+// 这个设计的收益是：补一条真实任务卡进 OTHER_TASKS，候选池自动变大——事实上
+// 「金彪」就是这样补进来的（此前只编码了郴州 08:00 那一条，候选池只有 3 人）。
 (function () {
   "use strict";
 
@@ -65,18 +73,88 @@
   ];
 
   // ---- 其他任务卡（只陈列，不可交互）----
+  //
+  // 两条都逐字抄自真实 App 截图
+  // assets/data/日常巡检录屏截图/Screenshot_2026-08-05_at_12-22-48.png（巡检列表页）。
+  // 第二条（金彪）在截图里被视频控件与屏幕边缘裁掉了一部分，所以 actualEnd / areaSummary /
+  // issueBadge 三个字段**没有取证到**，这里显式写 null 而不是照第一条的样子编一个——
+  // null 表达"截图里看不到"，编一个数字表达"我们知道它是多少"，两者不能混。
   var OTHER_TASKS = [
     {
-      id: "task-chenzhou-20260804",
+      id: "task-chenzhou-20260804-am",
       formName: "郴州输油站常规巡检表",
       station: "长郴郴州站",
       inspector: "王泽宇,周理斌",
+      planStart: "2026-08-04 08:00:36",
+      planEnd: "2026-08-05 08:00:36",
       actualStart: "08:59:56",
       actualEnd: "10:26:37",
       areaSummary: "共8个，已完成8个",
       issueBadge: 2
+    },
+    {
+      id: "task-chenzhou-20260804-early",
+      formName: "郴州输油站常规巡检表",
+      station: "长郴郴州站",
+      inspector: "金彪",
+      planStart: "2026-08-04 04:00:10",
+      planEnd: "2026-08-05 04:00:10",
+      actualStart: "04:39:04",
+      actualEnd: null,
+      areaSummary: null,
+      issueBadge: null
     }
   ];
+
+  // ---- 「添加人员」候选巡检人池：不新编姓名，只从本文件已有的两处真实姓名字段
+  // （主任务卡 TASK.inspector + 其他任务卡 OTHER_TASKS[].inspector）里现场收集、去重。
+  // 两处字段都是逗号分隔的多人格式（真实 App 的多人巡检就是这样显示），这里统一
+  // split(",") 再摊平。不做大小写/空白归一化——真实姓名本来就不需要。
+  function inspectorPool() {
+    var seen = {};
+    var pool = [];
+    function collect(field) {
+      field.split(",").forEach(function (name) {
+        if (!seen[name]) {
+          seen[name] = true;
+          pool.push(name);
+        }
+      });
+    }
+    collect(TASK.inspector);
+    OTHER_TASKS.forEach(function (t) { collect(t.inspector); });
+    return pool;
+  }
+
+  // 「添加人员」弹层的候选名单：巡检人池里每个姓名标注是否已经在当前任务的
+  // inspector 字段里（alreadyAssigned=true 时弹层要渲染成禁用行，不可重复添加）。
+  function inspectorCandidates() {
+    var assigned = TASK.inspector.split(",");
+    return inspectorPool().map(function (name) {
+      return { name: name, alreadyAssigned: assigned.indexOf(name) >= 0 };
+    });
+  }
+
+  // 把候选姓名追加进当前任务的巡检人字段，逗号分隔（与真实 App 的多人巡检显示格式
+  // 一致，不加空格、不用「、」）。只改内存里的 TASK 对象，不写 localStorage——与
+  // boot.js 的巡检项读数改动同一条纪律：刷新页面即还原初始演示数据。
+  // 校验：姓名必须在候选池里、不能是已经在列的姓名，否则直接抛错（不是一个"刚发生
+  // 的真实交互"该有的静默失败）。
+  function addInspector(name) {
+    if (typeof name !== "string" || name === "") {
+      throw new Error("addInspector 需要非空字符串姓名，实际为 " + name);
+    }
+    var pool = inspectorPool();
+    if (pool.indexOf(name) < 0) {
+      throw new Error("巡检人 " + name + " 不在真实候选名单（" + pool.join(",") + "）里，无法添加");
+    }
+    var assigned = TASK.inspector.split(",");
+    if (assigned.indexOf(name) >= 0) {
+      throw new Error("巡检人 " + name + " 已经在当前任务巡检人列表（" + TASK.inspector + "）里，不能重复添加");
+    }
+    assigned.push(name);
+    TASK.inspector = assigned.join(",");
+  }
 
   // urgency/eventLevel 演示取值表：按巡检项 status 映射，danger 比 warn 更紧急。
   // 这不是真实 IMS 枚举，见文件头注释。
@@ -216,6 +294,8 @@
     filters: filters,
     issues: issues,
     issueDraft: issueDraft,
-    otherTasks: otherTasks
+    otherTasks: otherTasks,
+    inspectorCandidates: inspectorCandidates,
+    addInspector: addInspector
   };
 })();

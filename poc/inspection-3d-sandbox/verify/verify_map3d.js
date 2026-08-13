@@ -318,6 +318,81 @@ async function checkLabelOverlap(page) {
   const debugInfoAfterOverviewRow = await page.evaluate(() => window.Map3D.debugInfo());
   assert('点击左栏「全站视图」行后 activeAreaId === null', debugInfoAfterOverviewRow.activeAreaId === null, debugInfoAfterOverviewRow);
 
+  // ---- 「添加人员」弹层：候选名单含真实姓名、唐爱纯已在列、选一位后顶栏任务卡巡检人
+  // 变成逗号分隔的两人、再次打开时刚加的那位不再出现在可选（未禁用）名单里 ----
+  async function readInspectorFieldText() {
+    return page.$$eval('.task-card-fields .task-field', (fields) => {
+      var match = fields.filter(function (f) {
+        return f.querySelector('.task-field-label').textContent === '巡检人';
+      })[0];
+      return match ? match.querySelector('.task-field-value').textContent : null;
+    });
+  }
+
+  await page.click('[data-action="add-inspector"]');
+  await page.waitForTimeout(400);
+
+  const inspectorPickerVisible = await page.locator('.inspector-picker-overlay').isVisible();
+  assert('点击「添加人员」后弹层可见', inspectorPickerVisible === true, { inspectorPickerVisible });
+
+  const candidateNames = await page.locator('.inspector-picker-row-name').allTextContents();
+  assert('候选名单包含真实姓名 王泽宇/周理斌', candidateNames.indexOf('王泽宇') >= 0 && candidateNames.indexOf('周理斌') >= 0, candidateNames);
+
+  const tangDisabled = await page.locator('.inspector-picker-row', { hasText: '唐爱纯' }).getAttribute('disabled');
+  assert('唐爱纯行标为已在列（disabled）', tangDisabled !== null, { tangDisabled });
+
+  const inspectorBeforeAdd = await readInspectorFieldText();
+  assert('添加前顶栏任务卡巡检人为「唐爱纯」', inspectorBeforeAdd === '唐爱纯', { inspectorBeforeAdd });
+
+  await page.screenshot({ path: path.join(SHOT_DIR, '04-inspector-picker-first-open.png') });
+
+  await page.click('[data-inspector-name="王泽宇"]');
+  await page.waitForTimeout(400);
+
+  const inspectorAfterAdd = await readInspectorFieldText();
+  assert('选中王泽宇并确认后顶栏任务卡巡检人变成「唐爱纯,王泽宇」', inspectorAfterAdd === '唐爱纯,王泽宇', { inspectorAfterAdd });
+
+  const overlayKindAfterAdd = await page.evaluate(() => window.AppState.value.overlay.kind);
+  assert('添加人员后弹层自动关闭（overlay.kind === null）', overlayKindAfterAdd === null, { overlayKindAfterAdd });
+
+  await page.screenshot({ path: path.join(SHOT_DIR, '05-taskcard-after-add-inspector.png') });
+
+  await page.click('[data-action="add-inspector"]');
+  await page.waitForTimeout(400);
+
+  const wangSelectableCount = await page.locator('[data-inspector-name="王泽宇"]').count();
+  assert('再次打开弹层后王泽宇不再出现在可选（未禁用）名单里', wangSelectableCount === 0, { wangSelectableCount });
+
+  const wangBadgeText = await page.locator('.inspector-picker-row', { hasText: '王泽宇' }).locator('.inspector-picker-row-badge').textContent();
+  assert('王泽宇行改为标注「已在列」', wangBadgeText === '已在列', { wangBadgeText });
+
+  await page.screenshot({ path: path.join(SHOT_DIR, '06-inspector-picker-reopened.png') });
+
+  // 页面同时挂了 3 个 .overlay-layer（选择区域/添加人员/问题上报），此刻只有「添加人员」
+  // 那个带 .open——用 .overlay-layer.open 限定作用域，避免 [data-action="close-overlay"]
+  // 在 3 个弹层头部都存在导致的选择器歧义（并且未打开的弹层 pointer-events:none，直接点
+  // 未限定作用域的选择器有概率点到 DOM 顺序更靠前但并未打开的那个）。
+  await page.click('.overlay-layer.open [data-action="close-overlay"]');
+  await page.waitForTimeout(300);
+
+  // ---- 「问题上报」弹层：foot 恰好 2 个按钮，顺序为「取消」「提交上报单」，点击
+  // 「取消」后弹层关闭 ----
+  await page.click('[data-action="open-issue-report"]');
+  await page.waitForTimeout(400);
+
+  const issueFormFootTexts = await page.locator('.issue-form-overlay .overlay-foot button').allTextContents();
+  assert('问题上报弹层 foot 恰好 2 个按钮，顺序为「取消」「提交上报单」', JSON.stringify(issueFormFootTexts) === JSON.stringify(['取消', '提交上报单']), issueFormFootTexts);
+
+  await page.screenshot({ path: path.join(SHOT_DIR, '07-issue-report-with-cancel.png') });
+
+  // 点 foot 里的「取消」按钮本身（不是头部的通用关闭按钮），同样用 .overlay-layer.open
+  // 限定作用域，理由同上一处。
+  await page.click('.overlay-layer.open .issue-form-overlay .overlay-foot [data-action="close-overlay"]');
+  await page.waitForTimeout(400);
+
+  const overlayKindAfterCancel = await page.evaluate(() => window.AppState.value.overlay.kind);
+  assert('点击「取消」后问题上报弹层关闭（overlay.kind === null）', overlayKindAfterCancel === null, { overlayKindAfterCancel });
+
   const failed = report.assertions.filter((a) => !a.pass);
   await browser.close();
 

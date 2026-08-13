@@ -5,7 +5,7 @@
 //   vdom 时把它当子节点插进树里；Charts.draw(id, option) 把 option 排进待绘队列；
 //   Charts.flush() 在下一个 rAF 里批量 init（缺失时）+ setOption(option, true)。
 //   这样同一个 id 的 ECharts 实例不需要每次 render 都 dispose 再 init——
-//   scripts/pump3d/engine.js 对它的 canvas 已经在做同样的“摘下来 insertBefore 到
+//   /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 对它的 canvas 已经在做同样的“摘下来 insertBefore 到
 //   新位置”的持久化处理（mount()/detach()），这里沿用同一个模式，不是新发明的机制。
 //
 // 曾经并存的第二套 API（window.AppCharts：dispose/resize/scheduleResize/chart/miniChart）
@@ -57,7 +57,7 @@
   // 持久化机制：节点只在首次调用时用 document.createElement 创建一次，此后一直存在
   // slots[id] 里，不会被销毁。每次调用都会先把它从当前的父节点上摘下来
   // （parentNode.removeChild），再返回给调用方——调用方（场景层的 h() 树）随后会把
-  // 它 appendChild 到新一轮渲染的 DOM 位置。这正是 scripts/pump3d/engine.js 的
+  // 它 appendChild 到新一轮渲染的 DOM 位置。这正是 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的
   // detach()（canvas.parentNode.removeChild(canvas)）之后由 mount() 重新
   // insertBefore 的同一套“摘下来再插回去”节奏，只是这里的“摘”和“插”分别发生在
   // slot() 和调用方的 h()/appendChild 里，而不是像 3D 引擎那样有独立的 detach() 函数
