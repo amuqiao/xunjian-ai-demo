@@ -213,6 +213,14 @@
   // ==========================================================================
 
   function selectArea(areaId) {
+    // "__none__" 是左栏区域列表第 0 层"全站视图"行（scripts/scenes/map.js 的
+    // renderAreaList()）与 SelectList 共用的哨兵值——它代表"没有任何具体区域被
+    // 选中"，落到 state.focus.areaId 上必须是 null，不是字符串 "__none__" 本身
+    // （DemoStation 的 12 区数据里没有也不该有一个真实的 areaId 叫这个）。这里在
+    // selectArea 入口就把哨兵值映射成 null，其余校验/赋值逻辑不用关心这个特殊值
+    // 从哪条 DOM 路径进来的（左栏第 0 层行 / 流程轨"站场全景"步 / 「返回全站」按钮
+    // 三处都走同一个 selectArea(null) 或 selectArea("__none__")）。
+    if (areaId === "__none__") areaId = null;
     if (areaId != null && DATA.areaIds().indexOf(areaId) < 0) {
       throw new Error("selectArea 收到非法 areaId：" + areaId);
     }
@@ -377,6 +385,16 @@
     if (action === "close-overlay") return closeOverlay();
     if (action === "map-zoom-in") { window.Map3D.zoom(-140); return; }
     if (action === "map-zoom-out") { window.Map3D.zoom(140); return; }
+    // back-to-overview / reset-view 都不走 render()——与 map-zoom-in/out 同类：它们是
+    // 纯 3D 相机交互（重挂宿主、回到 focus.areaId=null 这条状态变化例外，走 selectArea
+    // 本身自带的 render()；reset-view 则完全不改任何 state，只是让引擎把当前 preset 的
+    // 初始机位再走一遍带动画的过渡），不需要重建整棵 DOM。reset-view 尤其要避免走
+    // render()：render() 会先 detach() 再重新 mount()，那条路径会用 mount() 里"同 preset
+    // 只 retarget、不重放巡航"的短路逻辑去接管镜头，而不是真的把镜头拉回初始姿态——
+    // 这正是 resetView() 需要绕开的短路，走 render() 反而会绕不开它，必须直接调
+    // window.Map3D.resetView()。
+    if (action === "back-to-overview") return selectArea(null);
+    if (action === "reset-view") { window.Map3D.resetView(); return; }
     if (action === "item-toggle") return toggleItem(element.getAttribute("data-item-id"));
     if (action === "item-inc") return stepItem(element.getAttribute("data-item-id"), 1);
     if (action === "item-dec") return stepItem(element.getAttribute("data-item-id"), -1);

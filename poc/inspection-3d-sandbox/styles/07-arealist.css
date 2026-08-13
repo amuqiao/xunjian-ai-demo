@@ -6,7 +6,8 @@
        div.area-list-head > p.kicker + h3
        div.area-list-scroll
          div.sl.sl-row[data-select="area"]
-           button.sl-item.ok|.warn|.danger[.active] x12
+           button.sl-item.ok[data-select-id="__none__"][.active]   ← 列表第 0 层："全站视图"
+           button.sl-item.ok|.warn|.danger[.active] x12            ← 12 个真实区域
 
    .sl-row 默认是 flex-direction:column（03-cards.css），本文件只需要让
    .area-list-scroll 承担纵向滚动、不撑破左栏固定宽度，其余交给 SelectList
@@ -45,10 +46,15 @@
   font-weight: 700;
 }
 
-/* 站场全景态的哨兵项（scripts/scenes/map.js 的 renderAreaList() 追加，
-   id="__none__"）：只用来让 SelectList 的 activeId 校验在"没有任何区域选中"
-   时仍然合法，不应该真的显示成一行。display:none 的按钮天然退出 Tab 序列，
-   不影响键盘可达性。 */
+/* 列表最顶部的"全站视图"行（scripts/scenes/map.js 的 renderAreaList() unshift 到
+   items[0]，id="__none__"）：真正可见、可点的一行，不再是 display:none 的哨兵。
+   与下面 12 个真实区域行的区别只在视觉上做弱化处理——更淡的背景、更弱的边框、
+   下方一条分隔线把它和真实区域列表隔开，暗示"这是退回上一层，不是第 13 个区域"。
+   label 里已经带了 "‹" 前缀（渲染在 .sl-item-label 文本内），这里不再重复叠加图标。 */
 .area-list-scroll [data-select-id="__none__"] {
-  display: none;
+  background: rgba(56, 198, 236, 0.06);
+  border-style: dashed;
+  margin-bottom: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }

@@ -156,6 +156,19 @@
       // 底部悬浮操作栏（ui/actionbar.js）不在这里渲染，由 scenes/map.js 追加进本容器——
       // 所以这里不额外套包裹层，保证本容器本身就能直接承载绝对定位的子节点。
       h("div", hostAttrs, [
+        // 「返回全站」：只在下钻态（activeAreaId 非空）渲染——全景态没有可返回的
+        // 上一层，不渲染成 disabled，直接不出现。左上角绝对定位，与顶部居中的
+        // .map-submit-banner 不重叠（见 05-map3d.css 里两者各自的 top/left）。
+        activeAreaId != null
+          ? h("button", {
+              type: "button",
+              class: "map-back",
+              dataset: { action: "back-to-overview" },
+            }, [
+              h("span", { class: "map-back-icon", "aria-hidden": "true", text: "‹" }),
+              h("span", { class: "map-back-label", text: "返回全站" }),
+            ])
+          : null,
         h("div", { class: "map-submit-banner" }, [
           h("span", { class: "map-submit-icon", "aria-hidden": "true" }),
           h("strong", { class: "map-submit-text", text: "巡检区域提交情况" }),
@@ -191,6 +204,12 @@
           h("button", {
             type: "button", class: "map-zoom-btn", dataset: { action: "map-zoom-out" },
             "aria-label": "缩小", text: "−",
+          }),
+          // 「重置视角」：两种态（全景/下钻）都渲染——全景态一样可能被用户拖拽/缩放歪了，
+          // 也需要一键复位，不像「返回全站」那样依赖 activeAreaId 是否非空。
+          h("button", {
+            type: "button", class: "map-zoom-btn map-zoom-reset", dataset: { action: "reset-view" },
+            "aria-label": "重置视角", text: "⟲",
           }),
         ]),
       ]),

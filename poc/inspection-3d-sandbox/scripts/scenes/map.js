@@ -70,6 +70,7 @@
 
   function renderAreaList(state) {
     assertLoaded();
+    var C = window.Map3DContract;
     var items = DATA.areas().map(function (area) {
       var p = DATA.progress(area.id);
       return {
@@ -82,13 +83,22 @@
         note: area.issueCount > 0 ? "发现问题 " + area.issueCount + " 项" : DATA.badgeText(area.status),
       };
     });
-    // 站场全景（focus.areaId=null）时没有任何区域处于"选中"态，但 SelectList
-    // 强制要求 activeId 必须能在 items 里找到（见 selectlist.js 的 hasActive
-    // 校验），不接受"没有任何一项选中"这个状态。这里追加一个不可见的哨兵项
-    // （空 label，用 07-arealist.css 的 [data-select-id="__none__"] { display:none }
-    // 隐藏，display:none 的按钮天然退出 Tab 序列，不影响键盘可达性），
-    // 站场全景时 activeId 指向它，12 个真实区域因此都不带 .active。
-    items.push({ id: "__none__", label: "（站场全景，无选中区域）", status: "ok" });
+    // 列表里的第 0 层："全站视图"——不是为了绕过 SelectList 校验而藏起来的哨兵项，
+    // 而是一个真正可见、可点、语义正当的"退回上一层"入口，放在 12 个区域行最顶部
+    // （unshift，不是 push 到末尾）。id 沿用 "__none__"：它作为"没有具体区域被选中"
+    // 这个语义的哨兵值没有变，变的是它现在也是列表里一条真实的可选行——SelectList
+    // 仍然要求 activeId 必须能在 items 里找到（见 selectlist.js 的 hasActive 校验），
+    // 但这次它对应的是一条用户真能看见、真能点的行，不再是靠 CSS display:none 藏起来
+    // 凑出来的合法性。status 固定给 "ok"（只是满足 SelectList 的 assertStatus，不代表
+    // "全站健康"这个结论——全站层面的真实状态由中间 3D 面板与右栏"全站态势"卡呈现），
+    // 视觉上与 12 个真实区域行的区分完全交给 07-arealist.css 的
+    // [data-select-id="__none__"] 选择器（更弱的背景 + label 前缀的 "‹" 层级符号）。
+    items.unshift({
+      id: "__none__",
+      label: "‹ 全站视图",
+      status: "ok",
+      note: C.AREA_IDS.length + " 个区域 · " + C.TOTAL_ITEMS + " 项",
+    });
     var activeId = state.focus.areaId != null ? state.focus.areaId : "__none__";
     return h("section", { class: "panel area-list-panel" }, [
       h("div", { class: "area-list-head" }, [

@@ -82,7 +82,19 @@
     // 那种体量感——这是被摄对象本身的真实比例，不是渲染缺陷。这里选的角度
     // 已经能看到墙面/屋顶的明暗转折与设备阴影，同时仍保留判断"我在看哪个区域、
     // 周围还有哪些区域"所需的俯视纵深。
-    area: { radius: 200, min: 130, max: 320, theta: -1.15, phi: 1.15, target: [0, 5, 0], fov: 38, azimuthClamp: 0.3 }
+    // 2026-08-13 视觉打磨：下钻机位整体抬高、拉远一档，同时不能矫枉过正——
+    // 旧值 radius:200/phi:1.15 贴得太近太低，近距离几乎只看到区块地坪的边缘
+    // （一块"平板"），看不出建筑体量、也几乎看不到相邻区域。第一次尝试把 phi
+    // 直接降到 0.92（更接近 overview 那种俯视），实测反而更差：control/cabinet/
+    // ups/power 四室新增的北墙"裙墙+窗洞+檐墙"三段拼接（见 model-sandbox.js
+    // buildRoomShell）依赖一个足够贴近水平的视线才能透过窗洞看到内部机柜——
+    // phi 一旦降到接近俯视，摄像机主要看到的是屋顶而不是窗洞里的机柜排，
+    // 且区域内新增的设备体块因为拉得更远反而显得更小、更不显眼。最终定案是
+    // phi:1.05（比旧值 1.15 略降一点、比 0.92 明显更贴近水平，仍留在 PHI_MAX=1.42
+    // 的安全范围内）+ radius:230（比旧值 200 拉远一档但不到 260 那么远，
+    // min/max 同步从 130/320 放宽到 160/380），既能透过窗洞看清室内机柜排，
+    // 又比旧机位能多带出一圈相邻区域/道路的纵深。
+    area: { radius: 230, min: 160, max: 380, theta: -1.15, phi: 1.05, target: [0, 5, 0], fov: 38, azimuthClamp: 0.3 }
   };
 
   var HOTSPOT = {
@@ -998,6 +1010,7 @@
       statuses: {},
       hoverId: null,
       mountCount: 0,
+      resetViewCount: 0,
       frames: 0,
       rafId: 0,
       visible: true,
@@ -1157,6 +1170,26 @@
     engine.orbit.zoomBy(step);
   }
 
+  // 供 boot.js 的 "reset-view" action 调用：把当前 preset（overview 或 area）的初始
+  // theta/phi/radius/target 带动画地重新施加一次，等价于"回到这个机位刚进来时的姿态"。
+  //
+  // 必须与 mount() 里那条"同 preset 不重放动画"的短路逻辑区分开——见本文件 mount()
+  // 内部这段：`if (instance.preset !== presetName) { 完整过渡+巡航 } else if (仍在 area
+  // 档只是换了区域) { 只 retarget，不重放巡航 }`。那条短路保护的是"用户在同一预设内选中
+  // 另一个区域时，相机只应该平滑重新对准，不应该被硬拽回巡航起点"这条体验——它只出现在
+  // mount() 内部的判断分支里，且这里不修改那条短路本身。resetView() 完全不经过 mount()，
+  // 是用户显式点击「重置视角」按钮触发的一次直接调用，天然绕开了那条判断：不管当前
+  // 是否仍处于同一个 preset、不管用户之前把镜头拖拽/缩放成什么姿态，都直接调
+  // applyPresetToEngine() 走一次完整的、带动画的过渡（animated=true）真正复位——这正是
+  // "重置视角"这个动作被显式要求时应有的行为，与"选区域时不要动镜头"是两件不同的事。
+  function resetView() {
+    if (!engine) throw new Error("Map3D 尚未挂载，无法 resetView");
+    var target = computeTarget(engine.preset, engine.activeAreaId);
+    applyPresetToEngine(engine, engine.preset, true, target);
+    engine.resetViewCount += 1;
+    markDirty(engine);
+  }
+
   function debugInfo() {
     if (!engine) throw new Error("Map3D 尚未挂载，无法获取调试信息");
     var width = engine.host ? engine.host.clientWidth : 0;
@@ -1168,6 +1201,7 @@
     return {
       contextCreated: contextCreated,
       mountCount: engine.mountCount,
+      resetViewCount: engine.resetViewCount,
       renderCalls: engine.renderer.info.render.calls,
       triangles: engine.renderer.info.render.triangles,
       frames: engine.frames,
@@ -1198,6 +1232,7 @@
     setStatuses: setStatusesPublic,
     setTrackVisible: setTrackVisible,
     zoom: zoom,
+    resetView: resetView,
     debugInfo: debugInfo
   };
 })();
