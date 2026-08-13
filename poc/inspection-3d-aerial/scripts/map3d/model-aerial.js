@@ -1,13 +1,16 @@
 // 站场 3D 巡检地图（俯视/卫星质感 POC）——俯视地面 + 12 区挤出块（L3，晚于 contract.js /
 // model-shared.js / data/station.js，早于 engine.js）。
 //
-// ==== 本文件与 scripts/pump3d/model.js 的关系 ====
+// ==== 本文件与 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的关系 ====
 // THREE 通过函数参数传入的风格、createMaterials()/build() 两段式导出、"共享材质模板 +
-// 每个实例各自 clone 一份自己的材质"的纪律，全部照抄 pump3d/model.js 的既有约定（详见
-// 该文件与 README 第 4 章）。但本文件的挤出块**位置/尺寸是数据驱动的**——每个区域的
-// x/z/w/d/h 来自 window.DemoStation.area(id).geom（真实站场布局，见 data/station.js
-// 文件头的坐标系与 ASCII 草图），不是像泵机组各部位那样的固定硬编码数字。这是本文件与
-// pump3d/model.js 最大的结构性差异，读者不应假设两者的"数据来源"是同一类东西。
+// 每个实例各自 clone 一份自己的材质"的纪律，全部照抄
+// /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的既有约定
+// （详见该文件与 README 第 4 章）。但本文件的挤出块**位置/尺寸是数据驱动的**——每个
+// 区域的 x/z/w/d/h 来自 window.DemoStation.area(id).geom（真实站场布局，见
+// data/station.js 文件头的坐标系与 ASCII 草图），不是像泵机组各部位那样的固定硬编码
+// 数字。这是本文件与
+// /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 最大的结构性
+// 差异，读者不应假设两者的"数据来源"是同一类东西。
 //
 // ==== 视觉路线：诚实的站场平面总图 + 卫星质感底纹的融合 ====
 // 见 README「视觉路线选择」一节的完整论证。本文件负责的是"卫星质感底纹"那一半：调用
@@ -162,7 +165,9 @@
   // 单个区域的挤出块：薄 BoxGeometry，六面材质数组 [侧,侧,顶,底,侧,侧]（three.js
   // BoxGeometry 默认的 6 个面组顺序：+x,-x,+y,-y,+z,-z）。顶面材质是该区域独占的
   // status 材质 clone（不与其它区域共享，setStatuses()/setActiveArea() 需要能安全
-  // 修改它而不影响别的区域，参见 scripts/pump3d/engine.js 的 cacheAndApplySelection
+  // 修改它而不影响别的区域，参见
+  // /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的
+  // cacheAndApplySelection
   // 注释——道理完全一样）。room 类区域额外叠一层"屋顶压顶"薄板，读作真实建筑屋顶。
   function buildAreaMesh(THREE, materials, area) {
     var sideMaterial = materials.side[area.kind];

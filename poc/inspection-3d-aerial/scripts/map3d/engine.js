@@ -1,8 +1,8 @@
 // 站场 3D 巡检地图（俯视/卫星质感 POC）——WebGL 引擎（L3，最后加载，晚于 contract.js /
 // model-shared.js / model-aerial.js / model-track.js / data/*.js）。
 //
-// ==== 本文件与 beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的关系 ====
-// 下面几段代码是从 pump3d/engine.js 逐字/近似逐字抄过来的，因为它们与"渲染的是泵还是
+// ==== 本文件与 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的关系 ====
+// 下面几段代码是从 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 逐字/近似逐字抄过来的，因为它们与"渲染的是泵还是
 // 站场"完全无关，是纯粹的 WebGL/DOM 工程问题（详见任务书与该文件 README 第 4/5/6/8 章）：
 //   1) createGLContext + GL_ATTRS —— 自己建 context 再交给 three，同一 canvas 第二次
 //      getContext 会静默忽略参数；preserveDrawingBuffer:true 是按需渲染成立的前提。
@@ -167,7 +167,7 @@
     return texture;
   }
 
-  // ---- 摘自 pump3d/engine.js：自己建 context 再交给 three（第 6 章），逐字保留 ----
+  // ---- 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js：自己建 context 再交给 three（第 6 章），逐字保留 ----
   var GL_ATTRS = { antialias: true, alpha: true, powerPreference: "high-performance", preserveDrawingBuffer: true };
 
   function createGLContext(canvas) {
@@ -214,7 +214,7 @@
 
     function onPointerDown(event) {
       if (mobileDisabled) return;
-      // 多指同时按下时不覆写已有拖拽态：见 pump3d/engine.js 同名函数的注释，
+      // 多指同时按下时不覆写已有拖拽态：见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 同名函数的注释，
       // 防的是两次 pointerup 都对不上当前 pointerId、dragging 永久卡在 true。
       if (dragging) return;
       dragging = true;
@@ -487,7 +487,7 @@
     markDirty(engine);
   }
 
-  // ---- 摘自 pump3d/engine.js：标签去碰撞（第 4/14 章），逐字保留 ----
+  // ---- 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js：标签去碰撞（第 4/14 章），逐字保留 ----
   function labelsCollide(a, b, minDy, minDx) {
     return Math.abs(a.y - b.y) < minDy && Math.abs(a.x - b.x) < minDx;
   }
@@ -579,7 +579,7 @@
     var minDx = engine.labelBoxWidth + HOTSPOT.labelCollision.gap;
     var push = minDy;
 
-    // 固定跑两遍 sweepLabels（不是收敛循环，见 pump3d/engine.js 同名函数注释）：
+    // 固定跑两遍 sweepLabels（不是收敛循环，见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 同名函数注释）：
     // 每遍之间、以及最后一遍之后都要重新按 y 排序。
     points.sort(function (a, b) { return a.y - b.y; });
     sweepLabels(points, minDy, minDx, push);
@@ -694,7 +694,7 @@
     return true;
   }
 
-  // ---- 摘自 pump3d/engine.js：脏标记 + 按需渲染循环（第 14 章），逐字保留，
+  // ---- 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js：脏标记 + 按需渲染循环（第 14 章），逐字保留，
   // 新增 updateTrackFlow 这一路脏源 ----
   function markDirty(engine) {
     engine.dirty = true;
@@ -757,7 +757,7 @@
 
     var gl = createGLContext(canvas);
     var renderer = new THREE.WebGLRenderer({ canvas: canvas, context: gl });
-    // 紧跟 renderer 构造之后计数：createEngine 中途抛错时也不会漏计，见 pump3d/engine.js
+    // 紧跟 renderer 构造之后计数：createEngine 中途抛错时也不会漏计，见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js
     // 同名注释（第 6 章）。
     contextCreated += 1;
     renderer.setClearColor(0x1c2b36, 1);
@@ -766,7 +766,7 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // 场景静止、光源终生不动：阴影贴图只需生成一次。两行必须同时设——只设
-    // autoUpdate=false 会导致阴影从头到尾都不生成（见 pump3d/engine.js 第 6 章原话）。
+    // autoUpdate=false 会导致阴影从头到尾都不生成（见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 第 6 章原话）。
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
@@ -885,7 +885,7 @@
   var engineFailed = false;
 
   function ensureEngine() {
-    // 快速失败闩锁，不是兜底：见 pump3d/engine.js 第 6 章「快速失败闩锁」的原话。
+    // 快速失败闩锁，不是兜底：见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 第 6 章「快速失败闩锁」的原话。
     if (engineFailed) {
       throw new Error("Map3D 引擎首次初始化已失败，请修复上一次的报错后刷新页面");
     }

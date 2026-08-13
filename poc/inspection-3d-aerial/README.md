@@ -24,7 +24,12 @@ poc/inspection-3d-aerial/
 ├── scripts/
 │   ├── map3d/
 │   │   ├── contract.js         12 区 id 真源 / DOM 命名常量 / 断言函数（零依赖）
-│   │   ├── model-shared.js     程序化贴图/材质工具，含本 POC 改进版 buildSatelliteGround
+│   │   ├── model-shared.js     程序化贴图/材质工具：createCanvas（仍被 model-track.js 引用）+
+│   │   │                       buildSatelliteGround（本 POC 改进版）+ createStatusMaterials
+│   │   │                       （2026-08-13 瘦身：删掉了本 POC 0 引用的
+│   │   │                       buildPerforatedTexture/buildGrilleTexture/buildGroundFadeTexture/
+│   │   │                       buildNameplateTexture/createMetalMaterials/disposeGroup，见文件内
+│   │   │                       决策记录注释）
 │   │   ├── model-aerial.js     俯视地面纹理装配 + 12 区挤出块 + 锚点
 │   │   ├── model-track.js      巡检轨迹 TubeGeometry + 起点/终点/巡检人 + 流动光带
 │   │   └── engine.js           WebGL 引擎：单例生命周期 + 手写轨道控制 + 按需渲染 + 标签投影
@@ -99,7 +104,7 @@ poc/inspection-3d-aerial/
 旋转/镜像）来打散网格规律性，或者干脆把最内层缩放挡位的 `radiusMin` 收紧，不让用户
 拉近到能看穿瓦片边界的距离。
 
-## 引擎从 pump3d/engine.js 抄了哪几段、改了哪几处
+## 引擎从 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 抄了哪几段、改了哪几处
 
 逐字/近似逐字抄的部分（详见 `scripts/map3d/engine.js` 文件头注释）：
 

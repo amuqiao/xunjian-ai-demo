@@ -10,7 +10,8 @@
 // 不含 canvas，不存在 detach() 时序问题，用声明式重渲染更简单。
 // 这个设计选择的直接好处：Map3D.mount() 全程只调用一次，contextCreated 恒为 1，
 // 完全不需要 pump-demo/sandbox 那套"detach 必须在 innerHTML='' 之前"的时序纪律
-// （见 pump3d/README.md 第 5 章）——因为本页面根本不会走到那条路径。
+// （见 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/README.md 第 5 章）
+// ——因为本页面根本不会走到那条路径。
 //
 // ==== 事件委托 ====
 // 全部通过 root 上的一个 click 监听器委托：[data-map3d-area]（3D 热点标签）→
