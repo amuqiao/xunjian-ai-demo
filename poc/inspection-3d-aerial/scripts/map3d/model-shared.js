@@ -1,0 +1,788 @@
+// 站场 3D 巡检地图（俯视/卫星质感 POC）——共享程序化贴图/材质工具
+// （L2，早于 model-aerial.js / model-track.js / engine.js）。
+//
+// 本 POC 与 poc/inspection-3d-sandbox（低斜角三维工程沙盘）是两个刻意互不耦合的独立
+// POC，各自持有本文件的完整独立副本。sandbox 那份保留了 buildSandboxGround（深色网格
+// 工程沙盘地面）；本 POC 只做俯视地图，不需要沙盘地面，已删除 buildSandboxGround/
+// SANDBOX_PALETTE/paintSandboxGrid，只保留并强化了 buildSatelliteGround。
+//
+// ==== 为什么本文件不允许出现 TextureLoader / drawImage(外部图片) ====
+// 页面跑在 file:// 下，origin 是 null。已实测三条路：
+//   1) THREE.TextureLoader 默认 crossOrigin="anonymous"，file:// 加载本地图片必被 CORS 拒绝
+//      （onError 触发）。
+//   2) 绕过 loader、用 <img> 直接加载能成功，但只要 drawImage 进 canvas，这块 canvas 立刻被
+//      标记为「已污染」（tainted）。把它上传成 WebGL 纹理时，Three.js r160 在
+//      WebGLState.texSubImage2D 内部包了一层 try/catch，把污染纹理抛出的 SecurityError 吞掉、
+//      只 console.error 一行、然后继续执行——结果纹理渲染成纯黑，three 内部 threw=false，
+//      WebGL getError() 也不报错码。这是本项目最痛恨的一类静默失效：画面是错的，但没有任何
+//      机制会告诉你哪里错了。
+//   3) data: URI 不受此限（实测全通），但只适合小体量素材，不适合大面积地面纹理。
+// 结论：本文件所有纹理必须是程序化生成的 CanvasTexture，不许出现 TextureLoader，不许对任何
+// 外部图片调用 drawImage。每个纹理工厂在返回前都会调用 window.Map3DContract.assertTextureUntainted，
+// 对同一块 canvas 做一次 getImageData(0,0,1,1)——如果画布已被污染，浏览器会在这一行原生抛出
+// SecurityError，把 three.js 会悄悄吞掉的错误在构建期一次性翻译成一次带调用栈的快速失败。
+// 不要在这个断言外面包 try/catch——这是 fail-fast，不是 fallback。
+//
+// ==== 已实测的性能数字（决定了下面的分层策略）====
+//   尺寸       形状绘制(arc/fillRect/lineTo/渐变)   逐像素颗粒(getImageData/putImageData)   上传    显存(含mip)
+//   512²       1.1ms                                61.4ms                                    1.0ms   ~1.3MB
+//   1024²      0.7ms                                65.3ms                                    0.4ms   ~5.3MB
+//   2048²      1.7ms                                161ms                                     0.4ms   ~21.3MB
+// 逐像素颗粒（对整块画布做一次 getImageData/putImageData）占了总成本的 98%，形状绘制几乎免费。
+// 因此本文件的分层规则：
+//   - 宏观层固定 1024²，只用 canvas 2D 形状 API（arc/fillRect/lineTo/渐变），不逐像素操作；
+//   - 逐像素噪声只在 512² 生成一次，然后用 drawImage 把这块 512 瓦片按 16×16 网格「烘」进宏观层
+//     （实测 256 次 drawImage 只要 1-2ms，比在 1024²/2048² 上直接跑一次 getImageData/putImageData
+//     便宜一到两个数量级）。
+//
+// ==== THREE 注入风格 ====
+// 与 scripts/pump3d/model.js 保持一致：THREE 通过函数参数传入，本文件顶层不读取 window.THREE。
+//
+// ==== 代码风格约束 ====
+// 纯 ES5 IIFE + 挂 window.Map3DShared。不用 ESM / const / let / 箭头函数 / 模板字符串 / class。
+//
+// ==== 错误处理约束 ====
+// 不写 fallback / silent catch / 默认值吞错 / 降级。参数类型非法或缺失必须直接 throw，
+// 不允许静默跳过或补一个凑合的默认值把错误盖住。下面出现的 "options.xxx || 默认值" 只用于
+// 纯装饰性的调参项（颜色、数量、尺寸这类没有"对错"、只有"好看不好看"的旋钮），
+// 凡是关系到坐标系换算是否成立的参数（stationWidth / stationDepth / anisotropy 等）
+// 一律用 requirePositiveNumber 强制校验，非法立即抛错。
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------------
+  // 通用小工具
+  // ---------------------------------------------------------------------
+
+  // 摘自 scripts/pump3d/model.js 的 createCanvas，原样保留（本来就是通用工具，无需泛化）。
+  function createCanvas(width, height) {
+    var canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+
+  function clamp(value, min, max) {
+    return value < min ? min : value > max ? max : value;
+  }
+
+  function requireTHREE(THREE, fnName) {
+    if (!THREE) {
+      throw new Error(
+        "[Map3DShared] " + fnName + " 缺少 THREE 参数：请显式传入 three.js 模块，" +
+        "本文件顶层不读取 window.THREE"
+      );
+    }
+  }
+
+  function requirePositiveNumber(value, name) {
+    if (typeof value !== "number" || !isFinite(value) || value <= 0) {
+      throw new Error("[Map3DShared] " + name + " 必须是正数，实际为 " + value);
+    }
+    return value;
+  }
+
+  // 可选的装饰性图层（道路/围墙/罐体基础）允许调用方不传；但一旦传了，类型必须合法——
+  // 这不是"允许出错"，而是"允许没有这层数据"，两者不同：没传是合法状态，传了却传错类型要报错。
+  function requireArrayIfPresent(value, name) {
+    if (value === undefined || value === null) return [];
+    if (!Array.isArray(value)) {
+      throw new Error("[Map3DShared] " + name + " 若提供必须是数组，实际为 " + typeof value);
+    }
+    return value;
+  }
+
+  function assertUntainted(canvas) {
+    if (!window.Map3DContract || typeof window.Map3DContract.assertTextureUntainted !== "function") {
+      throw new Error(
+        "[Map3DShared] window.Map3DContract.assertTextureUntainted 不存在，" +
+        "请确认 scripts/map3d/contract.js 已在本文件之前加载"
+      );
+    }
+    window.Map3DContract.assertTextureUntainted(canvas);
+  }
+
+  // ---------------------------------------------------------------------
+  // 摘自 scripts/pump3d/model.js 的纹理工具（泛化：把泵专用的硬编码尺寸/颜色/密度
+  // 提成参数，核心算法与绘制顺序原样保留，不做"顺手改进"）
+  // ---------------------------------------------------------------------
+
+  // 摘自 scripts/pump3d/model.js 的 buildPerforatedTexture，原用途是联轴器护罩的穿孔钢网
+  // alphaMap（底色不透明=金属实体，圆孔区域透明=通风孔）。
+  // 泛化：size/spacing/holeRadius/repeatX/repeatY 原来是写死的 256/22/6/8/2，现在都是参数。
+  // 陷阱保留：three r160 的 alphamap_fragment.glsl 实际只取 .g 通道，灰度图 r=g=b 时不受影响，
+  // 若改成彩色遮罩需注意只有 g 通道生效。
+  function buildPerforatedTexture(THREE, options) {
+    requireTHREE(THREE, "buildPerforatedTexture");
+    var opts = options || {};
+    var size = opts.size || 256;
+    var spacing = opts.spacing || 22;
+    var holeRadius = opts.holeRadius != null ? opts.holeRadius : 6;
+    var repeatX = opts.repeatX != null ? opts.repeatX : 8;
+    var repeatY = opts.repeatY != null ? opts.repeatY : 2;
+
+    var canvas = createCanvas(size, size);
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = "#000000";
+    var x;
+    var y;
+    for (y = spacing / 2; y < size; y += spacing) {
+      for (x = spacing / 2; x < size; x += spacing) {
+        ctx.beginPath();
+        ctx.arc(x, y, holeRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    assertUntainted(canvas);
+    var texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    return texture;
+  }
+
+  // 摘自 scripts/pump3d/model.js 的 buildGrilleTexture，原用途是电机风罩的通风格栅
+  // alphaMap（底色透明=通风口，同心圆环+放射辐条不透明=金属框）。
+  // 泛化：size/ringStart/ringStep/ringLineWidth/spokeCount/spokeLineWidth 原来写死为
+  // 256/26/24/6/12/5，现在都是参数。
+  function buildGrilleTexture(THREE, options) {
+    requireTHREE(THREE, "buildGrilleTexture");
+    var opts = options || {};
+    var size = opts.size || 256;
+    var ringStart = opts.ringStart != null ? opts.ringStart : 26;
+    var ringStep = opts.ringStep != null ? opts.ringStep : 24;
+    var ringLineWidth = opts.ringLineWidth != null ? opts.ringLineWidth : 6;
+    var spokeCount = opts.spokeCount != null ? opts.spokeCount : 12;
+    var spokeLineWidth = opts.spokeLineWidth != null ? opts.spokeLineWidth : 5;
+
+    var canvas = createCanvas(size, size);
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = "#ffffff";
+    var cx = size / 2;
+    var cy = size / 2;
+    var ring;
+    ctx.lineWidth = ringLineWidth;
+    for (ring = ringStart; ring < size / 2; ring += ringStep) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, ring, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.lineWidth = spokeLineWidth;
+    var i;
+    for (i = 0; i < spokeCount; i += 1) {
+      var angle = (i * 2 * Math.PI) / spokeCount;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * (size / 2 - 4), cy + Math.sin(angle) * (size / 2 - 4));
+      ctx.stroke();
+    }
+
+    assertUntainted(canvas);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  // 摘自 scripts/pump3d/model.js 的 buildGroundFadeTexture，原用途是泵地面圆盘的径向渐变
+  // alphaMap（中心 alpha=1、边缘 alpha=0，配合 transparent:true 让地面自然淡出、消除硬边圆盘）。
+  // 泛化：size 与渐变 stops（原来写死 [0,1]/[0.55,0.85]/[1,0]，颜色写死白色）现在都是参数。
+  function buildGroundFadeTexture(THREE, options) {
+    requireTHREE(THREE, "buildGroundFadeTexture");
+    var opts = options || {};
+    var size = opts.size || 256;
+    var color = opts.color || "255,255,255";
+    var stops = opts.stops || [
+      { offset: 0, alpha: 1 },
+      { offset: 0.55, alpha: 0.85 },
+      { offset: 1, alpha: 0 }
+    ];
+
+    var canvas = createCanvas(size, size);
+    var ctx = canvas.getContext("2d");
+    var cx = size / 2;
+    var cy = size / 2;
+    var gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
+    var i;
+    for (i = 0; i < stops.length; i += 1) {
+      gradient.addColorStop(stops[i].offset, "rgba(" + color + "," + stops[i].alpha + ")");
+    }
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+
+    assertUntainted(canvas);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  // 摘自 scripts/pump3d/model.js 的 buildNameplateTexture，原用途是电机铭牌（写死 "P-1" /
+  // "250kW" / "2980 r/min" 三行文字）。
+  // 泛化：文字内容改成 text 参数（{ title, lines }），背景/字色/字号/画布尺寸改成 options 参数。
+  function buildNameplateTexture(THREE, text, options) {
+    requireTHREE(THREE, "buildNameplateTexture");
+    if (!text || typeof text.title !== "string") {
+      throw new Error("[Map3DShared] buildNameplateTexture 需要 text.title（字符串）");
+    }
+    var lines = text.lines || [];
+    if (!Array.isArray(lines)) {
+      throw new Error("[Map3DShared] buildNameplateTexture 的 text.lines 若提供必须是数组");
+    }
+    var opts = options || {};
+    var width = opts.width || 256;
+    var height = opts.height || 144;
+    var bg = opts.bg || "#c7d3d8";
+    var ink = opts.ink || "#0d1620";
+    var titleFont = opts.titleFont || "bold 30px sans-serif";
+    var lineFont = opts.lineFont || "20px sans-serif";
+    var titleY = opts.titleY != null ? opts.titleY : 50;
+    var lineStartY = opts.lineStartY != null ? opts.lineStartY : 86;
+    var lineGap = opts.lineGap != null ? opts.lineGap : 30;
+
+    var canvas = createCanvas(width, height);
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(4, 4, width - 8, height - 8);
+    ctx.fillStyle = ink;
+    ctx.textAlign = "center";
+    ctx.font = titleFont;
+    ctx.fillText(text.title, width / 2, titleY);
+    ctx.font = lineFont;
+    var i;
+    for (i = 0; i < lines.length; i += 1) {
+      ctx.fillText(lines[i], width / 2, lineStartY + i * lineGap);
+    }
+
+    assertUntainted(canvas);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  // ---------------------------------------------------------------------
+  // 世界坐标 -> 纹理像素坐标的换算器（卫星/沙盘地面共用）
+  // ---------------------------------------------------------------------
+
+  // 约定：世界坐标原点在站场中心，X ∈ [-stationWidth/2, stationWidth/2]，
+  // Z ∈ [-stationDepth/2, stationDepth/2]；纹理像素坐标原点在左上角，X 向右、Y 向下。
+  function createProjector(stationWidth, stationDepth, size) {
+    requirePositiveNumber(stationWidth, "options.stationWidth");
+    requirePositiveNumber(stationDepth, "options.stationDepth");
+    requirePositiveNumber(size, "size");
+    var scaleX = size / stationWidth;
+    var scaleZ = size / stationDepth;
+    var scaleAvg = (scaleX + scaleZ) / 2;
+    return {
+      point: function (x, z) {
+        return {
+          x: (x + stationWidth / 2) * scaleX,
+          y: (z + stationDepth / 2) * scaleZ
+        };
+      },
+      lengthX: function (w) { return w * scaleX; },
+      lengthZ: function (d) { return d * scaleZ; },
+      lengthAvg: function (r) { return r * scaleAvg; }
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // 人工构筑物图层：道路 / 围墙 / 硬化地坪 / 罐体基础环
+  // 卫星与沙盘两种地面共用这一套绘制逻辑，只是调色板（palette）不同——
+  // "直线 + 圆"才读作人造环境，这一层是俯视图里性价比最高的一层。
+  // ---------------------------------------------------------------------
+
+  function strokePath(ctx, points) {
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    var i;
+    for (i = 1; i < points.length; i += 1) {
+      ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+  }
+
+  // areas: [{x,z,w,d}]，世界坐标下的矩形中心 + 宽/深，画成硬化地坪块。
+  function paintAreaPads(ctx, projector, areas, palette) {
+    areas.forEach(function (area, i) {
+      if (
+        typeof area.x !== "number" || typeof area.z !== "number" ||
+        typeof area.w !== "number" || typeof area.d !== "number"
+      ) {
+        throw new Error("[Map3DShared] options.areas[" + i + "] 缺少 x/z/w/d 数值字段");
+      }
+      var center = projector.point(area.x, area.z);
+      var halfW = projector.lengthX(area.w) / 2;
+      var halfD = projector.lengthZ(area.d) / 2;
+      ctx.fillStyle = palette.areaFill;
+      ctx.fillRect(center.x - halfW, center.y - halfD, halfW * 2, halfD * 2);
+      ctx.strokeStyle = palette.areaStroke;
+      ctx.lineWidth = palette.areaStrokeWidth;
+      ctx.strokeRect(center.x - halfW, center.y - halfD, halfW * 2, halfD * 2);
+    });
+  }
+
+  // roads: [{points:[{x,z},...], width}]，宽 lineTo 描边（roadOuter）叠加一道更窄更浅的
+  // 描边（roadInner），模拟"路基 + 路面"两层，比单一实色线更像人工铺筑的道路。
+  function paintRoads(ctx, projector, roads, palette) {
+    roads.forEach(function (road, i) {
+      if (!Array.isArray(road.points) || road.points.length < 2) {
+        throw new Error("[Map3DShared] options.roads[" + i + "] 需要至少 2 个 points");
+      }
+      requirePositiveNumber(road.width, "options.roads[" + i + "].width");
+      var pixelPoints = road.points.map(function (p) { return projector.point(p.x, p.z); });
+      var widthPx = projector.lengthAvg(road.width);
+
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+
+      ctx.strokeStyle = palette.roadOuter;
+      ctx.lineWidth = widthPx;
+      strokePath(ctx, pixelPoints);
+
+      ctx.strokeStyle = palette.roadInner;
+      ctx.lineWidth = widthPx * 0.55;
+      strokePath(ctx, pixelPoints);
+    });
+  }
+
+  // perimeter: [{x,z}, ...] 闭合多边形点列，画站场周界围墙线。未提供或点数不足 3 时跳过——
+  // 这是"没有围墙数据"的合法状态，不是吞错。
+  function paintPerimeter(ctx, projector, perimeter, palette) {
+    if (!perimeter || perimeter.length < 3) return;
+    var pixelPoints = perimeter.map(function (p) { return projector.point(p.x, p.z); });
+    ctx.strokeStyle = palette.perimeter;
+    ctx.lineWidth = palette.perimeterWidth;
+    ctx.beginPath();
+    ctx.moveTo(pixelPoints[0].x, pixelPoints[0].y);
+    var i;
+    for (i = 1; i < pixelPoints.length; i += 1) {
+      ctx.lineTo(pixelPoints[i].x, pixelPoints[i].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // tankRings: [{x,z,r}]，储罐环形基础，画成描边圆。
+  function paintTankRings(ctx, projector, tankRings, palette) {
+    tankRings.forEach(function (ring, i) {
+      if (typeof ring.x !== "number" || typeof ring.z !== "number" || typeof ring.r !== "number") {
+        throw new Error("[Map3DShared] options.tankRings[" + i + "] 缺少 x/z/r 数值字段");
+      }
+      var center = projector.point(ring.x, ring.z);
+      var radiusPx = projector.lengthAvg(ring.r);
+      ctx.strokeStyle = palette.tankRing;
+      ctx.lineWidth = palette.tankRingWidth;
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, radiusPx, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+  }
+
+  function paintConstructedLayer(ctx, projector, options, palette) {
+    var areas = requireArrayIfPresent(options.areas, "options.areas");
+    var roads = requireArrayIfPresent(options.roads, "options.roads");
+    var tankRings = requireArrayIfPresent(options.tankRings, "options.tankRings");
+    paintAreaPads(ctx, projector, areas, palette);
+    paintRoads(ctx, projector, roads, palette);
+    paintPerimeter(ctx, projector, options.perimeter, palette);
+    paintTankRings(ctx, projector, tankRings, palette);
+  }
+
+  // 卫星地面：暖灰色土色调 + 半透明叠加，读作"航拍地面上的人工设施"。
+  // rev2（本 POC 专属打磨）：alpha 与描边整体调深，让站场硬化地坪在斑驳地表上的
+  // 边界更清晰可辨——上一轮实测发现原版 0.35 的 areaFill 在放大截图里几乎融进
+  // 背景，读不出"这是一块人工地坪"。
+  var SATELLITE_PALETTE = {
+    areaFill: "rgba(168,160,132,0.52)",
+    areaStroke: "rgba(48,44,32,0.75)",
+    areaStrokeWidth: 2.5,
+    roadOuter: "rgba(72,66,50,0.85)",
+    roadInner: "rgba(172,164,136,0.88)",
+    perimeter: "rgba(40,38,28,0.9)",
+    perimeterWidth: 3,
+    tankRing: "rgba(60,58,44,0.85)",
+    tankRingWidth: 3
+  };
+
+  // ---------------------------------------------------------------------
+  // 卫星地面专用：宏观软斑块（不规则 blob）+ 512² 逐像素颗粒 + 田块/林冠/水塘
+  // ---------------------------------------------------------------------
+
+  // rev2：四个色族，色相/明度跨度比 rev1 明显拉开（裸土偏红棕、旱地偏黄绿、
+  // 林冠分深浅两档），alpha 上限也整体调高——rev1 自评"色调偏均匀单一、
+  // 斑块之间过渡太柔和，更接近低对比度水彩底色"，这里直接把对比跨度当成
+  // 第一优先级参数来调，而不是继续在同一色相里加密度。
+  var SATELLITE_PATCH_FAMILIES = [
+    { rgb: "112,78,46", alphaMin: 0.32, alphaMax: 0.5, radiusMin: 46, radiusMax: 150 },   // 裸土/红棕
+    { rgb: "158,146,78", alphaMin: 0.24, alphaMax: 0.36, radiusMin: 38, radiusMax: 120 }, // 旱地/枯黄
+    { rgb: "36,58,28", alphaMin: 0.38, alphaMax: 0.58, radiusMin: 55, radiusMax: 165 },   // 林冠/深绿
+    { rgb: "76,102,48", alphaMin: 0.26, alphaMax: 0.42, radiusMin: 36, radiusMax: 110 }   // 林冠/浅绿高光
+  ];
+
+  // rev2：单个斑块不再是一个规整的 radialGradient 圆，而是 4~6 个偏心叠放的小圆
+  // （lobe）外加一个居中核心圆，叠出不规则的多边形轮廓——这是"斑块读作真实地物
+  // 边界还是读作一团匀速渐变的水彩"的关键区别，成本仍然是纯 arc+gradient，
+  // 相对单圆版本只是多了几次 arc 调用，不引入逐像素操作。
+  function paintBlob(ctx, cx, cy, baseRadius, rgb, alpha) {
+    var lobeCount = 4 + Math.floor(Math.random() * 3);
+    var i;
+    for (i = 0; i < lobeCount; i += 1) {
+      var angle = (i / lobeCount) * Math.PI * 2 + Math.random() * 0.6;
+      var lobeRadius = baseRadius * (0.5 + Math.random() * 0.55);
+      var offset = baseRadius * (0.25 + Math.random() * 0.4);
+      var lx = cx + Math.cos(angle) * offset;
+      var ly = cy + Math.sin(angle) * offset;
+      var lobeGradient = ctx.createRadialGradient(lx, ly, 0, lx, ly, lobeRadius);
+      lobeGradient.addColorStop(0, "rgba(" + rgb + "," + alpha + ")");
+      lobeGradient.addColorStop(1, "rgba(" + rgb + ",0)");
+      ctx.fillStyle = lobeGradient;
+      ctx.beginPath();
+      ctx.arc(lx, ly, lobeRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    var coreRadius = baseRadius * 0.7;
+    var coreGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius);
+    coreGradient.addColorStop(0, "rgba(" + rgb + "," + Math.min(1, alpha * 1.2) + ")");
+    coreGradient.addColorStop(1, "rgba(" + rgb + ",0)");
+    ctx.fillStyle = coreGradient;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function paintSoftPatches(ctx, size, families, count) {
+    var i;
+    for (i = 0; i < count; i += 1) {
+      var family = families[i % families.length];
+      var radius = family.radiusMin + Math.random() * (family.radiusMax - family.radiusMin);
+      var alpha = family.alphaMin + Math.random() * (family.alphaMax - family.alphaMin);
+      var x = Math.random() * size;
+      var y = Math.random() * size;
+      paintBlob(ctx, x, y, radius, family.rgb, alpha);
+    }
+  }
+
+  // rev2 新增：田块——俯视图里最显眼的人造地物特征之一，规则矩形 + 等宽条纹交替，
+  // 模拟犁沟/垄。fields: [{x,z,w,d,rotation,stripeWidth,colorA,colorB}]，均为世界坐标/
+  // 世界单位（stripeWidth 除外，stripeWidth 是像素）。rotation 是弧度，允许田块与
+  // 站场轴线略微错开角度（真实农田很少与任何人工设施完全对齐）。
+  function paintFarmlandFields(ctx, projector, fields) {
+    fields.forEach(function (field, i) {
+      if (
+        typeof field.x !== "number" || typeof field.z !== "number" ||
+        typeof field.w !== "number" || typeof field.d !== "number"
+      ) {
+        throw new Error("[Map3DShared] options.farmlandFields[" + i + "] 缺少 x/z/w/d 数值字段");
+      }
+      var center = projector.point(field.x, field.z);
+      var halfW = projector.lengthX(field.w) / 2;
+      var halfD = projector.lengthZ(field.d) / 2;
+      var rotation = field.rotation || 0;
+      var stripeWidth = field.stripeWidth || 14;
+      var colorA = field.colorA || "rgba(150,138,72,0.4)";
+      var colorB = field.colorB || "rgba(118,104,52,0.4)";
+
+      ctx.save();
+      ctx.translate(center.x, center.y);
+      ctx.rotate(rotation);
+      ctx.beginPath();
+      ctx.rect(-halfW, -halfD, halfW * 2, halfD * 2);
+      ctx.clip();
+
+      var x = -halfW;
+      var stripeIndex = 0;
+      while (x < halfW) {
+        ctx.fillStyle = stripeIndex % 2 === 0 ? colorA : colorB;
+        ctx.fillRect(x, -halfD, stripeWidth, halfD * 2);
+        x += stripeWidth;
+        stripeIndex += 1;
+      }
+      ctx.restore();
+    });
+  }
+
+  // rev2 新增：林冠——密集小色块簇，是俯视图里"高频细节"的主要来源（对比大号软
+  // 斑块的低频过渡）。clusters: [{x,z,r,count,rgb}]，在半径 r（世界单位）范围内
+  // 随机撒 count 个小圆，制造树冠的颗粒感。
+  function paintTreeClusters(ctx, projector, clusters) {
+    clusters.forEach(function (cluster, i) {
+      if (typeof cluster.x !== "number" || typeof cluster.z !== "number" || typeof cluster.r !== "number") {
+        throw new Error("[Map3DShared] options.treeClusters[" + i + "] 缺少 x/z/r 数值字段");
+      }
+      var center = projector.point(cluster.x, cluster.z);
+      var radiusPx = projector.lengthAvg(cluster.r);
+      var count = cluster.count || Math.round(radiusPx * 1.4);
+      var rgb = cluster.rgb || "34,54,26";
+      var j;
+      for (j = 0; j < count; j += 1) {
+        var angle = Math.random() * Math.PI * 2;
+        var dist = Math.random() * radiusPx;
+        var cx = center.x + Math.cos(angle) * dist;
+        var cy = center.y + Math.sin(angle) * dist;
+        var dotRadius = 3 + Math.random() * 6;
+        var shade = Math.random() > 0.5 ? rgb : "58,86,40";
+        var alpha = 0.35 + Math.random() * 0.35;
+        ctx.fillStyle = "rgba(" + shade + "," + alpha + ")";
+        ctx.beginPath();
+        ctx.arc(cx, cy, dotRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
+  }
+
+  // rev2 新增：水塘——暗色不规则闭合多边形 + 边缘高光描边，模拟水面反光。
+  // ponds: [{x,z,r}]，多边形顶点数固定 12，每个顶点半径在 [0.72r, 1.08r] 内抖动。
+  function paintWaterPonds(ctx, projector, ponds) {
+    ponds.forEach(function (pond, i) {
+      if (typeof pond.x !== "number" || typeof pond.z !== "number" || typeof pond.r !== "number") {
+        throw new Error("[Map3DShared] options.waterPonds[" + i + "] 缺少 x/z/r 数值字段");
+      }
+      var center = projector.point(pond.x, pond.z);
+      var radiusPx = projector.lengthAvg(pond.r);
+      var vertexCount = 12;
+      var points = [];
+      var v;
+      for (v = 0; v < vertexCount; v += 1) {
+        var angle = (v / vertexCount) * Math.PI * 2;
+        var r = radiusPx * (0.72 + Math.random() * 0.36);
+        points.push({ x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r });
+      }
+      ctx.fillStyle = "rgba(28,42,50,0.88)";
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      var p;
+      for (p = 1; p < points.length; p += 1) ctx.lineTo(points[p].x, points[p].y);
+      ctx.closePath();
+      ctx.fill();
+
+      // 边缘高光：沿多边形描一圈更亮的青灰色细线，模拟水面反光的边界。
+      ctx.strokeStyle = "rgba(150,182,196,0.5)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // 一小片偏移的椭圆亮斑，模拟天光在水面上的镜面反射。
+      ctx.fillStyle = "rgba(184,210,220,0.28)";
+      ctx.beginPath();
+      ctx.ellipse(
+        center.x - radiusPx * 0.2, center.y - radiusPx * 0.25,
+        radiusPx * 0.32, radiusPx * 0.16, -0.4, 0, Math.PI * 2
+      );
+      ctx.fill();
+    });
+  }
+
+  // rev2 新增：暗角——整张纹理最后叠一层"中心亮、四周暗"的径向渐变，模拟航拍
+  // 镜头/大气透视的自然亮度衰减，同时也让站场核心区域在视觉上更突出。
+  function paintVignette(ctx, size, strength) {
+    var gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.32, size / 2, size / 2, size * 0.72);
+    gradient.addColorStop(0, "rgba(0,0,0,0)");
+    gradient.addColorStop(1, "rgba(0,0,0," + strength + ")");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  // 逐像素颗粒：这是全文件唯一一处 getImageData/putImageData 级别的操作，成本对应文件头
+  // 性能表里 512² 的 61.4ms。只在这一处产生一次，随后靠 drawImage 平铺复用（见 stampNoiseTile），
+  // 不在 1024² 甚至更大的宏观画布上直接跑逐像素操作。
+  function buildNoiseTile(size, base, variance) {
+    var canvas = createCanvas(size, size);
+    var ctx = canvas.getContext("2d");
+    var imageData = ctx.createImageData(size, size);
+    var data = imageData.data;
+    var i;
+    for (i = 0; i < data.length; i += 4) {
+      var n = (Math.random() - 0.5) * 2 * variance;
+      data[i] = clamp(base[0] + n, 0, 255);
+      data[i + 1] = clamp(base[1] + n, 0, 255);
+      data[i + 2] = clamp(base[2] + n, 0, 255);
+      data[i + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  // 把 512² 噪声瓦片按 tileCount×tileCount 网格 drawImage 进宏观画布（实测 16×16=256 次
+  // drawImage 只要 1-2ms），用低 alpha 叠加，只贡献细颗粒质感、不破坏第 1 层的斑块结构。
+  function stampNoiseTile(ctx, tileCanvas, size, tileCount, alpha) {
+    var cell = size / tileCount;
+    var priorAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = alpha;
+    var x;
+    var y;
+    for (y = 0; y < tileCount; y += 1) {
+      for (x = 0; x < tileCount; x += 1) {
+        ctx.drawImage(tileCanvas, x * cell, y * cell, cell, cell);
+      }
+    }
+    ctx.globalAlpha = priorAlpha;
+  }
+
+  // rev2：卫星/航拍质感地面纹理，分层生成（比 rev1 多三层，专门针对"读起来像同一张
+  // 总图铺在橄榄绿泥地上"这条实测差评而加）：
+  //   1) 1024² 宏观层：土色底 + 几百个不规则软斑块（paintBlob，形状 API，几乎免费）
+  //   2) 512² 逐像素颗粒噪声，16×16 平铺烘进宏观层（成本大头，见文件头性能表）
+  //   3) 田块条纹（farmlandFields，可选）——规则矩形 + 交替条纹，俯视图里最显眼的
+  //      人造地物特征之一
+  //   4) 林冠簇（treeClusters，可选）——密集小圆点簇，补高频细节，与 1) 的低频大
+  //      斑块形成对比
+  //   5) 水塘（waterPonds，可选）——暗色不规则闭合区 + 边缘高光
+  //   6) 人工构筑物层：道路/围墙/硬化地坪/罐体基础环（形状 API，几乎免费，"航拍感"里
+  //      真正读作人造环境的部分）
+  //   7) 暗角（vignette，可选）——径向渐变压暗四周，模拟镜头/大气衰减
+  // options:
+  //   size          纹理边长，默认 1024（装饰性调参，非法不会破坏坐标系换算，允许有默认值）
+  //   stationWidth  站场世界坐标 X 跨度（必填，正数，应与实际地面 PlaneGeometry 宽度一致）
+  //   stationDepth  站场世界坐标 Z 跨度（必填，正数，应与实际地面 PlaneGeometry 深度一致）
+  //   anisotropy    各向异性过滤级别（必填，正数；调用方应传 renderer.capabilities
+  //                 .getMaxAnisotropy()，本机实测上限 16；地面斜视时这一项比分辨率更重要）
+  //   baseColor     宏观底色，默认 "#6b6a5c"
+  //   patchFamilies / patchCount  软斑块色族与数量，默认见 SATELLITE_PATCH_FAMILIES / 260
+  //   grainSize / grainBase / grainVariance / grainAlpha  颗粒层参数
+  //   farmlandFields / treeClusters / waterPonds  三层新增装饰图层数据（均可选）
+  //   vignetteStrength  暗角强度 0~1，默认 0.22；传 0 等效关闭
+  //   areas / roads / perimeter / tankRings  人工构筑物图层数据（均可选，不传则跳过对应图层）
+  function buildSatelliteGround(THREE, options) {
+    requireTHREE(THREE, "buildSatelliteGround");
+    if (!options) {
+      throw new Error("[Map3DShared] buildSatelliteGround 缺少 options 参数");
+    }
+    var size = options.size || 1024;
+    requirePositiveNumber(options.anisotropy, "options.anisotropy");
+
+    var canvas = createCanvas(size, size);
+    var ctx = canvas.getContext("2d");
+    var projector = createProjector(options.stationWidth, options.stationDepth, size);
+
+    // 第 1 层：宏观底色 + 不规则软斑块
+    ctx.fillStyle = options.baseColor || "#6b6a5c";
+    ctx.fillRect(0, 0, size, size);
+    var families = options.patchFamilies || SATELLITE_PATCH_FAMILIES;
+    var patchCount = options.patchCount != null ? options.patchCount : 260;
+    paintSoftPatches(ctx, size, families, patchCount);
+
+    // 第 2 层：512² 逐像素颗粒，平铺烘进宏观层
+    var grainSize = options.grainSize || 512;
+    var grainBase = options.grainBase || [107, 104, 90];
+    var grainVariance = options.grainVariance != null ? options.grainVariance : 22;
+    var grainAlpha = options.grainAlpha != null ? options.grainAlpha : 0.12;
+    var grainTile = buildNoiseTile(grainSize, grainBase, grainVariance);
+    stampNoiseTile(ctx, grainTile, size, 16, grainAlpha);
+
+    // 第 3~5 层：田块 / 林冠 / 水塘（均可选，不传则跳过）
+    paintFarmlandFields(ctx, projector, requireArrayIfPresent(options.farmlandFields, "options.farmlandFields"));
+    paintTreeClusters(ctx, projector, requireArrayIfPresent(options.treeClusters, "options.treeClusters"));
+    paintWaterPonds(ctx, projector, requireArrayIfPresent(options.waterPonds, "options.waterPonds"));
+
+    // 第 6 层：人工构筑物（硬化地坪/道路/围墙/罐体基础环）
+    paintConstructedLayer(ctx, projector, options, SATELLITE_PALETTE);
+
+    // 第 7 层：暗角
+    var vignetteStrength = options.vignetteStrength != null ? options.vignetteStrength : 0.22;
+    if (vignetteStrength > 0) paintVignette(ctx, size, vignetteStrength);
+
+    assertUntainted(canvas);
+    var texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = options.anisotropy;
+    return texture;
+  }
+
+  // ---------------------------------------------------------------------
+  // 共享材质工厂
+  // ---------------------------------------------------------------------
+
+  // 三色状态材质。颜色必须与以下两处字面一致，改色要三处同步：
+  //   styles/01-tokens.css 的 --status-danger/--status-warn/--status-ok
+  //   scripts/pump3d/engine.js 的 HOTSPOT.colors
+  function createStatusMaterials(THREE) {
+    requireTHREE(THREE, "createStatusMaterials");
+    return {
+      ok: new THREE.MeshStandardMaterial({
+        color: "#30c69d", emissive: "#30c69d", emissiveIntensity: 0.15, roughness: 0.4, metalness: 0.25
+      }),
+      warn: new THREE.MeshStandardMaterial({
+        color: "#eeb44a", emissive: "#eeb44a", emissiveIntensity: 0.15, roughness: 0.4, metalness: 0.25
+      }),
+      danger: new THREE.MeshStandardMaterial({
+        color: "#ff625c", emissive: "#ff625c", emissiveIntensity: 0.15, roughness: 0.4, metalness: 0.25
+      })
+    };
+  }
+
+  // 管道/罐体/机柜/地坪等常用 PBR 材质集。数值取自 scripts/pump3d/model.js 里已在泵项目上
+  // 验证过视觉效果的钢铁/涂层参数（casing/bareSteel/paintedSteel/stainless/concrete），
+  // 只是按用途换了更通用的键名，参数本身原样复用、不重新调参。
+  function createMetalMaterials(THREE) {
+    requireTHREE(THREE, "createMetalMaterials");
+    return {
+      pipe: new THREE.MeshStandardMaterial({ color: "#b6c2c8", roughness: 0.38, metalness: 0.88 }),
+      tank: new THREE.MeshStandardMaterial({ color: "#9aa7ae", roughness: 0.52, metalness: 0.72 }),
+      cabinet: new THREE.MeshStandardMaterial({ color: "#5c6b74", roughness: 0.6, metalness: 0.45 }),
+      stainless: new THREE.MeshStandardMaterial({ color: "#c4d0d6", roughness: 0.25, metalness: 0.95 }),
+      pad: new THREE.MeshStandardMaterial({ color: "#55636e", roughness: 0.92, metalness: 0.04 })
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // 资源释放
+  // ---------------------------------------------------------------------
+
+  // 新增：遍历 group，释放每个 Mesh 的 geometry、全部材质、以及材质上所有纹理型属性。
+  //
+  // 为什么这是本次新增的关键防线：旧 scripts/pump3d/engine.js 全文件只有 2 处 dispose
+  // （都是环境贴图的临时产物），因为它是终生单例、模型从建好到页面关闭都不换。而新引擎要
+  // 支持沙盘 <-> 卫星 setMode 切换——引入"切换"就是引入"泄漏"：12 个区域热点、每个热点
+  // 4 个几何 + 4 个材质、彼此完全不共享，12 个区域 * 4 = 48 个几何 + 48 个材质，一个模式
+  // 就是 96 个 GPU 对象；不在切换前 dispose 掉旧模式的 96 个对象，每切一次模式就漏 96 个，
+  // 反复切换几次显存就会爆。
+  //
+  // 覆盖的纹理属性名（典型 MeshStandardMaterial / MeshPhysicalMaterial 会用到的槏位）：
+  // map / alphaMap / aoMap / bumpMap / displacementMap / emissiveMap / envMap / lightMap /
+  // metalnessMap / normalMap / roughnessMap / specularMap / clearcoatMap /
+  // clearcoatRoughnessMap / clearcoatNormalMap / sheenColorMap / sheenRoughnessMap /
+  // transmissionMap / thicknessMap / iridescenceMap / iridescenceThicknessMap 等。
+  // 这里不写死这份属性名清单去逐个取——而是遍历材质对象上的每一个键，凡是值带有
+  // isTexture===true（所有 THREE.Texture 实例的通用标记）就调用它的 dispose()。这样
+  // 不管材质用了上面列的哪一个槏位、或者未来 three.js 版本新增了别的贴图槏位，都会被
+  // 自动覆盖到，不需要每次新增材质类型都回来改这个函数。
+  //
+  // 纪律（写在这里，供调用方遵守）：每个模式必须在自己的 createMaterials 里独占创建材质，
+  // 不得跨模式共享同一个材质实例——一旦共享，切换到另一个模式时对旧模式调用 disposeGroup
+  // 会把仍在用的材质/纹理一并释放掉，等于把另一个模式打死。
+  function disposeGroup(group) {
+    if (!group) {
+      throw new Error("[Map3DShared] disposeGroup 缺少 group 参数");
+    }
+    group.traverse(function (obj) {
+      if (obj.geometry) {
+        obj.geometry.dispose();
+      }
+      var material = obj.material;
+      if (!material) return;
+      var materials = Array.isArray(material) ? material : [material];
+      materials.forEach(function (mat) {
+        if (!mat) return;
+        Object.keys(mat).forEach(function (key) {
+          var value = mat[key];
+          if (value && value.isTexture) {
+            value.dispose();
+          }
+        });
+        mat.dispose();
+      });
+    });
+  }
+
+  window.Map3DShared = {
+    createCanvas: createCanvas,
+    buildPerforatedTexture: buildPerforatedTexture,
+    buildGrilleTexture: buildGrilleTexture,
+    buildGroundFadeTexture: buildGroundFadeTexture,
+    buildNameplateTexture: buildNameplateTexture,
+    buildSatelliteGround: buildSatelliteGround,
+    createStatusMaterials: createStatusMaterials,
+    createMetalMaterials: createMetalMaterials,
+    disposeGroup: disposeGroup
+  };
+})();

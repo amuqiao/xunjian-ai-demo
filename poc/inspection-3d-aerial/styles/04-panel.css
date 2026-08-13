@@ -1,0 +1,215 @@
+/* 04-panel.css: 区域信息面板（scripts/app.js 的 renderAreaPanel() 产出）。
+   这一块会在每次选中/取消选中区域时整体重渲染（见 app.js 头部注释），不像
+   03-map3d.css 承载的 3D 宿主那样有"引擎每帧写内联样式"的契约，可以正常使用
+   常规的 CSS 过渡/hover 效果。 */
+
+.area-panel {
+  min-height: 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.area-panel-head h3 {
+  margin-top: 2px;
+  color: #f4fbff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.area-panel-sub {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.area-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.area-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  padding: 7px 10px;
+  text-align: left;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.area-row:hover {
+  background: rgba(56, 198, 236, 0.08);
+}
+
+.area-row:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: -1px;
+}
+
+.area-row.active {
+  border-color: var(--cyan);
+  background: rgba(56, 198, 236, 0.14);
+}
+
+.area-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.area-row-count {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+}
+
+.area-row-issue {
+  flex: 0 0 auto;
+  color: var(--status-danger);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.area-row-ok {
+  flex: 0 0 auto;
+  color: var(--status-ok);
+  font-size: 11px;
+}
+
+.area-detail-empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 10px 2px;
+}
+
+.area-detail {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.area-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.area-detail-head h4 {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: #f4fbff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.area-detail-kind {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.area-detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.area-detail-stat {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.area-detail-stat.warn {
+  border-color: rgba(238, 180, 74, 0.5);
+  background: rgba(238, 180, 74, 0.08);
+}
+
+.area-detail-stat-value {
+  display: block;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: #eafcff;
+}
+
+.area-detail-stat-label {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.area-detail-summary {
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.area-detail-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.area-detail-evidence li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.area-detail-evidence li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cyan);
+}
+
+.area-detail-devices {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.area-detail-devices-title {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.area-detail-devices ul {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.area-detail-devices li {
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}

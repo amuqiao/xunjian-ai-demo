@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>俯视/卫星质感站场巡检地图 · 广西支干线永州分输清管站（POC）</title>
+
+<!-- 样式：tokens → shell → map3d 契约样式 → 区域信息面板 -->
+<link rel="stylesheet" href="styles/01-tokens.css" />
+<link rel="stylesheet" href="styles/02-shell.css" />
+<link rel="stylesheet" href="styles/03-map3d.css" />
+<link rel="stylesheet" href="styles/04-panel.css" />
+</head>
+<body>
+
+<div id="appRoot">
+  <header class="app-header panel">
+    <div class="app-brand">
+      <span class="app-brand-mark" aria-hidden="true">俯</span>
+      <div>
+        <h1>俯视站场巡检地图</h1>
+        <small>广西支干线永州分输清管站 · 12 个巡检区域 · POC</small>
+      </div>
+    </div>
+    <p class="app-header-note">
+      接近正俯视的站场地图：卫星/航拍质感地面 + 2.5D 挤出区块 + 巡检轨迹。
+      与 poc/inspection-3d-sandbox（低斜角三维工程沙盘）是两个刻意互不耦合的独立 POC。
+    </p>
+  </header>
+
+  <main class="app-main">
+    <div class="map-slot"></div>
+    <div class="panel-slot"></div>
+  </main>
+</div>
+
+<!-- L0 vendor -->
+<script src="vendor/three.min.js"></script>
+
+<!-- L1 契约：零依赖，必须最先加载 -->
+<script src="scripts/map3d/contract.js"></script>
+
+<!-- L2 数据：items-entry.js 必须是三个 items-*.js 中最先加载的一个 -->
+<script src="scripts/data/items-entry.js"></script>
+<script src="scripts/data/items-process.js"></script>
+<script src="scripts/data/items-room.js"></script>
+<script src="scripts/data/station.js"></script>
+<script src="scripts/data/track.js"></script>
+
+<!-- L3 3D：model-shared 早于 model-aerial/model-track，两者早于 engine -->
+<script src="scripts/map3d/model-shared.js"></script>
+<script src="scripts/map3d/model-aerial.js"></script>
+<script src="scripts/map3d/model-track.js"></script>
+<script src="scripts/map3d/engine.js"></script>
+
+<!-- L4 core -->
+<script src="scripts/core/dom.js"></script>
+
+<!-- L5 app -->
+<script src="scripts/app.js"></script>
+
+</body>
+</html>
