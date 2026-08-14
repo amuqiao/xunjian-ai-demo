@@ -1,0 +1,258 @@
+/* 时序 / 视觉详情子屏 + Agent 对话浮层。
+   子屏整屏接管 stage，但导航仍高亮"诊断工作台"——它们是证据下钻，不是独立页面。 */
+
+/* ---------------- 时序子屏 ---------------- */
+
+.dt-trend-grid { display: grid; grid-template-columns: 1fr 420px; gap: var(--gap); min-height: 0; }
+.dt-main { display: grid; grid-template-rows: auto 1fr auto; padding: 14px 16px; min-height: 0; }
+.dt-main-head { display: grid; gap: 8px; }
+.dt-chart { min-height: 0; }
+.dt-verdict { margin: 6px 0 0; font-size: 13px; line-height: 1.7; }
+.dt-verdict.ok { color: var(--ok); }
+.dt-verdict.warn { color: var(--warn); }
+.dt-verdict.danger { color: var(--danger); }
+
+.dt-point-switch { display: flex; gap: 6px; }
+.dt-point-btn {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dt-point-btn.active { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+
+.dt-side { display: grid; grid-template-rows: auto auto 1fr; gap: var(--gap); min-height: 0; }
+.dt-params, .dt-sub, .dt-sample { padding: 12px 14px; }
+.dt-param-list {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 5px 10px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.dt-param-list dt { color: var(--text-mute); }
+.dt-param-list dd { margin: 0; color: var(--text-dim); }
+.dt-chart-sub { height: 96px; }
+
+.dt-sample { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+.dt-sample-scroll { overflow: auto; min-height: 0; }
+.dt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dt-table th {
+  position: sticky;
+  top: 0;
+  padding: 5px 8px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-mute);
+  background: #131c2f;
+  border-bottom: 1px solid var(--line);
+}
+.dt-table td { padding: 5px 8px; color: var(--text-dim); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.dt-num { font-family: var(--mono); }
+.dt-table tr.over td { color: var(--danger); }
+
+/* ---------------- 视觉子屏 ---------------- */
+
+.dt-vision-grid { display: grid; grid-template-columns: 1fr 380px; gap: var(--gap); min-height: 0; }
+.dt-vision-main { display: grid; grid-template-rows: auto 1fr; padding: 14px 16px; min-height: 0; }
+.dt-frame-btn {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: #070c18;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+/* figure 必须精确等于图片渲染盒，bbox 的百分比定位才不会因为容器与图片宽高比不同
+   而整体偏移。这条约束在工作台的视觉卡里是同一份。 */
+.dt-frame {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+  height: 100%;
+  line-height: 0;
+}
+.dt-frame-img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+.dt-frame-box {
+  position: absolute;
+  border: 2px solid var(--warn);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.dt-frame-box-label {
+  position: absolute;
+  top: -22px; left: -2px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--warn);
+  color: #1a1204;
+  font-size: 11.5px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.dt-vision-side { display: grid; grid-template-rows: auto 1fr; gap: var(--gap); min-height: 0; }
+.dt-findings, .dt-strip-panel { padding: 12px 14px; }
+.dt-finding-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text-dim); line-height: 2; }
+
+.dt-strip { display: grid; gap: 8px; }
+.dt-strip-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 7px 9px;
+  text-align: left;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+}
+.dt-strip-item:hover { border-color: var(--line-strong); }
+.dt-strip-item.active { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+.dt-strip-item img { grid-row: 1 / span 2; width: 72px; height: 48px; object-fit: cover; border-radius: 5px; }
+.dt-strip-role { font-size: 12px; }
+.dt-strip-item small { font-size: 11px; color: var(--text-mute); }
+
+.dt-zoom { display: grid; place-items: center; max-height: 62vh; }
+.dt-frame-zoom { height: auto; max-height: 62vh; }
+.dt-frame-zoom .dt-frame-img { height: auto; max-height: 62vh; width: auto; }
+
+/* ---------------- Agent 对话浮层 ---------------- */
+
+/* Agent 卡片给一个**固定高度**（而不是让内容撑），有两个理由：
+   ① 对话从"空态 → 检索中 → 答案（带命中卡）"内容长度差很多，高度跟着内容跳会让
+      浮层在演示中上下弹一下，比矮一点更难看；
+   ② 固定高度之后左右两列可以各自滚动，问题列表不会被长答案顶走。
+
+   代价是只有一轮问答时下方会留白。68vh 是留白和"够高"之间的折中，觉得还不够高
+   就直接改这一个数字（上限受 .overlay-panel 的 max-height: 78vh 约束）。 */
+.overlay-panel.ag-overlay { height: 68vh; }
+
+.ag-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 18px;
+  height: 100%;
+  min-height: 0;
+}
+.ag-side { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-height: 0; }
+.ag-side-title { margin: 0; font-size: 11.5px; color: var(--text-mute); letter-spacing: 1px; }
+.ag-questions { display: grid; gap: 6px; align-content: start; overflow: auto; min-height: 0; }
+
+/* 对话区独立滚动：新答案很长时只有这一列滚，左边的预设问题留在原位。 */
+.ag-thread-host { overflow: auto; min-height: 0; }
+.ag-question {
+  padding: 8px 11px;
+  text-align: left;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ag-question:hover { border-color: var(--line-strong); color: var(--text); }
+.ag-question.active { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+/* 未命中的问题用虚线边框预告：它不是坏掉的，是刻意留的一条"知识库没有依据"的路径。 */
+.ag-question.miss { border-style: dashed; }
+
+.ag-input-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.ag-input {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+.ag-input::placeholder { color: var(--text-mute); }
+
+.ag-thread { display: grid; gap: 12px; align-content: start; min-height: 100%; }
+/* 空态在整块高度里居中，而不是贴在顶上——卡片变高之后贴顶会显得下面一片空。 */
+.ag-thread.empty { place-content: center; }
+.ag-turn { display: grid; grid-template-columns: 46px 1fr; gap: 10px; }
+.ag-role {
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--text-mute);
+  text-align: right;
+}
+.ag-turn-user p {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px 10px 10px 2px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  justify-self: start;
+}
+.ag-answer p, .ag-thinking {
+  margin: 0;
+  padding: 10px 13px;
+  border-radius: 10px 10px 2px 10px;
+  background: rgba(77, 141, 255, 0.12);
+  font-size: 13px;
+  line-height: 1.85;
+}
+.ag-thinking { display: flex; align-items: center; gap: 8px; color: var(--text-mute); }
+.ag-dots { display: inline-flex; gap: 3px; }
+.ag-dots b {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ag-blink 1s infinite;
+}
+.ag-dots b:nth-child(2) { animation-delay: 0.16s; }
+.ag-dots b:nth-child(3) { animation-delay: 0.32s; }
+@keyframes ag-blink {
+  0%, 60%, 100% { opacity: 0.25; }
+  30% { opacity: 1; }
+}
+
+.ag-hits { margin-top: 8px; }
+.ag-hits-title { display: block; margin-bottom: 5px; font-size: 11.5px; color: var(--text-mute); }
+.ag-hit-list { display: grid; gap: 5px; }
+.ag-hit {
+  display: grid;
+  grid-template-columns: 16px 1fr 16px;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid var(--ok);
+  background: rgba(61, 220, 151, 0.09);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ag-hit:hover { background: rgba(61, 220, 151, 0.18); color: #fff; }
+.ag-hit-check { color: var(--ok); }
+.ag-hit-go { color: var(--text-mute); }
+
+/* 未命中态：灰底 + 虚线，视觉上明确区别于命中态。 */
+.ag-miss {
+  display: grid;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 255, 255, 0.03);
+}
+.ag-miss strong { font-size: 12px; color: var(--text-mute); }
+.ag-miss span { font-size: 11.5px; color: var(--text-mute); line-height: 1.7; }

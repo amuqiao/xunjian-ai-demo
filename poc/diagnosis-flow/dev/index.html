@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>diagnosis-flow · 单页打磨入口</title>
+    <link rel="stylesheet" href="../styles/01-tokens.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 40px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+      }
+      h1 { margin: 0 0 6px; font-size: 22px; }
+      .lead { margin: 0 0 28px; font-size: 13px; color: var(--text-mute); line-height: 1.8; max-width: 720px; }
+      h2 { margin: 26px 0 10px; font-size: 14px; color: var(--text-dim); font-weight: 500; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+      a.preset {
+        display: grid;
+        gap: 3px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--text);
+        text-decoration: none;
+      }
+      a.preset:hover { border-color: var(--accent); background: var(--accent-soft); }
+      a.preset code { font-family: var(--mono); font-size: 11px; color: var(--text-mute); }
+      a.preset strong { font-size: 14px; font-weight: 500; }
+      a.preset small { font-size: 11.5px; color: var(--text-mute); line-height: 1.6; }
+      .note {
+        margin-top: 28px;
+        padding: 12px 14px;
+        border-left: 3px solid var(--warn);
+        background: rgba(255, 180, 84, 0.08);
+        font-size: 12.5px;
+        color: var(--text-dim);
+        line-height: 1.8;
+        max-width: 720px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>单页打磨入口</h1>
+    <p class="lead">
+      每个链接把演示状态直接跳到某一步，不用从工作台一路点过来。它们不是四份独立的
+      HTML —— 那需要把 index.html 的四十多个 script 标签复制四份，加一个组件就要改五处，
+      迟早漂移。这里走的是同一个 index.html 加一个 URL hash，页面永远只有一个。
+    </p>
+
+    <h2>诊断工作台</h2>
+    <div class="grid">
+      <a class="preset" href="../index.html#preset=workbench">
+        <strong>工作台首屏</strong><code>#preset=workbench</code>
+        <small>报表 + 时序 + 视觉 + AI 判断卡与依据链</small>
+      </a>
+      <a class="preset" href="../index.html#preset=trend">
+        <strong>时序详情子屏</strong><code>#preset=trend</code>
+        <small>主曲线 / 阈值线 / 越线阴影 / 采样表</small>
+      </a>
+      <a class="preset" href="../index.html#preset=vision">
+        <strong>视觉详情子屏</strong><code>#preset=vision</code>
+        <small>关键帧 + bbox 标注 + 帧序列 + 放大浮层</small>
+      </a>
+      <a class="preset" href="../index.html#preset=agent">
+        <strong>Agent 对话浮层</strong><code>#preset=agent</code>
+        <small>命中态 / 未命中态 / 打字机动画</small>
+      </a>
+    </div>
+
+    <h2>人工复核（本 POC 风险最高的一页）</h2>
+    <div class="grid">
+      <a class="preset" href="../index.html#preset=review-empty">
+        <strong>未表决</strong><code>#preset=review-empty</code>
+        <small>L1 结论区变暗、处置路径三条平铺预览</small>
+      </a>
+      <a class="preset" href="../index.html#preset=review-accept">
+        <strong>采纳支线</strong><code>#preset=review-accept</code>
+        <small>自动预选 AI 建议，无分歧条，意见选填</small>
+      </a>
+      <a class="preset" href="../index.html#preset=review-divergent">
+        <strong>分歧支线</strong><code>#preset=review-divergent</code>
+        <small>橙色分歧条 + 意见必填 + 执行按钮禁用</small>
+      </a>
+      <a class="preset" href="../index.html#preset=executed">
+        <strong>执行屏</strong><code>#preset=executed</code>
+        <small>处置票卡 + 意见回显 + 复测验收</small>
+      </a>
+      <a class="preset" href="../index.html#preset=retest-failed">
+        <strong>复测退回</strong><code>#preset=retest-failed</code>
+        <small>demo 里唯一的一条回头路</small>
+      </a>
+    </div>
+
+    <h2>归档与知识库</h2>
+    <div class="grid">
+      <a class="preset" href="../index.html#preset=archive">
+        <strong>归档页（未归档）</strong><code>#preset=archive</code>
+        <small>报告草稿 + 归档去向 + 二次命中锁态</small>
+      </a>
+      <a class="preset" href="../index.html#preset=archived">
+        <strong>归档页（已归档）</strong><code>#preset=archived</code>
+        <small>二次命中解锁</small>
+      </a>
+      <a class="preset" href="../index.html#preset=knowledge">
+        <strong>知识库</strong><code>#preset=knowledge</code>
+        <small>分类 / 文档卡片流 / 阅读器 / 入库动画</small>
+      </a>
+      <a class="preset" href="../index.html#preset=knowledge-archived">
+        <strong>知识库（含归档报告）</strong><code>#preset=knowledge-archived</code>
+        <small>归档报告带 NEW 标出现在案例分类里</small>
+      </a>
+    </div>
+
+    <p class="note">
+      preset 状态<strong>不落盘</strong>：刷掉 hash 打开 index.html 就回到正常演示状态。
+      preset 里的结论、字段取值全部从领域契约现算（"第一条与 AI 建议不同的结论"、
+      "该字段的第一个选项"），所以换成 domain-pump 或 domain-inspection 之后这些入口
+      依然可用，不需要改。
+    </p>
+  </body>
+</html>

@@ -1,0 +1,109 @@
+/* 报告归档页。左边是报告草稿（这一页的主角），右边是归档去向和二次命中解锁卡。 */
+
+.ar-grid {
+  display: grid;
+  grid-template-columns: 1fr 460px;
+  gap: var(--gap);
+  min-height: 0;
+}
+.ar-side { display: grid; grid-template-rows: 1fr auto; gap: var(--gap); min-height: 0; }
+.ar-report { display: grid; grid-template-rows: auto 1fr; padding: 14px 16px; min-height: 0; }
+.ar-report-scroll { display: grid; gap: 10px; align-content: start; overflow: auto; min-height: 0; }
+
+.ar-section {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.ar-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.ar-section-head strong { font-size: 13.5px; }
+.ar-section p { margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.85; }
+
+/* 人工填写的两段要一眼看得出来：观众要能认出"这句话是刚才那个人打的"。 */
+.ar-section.human {
+  border-left: 3px solid var(--accent);
+  background: rgba(77, 141, 255, 0.09);
+}
+.ar-section.human p { color: var(--text); }
+.ar-human-tag {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10.5px;
+}
+
+/* ---------------- 归档去向 ---------------- */
+
+/* align-content:start + 全 auto 行：飞入舞台保持自己的 92px，剩余空间留在面板底部。
+   给它 1fr 会把一块 300 多像素的空白撑在面板中间——不报错，只是看起来像没做完。 */
+.ar-target {
+  display: grid;
+  grid-template-rows: auto;
+  grid-auto-rows: auto;
+  align-content: start;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.ar-meta {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 6px 10px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.ar-meta dt { color: var(--text-mute); }
+.ar-meta dd { margin: 0; color: var(--text-dim); }
+
+.ar-fly-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  min-height: 92px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+.ar-fly-card {
+  display: grid;
+  place-items: center;
+  width: 48px; height: 62px;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(160deg, #1a2540 0%, #16203a 100%);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+.ar-kb-icon { display: grid; justify-items: center; gap: 2px; }
+.ar-kb-glyph { font-size: 30px; }
+.ar-kb-count { font-size: 11px; color: var(--text-mute); }
+
+/* 只在"未归档 → 已归档"这一次跳变时播放（由 archive.js 的 lastArchived 控制加类）。 */
+.ar-fly-stage.playing .ar-fly-card { animation: fly-to-kb 0.9s cubic-bezier(0.5, 0, 0.6, 1) forwards; }
+.ar-fly-stage.playing .ar-kb-icon { animation: kb-pop 0.4s 0.75s ease-out; }
+
+@keyframes fly-to-kb {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(300px, 6px) scale(0.24); opacity: 0; }
+}
+@keyframes kb-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+.ar-goto-kb { justify-self: start; }
+
+/* ---------------- 二次命中 ---------------- */
+
+.ar-reuse { padding: 14px 16px; }
+.ar-reuse.unlocked { border-color: rgba(61, 220, 151, 0.45); background: rgba(61, 220, 151, 0.07); }
+.ar-reuse-body { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.ar-reuse-glyph { font-size: 24px; }
+.ar-reuse-body p { margin: 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.8; }

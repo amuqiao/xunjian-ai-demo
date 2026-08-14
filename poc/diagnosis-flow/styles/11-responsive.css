@@ -1,0 +1,14 @@
+/* 响应式只有一条策略：整个 1920×1080 设计稿等比缩放（见 core/screen-scale.js 和
+   02-shell.css 的 transform: scale）。这里只处理缩放策略覆盖不到的两件事。 */
+
+/* 窗口极窄时（比如有人把浏览器拖成半屏），等比缩放会把界面缩得读不了。
+   与其让它糊成一团，不如允许滚动查看原尺寸。 */
+@media (max-width: 900px), (max-height: 560px) {
+  body { align-items: flex-start; justify-content: flex-start; overflow: auto; }
+  .app-shell { transform: none; }
+}
+
+/* 打印 / 截图时去掉背景光晕，避免大面积渐变在投影仪上偏色 */
+@media print {
+  .app-shell { background: var(--bg); }
+}

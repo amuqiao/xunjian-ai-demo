@@ -1,0 +1,232 @@
+/* 外壳：顶栏 + stage + 流程条，以及全局通用件（panel / 按钮 / 状态点 / 标题）。
+   布局全程在 1920×1080 的坐标系里进行，由 --screen-scale 等比缩到当前窗口——
+   场景层因此不需要写任何响应式分支。 */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-shell {
+  width: 1920px;
+  height: 1080px;
+  flex: 0 0 auto;
+  transform: scale(var(--screen-scale));
+  transform-origin: center center;
+  display: grid;
+  grid-template-rows: 84px 1fr 96px;
+  gap: var(--gap-lg);
+  padding: var(--gap-lg);
+  background:
+    radial-gradient(1200px 700px at 20% -10%, rgba(77, 141, 255, 0.16), transparent 60%),
+    radial-gradient(900px 600px at 110% 20%, rgba(61, 220, 151, 0.08), transparent 60%),
+    var(--bg);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(6px);
+}
+
+/* ---------------- 顶栏 ---------------- */
+
+.topbar {
+  display: grid;
+  grid-template-columns: 340px 1fr 340px;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand-mark {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), #2b5fd9);
+  font-weight: 700; font-size: 20px;
+}
+
+.brand h1 { margin: 0; font-size: 19px; letter-spacing: 0.5px; }
+.brand small { color: var(--text-mute); font-size: 12px; }
+
+.scene-nav { display: flex; justify-content: center; gap: 8px; }
+
+.scene-nav-btn {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.16s, color 0.16s, border-color 0.16s;
+}
+.scene-nav-btn:hover:not(:disabled) { color: var(--text); border-color: var(--line-strong); }
+.scene-nav-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: #fff;
+}
+.scene-nav-btn.locked { opacity: 0.34; cursor: not-allowed; }
+
+.top-status { text-align: right; font-size: 12px; color: var(--text-mute); }
+.top-status #clock { font-family: var(--mono); color: var(--text-dim); font-size: 13px; }
+.top-status #statusLine { margin: 2px 0 6px; }
+
+.tool-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.tool-btn:hover { color: var(--text); border-color: var(--line-strong); }
+
+/* ---------------- stage ---------------- */
+
+.stage { overflow: hidden; outline: none; }
+
+.scene-shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  gap: var(--gap);
+}
+
+.scene-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+.scene-head h2 { margin: 0; font-size: 22px; }
+.kicker {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--text-mute);
+  letter-spacing: 1px;
+}
+
+.panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-title > span { font-size: 15px; font-weight: 600; }
+.panel-title > small { font-size: 12px; color: var(--text-mute); }
+
+/* ---------------- 通用按钮 / 状态件 ---------------- */
+
+.primary-action {
+  padding: 9px 20px;
+  border-radius: 9px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.16s;
+}
+.primary-action:hover:not(:disabled) { filter: brightness(1.12); }
+.primary-action:disabled { opacity: 0.36; cursor: not-allowed; }
+
+.plain-button {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.plain-button:hover:not(:disabled) { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+.plain-button:disabled { opacity: 0.36; cursor: not-allowed; }
+
+.dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.dot.ok { background: var(--ok); }
+.dot.warn { background: var(--warn); }
+.dot.danger { background: var(--danger); }
+
+.muted { color: var(--text-mute); }
+
+/* 焦点可见：键盘用户必须能看到自己在哪。绝不用 outline:none 一刀切。 */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------------- 流程条 ---------------- */
+
+.flow-rail {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 10px 18px;
+}
+.flow-hint { font-size: 12px; color: var(--text-mute); }
+.flow-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.flow-step {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  opacity: 0.44;
+}
+.flow-step.visited { opacity: 1; }
+.flow-step.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.flow-index {
+  grid-row: 1 / span 2;
+  align-self: center;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.flow-step.visited .flow-index { border-color: var(--accent); color: #fff; }
+.flow-label { font-size: 14px; }
+.flow-desc { font-size: 11px; color: var(--text-mute); }
