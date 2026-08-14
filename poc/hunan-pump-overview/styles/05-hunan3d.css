@@ -235,3 +235,17 @@
   border-color: rgba(245, 218, 114, 0.4);
   font-size: 15px;
 }
+
+/* 「返回全省」与「管道开关」并入右下角这一组视口操作按钮。
+   之前返回入口在 3D 面板左上角、重置视角在这一组、底栏又各有一份同名按钮——
+   同一批操作散在三处、互相重复。合并成一组后，视口相关的操作只需要在一个地方找。
+   ov-zoom-back 只在下钻态由 scenes/overview.js 渲染出来，全省态整组少一个按钮。 */
+.ov-zoom-back {
+  color: var(--accent);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.ov-zoom-pipe {
+  font-size: 15px;
+}

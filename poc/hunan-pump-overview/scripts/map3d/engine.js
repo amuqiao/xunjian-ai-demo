@@ -122,9 +122,12 @@
   // 跑到屏幕右下、湘西（西）跑到上方。省域总览大屏，人默认期待正北朝上，改这个值前
   // 请先想清楚这一点。
     province: { radius: 900, min: 650, max: 1500, theta: 1.5708, phi: 0.5, target: [0, 20, 0], fov: 42, azimuthClamp: null },
-    zone: { radius: 260, min: 160, max: 420, theta: 1.5708, phi: 0.95, target: [0, 20, 0], fov: 40, azimuthClamp: 0.3 },
+    zone: { radius: 400, min: 240, max: 620, theta: 1.5708, phi: 0.9, target: [0, 20, 0], fov: 40, azimuthClamp: 0.3 },
     site: { radius: 90, min: 55, max: 160, theta: 1.5708, phi: 1.15, target: [0, 10, 0], fov: 36, azimuthClamp: 0.3 }
   };
+
+  // 站点热点相对作业区热点的缩放比，理由见 refreshHotspotVisibility 里的注释。
+  var SITE_HOTSPOT_SCALE = 0.28;
 
   var HOTSPOT = {
     coreRadius: 4.2,
@@ -607,6 +610,12 @@
     });
     engine.siteHotspots.list.forEach(function (hs) {
       hs.group.visible = !showZones && engine.siteZoneMap[hs.id] === engine.activeZoneId;
+      // 站点热点整体缩小：HOTSPOT 那套尺寸（coreRadius 4.2 / glowRadius 6.6 /
+      // ringOuter 15）是按**省域机位**给 10 个作业区热点定的。下钻后相机拉到 radius
+      // 几百，而一个作业区里可能有几十个站点（岳阳 36 个）——照省域尺寸画就是几十个
+      // 大光球糊成一片白，画面完全不可读（已实测）。这里按比例缩到 0.28，让站点热点
+      // 在近距离读起来是"一串点位"而不是"一团光"。
+      hs.group.scale.setScalar(SITE_HOTSPOT_SCALE);
     });
     markDirty(engine);
   }
