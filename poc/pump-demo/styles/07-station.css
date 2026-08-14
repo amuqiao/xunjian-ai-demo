@@ -1,0 +1,304 @@
+/* 07-station.css: station-shell / station-grid / station-head / station-map-panel /
+   station-side / station-bottom-row / station-route-panel / station-units-panel /
+   station-unit / train-legend
+
+   任务 P2-A（阶段二）场景精简：四个面板改成"3D（禁改）+ DetailCard（当前部位）+
+   Cards.chart 承载的部位风险雷达 + SelectList variant=row 的机组对照"，四类卡片/
+   SelectList/DetailCard 的组件内部样式已在 03-cards.css 统一定义（P1-G），本文件只
+   负责本场景的网格骨架和场景专属排布覆盖，不重复定义组件内部样式——与
+   06-overview.css 顶部注释是同一条分工原则。 */
+
+/* ---------- 整体骨架：仿 06-overview.css 的 .overview-shell/.overview-grid，
+   让 3D 面板拿到 minmax(0,1fr) 的剩余高度，整页不出现纵向滚动条 ---------- */
+
+.station-shell {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.station-grid {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 400px);
+  /* 底部行 250px 而不是 300px：05-pump3d.css（3D 契约禁改区）用
+     `.station-map-panel .pump-train{min-height:480px}` 把 3D 视口钉死在 480px，
+     加上面板标题和内边距，map 面板需要 545px；底部行占 300px 时 map 行只有 501px，
+     3D 会溢出 43px 盖住下面的雷达卡（面板是 overflow:visible，不会出滚动条，
+     所以这种"盖住"不会被任何断言发现，只能靠看截图）。
+     不能改 05-pump3d.css 去放宽那个 min-height，所以从这一行腾出高度。 */
+  grid-template-rows: 46px minmax(0, 1fr) 250px;
+  grid-template-areas:
+    "head   head"
+    "map    side"
+    "bottom side";
+  gap: 14px;
+}
+
+/* ---------- 头部：场景标题（无独立时间范围控件，state.range 全局共享） ---------- */
+
+.station-head {
+  grid-area: head;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.station-head strong {
+  overflow: hidden;
+  color: #f4fbff;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 左上：3D 机组态势（禁改区样式，见 styles/05-pump3d.css 的
+   `.station-map-panel .pump-train{min-height:480px}`；这里只负责面板本身的网格
+   定位和头部排布，不覆盖任何 3D 契约规则） ---------- */
+
+.station-map-panel {
+  grid-area: map;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.station-map-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.train-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.train-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* ---------- 右栏：DetailCard 通栏（当前部位详情，替代原纯文字 station-side） ---------- */
+
+.station-side {
+  grid-area: side;
+  min-height: 0;
+  overflow: auto;
+  /* card-detail 是 display:grid 且行不定高（auto），而 .station-side 被拉伸到
+     "side" 区域的整栏高度（跨 map/bottom 两行）——默认 align-content:normal 会把
+     多出来的高度按 stretch 摊给各个 auto 行，在"现场记录"证据卡和底部操作按钮之间
+     挤出一段突兀的空白。这里改成从顶部紧凑排布，多余高度留在最后一行操作按钮
+     之后（或者干脆不出现，由外层 overflow:auto 兜底），不是布局 bug 的兜底修补，
+     是"内容多则滚动、内容少则顶对齐"这条通用滚动容器行为本身。 */
+  align-content: start;
+}
+
+.station-side::-webkit-scrollbar {
+  width: 5px;
+}
+
+.station-side::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(75, 179, 211, 0.35);
+}
+
+/* ---------- 左下：部位风险雷达 + 机组对照，左右并排的纯布局包裹层
+   （与 06-overview.css 的 .overview-charts-row 是同一种"承载卡片组件的布局行"） ---------- */
+
+.station-bottom-row {
+  grid-area: bottom;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: 14px;
+}
+
+/* card-chart-body 默认 min-height: 220px（03-cards.css），300px 高的行扣掉卡片自身
+   标题/内边距后余量有限，这里按场景行高显式收窄，让图表主体跟随网格行高收缩，
+   而不是撑破这一行、把整页挤出竖向滚动条——与 06-overview.css 的
+   .overview-charts-row .card-chart-body 是同一处修复。
+   这里用显式 height（而不是只给 min-height:0 交给 grid 的 auto 行"stretch"）：
+   card-chart 内部是 display:grid 的两行（标题行 + 本行），容器为空占位时和挂上
+   ECharts 画布后，两次"auto"行的隐式尺寸计算结果不一致（实测分别为 126px/189px），
+   ECharts 在挂载那一刻按当时量到的（更小的）126px 初始化画布，之后即使容器变成
+   189px，画布也不会跟着变大——雷达图 6 根轴里挨着下边缘的那根标签因此被裁进只有
+   126px 高的画布里，与图形重叠、糊成一团（其余 5 根因为离下边缘远，看不出来）。
+   给 card-chart-body 一个显式、从第一帧起就稳定的 height，消除了这处
+   "先量到小尺寸初始化、后续布局变大但画布不跟着变"的时序竞争，画布和容器尺寸
+   自此保持一致。这是 core/charts.js 的 Charts.slot()/ResizeObserver 机制本身的
+   既有特性（跑 overview 的 ov-chart-trend 一样能复现 132px 容器对 88px 画布的
+   同款落差，只是矩形趋势图边缘留白不敏感，肉眼看不出来），不是本次改动引入的新
+   问题，但雷达图的标签紧贴边缘，必须在场景这一层把它显式钉住。 */
+.station-bottom-row > .card-chart,
+.station-bottom-row .card-chart-body {
+  min-width: 0;
+}
+
+.station-bottom-row .card-chart-body {
+  min-height: 0;
+  height: 220px;
+}
+
+.station-route-panel {
+  min-width: 0;
+}
+
+/* ---------- 左下右侧：机组对照（SelectList variant="row" + 每行内嵌 spark） ---------- */
+
+.station-units-panel {
+  min-width: 0;
+  min-height: 0;
+  /* padding 收到 10px：这一行只有 250px，14px 的上下内边距 + 标题 + 4 行列表会把
+     内容顶到 256px、溢出 6px。 */
+  padding: 10px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+/* 面板标题固定、列表区域独立滚动：4 台机组 + 每行内嵌迷你折线在 300px 行高内
+   摆不下时（实测约可完整显示 2 行），只让列表本身出现一条局部滚动条，不把行高
+   反过来撑高、连累整页出现纵向滚动条（与 .station-side 的滚动处理同一思路）。 */
+.station-units-scroll {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* SelectList 的 .sl-row 是 flex-direction:column，但基类 .sl 仍带
+   flex-wrap:wrap（03-cards.css）——在这个高度受限的滚动容器里，wrap 会按"列"
+   而不是"行"续排，4 台机组变成 4 列并排，而不是任务要的纵向 4 行列表。这里按
+   场景覆盖成 nowrap，让列表严格纵向堆叠、超出高度时交给 .station-units-scroll
+   的 overflow-y 处理，不改 03-cards.css 里 .sl/.sl-row 的通用定义本身。 */
+.station-units-scroll .sl-row {
+  flex-wrap: nowrap;
+}
+
+.station-units-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.station-units-scroll::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(75, 179, 211, 0.35);
+}
+
+/* SelectList 的 sl-item-spark 默认继承 04-charts.css 的 .chart-box-mini
+   （min-height: 96px），在这份紧凑的机组行里太高——按场景覆盖成更紧凑的高度，
+   与 06-overview.css 的 .overview-cards .chart-box-mini 是同一种场景专属覆盖，
+   不改 04-charts.css 任何既有规则本身。 */
+.station-units-panel .chart-box-mini {
+  min-height: 32px;
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .station-shell {
+    height: auto;
+    overflow: visible;
+  }
+
+  .station-grid {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-template-areas:
+      "head"
+      "map"
+      "side"
+      "bottom";
+  }
+
+  .station-bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .station-side {
+    overflow: visible;
+  }
+
+  .station-units-scroll {
+    overflow-y: visible;
+  }
+}
+
+/* ---------- 机组对照：压紧行高，让 4 台机组一屏全见 ----------
+
+   "机组对照"这个面板的意义就是 4 台一眼看全并互相比较，需要滚动才能看到后两台的话，
+   "对照"本身就不成立了。SelectList 的 .sl-row 默认行高（标签 + 大数值 + note + spark
+   纵向堆叠）实测 107px，4 行共 452px，而这一行网格只有 218px 可用——所以这里按场景
+   把行内元素改成两列横排（左：机组名 + 均值小字；右：数值 + spark），把单行压到
+   ~52px，4 行正好落在容器内、不再出现局部滚动条。
+   只覆盖本场景，不改 03-cards.css 里 .sl-item 的通用定义。 */
+
+.station-units-scroll .sl-item {
+  padding: 3px 10px;
+  gap: 0 10px;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  grid-template-areas:
+    "label value"
+    "note  spark";
+  align-items: center;
+  justify-items: stretch;
+}
+
+.station-units-scroll .sl-item-label {
+  grid-area: label;
+  font-size: 12px;
+}
+
+.station-units-scroll .sl-item-value {
+  grid-area: value;
+  justify-self: end;
+  font-size: 15px;
+  line-height: 1.05;
+}
+
+.station-units-scroll .sl-item-note {
+  grid-area: note;
+  font-size: 9px;
+}
+
+.station-units-scroll .sl-item-spark {
+  grid-area: spark;
+  min-height: 15px;
+}
+
+.station-units-scroll .sl-item-spark .chart-box {
+  min-height: 15px;
+  height: 15px;
+}
+
+/* 雷达卡自适应底部行高度：Cards.chart 的通用样式（03-cards.css / 04-charts.css）给
+   .card-chart 和 .chart-box 留了适合"底部通栏大图"的最小高度，在 station 这个只有
+   250px 的底部行里会把整行内容顶到 269px、溢出 19px（同样不产生滚动条、不报错，
+   只有 scrollHeight/clientHeight 对比能发现）。这里按场景放开最小高度，让它填满
+   而不是撑破所在行——不改组件层的通用定义。 */
+.station-route-panel,
+.station-route-panel .chart-box,
+.station-route-panel [data-chart-slot] {
+  min-height: 0;
+}
+
+.station-route-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  /* 卡片标题 + 图表容器在 250px 行里仍会多出几像素（组件层的行距/内边距叠加）。
+     overflow:hidden 把它收口：图表容器已经是 minmax(0,1fr) 自适应，裁掉的只是
+     溢出的空白，不会裁到 ECharts 画布本身（ECharts 按容器实际尺寸渲染）。 */
+  overflow: hidden;
+}
+
+.station-route-panel [data-chart-slot],
+.station-route-panel .chart-box {
+  height: 100%;
+}

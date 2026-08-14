@@ -1,0 +1,480 @@
+/* 09-detail.css: inline-detail / detail-* 等"展开详情"相关，以及阶段二新增的
+   时序模型详情 / 视觉模型详情独占屏（scripts/scenes/detailscreen.js）。
+
+   本文件历史上曾经堆过一批巡检质检 / 收敛矩阵 / 知识摘要一类的死样式（当时的场景
+   设计已经改掉，样式没跟着删），阶段二任务已经逐个 grep 确证零引用并清理：只保留
+   仍被 scripts/ui/detailcard.js（.detail-actions，与 03-cards.css 的同名规则叠加
+   生效）引用的规则，以及 .inline-detail-panel/.compact-evidence-detail/
+   .detail-grid/.detail-side/.sample-table/.feature-cards 这批当前也已确证零引用、
+   但不在本轮任务改动范围内的既有死样式（留给后续任务清理，不在这里顺手扩大改动
+   面）。.bullet-list 目前仍被 scripts/scenes/detailscreen.js 的视觉模型详情屏使用
+   （模型识别明细列表），本轮改造后继续保留。
+
+   本轮任务（视觉模型详情重做）额外删掉了旧版 .vision-gallery/.detail-screen-gallery/
+   .detail-checklist*/.detail-spark-grid 这一组规则：它们只服务于旧版"两张现场照片
+   并排 + 拍摄规范清单 + 时序 spark 网格"的实现，随 scripts/scenes/detailscreen.js
+   里对应函数被整体替换而失去引用，新的 .vision-*/.detail-vision-explain 规则见文件
+   末尾单独一节。 */
+
+.inline-detail-panel {
+  display: grid;
+  gap: 14px;
+  border-color: rgba(75, 179, 211, 0.48);
+}
+
+.compact-evidence-detail {
+  min-height: 520px;
+  padding: 14px;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.inline-detail-head {
+  min-height: 54px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+}
+
+.inline-detail-head h3 {
+  margin-top: 3px;
+  font-size: 22px;
+}
+
+.inline-detail-body {
+  display: grid;
+  gap: 14px;
+  min-height: 0;
+}
+
+.compact-evidence-detail .detail-grid {
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+}
+
+.compact-evidence-detail .chart-large {
+  min-height: 0;
+  display: grid;
+}
+
+.compact-evidence-detail .chart.large {
+  height: 100%;
+  min-height: 320px;
+}
+
+.compact-evidence-detail .detail-side {
+  min-height: 0;
+  overflow: auto;
+}
+
+.feature-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 14px;
+}
+
+.detail-side {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.detail-side p,
+.bullet-list {
+  color: #b8c8d4;
+  line-height: 1.6;
+  font-size: 13px;
+}
+
+.sample-table {
+  display: grid;
+  gap: 6px;
+}
+
+.sample-table div {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.sample-table strong {
+  color: var(--ink);
+  text-align: right;
+}
+@media (max-width: 0px) and (max-width: 760px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-evidence-detail {
+    min-height: 0;
+  }
+
+  .compact-evidence-detail .detail-grid {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .compact-evidence-detail .chart.large {
+    min-height: 260px;
+  }
+}
+
+/* =========================================================================
+   阶段二新增：时序模型详情 / 视觉模型详情独占屏
+   （state.scene === "workbench" && state.detail，见 scripts/scenes/detailscreen.js）
+
+   用户诉求是"点击后展开的时序/视觉详情要独占一屏，不要挤在网格里"——架构决定见
+   scripts/boot.js 的 renderScene() 注释：这是 workbench 的场景内子屏，不是第 8/9 个
+   场景，因此仍然用 .scene-shell（02-shell.css）当外壳，只新增"占满 stage 剩余高度、
+   不产生页面级滚动条"的排布覆盖，和子屏自身的两行网格：
+     第一行 .detail-screen-visual：通栏大图（时序：ChartOptions.trend 折线；
+       视觉：见文件末尾"视觉模型详情重做"一节，改成了大图+识别明细侧栏的组合，
+       不再是两张现场照片简单并排）；
+     第二行 .detail-screen-row：左侧参数栏/清单 + 右侧采样表或关联测点（视觉详情屏
+       把这一行改成单栏的"解释区"条，见文件末尾 .detail-vision-shell 的覆盖）。
+   与 .overview-shell（06-overview.css）同一种"给 .scene-shell 叠加一个场景专属类，
+   只新增行为不覆盖已有规则属性值"的技法。 */
+
+.detail-screen-shell {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.detail-screen-content {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 14px;
+}
+
+.detail-screen-body {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 300px;
+  gap: 14px;
+}
+
+.detail-screen-visual {
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Cards.chart 的图表主体默认按 03-cards.css 的 220px（或 tall 变体 340px）走最小
+   高度，这里把本屏的大图撑满 .detail-screen-visual 分到的整段可用高度——同一类
+   "min-height:0 一路传导到 chart-box"的覆盖手法，06-overview.css 的
+   .overview-charts-row .card-chart-body 已经用过一次。 */
+.detail-screen-visual .card-chart {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.detail-screen-visual .card-chart-body {
+  min-height: 0;
+}
+
+.detail-screen-row {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.detail-param-panel {
+  min-height: 0;
+  overflow: auto;
+}
+
+.detail-param-list {
+  display: grid;
+  gap: 2px;
+}
+
+.detail-param-row {
+  min-height: 32px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0;
+}
+
+.detail-param-row:last-child {
+  border-bottom: none;
+}
+
+.detail-param-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detail-param-row strong {
+  min-width: 0;
+  color: #e6f2f7;
+  font-size: 13px;
+  text-align: right;
+}
+
+.detail-screen-extra {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 14px;
+}
+
+.detail-sample-panel {
+  min-height: 0;
+  overflow: auto;
+}
+
+.detail-screen-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+@media (max-width: 0px) and (max-width: 1440px) {
+  .detail-screen-row {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  }
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .detail-screen-body {
+    grid-template-rows: minmax(260px, 0.55fr) minmax(0, 0.45fr);
+  }
+
+  .detail-screen-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================================
+   视觉模型详情重做（本轮任务）：大图 + 识别框 + 关键帧切换 + 逐帧识别明细，
+   取代旧版的"两张现场照片并排 + 拍摄规范清单 + 时序 spark 网格"。
+
+   排布上和时序详情共用 .detail-screen-shell/.detail-screen-content/
+   .detail-screen-body/.detail-screen-row 这几个外层容器（renderShell() 两屏都在
+   用，见 scripts/scenes/detailscreen.js），但视觉详情的内容形状不同：主图和识别
+   明细天然是"同一行"的左右两栏，解释区只是收在底部的一条通栏说明，不需要时序详情
+   那种"大图通栏 + 下面两栏参数/采样表"的形状。.detail-vision-shell 是
+   scripts/scenes/detailscreen.js 在 renderVisionScreen() 里给 shell 追加的场景专属
+   类，只覆盖这两个共用容器的行高/列数分配，不改 renderShell/pageShell 本身，时序
+   详情屏（没有这个类）排布不受影响。 */
+
+.detail-vision-shell .detail-screen-body {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.detail-vision-shell .detail-screen-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detail-vision-grid {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  gap: 14px;
+}
+
+.detail-vision-main {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.detail-vision-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-vision-frame-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.detail-vision-frame-btn:hover {
+  border-color: var(--cyan);
+}
+
+.detail-vision-frame-btn.active {
+  border-color: rgba(238, 180, 74, 0.7);
+  background: rgba(238, 180, 74, 0.16);
+  color: var(--amber);
+  font-weight: 800;
+}
+
+/* 消灭白色 letterbox（缺陷②）：图是竖构图、容器是横的，四周留白必须是深色主题色，
+   不能是默认的白色背景。 */
+.detail-vision-stage {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+/* bbox 定位必须相对"图片实际渲染尺寸"，不能相对 .detail-vision-stage 这个外层容器
+   （容器是横的、图是竖的，物理留白只会出现在容器内、图片外——如果 bbox 按容器的
+   百分比定位，所有框都会整体偏移，且偏移量随视口宽度变化，肉眼极难发现、更难查）。
+   做法：.detail-vision-figure 是 bbox 的定位祖先（position:relative），它自己不设
+   固定宽高，只用 display:inline-block + max-width/max-height:100% 跟着内部 img
+   的渲染尺寸"shrink-wrap"；img 本身用 max-width/max-height:100% + width/height:auto
+   保持原始宽高比自适应，不使用 object-fit（object-fit 会让 img 元素的框保持满容器
+   大小、内容在框内部再留白，那样 figure 量到的仍然是容器尺寸，问题不会消失，只是
+   从"看得见的白边"变成"看不见但仍然存在的定位误差"）。这样 figure 的
+   getBoundingClientRect() 恒等于 img 的可见内容区域，bbox 的百分比定位天然落在
+   图片像素范围内，四周的深色留白留在 .detail-vision-stage 这一层，不会被误当成
+   图片的一部分。 */
+.detail-vision-figure {
+  position: relative;
+  margin: 0;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 100%;
+  line-height: 0;
+}
+
+.detail-vision-figure .detail-vision-img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 2px;
+}
+
+.detail-vision-bbox {
+  position: absolute;
+  border: 2px solid var(--amber);
+  border-radius: 2px;
+  box-shadow: 0 0 14px rgba(238, 180, 74, 0.45);
+  pointer-events: none;
+}
+
+/* 标签放在框内左上角（不是框外上方）：框的 y 坐标可能非常接近 0（比如联轴器读数框
+   贴着图片顶部），放在框外容易被 .detail-vision-stage 的 overflow:hidden 裁掉，
+   放在框内左上角则无论框在图片哪个位置都不会超出图片可见范围。 */
+.detail-vision-bbox-label {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  max-width: calc(100% - 8px);
+  overflow: hidden;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--amber);
+  color: #1a1206;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.detail-vision-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.detail-vision-caption strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.detail-vision-side {
+  min-height: 0;
+  height: 100%;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-vision-findings {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0 0 14px;
+  padding-left: 18px;
+}
+
+.detail-vision-findings li {
+  margin-bottom: 8px;
+  color: #b8c8d4;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.detail-vision-zoom-btn {
+  width: 100%;
+}
+
+/* 解释区收窄成通栏一条（.detail-vision-shell 已经把 .detail-screen-row 改成单列），
+   card-evidence 默认是"结论换行、标签另起一行"的纵向堆叠（03-cards.css），在这条窄
+   而宽的条里改成左右分布，不再留出大片空白（缺陷⑥）。 */
+.detail-vision-explain {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+
+.detail-vision-explain .card-evidence-conclusion {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.detail-vision-explain .card-evidence-tags {
+  flex: 0 0 auto;
+}
+
+/* "放大当前帧"复用 scripts/ui/overlay.js 的 .overlay-panel，这两个类只是在它的
+   默认宽度（14-overlay.css 的 .overlay-wide，min(720px,...)）基础上给关键帧预览
+   多留一点空间，不修改 .overlay-panel/.overlay-wide 本身的任何属性值。 */
+.detail-vision-zoom-panel {
+  width: min(920px, calc(100vw - 60px));
+  max-height: calc(100vh - 60px);
+}
+
+.detail-vision-zoom-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}

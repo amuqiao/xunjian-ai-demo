@@ -1,0 +1,326 @@
+/* 06-overview.css: overview-grid（泵机组大屏总览）的布局、头部时间范围选择器、
+   3D 态势面板头部与场景专属的排布覆盖。
+
+   四类卡片（card-metric/card-chart/card-evidence/card-detail）、SelectList
+   （sl/sl-metric/sl-row/sl-tile/sl-item-*）、DetailCard（card-detail/detail-*）的
+   视觉样式已经在 03-cards.css 里统一定义（P1-G），本文件不重复定义组件内部样式，
+   只负责：
+     1) 本场景的网格骨架（.overview-grid 及其 6 个区域）；
+     2) 场景专属、只在 overview 里生效的排布覆盖（比如把 .sl-metric 默认的自适应
+        多列布局，在这里覆盖成横排 6 等分——这类覆盖只加更具体的选择器，不修改
+        03-cards.css 里任何既有规则本身，见下面 .overview-cards 的注释）；
+     3) 时间范围选择器（<details>/<summary>，非组件层产物，是本场景独有的交互）。
+
+   骨架是 presenter 已经熟悉的"顶部状态卡 / 中间态势图 / 底部图表 / 右侧详情"结构，
+   这次改的是卡片可点、详情跟随联动、图表分工这些行为，不是整体骨架。 */
+
+.overview-shell {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.overview-grid {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 380px);
+  /* 卡片行 116px 而不是 96px：状态卡内容是"标签 + 大数值 + note（区间均值/峰值）
+     + spark"四层，实测需要 114px。96px 时 note 会被静默裁掉——容器 overflow 不产生
+     滚动条也不报错，只有 scrollHeight/clientHeight 对比能发现（见 verify_scenes.py
+     第 7b 节那条断言）。多出来的 20px 从 3D 那一行（minmax(0,1fr)）里让出，
+     dashboard 场景下 .pump-map-wrap .pump-train 是 height:100%/min-height:0，
+     可以自适应缩小。 */
+  grid-template-rows: 46px 116px minmax(0, 1fr) 224px;
+  grid-template-areas:
+    "head   head"
+    "cards  detail"
+    "stage  detail"
+    "charts detail";
+  gap: 12px;
+}
+
+/* ---------- 头部：场景标题 + 时间范围选择器 ---------- */
+/* head 横跨两列（而不是只占左列、把时间控件单独顶到页面最右）：这样标题和时间
+   控件在同一条基线上贯穿整页宽度，视觉上更整齐，也避免右侧详情栏上方留一段跟
+   标题不对齐的空行。 */
+
+.overview-head {
+  grid-area: head;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.overview-head-title {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.overview-head-title strong {
+  overflow: hidden;
+  color: #f4fbff;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Grafana 式紧凑时间范围选择器：收起态只是一个低调的胶囊按钮，视觉权重低于场景
+   标题；展开态菜单绝对定位、右对齐悬浮在下方内容之上。用原生 <details>/<summary>
+   （见 scripts/scenes/overview.js 的 renderRangePicker()），样式只负责视觉，
+   展开/收起的语义完全是浏览器原生行为。 */
+
+.range-picker {
+  position: relative;
+  flex: none;
+}
+
+.range-picker summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  padding: 4px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 隐藏浏览器默认的展开三角标记：Chrome/Safari 用 ::-webkit-details-marker，
+   其余引擎（含未来可能的 Firefox 访问）统一用标准的 ::marker 兜底覆盖。 */
+.range-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.range-picker summary::marker {
+  content: "";
+}
+
+.range-picker-icon {
+  color: var(--cyan);
+  font-size: 12px;
+}
+
+.range-picker-label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.range-picker summary:hover {
+  border-color: var(--cyan);
+}
+
+.range-picker summary:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.range-picker[open] summary {
+  border-color: var(--cyan);
+  background: rgba(75, 179, 211, 0.12);
+}
+
+.range-picker-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  /* 悬浮在下方内容（cards/stage/charts/detail）之上，但必须低于 3D 契约样式
+     （styles/05-pump3d.css）里 .pump3d-labels/.part-pin 的 z-index: 5/6 ——这条
+     菜单在空间上并不会真的盖到 3D 舞台（head 横跨两列、菜单右对齐贴着详情栏一侧
+     展开），但仍按"非 3D 浮层不得超过 3D 图层"的既有分寸取值，与
+     .pump-map-toast/.pump-source-preview 曾经使用的 z-index: 4 同一量级。 */
+  z-index: 4;
+  display: grid;
+  gap: 4px;
+  min-width: 140px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(11, 19, 26, 0.98);
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+
+.range-option {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  padding: 4px 10px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.range-option:hover {
+  border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.range-option.active {
+  border-color: var(--cyan);
+  background: rgba(75, 179, 211, 0.16);
+  color: #eafcff;
+  font-weight: 700;
+}
+
+.range-option:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* ---------- 顶部：6 张横排状态卡 ---------- */
+/* SelectList 的 .sl-metric（styles/03-cards.css）默认是"自适应多列"
+   （grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))），在这个场景里
+   需要的是"横向一排 6 等分"。03-cards.css 不在本任务改动范围内，这里用比它更
+   具体的选择器（两个类叠加）覆盖排布，不修改该文件任何既有规则的属性值——
+   这处覆盖之后要不要收回组件层（比如给 SelectList 加一个新 variant），由后续
+   任务决定。 */
+
+.overview-cards.sl-metric {
+  grid-area: cards;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: 1fr;
+  gap: 10px;
+}
+
+.overview-cards .sl-item {
+  min-height: 0;
+}
+
+.overview-cards .sl-item-value {
+  font-size: 22px;
+}
+
+/* 卡片内置的迷你 spark（chart-box-mini，见 boot.js 的 mountChartSlots()）在
+   96px 高的横排卡片里要比 04-charts.css 给的默认 96px 紧凑得多。 */
+.overview-cards .chart-box-mini {
+  min-height: 26px;
+}
+
+/* ---------- 中部：3D 机组态势 ---------- */
+
+.overview-stage-panel {
+  grid-area: stage;
+  min-height: 0;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.overview-stage-head {
+  display: grid;
+  gap: 4px;
+}
+
+.overview-stage-head .map-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* .pump-map-wrap 这个类名是硬依赖：styles/05-pump3d.css 的 C1 硬依赖表用
+   `.pump-map-wrap .pump-train` 把 dashboard 场景下的 .pump-train 覆盖成
+   height:100%/min-height:0（否则 3D 只会取到 min-height:430px 的默认最小高度）。
+   05-pump3d.css 是 3D 契约样式、不在本任务改动范围内，这个类名必须原样保留，
+   见 scripts/pump3d/README.md 第 8 章 C1。 */
+.overview-map-wrap {
+  position: relative;
+  min-height: 0;
+}
+
+/* ---------- 底部：chart1 + chart2 左右并排 ---------- */
+
+.overview-charts-row {
+  grid-area: charts;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* CSS Grid / 普通块级子项的 min-width 默认是 auto（= 内容的最小自然宽度），不是
+   0。ECharts 首次 init() 会按当时量到的容器宽度给 <canvas> 写一个固定像素宽的行内
+   style（比如 "width: 718px"），这个像素宽度会一路把"内容最小宽度"网格外传染：
+   .chart-box 里包着这个定宽 canvas → .card-chart-body（.card-chart 内部单隐式列
+   网格的网格项）的自动最小宽度被它撑住 → .card-chart（.overview-charts-row 的
+   1fr 网格项）的自动最小宽度又被 .card-chart-body 撑住。1fr 轨道再怎么收缩，也
+   不会把网格项压到比它内容还窄，于是切到更窄的视口（1920 -> 1440/1280）时，
+   第二张图（异常构成）会整体越过自己的列边界，在视觉上盖住右侧详情栏——而且
+   只压外层 .card-chart 的 min-width 不够：.card-chart-body 自己也会因为同一条
+   规则被内部的 canvas 撑住，必须连着一起归零，ResizeObserver 才能量到 .chart-box
+   真的变窄了，进而触发 instances[id].resize() 把 canvas 的行内像素宽度也改小。
+   核心图表容器高度那边同款的 min-height:0 覆盖（下面另一条规则）是同一类问题，
+   只是维度不同。 */
+.overview-charts-row > .card-chart,
+.overview-charts-row .card-chart-body {
+  min-width: 0;
+}
+
+.overview-charts-row .card-chart-body {
+  /* 224px 的行高扣掉 .card-chart 自身的 padding/标题/间距后，留给图表主体的空间
+     明显小于 03-cards.css 给 .card-chart-body 的默认 min-height: 220px，这里用
+     更具体的选择器把这个场景下的图表主体允许收缩到跟随网格行高，而不是撑破
+     224px 这一行、把整页挤出竖向滚动条。 */
+  min-height: 0;
+}
+
+/* ---------- 右侧：DetailCard 通栏 ---------- */
+
+.overview-detail {
+  grid-area: detail;
+  min-height: 0;
+  overflow: auto;
+}
+
+.overview-detail::-webkit-scrollbar {
+  width: 5px;
+}
+
+.overview-detail::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(75, 179, 211, 0.35);
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .overview-shell {
+    height: auto;
+    overflow: visible;
+  }
+
+  .overview-grid {
+    height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-template-areas:
+      "head"
+      "cards"
+      "stage"
+      "charts"
+      "detail";
+  }
+
+  .overview-cards.sl-metric {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+  }
+
+  .overview-charts-row {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-head {
+    flex-wrap: wrap;
+  }
+}

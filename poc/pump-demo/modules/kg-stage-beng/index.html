@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖南公司输油泵机组运维知识图谱</title>
+
+    <!-- CSS 顺序：tokens → base → chrome → stage-scene → stage-ground → stage-objects → fx → graph → docs → transition -->
+    <link rel="stylesheet" href="styles/tokens.css">
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/chrome.css">
+    <link rel="stylesheet" href="styles/stage-scene.css">
+    <link rel="stylesheet" href="styles/stage-ground.css">
+    <link rel="stylesheet" href="styles/stage-objects.css">
+    <link rel="stylesheet" href="styles/fx.css">
+    <link rel="stylesheet" href="styles/graph.css">
+    <link rel="stylesheet" href="styles/docs.css">
+    <link rel="stylesheet" href="styles/transition.css">
+  </head>
+  <body>
+    <div id="screen">
+
+      <!-- ============ 顶部导航栏 ============ -->
+      <header class="topbar">
+        <div class="clock">
+          <span id="clockTime" class="clock-time"></span>
+          <span class="clock-info">
+            <span id="clockDate" class="clock-date"></span>
+            <span id="clockWeek" class="clock-week"></span>
+          </span>
+        </div>
+
+        <nav class="nav-group nav-group--left">
+          <button type="button" class="nav-btn" data-go="stage">首页</button>
+          <button type="button" class="nav-btn" data-go="graph" data-view="domain">七类知识分类</button>
+        </nav>
+
+        <div class="nav-sep" aria-hidden="true"><i></i><i></i><i></i></div>
+
+        <h1 class="topbar-title">泵机组运维知识图谱</h1>
+
+        <div class="nav-sep" aria-hidden="true"><i></i><i></i><i></i></div>
+
+        <nav class="nav-group nav-group--right">
+          <button type="button" class="nav-btn" data-go="graph" data-view="business">三类应用场景</button>
+          <button type="button" class="nav-btn" data-go="graph" data-view="task">十项运维主题</button>
+          <button type="button" class="nav-btn" data-go="graph">图谱看板</button>
+        </nav>
+      </header>
+
+      <!-- ============ 左侧六边形晶体侧栏 ============ -->
+      <aside class="hex-rail">
+        <button type="button" class="hex" data-go="docs" aria-label="资料搜索">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span class="hex-label">资料搜索</span>
+        </button>
+
+        <button type="button" class="hex" data-go="graph" aria-label="图谱搜索">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="6" cy="6" r="2"></circle>
+            <circle cx="18" cy="6" r="2"></circle>
+            <circle cx="12" cy="18" r="2"></circle>
+            <line x1="6" y1="6" x2="18" y2="6"></line>
+            <line x1="6" y1="6" x2="12" y2="18"></line>
+            <line x1="18" y1="6" x2="12" y2="18"></line>
+          </svg>
+          <span class="hex-label">图谱搜索</span>
+        </button>
+
+        <button type="button" class="hex" data-go="docs" data-focus="intro" aria-label="图谱介绍">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M6 2h9l5 5v15H6z"></path>
+            <path d="M15 2v5h5"></path>
+            <line x1="9" y1="13" x2="15" y2="13"></line>
+            <line x1="9" y1="17" x2="15" y2="17"></line>
+          </svg>
+          <span class="hex-label">图谱介绍</span>
+        </button>
+      </aside>
+
+      <!-- ============ 三个页面 ============ -->
+      <main id="pages">
+
+        <!-- ---- 首页展台 ---- -->
+        <section class="page" id="page-stage">
+          <div class="stage-bg" aria-hidden="true">
+            <div class="bg-gradient"></div>
+            <div class="bg-city"></div>
+            <div class="bg-star"></div>
+            <div class="bg-streak"></div>
+            <div class="bg-vignette"></div>
+          </div>
+
+          <section class="stage-scene">
+            <div class="stage-world">
+              <div class="layer-ground"></div>
+              <!-- 由子任务 1-C 填充：L0 背景/L1 刻度环/L2 领域球/L3 全息投影 -->
+              <div class="layer-objects"></div>
+              <!-- 由子任务 1-D 填充：L4 圆桌/L5 立牌/L6 中心装置/L7 顶台 -->
+            </div>
+          </section>
+        </section>
+
+        <!-- ---- 图谱看板页 ---- -->
+        <section class="page" id="page-graph">
+          <div class="graph-map" aria-hidden="true"></div>
+
+          <aside class="graph-panel">
+            <p id="graphKicker" class="graph-kicker"></p>
+            <h2 id="graphTitle" class="graph-title"></h2>
+            <p id="graphSummary" class="graph-summary"></p>
+            <input id="graphSearch" class="graph-search" type="text" placeholder="搜索资料 / 作业 / 关键词">
+            <div id="graphLegend" class="graph-legend"></div>
+            <div class="graph-actions">
+              <button type="button" id="graphResetBtn" class="btn-ghost">重置视图</button>
+              <button type="button" id="graphDetailBtn" class="btn-primary">查看详情</button>
+            </div>
+          </aside>
+
+          <div id="graphChart" class="graph-chart"></div>
+        </section>
+
+        <!-- ---- 树形文档页 ---- -->
+        <section class="page" id="page-docs">
+          <div class="docs-col docs-col--tasks">
+            <div id="taskFilter" class="task-filter"></div>
+            <div id="taskList" class="task-list"></div>
+          </div>
+
+          <div class="docs-col docs-col--tree">
+            <div id="docsBreadcrumb" class="docs-breadcrumb"></div>
+            <div id="treeChart" class="tree-chart"></div>
+            <div id="treeLegend" class="tree-legend"></div>
+          </div>
+
+          <!-- 浮层玻璃卡：绝对定位浮在树图右上方，不是第三栏普通面板 -->
+          <div id="docCard" class="doc-card" hidden>
+            <button type="button" id="docCardClose" class="doc-card-close" aria-label="关闭">×</button>
+            <h3 id="docTitle" class="doc-title"></h3>
+            <div id="docTags" class="doc-tags"></div>
+            <div id="docBody" class="doc-body"></div>
+            <div id="docMeta" class="doc-meta"></div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- ============ 转场层 ============ -->
+      <div id="trLayer" class="tr-layer" aria-hidden="true"></div>
+
+    </div>
+
+    <!-- 顺序即依赖顺序，不可调换：vendor → 核心契约 → 数据 → 资源 → 特效 → 展台 → 图谱 → 文档 → 转场 → app -->
+    <script src="vendor/echarts.min.js"></script>
+    <script src="scripts/core/dom.js"></script>
+    <script src="scripts/core/scale.js"></script>
+    <script src="scripts/core/bus.js"></script>
+    <script src="scripts/core/router.js"></script>
+    <script src="scripts/data/kg-data.js"></script>
+    <script src="scripts/data/kg-index.js"></script>
+    <script src="scripts/assets/worldmap.js"></script>
+    <script src="scripts/fx/particles.js"></script>
+    <script src="scripts/fx/clock.js"></script>
+    <script src="scripts/stage/layers-ground.js"></script>
+    <script src="scripts/stage/layers-objects.js"></script>
+    <script src="scripts/stage/stage.js"></script>
+    <script src="scripts/graph/graph-layout.js"></script>
+    <script src="scripts/graph/graph-option.js"></script>
+    <script src="scripts/graph/graph.js"></script>
+    <script src="scripts/docs/tree-option.js"></script>
+    <script src="scripts/docs/docs.js"></script>
+    <script src="scripts/transition.js"></script>
+    <script src="scripts/app.js"></script>
+  </body>
+</html>

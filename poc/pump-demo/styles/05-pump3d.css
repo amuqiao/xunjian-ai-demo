@@ -1,0 +1,199 @@
+/* 本文件为 3D 视图契约样式，改动前必须读 scripts/pump3d/README.md 并跑 verify/verify_pump3d.py。
+   不变量：
+   1) .pump-train 必须有非零高度（min-height >= 360）——高度为 0 时 3D 不报错也不显示，
+      引擎的 assertDom 会在挂载时抛错，但 CSS 层面必须先保证不出现这种情况。
+   2) .pump-train 禁止 isolation: isolate ——会把 .part-pin 困在 toast/preview 之下。
+   3) .pump3d-labels 的 z-index 必须大于 .pump-map-toast / .pump-source-preview（当前 5 > 4）。
+   4) .pump-train 必须 overflow: hidden，且 .pump3d-labels 覆盖 inset: 0。
+   5) .part-pin 的实测盒尺寸被 engine.js 的去碰撞算法读取，改尺寸不需要改 JS，
+      但改后必须重跑标签重叠断言。 */
+
+.pump-train {
+  position: relative;
+  min-height: 430px;
+  overflow: hidden;
+  border: 1px solid rgba(75, 179, 211, 0.26);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(23, 42, 56, 0.68), rgba(9, 17, 24, 0.92)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 24px);
+  /* 不加 isolation: isolate：dashboard 场景里 .pump-map-toast / .pump-source-preview
+     是本元素的兄弟节点且 z-index: 4，若在此建立新层叠上下文，内部 .part-pin（z-index 更高）
+     会被永久困在这层之下，导致标签在两块信息浮层后方既看不见也点不到。 */
+}
+
+.pump-train-3d {
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+}
+
+.pump-train-3d.dragging {
+  cursor: grabbing;
+}
+
+.pump3d-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+
+.pump3d-labels {
+  position: absolute;
+  inset: 0;
+  /* 必须由这一层压过 z-index: 4 的 .pump-map-toast / .pump-source-preview：
+     .pump3d-labels 自身构成层叠上下文，内部 .part-pin 的 z-index 出不了这一层。 */
+  z-index: 5;
+  pointer-events: none;
+}
+
+.pump3d-hint {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  z-index: 3;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(7, 14, 20, 0.6);
+  color: var(--muted);
+  padding: 3px 8px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.part-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 68px;
+  will-change: transform;
+  pointer-events: auto;
+  cursor: pointer;
+  /* 需要压过 dashboard 场景里 z-index: 4 的 .pump-map-toast / .pump-source-preview，
+     否则标签转到左下/右下角时会被这两块信息浮层盖住，见 .pump-train 处注释。 */
+  z-index: 5;
+}
+
+/* 标签位置每帧由 3D 投影更新，焦点环要够重才能在移动的元素上被追住。 */
+.part-pin:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 4px;
+  border-radius: 8px;
+  box-shadow: 0 0 0 6px rgba(75, 179, 211, 0.28);
+  z-index: 6;
+}
+
+.pin-core {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 3px solid rgba(255, 255, 255, 0.82);
+  box-shadow: 0 0 0 6px rgba(48, 198, 157, 0.16);
+}
+
+.part-pin.warn .pin-core {
+  background: var(--amber);
+  box-shadow: 0 0 0 6px rgba(238, 180, 74, 0.17);
+}
+
+.part-pin.danger .pin-core {
+  background: var(--red);
+  box-shadow: 0 0 0 6px rgba(255, 98, 92, 0.18);
+  animation: pinDangerPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pinDangerPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 6px rgba(255, 98, 92, 0.18);
+  }
+
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 98, 92, 0.32);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .part-pin.danger .pin-core {
+    animation: none;
+  }
+}
+
+.part-pin.active .pin-core {
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 0 0 8px rgba(75, 179, 211, 0.22), 0 0 28px rgba(75, 179, 211, 0.7);
+}
+
+/* 背景是会随相机旋转变化的 3D 画面，浅色泵体转到标签后面时对比度会掉，
+   所以底色比 2D 时代更不透明，并加一层深色投影把标签从任意背景上分离出来。 */
+.pin-label {
+  max-width: 76px;
+  min-height: 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(7, 14, 20, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.75);
+  padding: 3px 7px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.station-map-panel .pump-train {
+  min-height: 480px;
+}
+
+.pump-map-wrap .pump-train {
+  height: 100%;
+  min-height: 0;
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .pump-map-wrap .pump-train {
+    min-height: 480px;
+  }
+
+  .pump-train-3d {
+    cursor: default;
+    touch-action: auto;
+  }
+
+  .pump3d-hint {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .pump-train-3d {
+    cursor: default;
+    touch-action: auto;
+  }
+
+  .pump3d-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 0px) and (max-width: 760px) {
+  .pump-train {
+    min-height: 360px;
+  }
+
+  .part-pin {
+    min-width: 58px;
+  }
+
+  .pin-label {
+    font-size: 11px;
+  }
+}

@@ -1,0 +1,145 @@
+/*
+ * stage-scene.css —— 展台 3D 场景基础几何
+ *
+ * 只放两类东西：
+ *   1. .stage-scene / .stage-world / .layer-ground / .layer-objects
+ *      —— 建立 perspective → rotateX(倾角) → preserve-3d 的链路，链路中任何一环
+ *         出现 overflow:hidden / filter / opacity<1 / mask / backdrop-filter /
+ *         will-change:opacity 都会把后代压平成 2D，绝对禁止。
+ *   2. .o / .o.flat / .o.billboard / .o.wall —— 全站三类 3D 物件姿态工具类。
+ *
+ * Fix-4 更正（此前这里的说明与实际代码不符，属于文档撒谎，已改写）：
+ *   - .o / .o.flat / .o.billboard 目前只被 L1~L3（stage-ground.css +
+ *     layers-ground.js）使用，共 11 处；L4~L7（stage-objects.css +
+ *     layers-objects.js）里立牌 .stand、徽章 .badge/.badge-strut、
+ *     玻璃球 .core-sphere、光柱 .core-column、slab-face 六类"面向相机"
+ *     元素已收敛复用 .o.billboard（见下方 --anchor 说明），但圆桌/顶台/
+ *     中心装置的"墙面分段"（.table-wall i / .top-wall i / .slab-walls i）
+ *     因为每种实例的宽高不同、居中偏移量各不相同，仍各自在 stage-objects.css
+ *     里手写等价公式，未收敛进 .o.wall。
+ *   - .o.billboard 追加了 --anchor 自定义属性（默认 -50%，即原语义完全不变，
+ *     对 L1~L3 现有 11 处调用方是纯加法、零行为变化）：需要"以底边为锚点"
+ *     （立牌落地、光柱接地）的宿主只需声明 --anchor:-100%，不必再各自手写
+ *     一份 translate3d+rotateX+translate 的完整公式。
+ *   - .o.wall 此前是全站零引用的"僵尸工具类"，且其 transform 公式（末尾多一个
+ *     translate(-50%,-100%)）与 stage-objects.css 里三处真正在用、且已被
+ *     Playwright 独立验证过"近相机侧不会撕裂"的正确写法（先用 left/top 负偏移
+ *     居中，transform 只留 rotate+translateY+rotateX，不再叠加 translate）
+ *     不一致——如果真的把某个墙面分段元素接上 .o.wall，会复现早期版本"近相机侧
+ *     大片撕裂状畸变"的 bug（该 bug 已在 stage-objects.css 的 .table-wall i
+ *     上方注释里详细记录）。现已改为与真正在用的公式一致，改用
+ *     left/top:calc(var(--w,0)/-2 * 1px) 之类的居中方式，保留作为未来收敛
+ *     墙面分段的正确模板，暂无调用方。
+ *
+ * 坐标系约定（在 rotateX(var(--tilt)) 的 .stage-world 内部）：
+ *   局部 X = 世界左右，右为正
+ *   局部 Y = 地面进深，+Y 靠近相机（前排），-Y 远离相机（后排）
+ *   局部 Z = 离地高度，屏幕上向上
+ * 所有物件只用 --x/--y/--z 三个自定义属性定位，禁止手工 scale()/offset 做对齐，
+ * 禁止用 z-index 解决遮挡——遮挡完全由 preserve-3d 的深度排序负责。
+ */
+
+/* ========== 一、3D 场景容器链路 ========== */
+
+.stage-scene{
+  position:absolute;
+  inset:0;
+  perspective:var(--persp);
+  perspective-origin:50% var(--persp-origin-y);
+}
+
+.stage-world{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:0;
+  height:0;
+  transform:rotateX(var(--tilt));
+  transform-style:preserve-3d;
+}
+
+/* .layer-ground（1-C 独占）与 .layer-objects（1-D 独占）是纯粹的逻辑分组容器，
+ * 绝对不能再加 transform / filter / opacity / overflow，否则会压平内部 preserve-3d。 */
+.layer-ground,
+.layer-objects{
+  position:absolute;
+  transform-style:preserve-3d;
+}
+
+/* ========== 二、三类 3D 物件姿态工具类（签名不可变：类名/变量名/基础 transform
+ * 语义冻结；.o.billboard 追加的 --anchor 是默认值等于原公式的纯加法扩展，
+ * 见下方说明，不算破坏冻结） ========== */
+
+/* 统一放置：场景内所有 3D 物件的基类，只用 --x/--y/--z 三个变量定位，
+ * 默认值 0 即世界原点。子类只追加"姿态旋转"，不得覆盖 translate3d 部分。 */
+.o{
+  position:absolute;
+  left:0;
+  top:0;
+  transform:
+    translate3d(calc(var(--x, 0) * 1px), calc(var(--y, 0) * 1px), calc(var(--z, 0) * 1px))
+    translate(-50%, -50%);
+}
+
+/* 地面件：椭圆盘、刻度环、光斑、投影——躺在地面上，不额外旋转 */
+.o.flat{}
+
+/* 立牌件：立牌、领域球、悬浮牌、徽章、光锥——反转回正面朝相机，可选偏航。
+ * --anchor（Fix-4 新增）：末尾 translate() 第二个分量，默认 -50%（原语义，
+ * 元素几何中心对齐到定位点，如领域球/玻璃球/悬浮牌/slab-face）；
+ * 需要"以底边为锚点"的宿主（立牌 .stand、徽章支柱 .badge-strut、光柱
+ * .core-column——它们的定位点是自身底边而不是几何中心）声明
+ * --anchor:-100% 即可复用本公式，不必再各自手写一份完整 transform。
+ * 未设置 --anchor 的宿主行为与 Fix-4 之前完全一致（零回归）。
+ *
+ * ★ 3-B 发现但未修复的架构级几何 bug（记录在此，供后续任务参考）★
+ * 末尾这个 translate(-50%, anchor) 与前面的 rotateX(tilt-neg)/rotateY(yaw)
+ * 写在同一条 transform 函数列表里，会导致"元素越大，锚点的真实落点偏离
+ * --x/--y/--z 越远"——根因是 CSS transform 函数列表按顺序复合成一个矩阵，
+ * translate(-50%,anchor) 排在 rotateX/rotateY 右边，先被应用，然后这个
+ * "让元素居中/落底"的偏移向量本身又被后面的 rotateX(tilt-neg)（以及
+ * rotateY(yaw)，若非零）当成一个普通几何向量去旋转——这个偏移向量的模长
+ * 直接等于元素自身宽高的一半（默认锚点）或整个高度（-100% 锚点），元素越大，
+ * 这个"被误旋转的向量"越长，投影到屏幕后的位置误差就越大。用 Playwright
+ * 探针实测验证：同一个世界坐标点，4px 探针 vs 220px 方盒的锚点落点，屏幕
+ * 坐标能差出 60px 以上；.stand（95×148px 卡片 + --anchor:-100%）实测误差
+ * 达 38px（换算世界高度约 47 个单位），是本次任务缺陷②"立牌悬空于桌面"
+ * 的直接根因。
+ * 已验证的两个关键性质：① 误差幅度只与元素自身宽高相关，与 --x/--y/--yaw
+ * 基本无关（对 10 张立牌不同角度网格扫描，误差一致，方差 <1px）——这也是
+ * 本次任务能"用一个全局补偿值收口"而不用逐元素单独补偿的原因；
+ * ② --yaw 对误差幅度贡献很小（yaw=0 vs yaw=16deg 时误差几乎不变）。
+ * 彻底修复需要把"世界定位"（纯 translate3d，零尺寸）与"朝向旋转"
+ * （rotateX/rotateY，transform-origin 用百分比设在宿主自身的锚点上）拆成
+ * 两层嵌套元素，且要求每个消费方提供自身已知宽高做一次布局层补偿——改动面
+ * 覆盖本文件的核心工具类 + stage-objects.css/stage-ground.css 全部 6 类
+ * billboard 消费方 + 两个 layers-*.js 的 DOM 结构，风险和工作量超出本次
+ * 任务授权范围，因此本次只在各消费方的 tokens.css 高度值里做了"实测反推
+ * 的补偿值"（--h-stand-foot/--h-core/--h-badge/--h-domain-core 等，均在
+ * 对应 token 注释里写明补偿前后的目标值），不改这里的公式本体。 */
+.o.billboard{
+  transform:
+    translate3d(calc(var(--x, 0) * 1px), calc(var(--y, 0) * 1px), calc(var(--z, 0) * 1px))
+    rotateX(var(--tilt-neg))
+    rotateY(var(--yaw, 0deg))
+    translate(-50%, var(--anchor, -50%));
+}
+
+/* 墙面件：竖直立起的环形分段——圆桌侧壁、光块侧面等按角度 --a 绕世界原点排布。
+ * Fix-4：此前这里的公式（transform-origin:50% 100% + 末尾 translate(-50%,-100%)）
+ * 与 stage-objects.css 里三处真正在用的写法不一致，且会复现"近相机侧撕裂"的
+ * 已知 bug（详见 stage-objects.css .table-wall i 上方注释的完整推导）。
+ * 现改为与真正在用的公式一致：不用 transform-origin/translate 做居中，
+ * 而是要求调用方把自身几何中心通过 left/top 负偏移先摆到锚点上（宽高各自
+ * 不同，因此用 --w/--h 两个自定义属性表达，调用方按自身实际 width/height
+ * 传入），此后 rotate/translateY/rotateX 三段纯旋转+平移不再需要额外居中。
+ * 目前全站零调用方（圆桌/顶台/中心装置的墙面分段仍各自手写同款公式，
+ * 收敛工作量较大，本次只保证这里留下的是"正确模板"而不是"过时模板"）。 */
+.o.wall{
+  left:calc(var(--w, 0) * -0.5px);
+  top:calc(var(--h, 0) * -0.5px);
+  transform:
+    rotate(var(--a, 0deg))
+    translateY(calc(var(--r, 0) * -1px))
+    rotateX(90deg);
+}

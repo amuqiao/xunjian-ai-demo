@@ -1,0 +1,39 @@
+/* 04-charts.css: chart-box / chart-panel / 图表卡内部结构
+
+   这里曾经有一批只服务于手写 SVG 迷你图的规则：.chart / .chart.mini / .chart.large /
+   .chart-large / .trend-line / .threshold / .chart circle / .chart-title / .chart-threshold。
+   它们的唯一产出者是 scripts/core/charts.js 的 AppCharts.miniChart()，该函数连同整套
+   旧 API 已在阶段三整合时删除（最后一个调用点是 scenes/workbench.js 的「时序模型」卡，
+   已换成 Charts.slot + ChartOptions.spark），所以这批选择器再也匹配不到任何元素，
+   一并删除。留着无产出者的 CSS 的具体代价：改版时无法判断一条规则是"还在用"还是
+   "早就死了"，只能保守地不动它，于是样式表只增不减。 */
+
+.pump-chart-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chart-box {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .chart-box {
+    min-height: 260px;
+  }
+}
+
+/* ---- P1-F 新增：scripts/core/charts.js 的 Charts.slot() / scripts/core/chartopts.js
+   的 ChartOptions.* 尚未接入任何场景，这里只补一个供阶段二使用的紧凑尺寸变体，不改
+   动上面任何一条既有规则（.chart-box 的计算样式基线见 verify/verify_css_snapshot.py）。
+   .chart-box-mini 供 ChartOptions.spark() 迷你图使用：阶段二替换 scripts/core/charts.js
+   里手写的 SVG miniChart() 时，容器不应像常规 .chart-box 那样撑满整个网格行高，
+   而是维持一段紧凑高度。 */
+.chart-box.chart-box-mini {
+  height: auto;
+  min-height: 96px;
+}

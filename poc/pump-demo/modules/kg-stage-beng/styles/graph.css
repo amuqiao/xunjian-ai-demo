@@ -1,0 +1,250 @@
+/*
+ * graph.css —— 图谱看板页（子任务 1-F 独占文件）
+ *
+ * 页面结构（DOM 见 index.html，冻结不可改）：
+ *   #page-graph
+ *     .graph-map     世界地图底图，铺满整页，垫在最底层
+ *     .graph-panel   左侧玻璃信息面板（标题/摘要/搜索/图例/操作按钮）
+ *     #graphChart    右侧 ECharts 挂载点
+ *
+ * 约定：
+ *   - 尺寸/颜色/时长只引用 tokens.css 的变量，不新增硬编码魔数（间距类布局尺寸除外，
+ *     属于本页专属结构性数值，参照现有 chrome.css 的写法直接给 px）。
+ *   - 本文件不写 @keyframes（项目约定 @keyframes 只能出现在 fx.css）；
+ *     一次性的「涟漪脉冲」用 transition + JS 双 rAF 切换类名实现，见 .graph-pulse。
+ */
+
+/* ========== 一、页面级三层结构 ========== */
+
+/* Fix-5：--graph-top / --graph-left 接上 tokens.css 新增的 --h-topbar(128) /
+ * --w-hexrail(136)，不再裸写 150 / 168。150 = 128+22，与 docs.css 曾经的
+ * 148 = 128+20 不一致——两处「topbar 高度 + 一段间距」本该是同一个间距，却各自
+ * 手工加总出两个不同的数，现在统一取 20px（docs.css 原有值），改成同一个算式
+ * calc(var(--h-topbar) * 1px + 20px)，与 docs.css 的 --docs-top 等价。左侧
+ * 168 = 136+32，这个 32px 侧边距是图谱页自己的设计值（docs.css 用的是
+ * 40px，两边间距本来就不要求一致，未改动），只把重复出现的 136 换成
+ * var(--w-hexrail)。两个自定义属性声明在 #page-graph 上，.graph-panel /
+ * .graph-chart 都是其直接子元素，靠继承直接复用。 */
+#page-graph{
+  --graph-top: calc(var(--h-topbar) * 1px + 20px);
+  --graph-left: calc(var(--w-hexrail) * 1px + 32px);
+  overflow:hidden;
+}
+
+/* 世界地图底图：铺满整页，青色描边，压得很暗，纯粹做氛围衬底 */
+.graph-map{
+  position:absolute;
+  inset:0;
+  color:var(--cyan);
+  opacity:.16;
+  pointer-events:none;
+  mix-blend-mode:screen;
+}
+.graph-map svg{
+  width:100%;
+  height:100%;
+  display:block;
+}
+.graph-map svg *{
+  stroke:currentColor;
+  fill:none;
+}
+
+/* 右侧 ECharts 挂载点：透明背景，让世界地图从底下透出来 */
+.graph-chart{
+  position:absolute;
+  left:552px;
+  right:32px;
+  top:var(--graph-top);
+  bottom:32px;
+}
+
+/* ========== 二、左侧玻璃信息面板 ========== */
+
+.graph-panel{
+  position:absolute;
+  left:var(--graph-left);
+  top:var(--graph-top);
+  width:360px;
+  bottom:32px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  padding:22px 22px 20px;
+  background:var(--glass);
+  border:1px solid var(--glass-line);
+  backdrop-filter:blur(var(--glass-blur));
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+/* 顶部一条青色高亮线，呼应整站的「切角面板」视觉语言 */
+.graph-panel::before{
+  content:'';
+  position:absolute;
+  left:16px; right:0; top:0; height:2px;
+  background:linear-gradient(90deg, var(--cyan-hi), var(--cyan-a28) 70%, transparent);
+  box-shadow:0 0 12px var(--cyan-a55);
+}
+
+.graph-kicker{
+  margin:0;
+  font-size:13px;
+  letter-spacing:2px;
+  color:var(--cyan-hi);
+  text-transform:uppercase;
+}
+
+.graph-title{
+  margin:0;
+  font-size:24px;
+  line-height:1.3;
+  color:var(--ink);
+  text-shadow:0 0 14px var(--cyan-a28);
+}
+
+.graph-summary{
+  margin:0;
+  font-size:13px;
+  line-height:1.7;
+  color:var(--ink-2);
+  flex:0 0 auto;
+  max-height:210px;
+  overflow-y:auto;
+  padding-right:4px;
+}
+
+/* ========== 三、搜索框 ========== */
+
+.graph-search{
+  width:100%;
+  padding:10px 14px;
+  font-size:13px;
+  color:var(--ink);
+  background:rgba(4,16,38,.65);
+  border:1px solid var(--glass-line);
+  border-radius:6px;
+  outline:none;
+  transition:border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
+}
+.graph-search::placeholder{
+  color:var(--ink-3);
+}
+.graph-search:focus{
+  border-color:var(--cyan-a85);
+  box-shadow:0 0 0 3px var(--cyan-a12), 0 0 18px var(--cyan-a28);
+}
+
+/* ========== 四、图例（对齐参考图 4 左下角样式） ========== */
+
+.graph-legend{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:12px 0;
+  border-top:1px solid var(--glass-line);
+  border-bottom:1px solid var(--glass-line);
+}
+.legend-item{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:12px;
+  color:var(--ink-2);
+}
+/* 选择器收窄为 .graph-legend .legend-dot（而非裸 .legend-dot）：docs.css 加载
+ * 顺序晚于本文件，若两边都写裸类名，docs.css 的同名规则会整体覆盖掉本页的
+ * 圆点尺寸；同时 box-shadow 用 currentColor 取的是 .legend-item{color:var(--ink-2)}
+ * 继承下来的颜色，四色图例的辉光会变成清一色灰蓝——图例圆点自身已经在
+ * graph.js 里内联设置了 color:var(--n-xxx)（见 renderLegend()），此处只负责
+ * 尺寸/形状，颜色由内联样式决定，避免被灰蓝色继承值覆盖。 */
+.graph-legend .legend-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  box-shadow:0 0 6px currentColor;
+  flex:0 0 auto;
+}
+
+/* ========== 五、操作按钮 ========== */
+
+.graph-actions{
+  margin-top:auto;
+  display:flex;
+  gap:10px;
+}
+.btn-ghost,
+.btn-primary{
+  flex:1;
+  padding:9px 0;
+  font-size:13px;
+  border:1px solid var(--glass-line);
+  border-radius:6px;
+  background:rgba(10,32,68,.55);
+  color:var(--ink-2);
+  transition:transform var(--t-fast) var(--e-back), box-shadow var(--t-fast) var(--e-out), color var(--t-fast);
+}
+.btn-ghost:hover{
+  color:var(--ink);
+  border-color:var(--cyan-a55);
+  box-shadow:0 0 14px var(--cyan-a28);
+  transform:translateY(-1px);
+}
+.btn-primary{
+  background:linear-gradient(180deg, rgba(95,216,255,.32), rgba(43,143,214,.28));
+  border-color:var(--cyan-a55);
+  color:var(--ink);
+}
+.btn-primary:hover{
+  box-shadow:0 0 20px var(--cyan-a55);
+  transform:translateY(-1px);
+}
+
+/* ========== 六、ECharts tooltip 玻璃卡（外层容器样式由 option 的 extraCssText 叠加，
+   * 这里只负责 formatter 返回的内部结构） ========== */
+
+.graph-tip{
+  padding:12px 14px;
+  max-width:260px;
+  font-size:12px;
+  line-height:1.6;
+  color:var(--ink-2);
+}
+.graph-tip-kicker{
+  font-size:11px;
+  letter-spacing:1.5px;
+  color:var(--cyan-hi);
+  margin-bottom:4px;
+}
+.graph-tip-title{
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink);
+  margin-bottom:6px;
+}
+.graph-tip-body{
+  color:var(--ink-2);
+}
+
+/* ========== 七、涟漪脉冲高亮（一次性触发，用 transition 而非 @keyframes） ========== */
+
+.graph-pulse{
+  position:absolute;
+  width:18px;
+  height:18px;
+  margin:-9px 0 0 -9px;
+  border-radius:50%;
+  border:2px solid var(--cyan-hi);
+  box-shadow:0 0 16px var(--cyan-a55);
+  opacity:.9;
+  transform:scale(.4);
+  transition:transform 900ms var(--e-out), opacity 900ms var(--e-out);
+  pointer-events:none;
+}
+.graph-pulse.is-expand{
+  transform:scale(3.4);
+  opacity:0;
+}
+@media (prefers-reduced-motion:reduce){
+  .graph-pulse{ transition-duration:60ms; }
+}

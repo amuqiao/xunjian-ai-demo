@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>输油泵智能运维助手 · 演示原型</title>
+    <link rel="stylesheet" href="styles/01-tokens.css" />
+    <link rel="stylesheet" href="styles/02-shell.css" />
+    <link rel="stylesheet" href="styles/03-cards.css" />
+    <link rel="stylesheet" href="styles/04-charts.css" />
+    <link rel="stylesheet" href="styles/05-pump3d.css" />
+    <link rel="stylesheet" href="styles/06-overview.css" />
+    <link rel="stylesheet" href="styles/07-station.css" />
+    <link rel="stylesheet" href="styles/08-workbench.css" />
+    <link rel="stylesheet" href="styles/09-detail.css" />
+    <link rel="stylesheet" href="styles/10-confirm.css" />
+    <link rel="stylesheet" href="styles/11-archive.css" />
+    <link rel="stylesheet" href="styles/12-knowledge.css" />
+    <link rel="stylesheet" href="styles/13-graph.css" />
+    <link rel="stylesheet" href="styles/14-overlay.css" />
+    <link rel="stylesheet" href="styles/15-responsive.css" />
+    <script src="scripts/core/screen-scale.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar panel">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">P</div>
+          <div>
+            <h1>输油泵智能运维助手</h1>
+            <small id="brandSub">长岭站 P-1 · 输油泵部位诊断 · PUMP-DEMO-202607</small>
+          </div>
+        </div>
+
+        <nav id="sceneNav" class="scene-nav" aria-label="演示场景"></nav>
+
+        <div class="top-status">
+          <div id="clock">2026-07-22 16:31</div>
+          <div id="statusLine">本轮 P-1 关注级异常已加载，请从泵部位态势进入部位诊断。</div>
+          <button class="tool-btn" type="button" data-action="reset-demo">重置演示</button>
+        </div>
+      </header>
+
+      <main class="stage" id="stage" tabindex="-1"></main>
+
+      <footer class="flow-rail panel" aria-label="诊断闭环流程">
+        <div class="flow-hint" id="flowHint">流程步骤 · AI 只组织证据，专家确认后才能归档复用</div>
+        <div class="flow-track" id="flowTrack"></div>
+      </footer>
+    </div>
+
+    <!-- L0 vendor -->
+    <script src="vendor/echarts.min.js"></script>
+    <script src="vendor/three.min.js"></script>
+    <!-- L1 契约：零依赖，必须最先加载 -->
+    <script src="scripts/pump3d/contract.js"></script>
+    <!-- L2 数据 -->
+    <script src="scripts/data/seed.js"></script>
+    <script src="scripts/data/schema.js"></script>
+    <script src="scripts/data/catalog.js"></script>
+    <script src="scripts/data/knowledge.js"></script>
+    <script src="scripts/data/kb-dataset.js"></script>
+    <script src="scripts/data/agentqa.js"></script>
+    <script src="scripts/data/graph-spec.js"></script>
+    <script src="scripts/data/series.js"></script>
+    <script src="scripts/data/records.js"></script>
+    <script src="scripts/data/kb.js"></script>
+    <script src="scripts/data/graph.js"></script>
+    <script src="scripts/data/index.js"></script>
+    <!-- L3 3D -->
+    <script src="scripts/pump3d/model.js"></script>
+    <script src="scripts/pump3d/engine.js"></script>
+    <!-- L4 core -->
+    <script src="scripts/core/dom.js"></script>
+    <script src="scripts/core/state.js"></script>
+    <script src="scripts/core/charts.js"></script>
+    <script src="scripts/core/chartopts.js"></script>
+    <script src="scripts/core/timers.js"></script>
+
+    <!-- L5 UI 组件（依赖 core/dom.js 的 h() 与 pump3d/contract.js） -->
+    <script src="scripts/ui/cards.js"></script>
+    <script src="scripts/ui/selectlist.js"></script>
+    <script src="scripts/ui/detailcard.js"></script>
+    <script src="scripts/ui/overlay.js"></script>
+    <script src="scripts/ui/agentdialog.js"></script>
+    <!-- L6 场景 -->
+    <script src="scripts/scenes/overview.js"></script>
+    <script src="scripts/scenes/station.js"></script>
+    <script src="scripts/scenes/workbench.js"></script>
+    <script src="scripts/scenes/detailscreen.js"></script>
+    <script src="scripts/scenes/confirm.js"></script>
+    <script src="scripts/scenes/archive.js"></script>
+    <script src="scripts/scenes/knowledge.js"></script>
+    <script src="scripts/scenes/graph.js"></script>
+    <!-- L7 引导 -->
+    <script src="scripts/boot.js"></script>
+  </body>
+</html>
