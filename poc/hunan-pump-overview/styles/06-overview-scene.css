@@ -1,0 +1,128 @@
+/* 06-overview-scene.css: 唯一场景（scripts/scenes/overview.js）的骨架网格。
+   顶栏（.topbar）/底栏（.bottombar）按 02-shell.css 已经冻结的契约挂在 .app-shell
+   的第一/第三行，不在本文件范围内——本文件只管 .stage 内部那一层，三列一行：
+
+     div.overview-scene
+       section.panel.ov-left-col      grid-area: left（固定 320px，纵向 4 卡）
+       section.panel.ov-map-panel     grid-area: map（05-hunan3d.css 已冻结其
+                                       内部结构，本文件只负责给它分配网格格子）
+       div.ov-right-col               grid-area: right（固定 380px，可纵向滚动）
+
+   保守 CSS：无嵌套、无 @layer、无容器查询，全部复用 01-tokens.css 的变量。
+
+   注释纪律：本文件任何注释都不得出现字面的"星号+斜杠"连写，会让浏览器把注释
+   提前截断、后面一段规则被吞掉、面板高度塌成 0 且不报错——本项目已经在别的 POC
+   踩过这个坑，写描述性文字代替。 */
+
+.overview-scene {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 380px;
+  grid-template-areas: "left map right";
+  gap: 10px;
+}
+
+.ov-left-col {
+  grid-area: left;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.ov-map-panel {
+  grid-area: map;
+}
+
+.ov-right-col {
+  grid-area: right;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 10px;
+  overflow-y: auto;
+}
+
+/* 左栏第 1 卡：总体 KPI —— 3 个 Cards.metric 横向等分排布，卡片本身不用
+   card-metric 类（那是单张指标卡），这里是"容纳 3 张指标卡的行"。 */
+
+.ov-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* 左栏第 3 卡：作业区排名——包一层 head（kicker+标题）+ SelectList table。
+   表格本身没有固定高度，交给父级 grid-template-rows 的 minmax(0,1fr) 撑满。 */
+
+.ov-rank-card {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(9, 18, 25, 0.94));
+  box-shadow: var(--shadow);
+  padding: 10px 12px 12px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+}
+
+.ov-rank-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ov-rank-card-title {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ov-rank-card-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 右栏三张紧凑图表卡：约 260×160，比左栏 card-chart 的默认 220px 更矮，
+   一屏能塞下 3 张 + 下钻区域。覆盖 03-cards.css 的 .card-chart-body 默认
+   min-height，仅在 .ov-right-col 范围内生效，不影响左栏/其它场景的卡片。 */
+
+.ov-right-col .card-chart-body {
+  min-height: 148px;
+}
+
+/* 右栏下钻区域：省域态显示一张 DetailCard 提示；下钻到作业区后替换成
+   "站点清单 + 站点详情"两段。两种情形共用这一个 grid-area，互斥显示。 */
+
+.ov-drill-section {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.ov-site-list-card {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(9, 18, 25, 0.94));
+  box-shadow: var(--shadow);
+  padding: 10px 12px 12px;
+  display: grid;
+  grid-template-rows: auto minmax(120px, 1fr);
+  gap: 8px;
+}
+
+.ov-site-list-body {
+  min-height: 0;
+  overflow-y: auto;
+}

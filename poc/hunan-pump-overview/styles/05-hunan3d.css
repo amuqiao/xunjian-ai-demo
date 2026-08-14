@@ -1,0 +1,237 @@
+/* 05-hunan3d.css: 3D 大屏地图契约样式（禁改区）。
+   承载 scripts/scenes/overview.js 的 renderMapPanel() 产出的 DOM：
+     section.panel.ov-map-panel
+       div.ov-map-head
+         div > p.kicker + h3
+         div.ov-legend
+           span.ov-legend-item > i.dot.ok|.warn|.danger + span
+       div.hunan-map[data-hunan-host]
+         canvas.hunan-canvas                 ← HunanMap3D.mount() 运行时插入
+         div.hunan-labels
+           button[data-hunan-zone][.ok|.warn|.danger][.active]
+             span.zone-pin-name + span.zone-pin-count
+         div.ov-zoom
+           button.ov-zoom-btn[data-action="map-zoom-in"|"map-zoom-out"]
+           button.ov-zoom-btn.ov-zoom-reset[data-action="reset-view"]
+
+   改动前必须读 scripts/map3d/contract.js，理解 HunanContract.assertDom /
+   assertPinNamespace / assertLabelKeys 三条断言在检查什么。
+
+   硬性契约（与 poc/inspection-3d-sandbox/styles/05-map3d.css 的同类约定一致，数值
+   按本项目 10 个作业区标签的实际情况重新核定）：
+   1) .hunan-map 必须 position:relative + overflow:hidden + min-height:0——canvas
+      与 .hunan-labels/.ov-zoom 两层覆盖物全部靠它做定位基准。
+   2) .hunan-canvas 必须 position:absolute; inset:0; display:block; width:100%;
+      height:100%——引擎用 renderer.setSize(w,h,false)，画布显示尺寸完全交给这里
+      的 CSS 决定。
+   3) .hunan-labels 必须 position:absolute; inset:0; pointer-events:none，而
+      [data-hunan-zone] 自身 pointer-events:auto。
+   4) ⚠️ 不要给 [data-hunan-zone] 设 transform 或包含 transform 的 transition——
+      引擎每帧写内联 transform: translate3d(...) 做投影跟随，写了也没用，还会让
+      标签在真正应该定住的时候看起来在拖尾。可以放心 transition 颜色类属性。
+   5) 标签盒要紧凑：engine.js 的 sweepLabels 用 offsetWidth/offsetHeight 现测按钮
+      盒子尺寸算 minDy/minDx。10 个作业区标签要在标准画布高度内排开，参考实测
+      52×35.64px 的盒子对应 minDy≈43.6px 才够——本文件的 [data-hunan-zone] 按钮
+      因此做成两行紧凑排布（区域名 + 站点数），不做成多行或加大内边距。
+      **改动盒子尺寸之前，必须先跑 verify 的标签重叠扫描确认 10 个标签互不重叠。**
+   6) 三色状态：[data-hunan-zone].ok|.warn|.danger 复用 01-tokens.css 的
+      --status-ok/--status-warn/--status-danger，不新起色板。 */
+
+.ov-map-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.ov-map-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.ov-map-head h3 {
+  margin-top: 2px;
+  color: #f4fbff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ov-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ov-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- 3D 宿主：见文件头不变量 1 ---------- */
+
+.hunan-map {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, rgba(10, 20, 28, 0.7), rgba(5, 10, 15, 0.92));
+}
+
+/* ---------- canvas：见文件头不变量 2 ---------- */
+
+.hunan-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- 标签容器：见文件头不变量 3 ---------- */
+
+.hunan-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ---------- 作业区热点标签：见文件头不变量 4/5/6 ----------
+   两行紧凑排布（区域名 + 站点数），.active 只改颜色/发光强度，不改盒子尺寸——
+   四个状态类之间 border-width/padding 必须完全相同。 */
+
+[data-hunan-zone] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  min-width: 52px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: rgba(6, 13, 19, 0.92);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  color: var(--ink);
+  padding: 4px 7px 5px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+[data-hunan-zone]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.zone-pin-name {
+  overflow: hidden;
+  color: #eaf6fb;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 84px;
+}
+
+.zone-pin-count {
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+
+[data-hunan-zone].ok {
+  border-color: rgba(48, 198, 157, 0.55);
+  box-shadow: 0 0 0 1px rgba(48, 198, 157, 0.18), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-hunan-zone].ok .zone-pin-count {
+  color: var(--status-ok);
+}
+
+[data-hunan-zone].warn {
+  border-color: rgba(238, 180, 74, 0.6);
+  box-shadow: 0 0 0 1px rgba(238, 180, 74, 0.2), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-hunan-zone].warn .zone-pin-count {
+  color: var(--status-warn);
+}
+
+[data-hunan-zone].danger {
+  border-color: rgba(255, 98, 92, 0.65);
+  box-shadow: 0 0 0 1px rgba(255, 98, 92, 0.24), 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+[data-hunan-zone].danger .zone-pin-count {
+  color: var(--status-danger);
+}
+
+[data-hunan-zone].active,
+[data-hunan-zone][data-active-zone-label] {
+  border-color: var(--accent);
+  background: rgba(245, 218, 114, 0.16);
+  box-shadow: 0 0 0 2px rgba(245, 218, 114, 0.28), 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+[data-hunan-zone].active .zone-pin-name,
+[data-hunan-zone][data-active-zone-label] .zone-pin-name {
+  color: #eafcff;
+}
+
+/* ---------- 缩放控制：右下角竖排 + / - / ⟲ ---------- */
+
+.ov-zoom {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 4;
+  display: grid;
+  gap: 6px;
+}
+
+.ov-zoom-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(9, 18, 25, 0.82);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.ov-zoom-btn:hover {
+  border-color: var(--accent);
+  color: #eafcff;
+}
+
+.ov-zoom-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ov-zoom-reset {
+  border-color: rgba(245, 218, 114, 0.4);
+  font-size: 15px;
+}
