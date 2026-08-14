@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖南省油气管网大屏总览 · 巡检站总览</title>
+    <link rel="stylesheet" href="styles/01-tokens.css">
+    <link rel="stylesheet" href="styles/02-shell.css">
+    <link rel="stylesheet" href="styles/03-cards.css">
+    <link rel="stylesheet" href="styles/04-charts.css">
+    <link rel="stylesheet" href="styles/05-hunan3d.css">
+    <link rel="stylesheet" href="styles/06-overview-scene.css">
+  </head>
+  <body>
+    <div id="appRoot" class="app-shell" aria-label="湖南省油气管网大屏总览 · 巡检站总览"></div>
+
+    <!-- L0 vendor -->
+    <script src="vendor/three.min.js"></script>
+    <script src="vendor/echarts.min.js"></script>
+
+    <!-- L1 契约（零依赖，必须最先加载） -->
+    <script src="scripts/map3d/contract.js"></script>
+
+    <!-- L2 数据 -->
+    <script src="scripts/data/geo.js"></script>
+    <script src="scripts/data/topology.js"></script>
+    <script src="scripts/data/sites.js"></script>
+    <script src="scripts/data/series.js"></script>
+
+    <!-- L3 3D model + engine（model-map.js -> model-sites.js -> model-pipelines.js
+         的顺序不能变：model-pipelines.js 末尾装配 window.HunanMapModel 时依赖前两个
+         已经把 window.HunanModelMap / window.HunanModelSites 挂好） -->
+    <script src="scripts/map3d/model-map.js"></script>
+    <script src="scripts/map3d/model-sites.js"></script>
+    <script src="scripts/map3d/model-pipelines.js"></script>
+    <script src="scripts/map3d/engine.js"></script>
+
+    <!-- L4 core -->
+    <script src="scripts/core/screen-scale.js"></script>
+    <script src="scripts/core/dom.js"></script>
+    <script src="scripts/core/charts.js"></script>
+    <script src="scripts/core/timers.js"></script>
+    <script src="scripts/core/chartopts.js"></script>
+
+    <!-- L5 ui -->
+    <script src="scripts/ui/cards.js"></script>
+    <script src="scripts/ui/selectlist.js"></script>
+    <script src="scripts/ui/detailcard.js"></script>
+    <script src="scripts/ui/overlay.js"></script>
+
+    <!-- L6 场景 -->
+    <script src="scripts/scenes/overview.js"></script>
+
+    <!-- L7 引导 -->
+    <script src="scripts/boot.js"></script>
+  </body>
+</html>
