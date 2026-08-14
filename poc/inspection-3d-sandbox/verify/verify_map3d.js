@@ -143,8 +143,8 @@ async function checkLabelOverlap(page) {
   assert('assertPinNamespace() 通过', pinNamespaceOk, pinNamespaceError);
 
   // ---- 全景态：没有「返回全站」按钮（没有可返回的上一层，不应渲染成 disabled） ----
-  const backCountOverview = await page.locator('.map-back').count();
-  assert('全景态没有 .map-back 按钮', backCountOverview === 0, { backCountOverview });
+  const backCountOverview = await page.locator('.map-zoom-back').count();
+  assert('全景态没有 .map-zoom-back 按钮', backCountOverview === 0, { backCountOverview });
 
   await page.screenshot({ path: path.join(SHOT_DIR, '01-overview-no-back-button.png') });
 
@@ -251,18 +251,18 @@ async function checkLabelOverlap(page) {
   );
   assert('下钻态可见标签数 < 12（只显示当前区+相邻区）', visiblePinCountCabinet < 12, { visiblePinCountCabinet });
 
-  const backCountDrilldown = await page.locator('.map-back').count();
-  assert('下钻态出现 .map-back 按钮', backCountDrilldown === 1, { backCountDrilldown });
+  const backCountDrilldown = await page.locator('.map-zoom-back').count();
+  assert('下钻态出现 .map-zoom-back 按钮', backCountDrilldown === 1, { backCountDrilldown });
 
-  const backButtonVisible = await page.locator('.map-back').isVisible();
-  assert('.map-back 按钮可点（可见且可交互）', backButtonVisible === true, { backButtonVisible });
+  const backButtonVisible = await page.locator('.map-zoom-back').isVisible();
+  assert('.map-zoom-back 按钮可点（可见且可交互）', backButtonVisible === true, { backButtonVisible });
 
   await page.screenshot({ path: path.join(SHOT_DIR, '02-drilldown-with-back-button.png') });
 
   // ---- 重置视角：resetViewCount 递增，且不触发整页重渲染（Charts.debugInfo().drawCalls
   // 在点击前后不变，证明走的是不重挂 DOM 的快路径） ----
   // 先故意把镜头拖拽/缩放歪，制造一个"确实需要复位"的姿态，再验证点击后真的转回去。
-  // 重新量一次宿主包围盒（而不是复用全景态时算的 cx/cy）：下钻态下 .map-back 是新出现的
+  // 重新量一次宿主包围盒（而不是复用全景态时算的 cx/cy）：下钻态下 .map-zoom-back 是新出现的
   // 覆盖层，虽然不改变宿主本身尺寸，但这里不假设"两次一定完全一样"，现场量更可靠。
   const mapBoxCabinet = await page.locator('[data-map3d-host]').boundingBox();
   const cx2 = mapBoxCabinet.x + mapBoxCabinet.width / 2;
@@ -299,15 +299,15 @@ async function checkLabelOverlap(page) {
 
   await page.screenshot({ path: path.join(SHOT_DIR, '03-after-reset-view.png') });
 
-  // ---- 点击「返回全站」：回到全景态，.map-back 再次消失 ----
+  // ---- 点击「返回全站」：回到全景态，.map-zoom-back 再次消失 ----
   await page.click('[data-action="back-to-overview"]');
   await page.waitForTimeout(500);
 
   const debugInfoAfterBack = await page.evaluate(() => window.Map3D.debugInfo());
-  assert('点击 .map-back 后 activeAreaId === null', debugInfoAfterBack.activeAreaId === null, debugInfoAfterBack);
+  assert('点击 .map-zoom-back 后 activeAreaId === null', debugInfoAfterBack.activeAreaId === null, debugInfoAfterBack);
 
-  const backCountAfterBack = await page.locator('.map-back').count();
-  assert('点击 .map-back 后 .map-back 再次消失', backCountAfterBack === 0, { backCountAfterBack });
+  const backCountAfterBack = await page.locator('.map-zoom-back').count();
+  assert('点击 .map-zoom-back 后 .map-zoom-back 再次消失', backCountAfterBack === 0, { backCountAfterBack });
 
   // ---- 左栏第 0 层「全站视图」行：再下钻一次，用它点回全景，验证这条路径同样成立 ----
   await page.click('[data-select="area"][data-select-id="cabinet"]');

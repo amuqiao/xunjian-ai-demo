@@ -9,14 +9,13 @@
            span.map-legend-item > i.map-legend-track|.map-legend-start|.map-legend-end|.map-legend-walker + span
        div.station-map[data-map3d-host][data-map3d-mode]
          canvas.map3d-canvas                 ← 引擎运行时插入
-         button.map-back[data-action="back-to-overview"]   ← 只在下钻态（activeAreaId 非空）渲染
-           span.map-back-icon + span.map-back-label
          div.map-submit-banner
            span.map-submit-icon + strong.map-submit-text + span.map-submit-count + span.map-submit-arrow
          div.map3d-labels
            button.area-pin[data-map3d-area][.ok|.warn|.danger][.active]
              span.area-pin-name + span.area-pin-count
-         div.map-zoom
+         div.map-zoom                                                     ← 视图操作唯一的一组
+           button.map-zoom-btn.map-zoom-back[data-action="back-to-overview"]  ← 仅下钻态渲染
            button.map-zoom-btn[data-action="map-zoom-in"|"map-zoom-out"]
            button.map-zoom-btn.map-zoom-reset[data-action="reset-view"]   ← 全景/下钻两态都渲染
 
@@ -230,48 +229,17 @@
   font-size: 12px;
 }
 
-/* ---------- 返回全站：左上角，与顶部居中的 .map-submit-banner 不重叠 ----------
-   只在下钻态渲染（core/dom.js 的 renderStationMap()），全景态整个按钮都不出现，
-   不是渲染成 disabled。z-index 与 .map-submit-banner 同级（都是 3），二者在屏幕
-   上分处左上/顶部居中，不会叠在一起。 */
+/* ---------- 返回全站：并入右下角 .map-zoom 那一组视图按钮 ----------
+   原来它在地图左上角、而「重置视角」在右下角那一组，同一类操作分处两角，找起来
+   要在画面上来回扫。现在统一到右下角一列，与 poc/hunan-*-overview 两块大屏一致：
+   改变"我看到什么"的按钮都在图的右下角。
+   只在下钻态由 core/dom.js 渲染，全景态整组少一个按钮。 */
 
-.map-back {
-  position: absolute;
-  left: 14px;
-  top: 14px;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.92), rgba(9, 18, 25, 0.92));
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
-  color: var(--ink);
-  padding: 7px 14px 7px 10px;
-  cursor: pointer;
-}
-
-.map-back:hover {
-  border-color: var(--cyan);
-}
-
-.map-back:focus-visible {
-  outline: 3px solid var(--cyan);
-  outline-offset: 2px;
-}
-
-.map-back-icon {
-  font-size: 15px;
-  font-weight: 800;
+.map-zoom-back {
   color: var(--cyan);
+  font-size: 17px;
+  font-weight: 800;
   line-height: 1;
-}
-
-.map-back-label {
-  color: #eaf6fb;
-  font-size: 12px;
-  font-weight: 700;
 }
 
 /* ---------- 标签容器：见文件头不变量 3 ---------- */

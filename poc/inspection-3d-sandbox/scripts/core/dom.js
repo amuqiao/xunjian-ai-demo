@@ -156,19 +156,6 @@
       // 底部悬浮操作栏（ui/actionbar.js）不在这里渲染，由 scenes/map.js 追加进本容器——
       // 所以这里不额外套包裹层，保证本容器本身就能直接承载绝对定位的子节点。
       h("div", hostAttrs, [
-        // 「返回全站」：只在下钻态（activeAreaId 非空）渲染——全景态没有可返回的
-        // 上一层，不渲染成 disabled，直接不出现。左上角绝对定位，与顶部居中的
-        // .map-submit-banner 不重叠（见 05-map3d.css 里两者各自的 top/left）。
-        activeAreaId != null
-          ? h("button", {
-              type: "button",
-              class: "map-back",
-              dataset: { action: "back-to-overview" },
-            }, [
-              h("span", { class: "map-back-icon", "aria-hidden": "true", text: "‹" }),
-              h("span", { class: "map-back-label", text: "返回全站" }),
-            ])
-          : null,
         h("div", { class: "map-submit-banner" }, [
           h("span", { class: "map-submit-icon", "aria-hidden": "true" }),
           h("strong", { class: "map-submit-text", text: "巡检区域提交情况" }),
@@ -196,10 +183,23 @@
             h("span", { class: "area-pin-count", text: progress.done + "/" + progress.total }),
           ]);
         })),
+        // 视图操作聚成右下角这一组：返回全站 / 放大 / 缩小 / 重置视角。
+        // 「返回全站」原来在地图左上角、「重置视角」在这一组，同一类操作分处两角，
+        // 找起来要在画面上来回扫。放同一列后心智模型统一——与 poc/hunan-*-overview
+        // 两块大屏的做法一致：**改变"我看到什么"的按钮都在图的右下角**。
+        // 图标按钮一律带 title，悬停可见中文，图标本身不承担全部语义。
         h("div", { class: "map-zoom" }, [
+          // 只在下钻态渲染：全景态没有可返回的上一层，不出现，也不做成 disabled 占位。
+          activeAreaId != null
+            ? h("button", {
+                type: "button", class: "map-zoom-btn map-zoom-back",
+                dataset: { action: "back-to-overview" },
+                "aria-label": "返回全站", title: "返回全站", text: "‹",
+              })
+            : null,
           h("button", {
             type: "button", class: "map-zoom-btn", dataset: { action: "map-zoom-in" },
-            "aria-label": "放大", text: "+",
+            "aria-label": "放大", title: "放大", text: "+",
           }),
           h("button", {
             type: "button", class: "map-zoom-btn", dataset: { action: "map-zoom-out" },
