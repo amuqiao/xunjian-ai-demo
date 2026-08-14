@@ -74,21 +74,13 @@
       crumbs.push(h("span", { class: "crumb-sep", "aria-hidden": "true", text: "›" }));
       crumbs.push(h("span", { class: "crumb current", text: Contract.ZONE_NAMES[state.zoneId] }));
     }
+    // 底栏只做**位置指示**，不再放任何操作按钮。
+    //
+    // 之前「返回全省」同时在底栏左和地图左上角、「重置视角」同时在底栏右和地图右下角
+    // 的 ⟲——同一批视口操作散在三处、互相重复，比放在任何单独一处都更费解。现在全部
+    // 收进地图右下角那一组（见 renderMapPanel 的 .ov-zoom），一处即全部。
     return h("footer", { class: "bottombar panel" }, [
-      h("button", {
-        type: "button",
-        class: "tool-btn bottombar-back",
-        "data-action": "back-to-overview",
-        disabled: state.zoneId == null ? "disabled" : null,
-      }, [
-        h("span", { "aria-hidden": "true", text: "‹" }),
-        "返回全省",
-      ]),
       h("nav", { class: "crumbs", "aria-label": "下钻路径" }, crumbs),
-      h("div", { class: "bottombar-actions" }, [
-        h("button", { type: "button", class: "tool-btn", "data-action": "toggle-pipelines", text: "管道显示/隐藏" }),
-        h("button", { type: "button", class: "tool-btn", "data-action": "reset-view", text: "重置视角" }),
-      ]),
     ]);
   }
 
@@ -175,7 +167,16 @@
 
   function renderMapPanel(state) {
     var zoneStatuses = Sites.zoneStatuses();
-    var zoneLabels = Contract.ZONE_IDS.map(function (zoneId) {
+    // 标签 LOD：省域态显示全部 10 个作业区标签；**下钻态只显示当前作业区那一个**。
+    //
+    // 为什么必须过滤而不是全渲染：engine.js 的 syncLabels 末尾会把每个标签
+    // clamp 进视口（`p.x = clamp(p.x, halfWidth, width - halfWidth)`），所以画外的
+    // 作业区标签不会消失，而是被**钉在屏幕四边**。下钻到岳阳时，另外 9 个作业区
+    // 全在画外，结果就是四条边上贴满了与当前视图无关的标签。
+    // 契约的 assertLabelKeys 对此是放行的——它在 zone/site 级只要求"键合法不重复"、
+    // 不要求全集，正是为了让这层过滤成立。
+    var visibleZoneIds = state.zoneId == null ? Contract.ZONE_IDS : [state.zoneId];
+    var zoneLabels = visibleZoneIds.map(function (zoneId) {
       var progress = Sites.zoneProgress(zoneId);
       return h("button", {
         type: "button",
@@ -201,10 +202,19 @@
       ]),
       h("div", { class: "hunan-map", "data-hunan-host": "1" }, [
         h("div", { class: "hunan-labels" }, zoneLabels),
+        // 视口操作**唯一**的一组：返回 / 放大 / 缩小 / 重置视角 / 管道开关。
+        // 全部图标按钮都带 title，悬停可见中文说明——图标本身不承担全部语义。
+        // 「返回全省」只在下钻态出现（全省态没有可返回的上一层，不渲染、也不做成
+        // disabled 占位），所以这一组在两种状态下分别是 4 个和 5 个按钮。
         h("div", { class: "ov-zoom" }, [
-          h("button", { type: "button", class: "ov-zoom-btn", "data-action": "map-zoom-in", "aria-label": "放大", text: "+" }),
-          h("button", { type: "button", class: "ov-zoom-btn", "data-action": "map-zoom-out", "aria-label": "缩小", text: "−" }),
-          h("button", { type: "button", class: "ov-zoom-btn ov-zoom-reset", "data-action": "reset-view", "aria-label": "重置视角", text: "⟲" }),
+          state.zoneId == null ? null : h("button", {
+            type: "button", class: "ov-zoom-btn ov-zoom-back", "data-action": "back-to-overview",
+            "aria-label": "返回全省", title: "返回全省", text: "‹",
+          }),
+          h("button", { type: "button", class: "ov-zoom-btn", "data-action": "map-zoom-in", "aria-label": "放大", title: "放大", text: "+" }),
+          h("button", { type: "button", class: "ov-zoom-btn", "data-action": "map-zoom-out", "aria-label": "缩小", title: "缩小", text: "−" }),
+          h("button", { type: "button", class: "ov-zoom-btn ov-zoom-reset", "data-action": "reset-view", "aria-label": "重置视角", title: "重置视角", text: "⟲" }),
+          h("button", { type: "button", class: "ov-zoom-btn ov-zoom-pipe", "data-action": "toggle-pipelines", "aria-label": "管道显示/隐藏", title: "管道显示/隐藏", text: "⤳" }),
         ]),
       ]),
     ]);
