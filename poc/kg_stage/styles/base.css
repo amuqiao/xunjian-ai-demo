@@ -1,0 +1,100 @@
+/*
+ * base.css —— 全局 reset、#screen 缩放容器、滚动条、字体
+ * 不要在这里写任何 3D 相关样式（3D 场景样式属于 stage-scene.css / stage-ground.css / stage-objects.css）。
+ */
+
+*{ box-sizing:border-box; }
+body{ margin:0; }
+html,body{
+  background:var(--bg-void);
+  color:var(--ink);
+  overflow:hidden;
+  height:100%;
+  font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+
+button{ font-family:inherit; cursor:pointer; }
+a{ color:inherit; text-decoration:none; }
+
+/* 设计稿容器：1920x1080，等比缩放并居中，--s 由 scripts/core/scale.js 写入 */
+#screen{
+  position:absolute;
+  width:1920px;
+  height:1080px;
+  left:50%;
+  top:50%;
+  transform-origin:50% 50%;
+  transform:translate(-50%,-50%) scale(var(--s,1));
+}
+
+/*
+ * #screen 直接子元素的层叠顺序（结构性约定，不属于视觉皮肤，故放在 base.css 而非 chrome.css）：
+ * main#pages（三个 .page 全屏铺满）在最底层，header/hex-rail 浮在其上并保持可点击，
+ * 转场层 #trLayer 在最顶层。若不显式建立各自的层叠上下文，
+ * main 在 DOM 顺序上晚于 header/aside，激活的 .page 会覆盖并拦截顶栏导航的点击。
+ */
+#pages{ position:absolute; inset:0; z-index:10; }
+.topbar,.hex-rail{ position:relative; z-index:20; }
+.tr-layer{ position:absolute; inset:0; z-index:30; pointer-events:none; }
+
+/*
+ * 三页容器：默认隐藏，仅 .is-active 显示，切换用透明度过渡。
+ *
+ * Fix-5 性能修复：非激活页此前只有 opacity:0，DOM 仍在渲染树里正常参与合成——
+ * 切到图谱/文档页后，展台上 .ring--ticks/.ring--ticks-major（大面积 conic-gradient
+ * + mask + 自转）、.table-runner-ring、3 个 .holo-base、70 个星点 twinkle、
+ * 12 个 rise 粒子、14 条 rayPulse 光线、2 个 orbitSpin 轨道环全部继续按 60fps
+ * 满速跑 style 重算与合成，白白消耗主线程/GPU（已用 CDP Performance.getMetrics()
+ * 实测：停留在图谱页 3 秒，RecalcStyleCount 增量约 180 次，即约 60 次/秒——
+ * 与展台动画的帧率完全吻合，证实非激活页确实在后台空转）。
+ *
+ * 修法：给非激活态叠加 visibility:hidden，采用「隐藏延迟、显示不延迟」的经典
+ * 双态写法——本规则（.page，覆盖非激活态）把 visibility 的 transition-delay
+ * 设为 --t-base，与 opacity 淡出时长完全一致，因此只有等淡出动画真正播放完毕
+ * （元素已经完全透明、用户已经看不到）才会真正切到 visibility:hidden，不会
+ * 出现「淡出到一半突然消失」的跳变；.page.is-active 把 delay 清零，重新进入
+ * 该页时 visibility 立即变回 visible（配合 CSS 对 visibility 这类离散属性的
+ * 规则——由 hidden 变 visible 时不等 transition 结束，一开始就切换），淡入
+ * 过程从第一帧就能看见，不会有「淡入开始时仍是隐藏」的反向跳变。
+ *
+ * 转场联动：scripts/transition.js 在 COLLAPSE 阶段会先给 .stage-scene 加
+ * .is-leaving（相机推进 + 随 .page 一起淡出），此时 #page-stage 仍是
+ * .is-active，不受本规则影响；NAVIGATE 切换 .is-active 到目标页后，
+ * #page-stage 才开始走上面这条「延迟到淡出结束」的 visibility 切换路径，
+ * 因此整段淡出期间（--t-base）画面仍然可见，效果与改动前逐帧一致，只是
+ * 淡出结束后才多了一步「彻底退出渲染」，不会提前吃掉转场效果。
+ */
+.page{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity var(--t-base) var(--e-out), visibility 0s var(--t-base);
+}
+.page.is-active{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  transition:opacity var(--t-base) var(--e-out), visibility 0s;
+}
+
+/* 自定义滚动条：细、青色，用于图谱页/文档页内部滚动容器 */
+*{
+  scrollbar-width:thin;
+  scrollbar-color:var(--cyan-a55) transparent;
+}
+*::-webkit-scrollbar{
+  width:6px;
+  height:6px;
+}
+*::-webkit-scrollbar-track{
+  background:transparent;
+}
+*::-webkit-scrollbar-thumb{
+  background:var(--cyan-a55);
+  border-radius:3px;
+}
+*::-webkit-scrollbar-thumb:hover{
+  background:var(--cyan-a85);
+}

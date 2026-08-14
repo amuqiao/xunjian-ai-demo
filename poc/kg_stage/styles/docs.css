@@ -1,0 +1,327 @@
+/*
+ * docs.css —— 树形文档页（"文档驾驶舱"）：左任务列表 + 中纵向密集树 + 右浮层玻璃文档卡
+ * 参考图 4：国家管网技术图谱 4.jpg
+ * 只允许引用 tokens.css 里的变量，不新增/硬编颜色与时长数值。
+ */
+
+/* ========== 一、三栏骨架 ==========
+ * #page-docs 本身继承 base.css 的 .page{position:absolute;inset:0}，这里叠加 flex 布局。
+ * 顶部预留 topbar 高度 + 间距、左侧预留 hex-rail 宽度 + 间距，避免被顶栏/侧栏遮住。
+ *
+ * Fix-5：--docs-top / --docs-left 接上 tokens.css 新增的 --h-topbar(128) /
+ * --w-hexrail(136)，不再各自重复抄一遍这两个魔数——此前本文件顶部间距用的是
+ * 128+20=148，graph.css 用的是 128+22=150，两处「topbar 高度 + 一段间距」各自
+ * 手工加总、间距还不一致；现在统一取 20px 的间距（本文件原有值），graph.css
+ * 那边的 150 已同步改成同一个 --docs-top 意义上的表达式（见 graph.css 的
+ * --graph-top，两者算式一致，都是 128+20=148）。这两个自定义属性声明在
+ * #page-docs 上，靠 CSS 自定义属性天然可继承，下方 .doc-card（#page-docs 的
+ * 直接子元素）直接复用，不用再抄一遍算式。 */
+#page-docs{
+  --docs-top: calc(var(--h-topbar) * 1px + 20px);
+  --docs-left: calc(var(--w-hexrail) * 1px + 40px);
+  display:flex;
+  gap:24px;
+  padding:var(--docs-top) 40px 40px var(--docs-left);
+  align-items:stretch;
+}
+
+.docs-col{ min-width:0; }
+
+/* ---- 左栏：任务列表 ---- */
+.docs-col--tasks{
+  flex:0 0 240px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  min-height:0;
+}
+
+.task-filter{ flex:0 0 auto; }
+.task-filter-input{
+  width:100%;
+  box-sizing:border-box;
+  background:rgba(8,28,60,.6);
+  border:1px solid var(--cyan-a28);
+  color:var(--ink);
+  font-size:13px;
+  padding:9px 12px;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  outline:none;
+  transition:border-color var(--t-fast) var(--e-out), box-shadow var(--t-fast) var(--e-out);
+}
+.task-filter-input::placeholder{ color:var(--ink-3); }
+.task-filter-input:focus{
+  border-color:var(--cyan-a85);
+  box-shadow:0 0 12px var(--cyan-a28);
+}
+
+.task-list{
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding-right:4px;
+}
+
+/* 任务按钮：切角 + 左侧竖条 + 右下角装饰纹（细密斜线）+ 选中态青色发光 */
+.task-item{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 18px 12px 16px;
+  border:1px solid var(--cyan-a28);
+  background:linear-gradient(180deg, rgba(18,58,110,.42), rgba(6,22,52,.55));
+  color:var(--ink-2);
+  font-size:14px;
+  text-align:left;
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  transition:border-color var(--t-base) var(--e-out), color var(--t-base) var(--e-out),
+             background var(--t-base) var(--e-out), transform var(--t-base) var(--e-out),
+             box-shadow var(--t-base) var(--e-out);
+}
+.task-item::before{
+  /* 左侧竖条 */
+  content:'';
+  position:absolute; left:0; top:8px; bottom:8px; width:3px;
+  background:linear-gradient(180deg, var(--cyan-hi), var(--cyan-lo));
+  box-shadow:0 0 8px var(--cyan-a55);
+}
+.task-item::after{
+  /* 右下角装饰纹：细密斜线，呼应参考图任务按钮角标 */
+  content:'';
+  position:absolute; right:12px; bottom:7px; width:34px; height:12px;
+  background-image:repeating-linear-gradient(45deg, var(--cyan-a55) 0 2px, transparent 2px 5px);
+  opacity:.55;
+  pointer-events:none;
+}
+.task-item-index{
+  flex:0 0 auto;
+  font:600 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color:var(--ink-3);
+}
+.task-item-name{
+  flex:1;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.task-item:hover{
+  border-color:var(--cyan-a55);
+  color:var(--ink);
+  transform:translateX(3px);
+}
+.task-item.is-active{
+  border-color:var(--cyan-hi);
+  background:linear-gradient(180deg, rgba(30,110,200,.55), rgba(10,44,100,.4));
+  color:#fff;
+  box-shadow:0 0 20px var(--cyan-a28), inset 0 0 16px rgba(90,200,255,.16);
+}
+.task-item.is-active::before{
+  background:linear-gradient(180deg, var(--gold), var(--cyan-hi));
+  box-shadow:0 0 10px rgba(255,215,94,.6);
+}
+.task-item.is-hidden{ display:none; }
+
+/* ---- 中栏：面包屑 + 密集树 + 图例 ---- */
+.docs-col--tree{
+  flex:1;
+  min-width:0;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  border:1px solid rgba(110,200,255,.14);
+  border-radius:4px;
+  background:radial-gradient(120% 100% at 28% 8%, rgba(20,70,140,.14), transparent 62%);
+  padding:6px 16px 16px;
+}
+
+.docs-breadcrumb{
+  flex:0 0 auto;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  min-height:20px;
+  padding:12px 6px 14px;
+  font-size:13px;
+  color:var(--ink-3);
+}
+.crumb-item{ color:var(--ink-2); }
+.crumb-item.is-clickable{ cursor:pointer; transition:color var(--t-fast) var(--e-out); }
+.crumb-item.is-clickable:hover{ color:var(--cyan-hi); }
+.crumb-item.is-current{ color:var(--gold); font-weight:600; cursor:default; }
+.crumb-sep{ color:var(--cyan-a55); }
+
+.tree-chart{
+  flex:1;
+  min-height:0;
+}
+
+/* 四色图例：绝对定位在中栏左下角，对齐参考图 4 */
+.tree-legend{
+  position:absolute;
+  left:20px;
+  bottom:16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px 16px;
+  background:rgba(6,20,46,.55);
+  border:1px solid rgba(110,200,255,.18);
+  border-radius:3px;
+  pointer-events:none;
+}
+.legend-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color:var(--ink-2);
+  white-space:nowrap;
+}
+/* 收窄到 #treeLegend 作用域，避免与 graph.css 的 .legend-dot 同名同特异性打架
+ * （谁后加载谁赢，曾经把图谱页四色图例的辉光颜色污染成灰蓝色）。*/
+#treeLegend .legend-dot{
+  flex:0 0 auto;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  box-shadow:0 0 8px currentColor;
+}
+
+/* ========== 二、右上浮层：玻璃文档卡 ========== */
+/* hidden 属性优先级要压过 .doc-card 的 display，否则关闭态仍会渲染 */
+#docCard[hidden]{ display:none; }
+
+.doc-card{
+  position:absolute;
+  right:40px;
+  /* Fix-5：top / max-height 都改引用 #page-docs 上声明的 --docs-top（见上方
+   * 三栏骨架小节的说明），188px = 原 top(148) + 底部留白(40)，同步改成
+   * var(--docs-top) + 40px，避免第三处再抄一遍 148。 */
+  top:var(--docs-top);
+  width:380px;
+  max-height:calc(100% - var(--docs-top) - 40px);
+  overflow-y:auto;
+  z-index:5;
+  padding:20px 22px 22px;
+  color:var(--ink-2);
+  background:var(--glass);
+  border:1px solid var(--glass-line);
+  backdrop-filter:blur(var(--glass-blur));
+  -webkit-backdrop-filter:blur(var(--glass-blur));
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);
+  box-shadow:0 0 40px rgba(60,170,255,.28), inset 0 0 30px rgba(70,190,255,.08);
+  /* 初始态：缩小 + 透明，配合 transform-origin 制造"从节点位置生长出来"的效果 */
+  opacity:0;
+  transform:scale(.25);
+  transform-origin:50% 50%;
+}
+.doc-card.is-grown{
+  opacity:1;
+  transform:scale(1);
+  transition:transform var(--tr-expand) var(--e-out), opacity var(--tr-expand) var(--e-out);
+}
+
+.doc-card-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+}
+.doc-title{
+  margin:0;
+  font-size:17px;
+  line-height:1.4;
+  letter-spacing:.5px;
+  color:var(--ink);
+}
+.doc-title::before{
+  content:'// ';
+  color:var(--cyan-hi);
+  font-weight:700;
+}
+.doc-card-head-right{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding-top:2px;
+}
+.doc-card-viewall{
+  font-size:12px;
+  color:var(--cyan-hi);
+  white-space:nowrap;
+  border-bottom:1px dashed var(--cyan-a55);
+  padding-bottom:1px;
+  transition:color var(--t-fast) var(--e-out), border-color var(--t-fast) var(--e-out);
+}
+.doc-card-viewall:hover{
+  color:#fff;
+  border-color:var(--cyan-hi);
+}
+.doc-card-close{
+  all:unset;
+  cursor:pointer;
+  font-size:18px;
+  line-height:1;
+  color:var(--ink-2);
+  padding:0 2px;
+  transition:color var(--t-fast) var(--e-out);
+}
+.doc-card-close:hover{ color:#fff; }
+
+/* 标题下方虚线装饰，呼应参考图 4 里的 ~~~~ 细纹 */
+.doc-card-divider{
+  height:1px;
+  margin:12px 0 14px;
+  background-image:repeating-linear-gradient(90deg, var(--cyan-a55) 0 6px, transparent 6px 11px);
+}
+
+.doc-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:14px;
+}
+.doc-tag{
+  font-size:11px;
+  padding:3px 10px;
+  color:var(--cyan-hi);
+  background:rgba(95,216,255,.10);
+  border:1px solid var(--cyan-a28);
+  clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+}
+
+.doc-body p{
+  margin:0 0 12px;
+  font-size:13px;
+  line-height:1.9;
+  color:var(--ink-2);
+}
+.doc-body p:last-child{ margin-bottom:0; }
+
+.doc-meta{
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid rgba(110,200,255,.16);
+  font-size:11px;
+  letter-spacing:.5px;
+  color:var(--ink-3);
+}
+
+/* ========== 三、无障碍降级：prefers-reduced-motion ==========
+ * Fix-5：本文件此前完全没有 reduced-motion 覆盖——.doc-card.is-grown 的
+ * scale(.25)→1 + opacity 0→1 生长过渡在 reduce 模式下仍会播放。这里关掉
+ * transition 而不是直接把 .doc-card 写死成终态，保证正常态/is-grown 两种
+ * class 组合下各自的 opacity/transform 终值不受影响，只是不再有过渡动画，
+ * 卡片直接瞬间定格到最终形态，不会有位置/尺寸错乱。 */
+@media (prefers-reduced-motion:reduce){
+  .doc-card.is-grown{
+    transition:none;
+  }
+}

@@ -1,0 +1,205 @@
+/*
+ * transition.css —— 镜头感转场视觉层（子任务 2-A 独占文件）
+ *
+ * 全部元素挂在 #trLayer（z-index:30，pointer-events:none，见 index.html）下，
+ * position:absolute + 设计坐标 px 定位——#trLayer 是 #screen 的直接子元素，
+ * #screen 本身是 1920x1080 再整体 scale(var(--s))，所以这里所有坐标都直接按
+ * 1920x1080 设计坐标系书写，不需要再乘 --s。
+ *
+ * @keyframes 原则上集中在 fx.css，但转场是本文件的独占领域：这里定义的三个
+ * keyframes 统一加 tr 前缀（trFlash / trSweep），不与 fx.css 已有命名冲突。
+ *
+ * 六个转场专用类：
+ *   .tr-halo   COLLAPSE 收缩光晕（同色）
+ *   .tr-ring   COLLAPSE 扩散淡出光环
+ *   .tr-flash  FLASH 全屏白闪
+ *   .tr-sweep  FLASH 横向扫光带
+ *   .tr-ghost  EXPAND FLIP 飞入的节点幻影
+ *   .tr-pulse  SETTLE 目标点涟漪脉冲
+ */
+
+/* ========== 一、COLLAPSE：源位置光晕收缩 + 光环扩散淡出 ========== */
+
+.tr-halo{
+  position:absolute;
+  border-radius:50%;
+  opacity:1;
+  transform:scale(1);
+  transition:transform var(--tr-collapse) var(--e-in), opacity var(--tr-collapse) var(--e-in);
+}
+.tr-halo.is-collapsing{
+  transform:scale(.22);
+  opacity:0;
+}
+
+.tr-ring{
+  position:absolute;
+  border-radius:50%;
+  border:2px solid var(--cyan-a85);
+  box-shadow:0 0 20px var(--cyan-a55);
+  opacity:.9;
+  transform:scale(.6);
+  transition:transform var(--tr-collapse) var(--e-in), opacity var(--tr-collapse) var(--e-in);
+}
+.tr-ring.is-collapsing{
+  transform:scale(2.4);
+  opacity:0;
+}
+
+/* 首页展台离场时的相机推进感：只加在 .stage-scene（perspective 根），
+ * 不会压平其内部 .stage-world 链路的 preserve-3d（见 plan 第 3 节四条禁令，
+ * 那四条禁令约束的是链路中间节点，.stage-scene 是链路最外层，不受限）。 */
+.stage-scene.is-leaving{
+  filter:brightness(1.55);
+  transform:scale(1.06);
+  opacity:0;
+  transition:
+    filter var(--tr-collapse) var(--e-in),
+    transform var(--tr-collapse) var(--e-in),
+    opacity var(--tr-collapse) var(--e-in);
+}
+
+/* ========== 二、FLASH：全屏白闪 + 横向扫光带 ========== */
+
+.tr-flash{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  /* background 由 JS 按 CAPTURE 坐标动态生成 radial-gradient(circle at x% y%, #fff, var(--cyan-hi)) */
+}
+.tr-flash.is-active{
+  animation:trFlash var(--tr-flash) linear;
+}
+@keyframes trFlash{
+  0%{ opacity:0; }
+  50%{ opacity:.85; }
+  100%{ opacity:0; }
+}
+
+.tr-sweep{
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:-30%;
+  width:30%;
+  opacity:0;
+  pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
+  filter:blur(2px);
+}
+.tr-sweep.is-active{
+  animation:trSweep var(--tr-flash) linear;
+}
+@keyframes trSweep{
+  0%{ opacity:0; transform:translateX(0); }
+  15%{ opacity:.9; }
+  100%{ opacity:0; transform:translateX(420%); }
+}
+
+/* ========== 三、EXPAND：ghost FLIP 飞入 + 目标画布显影 ========== */
+
+.tr-ghost{
+  position:absolute;
+  left:0;
+  top:0;
+  pointer-events:none;
+  opacity:1;
+  /* 基础态刻意不声明 transform 的 transition：spawnGhost() 创建时直接写死起始
+     translate/scale，是 FLIP 手法里「先定住起点」的一步；.is-flying 才补上
+     transform 的 transition，二者配合形成一次单帧起跳、单次过渡到终点的标准
+     FLIP（见 scripts/transition.js 的 flyGhostTo()：Fix-6 之前这里是逐帧追踪
+     写 transform，因为当时假设目标坐标会持续漂移；现已确认那份「漂移」其实
+     是 #graphChart 自身的 scale 进场动效在挪坐标系原点，根源移除后单次 FLIP
+     即可，不再需要逐帧读写）。 */
+}
+.tr-ghost.is-flying{
+  transition:transform var(--tr-expand) var(--e-out);
+}
+.tr-ghost.is-settled{
+  transition:opacity var(--tr-settle) var(--e-out);
+  opacity:0;
+}
+
+.tr-ghost-core{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+}
+
+.tr-ghost-label{
+  position:absolute;
+  top:100%;
+  left:50%;
+  transform:translate(-50%, 10px);
+  white-space:nowrap;
+  font-size:14px;
+  color:var(--ink);
+  text-shadow:0 0 12px rgba(2,10,26,.85);
+  opacity:0;
+}
+.tr-ghost.is-flying .tr-ghost-label{
+  opacity:1;
+  transition:opacity calc(var(--tr-expand) * .4) var(--e-out) calc(var(--tr-expand) * .5);
+}
+
+/* 图谱画布的进场态：EXPAND 期间从「透明」淡入到正常态，transition 常驻声明，
+ * 未被 JS 切换 is-entering 时完全不影响正常浏览。
+ *
+ * Fix-6 说明：这里原本还带一条 transform:scale(1.12) 的「略放大回正常」进场效果，
+ * 已经去掉，只保留 opacity 过渡。原因：scripts/graph/graph.js 的 nodeScreenPos() 用
+ * elChart.getBoundingClientRect() 的左上角作为坐标系原点，而这条 transform 的
+ * transition 会让该 rect 在整个 --tr-expand（520ms）过渡期间持续变化——ghost 飞入
+ * 期间任何时刻重读 nodeScreenPos 都会读到一个被这层 scale 偏移过的假坐标（1336×898
+ * 容器下偏差约 80×54 设计 px），表现为飞行轨迹肉眼可见地弯折（终点仍对，因为 scale
+ * 过渡与 --tr-expand 同时结束）。镜头感由 .stage-scene.is-leaving 的相机推进 + FLASH
+ * 白闪 + ghost 飞入已经足够营造，不需要再叠加这一层缩放。
+ *
+ * 架构建议（本文件不越权自行搬迁，留给 graph.css 的负责 agent 判断）：#graphChart 目前
+ * 被两个文件共同拥有——graph.css 用 .graph-chart 选择器管布局，这里用 #graphChart 管
+ * EXPAND 显影动效，选择器都不一样。这条 opacity 过渡本质上是「graph 页容器自身的进场
+ * 视觉状态」，语义上更贴近 graph.css 的职责范围；建议连同 is-entering/is-active 这套
+ * class 的读写一起迁移过去，避免 graph 页以后改动容器 id 或加包裹层时静默破坏转场显影。
+ * 若暂不迁移，至少需要在 graph.css 里为 #graphChart 加一行指回本文件的交叉引用注释。 */
+#graphChart{
+  transition:opacity var(--tr-expand) var(--e-out);
+}
+#graphChart.is-entering{
+  opacity:0;
+}
+
+/* ========== 四、SETTLE：目标点涟漪脉冲 ========== */
+
+.tr-pulse{
+  position:absolute;
+  width:16px;
+  height:16px;
+  margin:-8px 0 0 -8px;
+  border-radius:50%;
+  border:2px solid var(--cyan-hi);
+  opacity:.85;
+  transform:scale(1);
+  pointer-events:none;
+  transition:transform var(--t-slow) var(--e-out), opacity var(--t-slow) var(--e-out);
+}
+.tr-pulse.is-expand{
+  transform:scale(6);
+  opacity:0;
+}
+
+/* ========== 五、reduced-motion 降级 ==========
+ * JS 侧（scripts/transition.js）已经在 prefers-reduced-motion:reduce 时整体跳过
+ * COLLAPSE/FLASH/EXPAND，不会创建下列任何元素；这里的规则是双保险，
+ * 防止极端场景下（例如系统偏好在转场进行中途被切换）残留动画。 */
+@media (prefers-reduced-motion:reduce){
+  .tr-halo, .tr-ring, .tr-flash, .tr-sweep, .tr-ghost, .tr-pulse{
+    transition:none !important;
+    animation:none !important;
+  }
+  .stage-scene.is-leaving{
+    transition:none !important;
+  }
+  #graphChart.is-entering{
+    transition:none !important;
+  }
+}
