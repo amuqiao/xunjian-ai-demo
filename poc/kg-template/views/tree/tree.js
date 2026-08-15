@@ -27,10 +27,11 @@
 
   const D = KG.derive;
   const dom = KG.dom;
+  const UI = D.ui;
   const SVGNS = 'http://www.w3.org/2000/svg';
 
   /* ══════════════════════════════════════════════════════════════
-     层级尺寸配置 —— 数据深度超出这个数组时循环取值，
+     层级尺寸配置 —— 尺寸表现按这个数组循环取值，
      所以哪天变成六层七层也不会崩。
      颜色不在这里：节点的 type 已由数据层按 treeLevels 循环算好，
      直接用 KG.derive.types[type].color，与图例同源。
@@ -400,8 +401,8 @@
     root.innerHTML =
       '<aside class="tv-side">' +
         '<div class="side-head">' +
-          '<div class="eyebrow">Document Topics</div>' +
-          '<h1>文档主题</h1>' +
+          '<div class="eyebrow">' + UI.tree.eyebrow + '</div>' +
+          '<h1>' + UI.tree.title + '</h1>' +
           '<div class="cnt"></div>' +
         '</div>' +
         '<div class="topics"></div>' +
@@ -412,11 +413,7 @@
           '<div class="world"><svg class="edges"><g></g></svg><div class="node-layer"></div></div>' +
         '</div>' +
         '<div class="legend"><div class="lbl">层级</div><div class="legend-items"></div></div>' +
-        '<div class="hint">' +
-          '悬停节点 — 高亮从根到它的整条路径<br>' +
-          '点击目录 — 折叠 / 展开该分支<br>' +
-          '点击文档 — 查看详情　滚轮 — 缩放　拖拽 — 平移' +
-        '</div>' +
+        '<div class="hint">' + UI.tree.hintHtml + '</div>' +
       '</div>' +
       '<div class="tip"></div>' +
       '<div class="doccard" hidden>' +
@@ -424,7 +421,7 @@
         '<div class="dc-path"></div>' +
         '<h3 class="dc-title"></h3>' +
         '<p class="dc-desc"></p>' +
-        '<button class="dc-go" type="button">在关系图谱中查看</button>' +
+        '<button class="dc-go" type="button">' + UI.tree.jumpToGraph + '</button>' +
       '</div>';
 
     topicList  = dom.$('.topics', root);
@@ -462,7 +459,7 @@
       topicList.appendChild(item);
     });
     dom.$('.side-head .cnt', root).textContent =
-      `${cats.length} 个主题 · ${cats.reduce((s, c) => s + D.sampleCount(c.id), 0)} ${D.text.docUnitLong}`;
+      `${cats.length} ${UI.tree.topicUnit} · ${cats.reduce((s, c) => s + D.sampleCount(c.id), 0)} ${D.text.docUnitLong}`;
 
     /* ── 图例：层数不写死，按数据里实际出现的深度生成，
            名称与颜色都取自类型注册表 ── */

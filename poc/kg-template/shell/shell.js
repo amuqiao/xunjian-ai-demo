@@ -8,7 +8,7 @@
  *
  * 关于「全局检索」：旧版把"文档搜索"和"图谱搜索"做成两个入口，逼用户先决定
  * 要搜什么，再开始搜。这里合并成一个入口，结果按类型分组，**由节点类型决定落到
- * 哪个视图**（见 VIEW_OF_TYPE），再交给 KG.derive.resolveView 做降级解析。
+ * 哪个视图**（见 KG.derive.viewOfType），再交给 KG.derive.resolveView 做降级解析。
  *
  * 硬约束：
  *   1. 整个实现包在 IIFE 里，只往 window 写 KG.shell。
@@ -21,31 +21,12 @@
 
   var KG = global.KG = global.KG || {};
   var D = KG.dom;
+  var UI = KG.derive.ui;
 
   /* ── 三个视图在顶栏上的呈现。key 必须和 KG.views.define 的名字一致 ── */
-  var VIEW_TABS = [
-    { key: 'stage', label: '展台',     en: 'STAGE' },
-    { key: 'graph', label: '关系图谱', en: 'GRAPH' },
-    { key: 'tree',  label: '主题树',   en: 'TREE'  }
-  ];
-  var VIEW_LABEL = { stage: '展台', graph: '关系图谱', tree: '主题树' };
-
-  /* ── 检索结果的落点规则 ────────────────────────────────────────
-     按**节点类型**决定去哪个视图，而不是按检索分组的 key——
-     分组是给人看的组织方式，类型才是数据事实。
-       类目 / 分类 / 子类 / 文档 / 条目 → 主题树（纵向下钻，回答"文档在哪"）
-       实体标签 / 知识中枢             → 关系图谱（横向关联，回答"怎么连"）
-     真正的焦点由 KG.derive.resolveView 二次解析：树里没有实体标签这一层、
-     图谱里没有非 featured 文档，降级去哪、为什么，都由派生层给出 note。 */
-  var VIEW_OF_TYPE = {
-    category: 'tree',
-    topic:    'tree',
-    subtopic: 'tree',
-    doc:      'tree',
-    item:     'tree',
-    entity:   'graph',
-    hub:      'graph'
-  };
+  var VIEW_TABS = UI.views;
+  var VIEW_LABEL = {};
+  VIEW_TABS.forEach(function (v) { VIEW_LABEL[v.key] = v.label; });
 
   var ICONS = {
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
@@ -84,6 +65,15 @@
     });
   }
 
+  function fill(s, data) {
+    return String(s).replace(/\{([a-zA-Z0-9_]+)\}/g, function (_, key) {
+      if (!Object.prototype.hasOwnProperty.call(data, key)) {
+        throw new Error('[shell] 文案模板缺少变量：' + key + '（' + s + '）');
+      }
+      return data[key];
+    });
+  }
+
   /* 命中关键词高亮。关键词只在 label 上标——search() 也匹配 en / code，
      那两种命中不在 label 里，不标即可，不需要额外兜底。 */
   function mark(label, kw) {
@@ -108,8 +98,7 @@
     var node = KG.derive.get(id);
     if (!node) throw new Error('[shell] 检索结果指向不存在的节点：' + id);
 
-    var target = VIEW_OF_TYPE[node.type];
-    if (!target) throw new Error('[shell] 类型「' + node.type + '」没有登记落点视图，见 shell.js 的 VIEW_OF_TYPE');
+    var target = KG.derive.viewOfType(node.type);
 
     var r = KG.derive.resolveView(id, target);
     closeSearch();
@@ -153,7 +142,7 @@
       '<span class="kg-searchbtn-t">搜索</span>' +
       '<span class="kg-searchbtn-k">' + (mac ? '⌘K' : 'Ctrl K') + '</span>');
     searchBtn.type = 'button';
-    searchBtn.title = '全局检索（' + (mac ? '⌘K' : 'Ctrl+K') + '）：类目 / 文档 / 目录 / 实体标签';
+    searchBtn.title = UI.search.title + '（' + (mac ? '⌘K' : 'Ctrl+K') + '）：' + UI.search.scope;
     searchBtn.addEventListener('click', function () { openSearch(); });
 
     var right = D.el('div', 'kg-topright');
@@ -210,12 +199,12 @@
     var modal = D.el('div', 'kg-modal');
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', '全局检索');
+    modal.setAttribute('aria-label', UI.search.title);
 
     var head = D.el('div', 'kg-searchhead', ICONS.search);
     elSearchInput = D.el('input', 'kg-searchinput');
     elSearchInput.type = 'text';
-    elSearchInput.placeholder = '搜索类目 / 文档 / 目录 / 实体标签';
+    elSearchInput.placeholder = UI.search.placeholder;
     elSearchInput.setAttribute('autocomplete', 'off');
     elSearchInput.setAttribute('spellcheck', 'false');
     elSearchInput.addEventListener('input', renderResults);
@@ -237,8 +226,7 @@
   }
 
   function hitRow(h, kw) {
-    var to = VIEW_OF_TYPE[h.type];
-    if (!to) throw new Error('[shell] 类型「' + h.type + '」没有登记落点视图，见 shell.js 的 VIEW_OF_TYPE');
+    var to = KG.derive.viewOfType(h.type);
     var row = D.el('div', 'kg-hit',
       '<span class="kg-hit-dot" style="background:' + h.color + ';box-shadow:0 0 9px ' + h.color + '"></span>' +
       '<span class="kg-hit-label">' + mark(h.label, kw) + '</span>' +
@@ -277,8 +265,8 @@
       return { id: n.id, label: n.label, type: n.type, path: '', color: n.color };
     });
     return [
-      { key: 'sug-cat', label: '试试这些 · 知识库类目', hits: cats },
-      { key: 'sug-ent', label: '试试这些 · 实体标签',   hits: ents }
+      { key: 'sug-cat', label: UI.search.suggestionsCategory, hits: cats },
+      { key: 'sug-ent', label: UI.search.suggestionsEntity,   hits: ents }
     ];
   }
 
@@ -292,8 +280,7 @@
       elSearchBody.innerHTML = '';
       hitIds = [];
       activeIdx = -1;
-      elSearchBody.appendChild(D.el('div', 'kg-empty',
-        '没有匹配「' + esc(q) + '」的类目、文档、目录或实体标签'));
+      elSearchBody.appendChild(D.el('div', 'kg-empty', esc(fill(UI.search.noMatch, { query: q }))));
       return;
     }
     renderGroups(groups, q);
@@ -338,7 +325,7 @@
     var modal = D.el('div', 'kg-modal');
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', '图谱说明');
+    modal.setAttribute('aria-label', UI.intro.titleSuffix);
 
     var close = D.el('button', 'kg-close', '✕');
     close.type = 'button';
@@ -358,7 +345,7 @@
     var meta = KG.derive.meta;
     return D.el('div', 'kg-introhead',
       '<div class="kg-eyebrow">' + esc(meta.hub.en) + '</div>' +
-      '<h2>' + esc(meta.title) + ' · 图谱说明</h2>' +
+      '<h2>' + esc(meta.title) + ' · ' + esc(UI.intro.titleSuffix) + '</h2>' +
       '<p>' + esc(meta.hub.desc) + '</p>');
   }
 
@@ -368,15 +355,14 @@
 
     /* 1. 三个视图各自回答什么问题（数值全部派生，不写死） */
     var roles = [
-      { k: '3D 展台', q: '有哪些知识库？',
-        d: '按类目陈列 ' + KG.derive.categories.length + ' 座知识库，一眼看清库存规模与更新态势，是总览入口。' },
-      { k: '关系图谱', q: '知识之间怎么连？',
-        d: '把类目、代表文档与 ' + KG.derive.entities.length + ' 个实体标签放进同一张力导向网络，共 ' +
-           KG.derive.format(s.edges) + ' 条关系，回答横向关联。' },
-      { k: '主题树', q: '具体文档在哪？',
-        d: '沿类目逐层下钻到叶子文档，已建模样本 ' + KG.derive.format(s.sampleTotal) + ' 篇，回答纵向定位。' }
+      { k: VIEW_LABEL.stage, q: UI.intro.stageQuestion,
+        d: fill(UI.intro.stageDesc, { categories: KG.derive.categories.length }) },
+      { k: VIEW_LABEL.graph, q: UI.intro.graphQuestion,
+        d: fill(UI.intro.graphDesc, { entities: KG.derive.entities.length, edges: KG.derive.format(s.edges) }) },
+      { k: VIEW_LABEL.tree, q: UI.intro.treeQuestion,
+        d: fill(UI.intro.treeDesc, { samples: KG.derive.format(s.sampleTotal) }) }
     ];
-    var secRole = section('三个视图的分工');
+    var secRole = section(UI.intro.rolesTitle);
     roles.forEach(function (r) {
       secRole.appendChild(D.el('div', 'kg-role',
         '<span class="kg-role-k">' + esc(r.k) + '</span>' +
@@ -386,7 +372,7 @@
     body.appendChild(secRole);
 
     /* 2. 层级定义：遍历类型注册表 */
-    var secType = section('层级定义');
+    var secType = section(UI.intro.typeTitle);
     var grid = D.el('div', 'kg-typegrid');
     var types = KG.derive.types;
     Object.keys(types).forEach(function (key) {
@@ -402,23 +388,21 @@
     body.appendChild(secType);
 
     /* 3. 数据规模 */
-    var secStat = section('数据规模');
+    var secStat = section(UI.intro.statsTitle);
     var sg = D.el('div', 'kg-statgrid');
-    [
-      { k: 'NODES',   v: s.nodes },
-      { k: 'EDGES',   v: s.edges },
-      { k: 'DOCS',    v: s.docTotal },
-      { k: 'SAMPLES', v: s.sampleTotal }
-    ].forEach(function (c) {
+    UI.intro.stats.forEach(function (c) {
+      if (!Object.prototype.hasOwnProperty.call(s, c.value)) {
+        throw new Error('[shell] intro.stats 引用了不存在的统计字段：' + c.value);
+      }
       sg.appendChild(D.el('div', 'kg-statcell',
-        '<div class="kg-sk">' + c.k + '</div>' +
-        '<div class="kg-sv">' + KG.derive.format(c.v) + '</div>'));
+        '<div class="kg-sk">' + c.key + '</div>' +
+        '<div class="kg-sv">' + KG.derive.format(s[c.value]) + '</div>'));
     });
     secStat.appendChild(sg);
     body.appendChild(secStat);
 
     /* 4. 关系类型：遍历关系注册表，major 的用高亮色条 */
-    var secRel = section('关系类型');
+    var secRel = section(UI.intro.relationTitle);
     var rels = D.el('div', 'kg-rels');
     var relTypes = KG.derive.relTypes;
     Object.keys(relTypes).forEach(function (key) {
@@ -432,12 +416,8 @@
     body.appendChild(secRel);
 
     /* 5. 接入指南 */
-    var secGuide = section('接入指南');
-    secGuide.appendChild(D.el('div', 'kg-guide',
-      '换成自己的业务数据只需要改 <code>data/kg-data.js</code> 这一个文件：类目、层级树、' +
-      '实体标签与关系都写在那里，三个视图由 <code>data/kg-derive.js</code> 投影出来，视图代码一行不用动。' +
-      '<br>改完打开浏览器控制台执行 <code>KG.derive.validate()</code> 看体检结果：' +
-      '<code>errors</code> 必须为空，<code>warnings</code> 提示的是能跑但会缺内容的地方。'));
+    var secGuide = section(UI.intro.guideTitle);
+    secGuide.appendChild(D.el('div', 'kg-guide', UI.intro.guideHtml));
     var btn = D.el('button', 'kg-guide-btn', '在控制台打印体检结果');
     btn.type = 'button';
     btn.addEventListener('click', function () {

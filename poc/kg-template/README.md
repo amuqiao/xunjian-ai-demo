@@ -2,7 +2,7 @@
 
 单页三视图的知识图谱大屏。**双击 `index.html` 就能跑**——无构建、无框架、无 CDN、无网络请求。
 
-接入自己的业务数据时，**只需要改 `data/kg-data.js` 一个文件**，三个视图会自动跟着变。
+模板的稳定边界是：`KG.source` 提供业务数据，`KG.config` 提供领域命名与展示配置，`KG.derive` 负责把它们投影给三个视图。接入巡检数据、泵数据或其他业务数据时，不要改视图代码。
 
 ---
 
@@ -24,7 +24,7 @@
 图谱详情面板「在主题树中查看」 ──→ 主题树
 树的文档卡「在关系图谱中查看」 ──→ 关系图谱
 顶栏三个按钮 ──→ 任意切换，且带着当前焦点一起走
-左侧 rail 全局检索 ──→ 按结果类型自动落到最合适的视图
+顶栏全局检索 ──→ 按结果类型自动落到最合适的视图
 ```
 
 动线策略集中在 `app.js` 的 `ROUTE` 对象里。想改跳转规则，改那一处就够，不用去三个视图里翻代码。
@@ -41,21 +41,30 @@
 
 ## 2. 接入自己的业务数据
 
-改 `data/kg-data.js` 里的 `KG.source`，其余一律不用动。
+接入分两层：
+
+| 要改什么 | 改哪里 | 例子 |
+|---|---|---|
+| 数据内容、层级、横向关系、类型 label、指标 label/unit | `data/kg-data.js` 的 `KG.source` | 巡检专业、泵站、设备、测点、缺陷关系、指标名 |
+| 视图文案、卡片单位、搜索分组、提示文案、展示上限 | `data/kg-config.js` 的 `KG.config` | 把“文档”改成“巡检项”，把卡片单位“篇”改成“项” |
+
+如果只是换同类知识库数据，通常只改 `kg-data.js`。如果换成巡检或泵这种领域，通常同时改 `kg-config.js` 的命名和文案。
 
 ### 2.1 最小骨架
 
 ```js
 KG.source = {
   meta:  { title, hub:{ id,name,en,sub,desc }, metrics:[…] },
-  types: { hub, category, topic, subtopic, doc, item, entity },  // 层级配色，一般不用改
-  treeLevels: ['category','topic','subtopic','doc','item'],       // 深度→类型，超出时循环取值
+  types: { hub, category, topic, subtopic, doc, item, entity },  // 内部 role 固定，label 可改
+  treeLevels: ['category','topic','subtopic','doc','item'],       // 深度→类型，超出后钉在最后一级
   relTypes:   { contains, tagged, cites, derives, refers },       // 关系语义
   categories: [ … ],   // 知识库类目 + 完整层级树
   entities:   [ … ],   // 实体标签（图谱独有的横向维度）
   relations:  [ … ]    // 横向关系
 };
 ```
+
+`hub/category/topic/subtopic/doc/item/entity` 是模板内部 role，不建议为了新领域随意新增 role。巡检或泵数据应由 adapter 映射到这套 canonical source，再通过 `types.*.label` 和 `KG.config.ui` 改成业务语言。
 
 ### 2.2 一个类目长这样
 
@@ -110,6 +119,24 @@ relations: [
 
 体检覆盖：id 重复、悬空关系、未注册的类型、`featured` 指向不存在或非叶子的节点、类目缺 color/icon、`docTotal` 小于样本数、孤立的实体标签。
 
+### 2.6 接巡检或泵数据的推荐方式
+
+不要让视图直接吃原始巡检表或泵台账。推荐边界是：
+
+```
+原始业务数据 ── adapter ──> canonical KG.source ── kg-derive ──> 三个视图
+```
+
+adapter 负责：
+
+- 生成稳定 id。
+- 组织 `categories[].children` 层级树。
+- 选择进入图谱的 `featured` 代表叶子。
+- 映射 `entities` 和 `relations`。
+- 填好 `docTotal`、`note`、`icon`、`color` 等展示元数据。
+
+`kg-derive.js` 负责投影、搜索、降级和体检。adapter 不要直接生成 `treeOf()`、`stageCards()` 或 `graphProjection()` 的结果。
+
 ---
 
 ## 3. 目录结构
@@ -119,7 +146,8 @@ kg-template/
 ├── index.html              装配入口，脚本顺序即依赖顺序
 ├── app.js                  启动 + 动线策略（跳转规则改这里）
 ├── data/
-│   ├── kg-data.js          ★ 唯一数据真值源，接业务数据只改这个
+│   ├── kg-config.js        ★ 展示配置、领域命名、单位、搜索分组、安全阀
+│   ├── kg-data.js          ★ canonical 数据真值源，adapter 最终产出这套结构
 │   └── kg-derive.js        派生投影层：展平、投影、检索、降级、体检
 ├── core/
 │   ├── dom.js              极小 DOM 工具 + 共用的伪 3D 配色函数
@@ -127,7 +155,7 @@ kg-template/
 │   ├── views.js            ★ 视图生命周期契约（写新视图前先读它）
 │   ├── router.js           hash 路由
 │   └── transition.js/css   跨视图幻影飞行转场
-├── shell/                  顶栏 + 六边形 rail + 全局检索 + 说明浮层
+├── shell/                  顶栏 + 全局检索 + 说明浮层 + 降级提示
 ├── views/
 │   ├── stage/              3D 展台（three.js）
 │   ├── graph/              关系图谱（Canvas 力导向）
@@ -144,8 +172,9 @@ kg-template/
 
 1. 读 `core/views.js` 顶部的契约，实现 `mount/activate/deactivate/focus/locate/reset/pause/resume` 八个方法
 2. 在 `index.html` 里加一个 `<section class="view" id="view-xxx">` 和对应的 script/css
-3. 在 `app.js` 的 `ROUTE` 里加一条动线规则
-4. 在 `data/kg-derive.js` 里加一个投影函数（如果新视图需要不同形状的数据）
+3. 在 `data/kg-config.js` 的 `ui.views` 里登记顶栏按钮
+4. 在 `app.js` 的 `ROUTE` 里加一条动线规则
+5. 在 `data/kg-derive.js` 里加一个投影函数（如果新视图需要不同形状的数据）
 
 **不要**让新视图直接读 `KG.source`，也**不要**让它直接调用别的视图——只走 `KG.derive.*` 拿数据、走 `KG.bus` 发事件。这两条是模板能换数据的前提。
 

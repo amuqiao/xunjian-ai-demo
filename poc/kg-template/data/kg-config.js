@@ -64,7 +64,89 @@
       truncatedHint: '演示上限'
     },
 
-    /* ══ 三、展台立牌底部进度条 ══════════════════════════════
+    /* ══ 三、业务命名与界面文案 ══════════════════════════════
+       这块是模板复用时最常改的配置：巡检数据可以把"文档"改成"巡检项"，
+       泵数据可以把"实体标签"改成"故障模式"或"部件标签"。 */
+    ui: {
+      pageTitleSuffix: '知识图谱模板',
+
+      views: [
+        { key: 'stage', label: '展台',     en: 'STAGE', title: '3D 展台' },
+        { key: 'graph', label: '关系图谱', en: 'GRAPH', title: '关系图谱' },
+        { key: 'tree',  label: '主题树',   en: 'TREE',  title: '主题树' }
+      ],
+
+      search: {
+        title: '全局检索',
+        scope: '类目 / 文档 / 目录 / 实体标签',
+        placeholder: '搜索类目 / 文档 / 目录 / 实体标签',
+        suggestionsCategory: '试试这些 · 知识库类目',
+        suggestionsEntity: '试试这些 · 实体标签',
+        noMatch: '没有匹配「{query}」的类目、文档、目录或实体标签'
+      },
+
+      stage: {
+        eyebrow: 'Knowledge Graph Exhibit',
+        liveText: '索引同步中',
+        loadingText: '初始化展台',
+        focusLabel: 'Scanning',
+        cardFooter: 'VECTOR INDEXED'
+      },
+
+      graph: {
+        degreeLabel: '连接数',
+        totalLabel: '文档量',
+        jumpToTree: '在主题树中查看'
+      },
+
+      tree: {
+        eyebrow: 'Document Topics',
+        title: '文档主题',
+        topicUnit: '个主题',
+        hintHtml: '悬停节点 — 高亮从根到它的整条路径<br>点击目录 — 折叠 / 展开该分支<br>点击文档 — 查看详情　滚轮 — 缩放　拖拽 — 平移',
+        jumpToGraph: '在关系图谱中查看'
+      },
+
+      intro: {
+        titleSuffix: '图谱说明',
+        rolesTitle: '三个视图的分工',
+        typeTitle: '层级定义',
+        statsTitle: '数据规模',
+        relationTitle: '关系类型',
+        guideTitle: '接入指南',
+        stats: [
+          { key: 'NODES', value: 'nodes' },
+          { key: 'EDGES', value: 'edges' },
+          { key: 'DOCS', value: 'docTotal' },
+          { key: 'SAMPLES', value: 'sampleTotal' }
+        ],
+        stageQuestion: '有哪些知识库？',
+        stageDesc: '按类目陈列 {categories} 座知识库，一眼看清库存规模与更新态势，是总览入口。',
+        graphQuestion: '知识之间怎么连？',
+        graphDesc: '把类目、代表文档与 {entities} 个实体标签放进同一张力导向网络，共 {edges} 条关系，回答横向关联。',
+        treeQuestion: '具体文档在哪？',
+        treeDesc: '沿类目逐层下钻到叶子文档，已建模样本 {samples} 篇，回答纵向定位。',
+        guideHtml: '换成自己的业务数据通常只需要改 <code>data/kg-data.js</code>；如果单位、视图名、搜索分组或提示文案也要变，再改 <code>data/kg-config.js</code>。三个视图由 <code>data/kg-derive.js</code> 投影出来，视图代码不读原始数据。<br>改完打开浏览器控制台执行 <code>KG.derive.validate()</code> 看体检结果：<code>errors</code> 必须为空，<code>warnings</code> 提示的是能跑但会缺内容的地方。'
+      }
+    },
+
+    messages: {
+      stageNodeToCategory: '展台按知识库类目陈列，已定位到「{category}」',
+      entityToStage: '「{node}」是横向标签，展台已转到关联最多的「{category}」',
+      graphNonFeaturedLeaf: '图谱只展示各类目的代表文档，「{node}」未收录',
+      graphBranchMissing: '图谱不展示目录层级，「{node}」没有对应节点',
+      graphFocusCategory: '{reason}，已聚焦其所属的「{category}」',
+      treeEntity: '树视图没有实体标签这一层，已定位到关联文档最多的「{category}」并高亮相关文档'
+    },
+
+    searchGroups: [
+      { key: 'category', label: '知识库类目', types: ['category'] },
+      { key: 'doc',      label: '文档',       types: ['doc', 'item'] },
+      { key: 'branch',   label: '目录',       types: ['topic', 'subtopic'] },
+      { key: 'entity',   label: '实体标签',   types: ['entity'] }
+    ],
+
+    /* ══ 四、展台立牌底部进度条 ══════════════════════════════
        原先分母写死 2200，只对最初那份 demo 数据成立：
        业务方每类目 300 篇时所有进度条都是一小截，5 万篇时全部满格。
        null = 由派生层取"所有类目里最大的 docTotal"当分母，
@@ -72,7 +154,7 @@
        需要固定基准时（比如对标某个目标值）再填具体数字。 */
     progressBase: null,
 
-    /* ══ 四、可用图标 ══════════════════════════════════════
+    /* ══ 五、可用图标 ══════════════════════════════════════
        图标是 canvas 绘制函数，实现留在 views/stage/stage.js 的 ICONS 里
        （绘制代码不该进数据文件）。这里只登记有哪些名字可用，
        数据里写了表外的名字会在构建期直接报错并列出可选值，

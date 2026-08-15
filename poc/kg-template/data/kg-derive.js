@@ -44,6 +44,18 @@
   var edges = [];        // { s, t, rel, major }
   var adjacency = {};    // id → [{ id, rel, dir }]
 
+  /* 类型到视图的落点是模板行为合同，不放进业务文案配置。
+     shell 只通过 viewOfType() 读取，避免维护第二份规则。 */
+  var VIEW_OF_TYPE = {
+    category: 'tree',
+    topic:    'tree',
+    subtopic: 'tree',
+    doc:      'tree',
+    item:     'tree',
+    entity:   'graph',
+    hub:      'graph'
+  };
+
   /* ── 安全阀 ───────────────────────────────────────────────
      超出演示上限**直接报错**，不截断、不降级。
      这是演示模板：数据量本来就该在上限内，超了就是数据配错了，
@@ -59,6 +71,28 @@
 
   /* ── 工具 ───────────────────────────────────────────────── */
   function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function tpl(s, data) {
+    return String(s).replace(/\{([a-zA-Z0-9_]+)\}/g, function (_, key) {
+      if (!Object.prototype.hasOwnProperty.call(data, key)) {
+        throw new Error('[kg-derive] 文案模板缺少变量：' + key + '（' + s + '）');
+      }
+      return data[key];
+    });
+  }
+  function cfg(path) {
+    return path.split('.').reduce(function (o, key) {
+      return o && o[key];
+    }, KG.config);
+  }
+  function requireString(path) {
+    var v = cfg(path);
+    if (typeof v !== 'string' || !v) throw new Error('[kg-derive] KG.config.' + path + ' 必须是非空字符串');
+  }
+  function requireArray(path) {
+    var v = cfg(path);
+    if (!Array.isArray(v) || !v.length) throw new Error('[kg-derive] KG.config.' + path + ' 必须是非空数组');
+    return v;
+  }
 
   /* 树比 treeLevels 更深时，**钳在最后一项**，不要用取模回绕——
      回绕会让第 6 层的节点重新变成 'category'，于是几千个叶子被当成知识库类目：
@@ -134,6 +168,8 @@
 
   /* 演示上限体检。放在构建之后统一做，错误信息才能报出"实际多少"。 */
   function enforceLimits() {
+    validateConfig();
+
     function leafCount(id) {
       var n = nodes[id];
       return n.children.length ? n.children.reduce(function (s, c) { return s + leafCount(c); }, 0) : 1;
@@ -144,29 +180,44 @@
     }
 
     if (S.categories.length > LIM.categories) {
-      over('知识库类目', S.categories.length, LIM.categories, null,
+      over(S.types.category.label, S.categories.length, LIM.categories, null,
         '立牌绕圆桌排一圈，再多会互相遮挡');
     }
     if (S.entities.length > LIM.entities) {
-      over('实体标签', S.entities.length, LIM.entities, null,
+      over(S.types.entity.label, S.entities.length, LIM.entities, null,
         '实体没有层级约束、纯靠斥力散开，多了会糊成一团');
     }
 
-    var gNodes = 1 + S.categories.length + S.entities.length +
-      S.categories.reduce(function (s, c) { return s + (c.featured || []).length; }, 0);
+    var keep = {};
+    keep[S.meta.hub.id] = true;
+    S.categories.forEach(function (cat) {
+      keep[cat.id] = true;
+      (cat.featured || []).forEach(function (fid) { keep[fid] = true; });
+    });
+    S.entities.forEach(function (e) { keep[e.id] = true; });
+
+    var gNodes = Object.keys(keep).length;
     if (gNodes > LIM.graphNodes) {
       over('图谱节点总数', gNodes, LIM.graphNodes, null, '力导向是 O(n²)，且标签会开始互相压');
+    }
+    var gLinks = S.categories.length +
+      S.categories.reduce(function (s, c) { return s + (c.featured || []).length; }, 0);
+    edges.forEach(function (e) {
+      if (e.rel !== 'contains' && keep[e.s] && keep[e.t]) gLinks++;
+    });
+    if (gLinks > LIM.graphLinks) {
+      over('图谱关系总数', gLinks, LIM.graphLinks, null, '连线过密会压住节点标签与详情阅读路径');
     }
 
     S.categories.forEach(function (cat) {
       var leaves = leafCount(cat.id);
       if (leaves > LIM.leavesPerCategory) {
-        over('单个类目的文档数', leaves, LIM.leavesPerCategory, cat.name,
+        over('单个' + S.types.category.label + '的' + KG.config.text.docUnitLong, leaves, LIM.leavesPerCategory, cat.name,
           '树按叶子数纵向铺开，超了只能整体缩小、标签会糊');
       }
       var f = (cat.featured || []).length;
       if (f > LIM.featuredPerCategory) {
-        over('单个类目的图谱代表文档数', f, LIM.featuredPerCategory, cat.name,
+        over('单个' + S.types.category.label + '的图谱代表节点数', f, LIM.featuredPerCategory, cat.name,
           '图谱初始扇形会互相压，多了布局会退化成一团');
       }
       var d = maxDepth(cat.id);
@@ -177,6 +228,57 @@
         throw new Error('[kg-derive] 类目「' + cat.name + '」的图标 "' + cat.icon +
           '" 不在可用列表里。可选：' + KG.config.icons.join(' / ') +
           '。要加新图标，在 views/stage/stage.js 的 ICONS 里写绘制函数，再登记到 kg-config.js 的 icons');
+      }
+    });
+
+    requireArray('searchGroups').forEach(function (g) {
+      if (!g.key || !g.label || !g.types || !g.types.length) {
+        throw new Error('[kg-derive] searchGroups 配置不完整：每组必须有 key / label / types');
+      }
+      g.types.forEach(function (type) {
+        if (!S.types[type]) throw new Error('[kg-derive] searchGroups.' + g.key + ' 引用了未注册类型：' + type);
+      });
+    });
+
+    Object.keys(VIEW_OF_TYPE).forEach(function (type) {
+      if (!S.types[type]) throw new Error('[kg-derive] viewOfType 引用了未注册类型：' + type);
+      if (!VIEW_OF_TYPE[type]) throw new Error('[kg-derive] viewOfType.' + type + ' 没有配置目标视图');
+    });
+  }
+
+  function validateConfig() {
+    [
+      'text.docUnit', 'text.docUnitLong', 'text.sampleLabel', 'text.truncatedHint',
+      'ui.pageTitleSuffix',
+      'ui.search.title', 'ui.search.scope', 'ui.search.placeholder',
+      'ui.search.suggestionsCategory', 'ui.search.suggestionsEntity', 'ui.search.noMatch',
+      'ui.stage.eyebrow', 'ui.stage.liveText', 'ui.stage.loadingText', 'ui.stage.focusLabel', 'ui.stage.cardFooter',
+      'ui.graph.degreeLabel', 'ui.graph.totalLabel', 'ui.graph.jumpToTree',
+      'ui.tree.eyebrow', 'ui.tree.title', 'ui.tree.topicUnit', 'ui.tree.hintHtml', 'ui.tree.jumpToGraph',
+      'ui.intro.titleSuffix', 'ui.intro.rolesTitle', 'ui.intro.typeTitle',
+      'ui.intro.statsTitle', 'ui.intro.relationTitle', 'ui.intro.guideTitle',
+      'ui.intro.stageQuestion', 'ui.intro.stageDesc', 'ui.intro.graphQuestion',
+      'ui.intro.graphDesc', 'ui.intro.treeQuestion', 'ui.intro.treeDesc', 'ui.intro.guideHtml',
+      'messages.stageNodeToCategory', 'messages.entityToStage',
+      'messages.graphNonFeaturedLeaf', 'messages.graphBranchMissing',
+      'messages.graphFocusCategory', 'messages.treeEntity'
+    ].forEach(requireString);
+
+    requireArray('ui.views').forEach(function (v, i) {
+      ['key', 'label', 'en', 'title'].forEach(function (k) {
+        if (typeof v[k] !== 'string' || !v[k]) {
+          throw new Error('[kg-derive] KG.config.ui.views[' + i + '].' + k + ' 必须是非空字符串');
+        }
+      });
+    });
+
+    var statFields = { nodes: true, edges: true, docTotal: true, sampleTotal: true };
+    requireArray('ui.intro.stats').forEach(function (s, i) {
+      if (typeof s.key !== 'string' || !s.key) {
+        throw new Error('[kg-derive] KG.config.ui.intro.stats[' + i + '].key 必须是非空字符串');
+      }
+      if (!statFields[s.value]) {
+        throw new Error('[kg-derive] KG.config.ui.intro.stats[' + i + '].value 不支持：' + s.value);
       }
     });
   }
@@ -318,20 +420,13 @@
   }
 
   /* ── 全局检索 ───────────────────────────────────────────── */
-  var GROUPS = [
-    { key: 'category', label: '知识库类目', types: ['category'] },
-    { key: 'doc',      label: '文档',       types: ['doc', 'item'] },
-    { key: 'branch',   label: '目录',       types: ['topic', 'subtopic'] },
-    { key: 'entity',   label: '实体标签',   types: ['entity'] }
-  ];
-
   function search(q, limitPerGroup) {
     ready();
     var kw = String(q || '').trim().toLowerCase();
     if (!kw) return [];
     var cap = limitPerGroup || LIM.searchHitsPerGroup;
 
-    return GROUPS.map(function (g) {
+    return KG.config.searchGroups.map(function (g) {
       var hits = [];
       for (var i = 0; i < order.length && hits.length < cap; i++) {
         var n = nodes[order[i]];
@@ -348,6 +443,13 @@
     }).filter(function (g) { return g.hits.length; });
   }
 
+  function viewOfType(type) {
+    ready();
+    var view = VIEW_OF_TYPE[type];
+    if (!view) throw new Error('[kg-derive] 类型「' + type + '」没有登记落点视图，见 kg-derive.js 的 VIEW_OF_TYPE');
+    return view;
+  }
+
   /* ── 跨视图焦点解析 ─────────────────────────────────────────
      同一个节点在三个视图里不一定都有对应物。这里给出"最接近的落点"
      和一句给用户的解释，而不是静默跳到别处或者什么都不做。 */
@@ -358,10 +460,18 @@
 
     if (view === 'stage') {
       if (n.type === 'category') return { view: view, focusId: n.id, note: null };
-      if (n.catId) return { view: view, focusId: n.catId, note: '展台按知识库类目陈列，已定位到「' + nodes[n.catId].label + '」' };
+      if (n.catId) return {
+        view: view,
+        focusId: n.catId,
+        note: tpl(KG.config.messages.stageNodeToCategory, { category: nodes[n.catId].label })
+      };
       if (n.type === 'entity') {
         var top = topCategoryOfEntity(n.id);
-        return { view: view, focusId: top.id, note: '「' + n.label + '」是横向标签，展台已转到关联最多的「' + top.label + '」' };
+        return {
+          view: view,
+          focusId: top.id,
+          note: tpl(KG.config.messages.entityToStage, { node: n.label, category: top.label })
+        };
       }
       return { view: view, focusId: null, note: null };
     }
@@ -371,9 +481,13 @@
       var cat = nodes[n.catId];
       if (cat.featured.indexOf(n.id) >= 0) return { view: view, focusId: n.id, note: null };
       var why = (n.type === 'doc' || n.type === 'item')
-        ? '图谱只展示各类目的代表文档，「' + n.label + '」未收录'
-        : '图谱不展示目录层级，「' + n.label + '」没有对应节点';
-      return { view: view, focusId: cat.id, note: why + '，已聚焦其所属的「' + cat.label + '」' };
+        ? tpl(KG.config.messages.graphNonFeaturedLeaf, { node: n.label })
+        : tpl(KG.config.messages.graphBranchMissing, { node: n.label });
+      return {
+        view: view,
+        focusId: cat.id,
+        note: tpl(KG.config.messages.graphFocusCategory, { reason: why, category: cat.label })
+      };
     }
 
     if (view === 'tree') {
@@ -383,7 +497,7 @@
         return {
           view: view, focusId: t.id, topicId: t.id,
           highlight: docsTaggedBy(n.id).map(function (d) { return d.id; }),
-          note: '树视图没有实体标签这一层，已定位到关联文档最多的「' + t.label + '」并高亮相关文档'
+          note: tpl(KG.config.messages.treeEntity, { category: t.label })
         };
       }
       var first = S.categories[0];
@@ -488,11 +602,13 @@
     categoryOf: categoryOf, leavesOf: leavesOf, neighborsOf: neighborsOf,
     sampleCount: sampleCount, docTotal: docTotal,
     treeOf: treeOf, stageCards: stageCards, graphProjection: graphProjection,
-    search: search, resolveView: resolveView, docsTaggedBy: docsTaggedBy,
+    search: search, viewOfType: viewOfType, resolveView: resolveView, docsTaggedBy: docsTaggedBy,
     metrics: metrics, stats: stats, validate: validate,
     progressBase: progressBase,
     format: fmt,
     get text() { return KG.config.text; },
+    get ui() { return KG.config.ui; },
+    get config() { return KG.config; },
     get limits() { return LIM; },
     get types() { ready(); return S.types; },
     get relTypes() { ready(); return S.relTypes; },

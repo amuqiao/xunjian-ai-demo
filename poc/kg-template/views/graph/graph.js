@@ -26,6 +26,7 @@ const KG = global.KG;
 if (!KG || !KG.views)  throw new Error('[graph] core/views.js 必须先于 views/graph/graph.js 引入');
 if (!KG.derive)        throw new Error('[graph] data/kg-derive.js 必须先于 views/graph/graph.js 引入');
 if (!KG.dom)           throw new Error('[graph] core/dom.js 必须先于 views/graph/graph.js 引入');
+const UI = KG.derive.ui;
 
 /* 原稿在全局写了 rgbOf / mix / css，三个视图各一份会互相覆盖，
    统一用 core/dom.js 里那份（实现逐字相同），本地只留别名 */
@@ -700,13 +701,13 @@ const TPL = `
     <div class="g-p-path" data-r="pPath"></div>
     <div class="g-p-desc" data-r="pDesc"></div>
     <div class="g-p-metrics">
-      <div><span class="g-mk">连接数</span><span class="g-mv" data-r="pDeg">0</span></div>
-      <div><span class="g-mk">文档量</span><span class="g-mv" data-r="pDocs">—</span></div>
+      <div><span class="g-mk">${UI.graph.degreeLabel}</span><span class="g-mv" data-r="pDeg">0</span></div>
+      <div><span class="g-mk">${UI.graph.totalLabel}</span><span class="g-mv" data-r="pDocs">—</span></div>
     </div>
   </div>
   <div class="g-p-body" data-r="pBody"></div>
   <div class="g-p-foot">
-    <button class="g-jump" data-r="jump">在主题树中查看<span class="g-arrow">→</span></button>
+    <button class="g-jump" data-r="jump">${UI.graph.jumpToTree}<span class="g-arrow">→</span></button>
   </div>
 </div>`;
 

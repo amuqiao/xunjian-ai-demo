@@ -85,6 +85,8 @@
   KG.bus.on('node:open', openNode);
 
   function boot() {
+    document.title = KG.derive.meta.title + ' · ' + KG.derive.ui.pageTitleSuffix;
+
     var report = KG.derive.validate();
     if (!report.ok) {
       report.errors.forEach(function (e) { console.error('[数据体检]', e); });

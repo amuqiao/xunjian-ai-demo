@@ -102,14 +102,14 @@
     var hud = D.el('div', 'stg-hud');
 
     var brand = D.el('div', 'stg-brand');
-    brand.appendChild(D.el('div', 'stg-eyebrow', 'Knowledge Graph Exhibit'));
+    brand.appendChild(D.el('div', 'stg-eyebrow', KG.derive.ui.stage.eyebrow));
     var h1 = D.el('h1'); h1.textContent = hub.name; brand.appendChild(h1);
     var sub = D.el('div', 'stg-sub'); sub.textContent = hub.sub; brand.appendChild(sub);
     hud.appendChild(brand);
 
     var live = D.el('div', 'stg-live');
     live.appendChild(D.el('span', 'stg-dot'));
-    var liveTxt = D.el('span'); liveTxt.textContent = '索引同步中';
+    var liveTxt = D.el('span'); liveTxt.textContent = KG.derive.ui.stage.liveText;
     live.appendChild(liveTxt);
     hud.appendChild(live);
 
@@ -128,7 +128,7 @@
     metrics.appendChild(mgroup);
 
     var focusBox = D.el('div', 'stg-focus');
-    focusBox.appendChild(D.el('div', 'k', 'Scanning'));
+    focusBox.appendChild(D.el('div', 'k', KG.derive.ui.stage.focusLabel));
     elFName = D.el('div', 'v');
     elFCode = D.el('div', 'c');
     focusBox.appendChild(elFName);
@@ -144,7 +144,7 @@
 
     elLoading = D.el('div', 'stg-loading');
     elLoading.appendChild(D.el('div', 'stg-ring'));
-    elLoading.appendChild(D.el('p', null, '初始化展台'));
+    elLoading.appendChild(D.el('p', null, KG.derive.ui.stage.loadingText));
     root.appendChild(elLoading);
   }
 
@@ -489,7 +489,7 @@
     rr(g, W / 2 - 96, y + h - 52, 192, 34, 8); g.fill();
     g.font = '400 16px "SF Mono",Menlo,monospace';
     g.fillStyle = 'rgba(150,175,235,.5)';
-    g.fillText('VECTOR INDEXED', W / 2, y + h - 30);
+    g.fillText(KG.derive.ui.stage.cardFooter, W / 2, y + h - 30);
 
     return tex(c);
   }
@@ -816,7 +816,7 @@
     var c = cards[i].cat;
     elFName.textContent = c.name;
     elFName.style.color = c.color;
-    elFCode.textContent = c.code + ' · ' + c.count + ' 篇';
+    elFCode.textContent = c.code + ' · ' + c.count + ' ' + KG.derive.text.docUnit;
   }
 
   function animate() {
@@ -998,7 +998,7 @@
 
       // HUD 焦点区的初始文案：第一张牌，颜色留给扫描光带扫到时再上
       elFName.textContent = cards[0].cat.name;
-      elFCode.textContent = cards[0].cat.code + ' · ' + cards[0].cat.count + ' 篇';
+      elFCode.textContent = cards[0].cat.code + ' · ' + cards[0].cat.count + ' ' + KG.derive.text.docUnit;
 
       clock = new THREE.Clock();
       raycaster = new THREE.Raycaster();
