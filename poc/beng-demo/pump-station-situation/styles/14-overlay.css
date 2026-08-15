@@ -1,0 +1,283 @@
+/* 14-overlay.css: 通用浮层（overlay-*，scripts/ui/overlay.js）+ 静态 Agent 问答弹窗
+   （agent-dialog-*，scripts/ui/agentdialog.js）。 */
+
+/* ---------- 通用浮层（scripts/ui/overlay.js） ---------- */
+
+.overlay-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.overlay-layer.open {
+  pointer-events: auto;
+}
+
+.overlay-mask {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(90deg, rgba(6, 12, 17, 0.18), rgba(6, 12, 17, 0.64)),
+    rgba(0, 0, 0, 0.34);
+  transition: opacity 180ms ease;
+}
+
+.overlay-layer.open .overlay-mask {
+  opacity: 1;
+}
+
+.overlay-mask-locked {
+  cursor: default;
+}
+
+.overlay-panel {
+  position: absolute;
+  top: 96px;
+  right: 18px;
+  width: min(460px, calc(100vw - 36px));
+  max-height: calc(100vh - 116px);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  outline: none;
+  border-color: rgba(75, 179, 211, 0.42);
+  background:
+    linear-gradient(180deg, rgba(19, 34, 47, 0.98), rgba(9, 17, 24, 0.98)),
+    var(--panel);
+  box-shadow: -26px 0 54px rgba(0, 0, 0, 0.38);
+  transform: translateX(calc(100% + 32px));
+  visibility: hidden;
+  transition:
+    transform 220ms ease,
+    visibility 0s linear 220ms;
+}
+
+.overlay-layer.open .overlay-panel {
+  transform: translateX(0);
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* wide 变体：知识库文档浮层等需要比 agent 抽屉更宽的场合用，agent 抽屉不传。 */
+.overlay-panel.overlay-wide {
+  width: min(720px, calc(100vw - 36px));
+}
+
+.overlay-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.overlay-head .tool-btn:disabled {
+  cursor: default;
+  opacity: 0.56;
+}
+
+.overlay-title {
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.overlay-body {
+  display: grid;
+  gap: 12px;
+}
+
+.overlay-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+/* 知识库文档阅读器 / 上传演示：居中弹窗。AgentDialog 保持下面的右侧 side sheet。 */
+.overlay-layer .overlay-panel.kb-doc-overlay,
+.overlay-layer .overlay-panel.kb-ingest-overlay {
+  top: 70px;
+  left: 50%;
+  right: auto;
+  width: min(1360px, calc(var(--screen-design-width) - 120px));
+  max-height: calc(var(--screen-design-height) - 140px);
+  padding: 18px;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.46);
+  transform: translate(-50%, 28px) scale(0.98);
+}
+
+.overlay-layer .overlay-panel.kb-ingest-overlay {
+  width: min(1280px, calc(var(--screen-design-width) - 160px));
+}
+
+.overlay-layer.open .overlay-panel.kb-doc-overlay,
+.overlay-layer.open .overlay-panel.kb-ingest-overlay {
+  transform: translate(-50%, 0) scale(1);
+}
+
+.kb-doc-overlay .overlay-body,
+.kb-ingest-overlay .overlay-body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kb-doc-overlay .overlay-foot,
+.kb-ingest-overlay .overlay-foot {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 0px) and (max-width: 760px) {
+  .overlay-panel {
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    width: auto;
+    max-height: min(78vh, 680px);
+    transform: translateY(calc(100% + 24px));
+  }
+
+  .overlay-panel.overlay-wide {
+    width: auto;
+  }
+
+  .overlay-layer.open .overlay-panel {
+    transform: translateY(0);
+  }
+
+  .overlay-foot {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- 静态 Agent 问答弹窗（scripts/ui/agentdialog.js） ---------- */
+
+.overlay-panel.agent-dialog {
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  width: min(1180px, calc(var(--screen-design-width) - 36px));
+  max-height: none;
+  padding: 18px;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.agent-dialog .overlay-body {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.agent-dialog-summary {
+  color: #b8c8d4;
+  line-height: 1.6;
+}
+
+.agent-dialog-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.44fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.agent-dialog-questions {
+  min-height: 0;
+  max-height: 100%;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.agent-dialog-question {
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #dce9ef;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.agent-dialog-question.active,
+.agent-dialog-question:hover {
+  border-color: rgba(75, 179, 211, 0.54);
+  background: rgba(75, 179, 211, 0.12);
+}
+
+.agent-dialog-answer {
+  min-height: 0;
+  height: 100%;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  overflow: auto;
+  border: 1px solid rgba(75, 179, 211, 0.28);
+  border-radius: 8px;
+  background: rgba(2, 9, 14, 0.52);
+}
+
+.agent-dialog-answer.empty {
+  color: var(--muted);
+}
+
+.agent-dialog-role {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.agent-dialog-answer p {
+  color: #d9e6ec;
+  line-height: 1.7;
+}
+
+.agent-dialog-hit-title {
+  margin-top: 4px;
+  color: #dff5fb;
+  font-size: 13px;
+}
+
+.agent-dialog-hits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.agent-dialog-hit {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.agent-dialog-hit.workcard,
+.agent-dialog-hit.current {
+  border-color: rgba(75, 179, 211, 0.44);
+  color: var(--cyan);
+}
+
+.agent-dialog-hit.rule,
+.agent-dialog-hit.standard,
+.agent-dialog-hit.metric {
+  border-color: rgba(238, 180, 74, 0.44);
+  color: var(--amber);
+}
+
+.agent-dialog-hit.case {
+  border-color: rgba(48, 198, 157, 0.5);
+  color: var(--green);
+}
+
+.agent-dialog-hit.report {
+  border-color: rgba(90, 140, 255, 0.46);
+  color: #9fb9ff;
+}

@@ -1,0 +1,314 @@
+/* 08-workbench.css: workbench-stack / workbench-focus-grid / focus-card / thumb
+   （诊断工作台：左列可选巡检记录表格 + 右侧摘要条与 4 张卡）
+
+   高度链路（跟 06-overview.css 的 .overview-shell/.overview-grid 是同一套手法）：
+   .workbench-shell（本文件新增，由 workbench.js 在 pageShell() 产物上追加这个类）
+   锁死在 #stage 的可用高度内，一路用 min-height:0 往下传，让"整页不出现纵向
+   滚动条"，只有左列的 .record-list-scroll 自己 overflow-y:auto 滚动。
+
+   本次重排对照实测缺陷逐条修法（详见 workbench.js 顶部注释）：
+   ① 记录详情卡的 3 个 metric 框整个删掉，换成 .workbench-summary 这条 44px 的纯
+      文本摘要条（32px 内容高度 + 12px 网格行距 = 44px，正好对齐左侧
+      .record-panel .panel-title 的 32px 高度 + 12px margin-bottom，两侧视觉顶部对齐）。
+   ② 左列换成 .sl-table（scripts/ui/selectlist.js 的 table 变体，行高/表头吸顶已经由
+      03-cards.css 定义），这里只负责给它一个有限高度的滚动容器。
+   ③ .trend-focus 从"貌似迷你图"改成 flex 列布局，图表容器 .trend-chart-wrap
+      flex:1 撑满卡片除标题/提示行/按钮之外的所有高度，配合 workbench.js 把构造器从
+      ChartOptions.spark() 换成 trend()，净高从 132px 提到 ~340px 的同时把坐标轴/
+      刻度/图例/关注线标注都装下。
+   ④ 新增 .vision-frame / .vision-frame-box 这套 bbox 标注框样式。
+   ⑤ .workbench-focus-grid 的行高从"四块等分"改成 32px（摘要条）/ minmax(0,1fr)
+      （时序+视觉，按可用空间撑满）/ 216px（AI 建议 + Agent 问答，按内容定死），
+      不再用同一个尺寸装信息量差三倍的内容。 */
+
+.workbench-shell {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.workbench-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.compact-workbench {
+  gap: 12px;
+}
+
+/* ---------- 左列：可选巡检记录表格 + 右侧摘要条/4 张卡，同一行并排 ---------- */
+
+.workbench-layout {
+  display: flex;
+  gap: 14px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* 左列宽度用 clamp 而不是死的 620px：死宽度在 1920 下没问题（时序卡还有 623px），
+   但视口变窄时它一寸不让，1440 下时序卡被压到 383px、1280 下只剩 303px——实测数值，
+   这正是"图表卡被压扁"那类问题的另一种成因（不是高度不足，是宽度被固定列吃掉）。
+   clamp(440px, 33%, 620px)：1920 → 620px（保持现状），1440 → 466px，1280 → 440px，
+   时序卡相应回到 ~460px / ~393px。 */
+.record-panel {
+  flex: 0 0 clamp(440px, 33%, 620px);
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 左列变窄后表格靠"列宽按比例分配"跟着收，那一步在组件层做（scripts/ui/selectlist.js
+   把 columns[].width 当相对权重换算成百分比落到 <col> 上），这里不重复定义
+   width/table-layout——03-cards.css 的 .sl-table 已经有了，场景层重复一遍只会让
+   后来的人分不清哪一份才是真源。
+   这里只补一件场景专属的事：单元格 nowrap + ellipsis，保住 36px 行高。否则窄屏下
+   文字换行会把行撑高，一屏可见行数反而更少。被截断的完整文案在顶部摘要条里仍然完整。 */
+.record-list-scroll .sl-table-td {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.record-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.record-list-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.record-list-scroll::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(75, 179, 211, 0.35);
+}
+
+/* .sl-table-head th 自带 position:sticky（03-cards.css），这里补一个不透明的吸顶
+   背景色——sticky 表头下面滚过的行如果透出滚动容器背景，吸顶文字会被下面的行糊在
+   一起。用跟 .panel 一致的深色，不新开一份色值。 */
+.record-list-scroll .sl-table-head th {
+  background: #101a23;
+}
+
+/* ---------- 右侧：44px 摘要条 + 时序/视觉（1fr，按内容撑满）+ AI 建议/Agent 问答
+   （固定 216px，按内容定死，不再跟时序/视觉均分面积） ---------- */
+
+.workbench-focus-grid {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 32px minmax(0, 1fr) 216px;
+  grid-template-areas:
+    "summary summary"
+    "trend   vision"
+    "advice  agent";
+  gap: 12px;
+}
+
+.workbench-summary {
+  grid-area: summary;
+  min-height: 0;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+}
+
+.workbench-summary span {
+  overflow: hidden;
+  color: #dff5fb;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.focus-card {
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.focus-card strong {
+  color: #f3fbff;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.focus-card p {
+  color: #b8c8d4;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 时序/视觉两张卡改用 flex 列布局：标题/提示行/按钮按内容定高，中间的图表/图片区域
+   flex:1 吃掉剩余高度——这两张卡所在的行是 minmax(0,1fr)，会随视口高度变化，图表/
+   图片区域必须能跟着伸缩，不能像 .focus-card 默认的 grid + align-content:start 那样
+   把多余高度晾在卡片底部（旧版"AI 卡下方空了约 100px"就是这类问题的另一面）。 */
+.trend-focus,
+.vision-focus {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.trend-focus {
+  grid-area: trend;
+}
+
+.trend-alert {
+  margin: 0;
+}
+
+/* 图表容器：ECharts 在挂载那一刻按容器当时量到的高度初始化画布，容器之后变高画布
+   不会跟着变（07-station.css 雷达卡那段注释同源的坑）。这里用 flex:1 + min-height:0
+   让 .trend-chart-wrap 吃满卡片除标题/提示行/按钮之外的剩余高度，.chart-box 本身
+   继续用 04-charts.css 的 height:100% 填满这个 wrap——都是"容器先有确定高度，
+   ECharts 再 init"这一条链路，没有引入新的时序竞争。 */
+.trend-chart-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.trend-chart-wrap .chart-box {
+  min-height: 0;
+}
+
+.vision-focus {
+  grid-area: vision;
+}
+
+/* 视觉卡的图片区域：flex 居中，让 .vision-frame（figure）按图片实际渲染出来的盒子
+   收缩，而不是撑满整个 wrap 的宽度——这样 bbox 才能相对图片本身定位，不会因为
+   "wrap 是横的、图片是竖的"这种宽高比不一致而整体偏移（workbench.js 顶部注释④）。
+   wrap 自身的深色背景就是图片没铺满宽度时露出来的留白，替掉现有详情屏那种刺眼的
+   纯白 letterbox。 */
+.vision-frame-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.vision-frame {
+  position: relative;
+  height: 100%;
+  max-width: 100%;
+  margin: 0;
+  display: inline-block;
+}
+
+.vision-frame-img {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  display: block;
+}
+
+.vision-frame-box {
+  position: absolute;
+  border: 2px solid var(--cyan);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(6, 12, 16, 0.6);
+}
+
+.vision-frame-box-label {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  transform: translateY(-100%);
+  white-space: nowrap;
+  background: rgba(10, 20, 26, 0.88);
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* AI 建议卡是 Cards.evidence 的产物（card-evidence + status 类，styles/03-cards.css
+   已经定义了 ok/warn/danger 三色左边框），这里只负责它在网格里的位置，不再重复定义
+   颜色——旧版这里曾经写死"总是危色渐变背景"，但现在 status 会随 aiFlag 变化
+   （conflict/gap/ok 三种都可能出现），写死的危色背景会跟 ok/warn 两种状态矛盾。 */
+/* align-content:start 是必须的：这张卡是 Cards.evidence 的产物（.card-evidence，
+   内部是 display:grid 的不定高行），而它所在的网格行固定 216px，比内容高不少。
+   默认的 align-content:normal 会把多余高度按 stretch 摊给各行，在"冲突结论"那句话
+   和底部三个标签之间挤出约 140px 的空隙，看起来像两块无关内容。
+   .focus-card 已经带了这条，但这张卡走的是 card-evidence、不带 .focus-card 类，
+   所以要单独补上——与 07-station.css 里 .station-side 那处是同一类问题、同一种修法。 */
+.ai-suggest-focus {
+  grid-area: advice;
+  min-height: 0;
+  overflow: hidden;
+  align-content: start;
+}
+
+.agent-focus {
+  grid-area: agent;
+  min-height: 0;
+  overflow: hidden;
+  border-color: rgba(75, 179, 211, 0.42);
+}
+
+.focus-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.focus-tags span {
+  min-height: 24px;
+  border: 1px solid rgba(75, 179, 211, 0.34);
+  border-radius: 6px;
+  background: rgba(75, 179, 211, 0.08);
+  color: #dff5fb;
+  padding: 3px 7px;
+  font-size: 11px;
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .workbench-layout {
+    flex-direction: column;
+  }
+
+  .record-panel {
+    flex: 0 0 auto;
+    max-height: 260px;
+  }
+
+  .workbench-focus-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto auto;
+    grid-template-areas:
+      "summary"
+      "trend"
+      "vision"
+      "advice"
+      "agent";
+  }
+
+  .trend-chart-wrap {
+    min-height: 260px;
+  }
+
+  .vision-frame-wrap {
+    min-height: 220px;
+  }
+}

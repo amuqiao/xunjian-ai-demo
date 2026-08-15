@@ -1,0 +1,654 @@
+/* 03-cards.css: panel / panel-title / badge / dot / tag-row / area-stat / dashboard-kpi / primary-action / plain-button / tool-btn 等通用件 */
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22, 36, 49, 0.96), rgba(14, 23, 31, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.primary-action,
+.plain-button,
+.tool-btn {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  padding: 0 13px;
+}
+
+.primary-action {
+  background: linear-gradient(135deg, #1b9dbe, #2fbf95);
+  border-color: rgba(96, 220, 220, 0.72);
+  color: #f8ffff;
+  font-weight: 800;
+}
+
+.primary-action:disabled {
+  background: #25313b;
+  border-color: #3b4a56;
+  color: #758797;
+}
+
+.tool-btn:hover,
+.plain-button:hover,
+.primary-action:hover {
+  border-color: var(--cyan);
+}
+
+.muted,
+.panel-title small {
+  color: var(--muted);
+}
+
+.badge {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.badge.ok {
+  color: #d9fff5;
+  background: rgba(48, 198, 157, 0.13);
+  border-color: rgba(48, 198, 157, 0.42);
+}
+
+.badge.warn {
+  color: #fff0cf;
+  background: rgba(238, 180, 74, 0.13);
+  border-color: rgba(238, 180, 74, 0.42);
+}
+
+.badge.danger {
+  color: #ffe0df;
+  background: rgba(255, 98, 92, 0.15);
+  border-color: rgba(255, 98, 92, 0.48);
+}
+
+.panel-title {
+  min-height: 32px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #dff5fb;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panel-title small {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.dot.warn {
+  background: var(--amber);
+}
+
+.dot.danger {
+  background: var(--red);
+}
+
+.dot.ok {
+  background: var(--green);
+}
+
+.dashboard-kpi {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22, 36, 49, 0.92), rgba(13, 24, 33, 0.96));
+  padding: 8px 10px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  box-shadow: var(--shadow);
+}
+
+.dashboard-kpi span,
+.dashboard-kpi small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-kpi strong {
+  color: #f4fbff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.dashboard-kpi.danger {
+  border-color: rgba(255, 98, 92, 0.42);
+  background: linear-gradient(180deg, rgba(54, 25, 28, 0.9), rgba(17, 27, 36, 0.96));
+}
+
+.dashboard-kpi.warn {
+  border-color: rgba(238, 180, 74, 0.38);
+}
+
+.dashboard-kpi.ok {
+  border-color: rgba(48, 198, 157, 0.34);
+}
+
+/* ---------------------------------------------------------------------------
+   四类卡片工厂（scripts/ui/cards.js）+ SelectList（scripts/ui/selectlist.js）+
+   DetailCard（scripts/ui/detailcard.js）的样式。四类卡片要“一眼分得出层级”：
+
+   - card-metric  权重最高：大数字（状态色）+ 小标签，字号/字重全场最重
+   - card-detail  权重中等：结构化分区，标题/结论用中等字号，靠留白和分区分层
+   - card-chart   权重收敛：标题最小最淡，图表区域占满，不放任何结论性文字
+   - card-evidence 权重最低：一句结论 + 最多 3 个标签，字号最小、最不抢眼
+
+   只新增选择器，不修改上面任何既有规则的属性值（verify_css_snapshot.py 的计算样式
+   基线只采样既有选择器，这里新增的类不在采样名单内）。
+   --------------------------------------------------------------------------- */
+
+/* card-metric：视觉权重最高的一类 */
+
+.card-metric {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22, 36, 49, 0.96), rgba(14, 23, 31, 0.96));
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.card-metric.ok {
+  border-left-color: var(--green);
+}
+
+.card-metric.warn {
+  border-left-color: var(--amber);
+}
+
+.card-metric.danger {
+  border-left-color: var(--red);
+}
+
+.card-metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-metric-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.card-metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.card-metric-value strong {
+  color: #f4fbff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.card-metric.ok .card-metric-value strong {
+  color: var(--green);
+}
+
+.card-metric.warn .card-metric-value strong {
+  color: var(--amber);
+}
+
+.card-metric.danger .card-metric-value strong {
+  color: var(--red);
+}
+
+.card-metric-unit {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card-metric-note {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.card-metric-spark {
+  min-height: 36px;
+}
+
+/* card-chart：只有标题 + 图，权重最收敛的一类 */
+
+.card-chart {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22, 36, 49, 0.9), rgba(13, 24, 33, 0.94));
+  box-shadow: var(--shadow);
+  padding: 10px 12px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.card-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-chart-title {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.card-chart-meta {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.card-chart-body {
+  min-height: 220px;
+}
+
+.card-chart.tall .card-chart-body {
+  min-height: 340px;
+}
+
+/* card-evidence：一句结论 + ≤3 标签，权重最低的一类 */
+
+.card-evidence {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--line);
+  border-radius: 8px;
+  background: rgba(17, 27, 36, 0.6);
+  padding: 9px 11px;
+  display: grid;
+  gap: 6px;
+}
+
+.card-evidence.ok {
+  border-left-color: rgba(48, 198, 157, 0.5);
+}
+
+.card-evidence.warn {
+  border-left-color: rgba(238, 180, 74, 0.5);
+}
+
+.card-evidence.danger {
+  border-left-color: rgba(255, 98, 92, 0.5);
+}
+
+.card-evidence-conclusion {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.card-evidence-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tag {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(75, 179, 211, 0.32);
+  border-radius: 6px;
+  background: rgba(75, 179, 211, 0.08);
+  color: var(--muted);
+  padding: 2px 7px;
+  font-size: 10px;
+}
+
+/* card-detail：结构化分区，权重居中，位置语义完全交给外层网格 */
+
+.card-detail {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(22, 36, 49, 0.94), rgba(14, 23, 31, 0.96));
+  box-shadow: var(--shadow);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.detail-title {
+  color: #f4fbff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.detail-active-part {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--cyan);
+  font-size: 11px;
+}
+
+.detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.detail-metric {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(9, 17, 24, 0.5);
+  padding: 7px 9px;
+  display: grid;
+  gap: 2px;
+}
+
+.detail-metric small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.detail-metric strong {
+  color: #f4fbff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.detail-metric-unit {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.detail-conclusion {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail-sections {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-section-title {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* SelectList（scripts/ui/selectlist.js）：三个 variant 只决定排布方式，选中态样式统一 */
+
+.sl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sl-metric {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.sl-row {
+  flex-direction: column;
+}
+
+.sl-tile {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+}
+
+.sl-item {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  padding: 7px 10px;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.sl-item.ok {
+  border-left-color: var(--green);
+}
+
+.sl-item.warn {
+  border-left-color: var(--amber);
+}
+
+.sl-item.danger {
+  border-left-color: var(--red);
+}
+
+.sl-item.active {
+  border-color: var(--cyan);
+  background: rgba(75, 179, 211, 0.14);
+}
+
+.sl-item:hover {
+  border-color: var(--cyan);
+}
+
+.sl-item:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.sl-item-label {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.sl-item-badge {
+  justify-self: start;
+  color: #dff5fb;
+  font-size: 11px;
+}
+
+.sl-item-value {
+  color: #f4fbff;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.sl-item-unit {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.sl-item-note {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sl-item-spark {
+  min-height: 24px;
+}
+
+/* SelectList table 变体：把同一套单选列表渲染成多列表格（诊断工作台巡检记录），从卡片
+   列表的 ~103px/行收敛到 ~36px/行，一屏能看到更多条目、且能按列对齐扫视。真 <table> 语义，
+   选中态/hover 态延续 SelectList 整体的视觉语言（Cyan 高亮 + 状态色）。
+   .sl-table 自己绝不设 overflow / height——纵向滚动容器由场景层（L6）提供，这里设了会和它打架。 */
+
+.sl-table {
+  /* display:table 是必须显式写的，不是冗余：table 变体的根节点 class 是 "sl sl-table"，
+     而基类 .sl 是 display:flex（给 metric/row/tile 三个变体设计的）。flex 会把
+     <table> 自身的 display:table 覆盖掉，后果是 table-layout:fixed 和 <colgroup> 里的
+     列宽**全部被忽略**，thead/tbody 变成按内容排的 flex 项——实测表头行 306px、
+     数据行 519px，容器只有 414px，最右一列直接溢出到可视区外。
+     而这一切在 Node 端断言里全绿：tagName 仍是 table、<th scope=col> 和 aria 都在，
+     语义完全正确，只有 CSS 把布局模式换掉了。verify_ui.js 的 DOM 桩看不到 CSS，
+     所以这条只能靠浏览器里量 thead/tbody 行宽才能发现。 */
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.sl-table-head th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 34px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0 8px;
+}
+
+.sl-table-row {
+  height: 36px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+/* <tr> 在 border-collapse: collapse 下左边框经常被浏览器吞掉，用 inset box-shadow
+   代替 metric/row/tile 那套 border-left 状态色边条，视觉效果等价但对 <tr> 可靠。 */
+.sl-table-row.ok {
+  box-shadow: inset 3px 0 0 var(--green);
+}
+
+.sl-table-row.warn {
+  box-shadow: inset 3px 0 0 var(--amber);
+}
+
+.sl-table-row.danger {
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+.sl-table-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sl-table-row.active {
+  background: rgba(75, 179, 211, 0.14);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
+.sl-table-row:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: -3px;
+}
+
+.sl-table-td {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 8px;
+}
+
+.sl-table-td-dot {
+  text-align: center;
+}
+
+.sl-table-dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.sl-table-dot.warn {
+  background: var(--amber);
+}
+
+.sl-table-dot.danger {
+  background: var(--red);
+}
+
+.sl-table-td-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sl-table-badge-icon {
+  font-size: 11px;
+}
+
+.sl-table-badge-icon.ok {
+  color: var(--green);
+}
+
+.sl-table-badge-icon.warn {
+  color: var(--amber);
+}
+
+.sl-table-badge-icon.danger {
+  color: var(--red);
+}
+
+.sl-table-badge-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

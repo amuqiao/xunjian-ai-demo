@@ -1,0 +1,32 @@
+/* 13-graph.css: 知识图模块 iframe 容器。 */
+
+.graph-module-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.graph-module-frame-panel {
+  min-width: 0;
+  min-height: 0;
+  height: calc(var(--screen-design-height) - 196px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.graph-module-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #061120;
+}
+
+.graph-module-switch .primary-action[disabled] {
+  cursor: default;
+  opacity: 1;
+}

@@ -1,0 +1,101 @@
+/* 11-archive.css: archive-* / report-* / reuse-* */
+
+/* ---------------------------------------------------------------------------
+   任务 P3-E（阶段三 G2）：归档场景精简为三件——报告预览（Cards.evidence 六/三段式）
+   + 归档动作（primary-action，样式在 02-shell.css，本文件不重复定义）+ 二次命中
+   解锁卡（.reuse-panel）。原来的 .archive-grid 两栏布局、.archive-side/.case-card/
+   .tag-cloud/.archive-case-context/.archive-source-list/.archive-fact-list 这些
+   承载"归档状态卡"和"已归档案例上下文"的选择器随内容一起去掉，不再保留死样式。
+   .report-section 系列（旧的逐段长文字块）也一并去掉，段落内容现在由
+   Cards.evidence 的 .card-evidence*（03-cards.css，不在本文件改动范围内）承载。
+   --------------------------------------------------------------------------- */
+
+.archive-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.report-panel,
+.reuse-panel {
+  padding: 14px;
+  min-width: 0;
+}
+
+/* ① 报告预览：Cards.evidence 卡片网格，宽屏 3 列（6 段两行 / 3 段一行），
+   随宽度收窄到 2 列、1 列，避免卡片被压扁到放不下一句结论。 */
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* ③ 二次命中解锁卡：locked/unlocked 两态 + 内部三栏（说明文字 / 命中标签 / 案例号），
+   与去掉归档状态卡之前的样式保持一致，未做视觉改动。 */
+
+.reuse-panel.locked {
+  opacity: 0.68;
+}
+
+.reuse-panel.unlocked {
+  border-color: rgba(48, 198, 157, 0.45);
+}
+
+.reuse-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(120px, 180px);
+  gap: 14px;
+  align-items: center;
+}
+
+.case-id {
+  min-height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: #dff5fb;
+  font-weight: 800;
+  text-align: center;
+}
+
+.reuse-tags span {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.reuse-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reuse-panel p {
+  color: #b8c8d4;
+  line-height: 1.55;
+  font-size: 13px;
+}
+@media (max-width: 0px) and (max-width: 1180px) {
+  .report-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 0px) and (max-width: 760px) {
+  .reuse-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .archive-stack {
+    gap: 10px;
+  }
+}
