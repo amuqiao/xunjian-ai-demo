@@ -1,6 +1,5 @@
 /* 外壳：顶栏 + stage + 流程条，以及全局通用件（panel / 按钮 / 状态点 / 标题）。
-   布局全程在 1920×1080 的坐标系里进行，由 --screen-scale 等比缩到当前窗口——
-   场景层因此不需要写任何响应式分支。 */
+   页面按真实视口铺满，避免非 16:9 屏幕上出现等比缩放后的横向留白。 */
 
 * { box-sizing: border-box; }
 
@@ -15,19 +14,18 @@ html, body {
 }
 
 body {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
 }
 
 .app-shell {
-  width: 1920px;
-  height: 1080px;
-  flex: 0 0 auto;
-  transform: scale(var(--screen-scale));
-  transform-origin: center center;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  min-width: 1280px;
+  min-height: 720px;
   display: grid;
-  grid-template-rows: 84px 1fr 96px;
+  grid-template-rows: 80px minmax(0, 1fr) 92px;
   gap: var(--gap-lg);
   padding: var(--gap-lg);
   background:

@@ -27,6 +27,7 @@
 }
 
 .inspection-flow-nav a:hover,
+.inspection-flow-nav a:focus-visible,
 .inspection-flow-nav a.is-active {
   border-color: rgba(56, 198, 236, 0.78);
   color: #061019;
@@ -52,7 +53,7 @@
 }
 
 .inspection-flow-nav a:hover::after,
-.inspection-flow-nav a.is-active::after {
+.inspection-flow-nav a:focus-visible::after {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
