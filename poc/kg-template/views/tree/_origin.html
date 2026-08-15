@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文档主题 · 树状展开</title>
+<style>
+  :root{
+    --void:#05060F;
+    --panel:#080C1E;
+    --ice:#E8EDFF;
+    --dim:#6F7DAE;
+    --hair:rgba(120,150,255,.14);
+    --sans:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{background:#05060F;font-family:var(--sans);color:var(--ice);-webkit-font-smoothing:antialiased;display:flex}
+
+  /* ══ 左栏：主题目录 ══════════════════════════════ */
+  .side{
+    width:296px;flex:none;height:100%;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#0A0F24,#070A1A);
+    border-right:1px solid var(--hair);
+  }
+  .side-head{padding:26px 24px 18px;border-bottom:1px solid var(--hair)}
+  .side-head .eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.38em;
+    text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:10px;margin-bottom:11px}
+  .side-head .eyebrow::before{content:"";width:20px;height:1px;background:linear-gradient(90deg,#4FD6A9,transparent)}
+  .side-head h1{font-size:19px;font-weight:600;letter-spacing:.13em;color:#E4ECFF}
+  .side-head .cnt{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(150,175,235,.5);margin-top:8px}
+
+  .topics{flex:1;overflow-y:auto;padding:14px 16px 24px}
+  .topics::-webkit-scrollbar{width:4px}
+  .topics::-webkit-scrollbar-thumb{background:rgba(120,160,255,.2);border-radius:2px}
+
+  .topic{
+    position:relative;display:flex;align-items:center;gap:13px;
+    padding:13px 14px 13px 16px;margin-bottom:7px;border-radius:8px;cursor:pointer;
+    background:linear-gradient(100deg,rgba(24,34,72,.55),rgba(14,20,46,.35));
+    border:1px solid rgba(110,145,230,.14);
+    transition:background .2s,border-color .2s,transform .2s;
+    overflow:hidden;
+  }
+  /* 左侧竖条：选中时点亮，是"当前在看哪个"的主指示 */
+  .topic::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:rgba(110,145,230,.3);transition:background .2s,box-shadow .2s;
+  }
+  .topic:hover{background:linear-gradient(100deg,rgba(34,48,100,.7),rgba(18,26,58,.45));
+    border-color:rgba(130,170,255,.28)}
+  .topic.on{
+    background:linear-gradient(100deg,rgba(40,58,124,.85),rgba(20,30,66,.5));
+    border-color:rgba(255,198,97,.42);
+  }
+  .topic.on::before{background:#FFC661;box-shadow:0 0 14px #FFC661}
+  .topic .no{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(150,175,235,.5);flex:none}
+  .topic.on .no{color:#FFC661}
+  .topic .nm{font-size:14px;letter-spacing:.05em;color:rgba(210,222,255,.86);flex:1}
+  .topic.on .nm{color:#fff;font-weight:600}
+  .topic .qty{font-family:var(--mono);font-size:10px;color:rgba(150,175,235,.42)}
+
+  /* ══ 右栏：树 ═══════════════════════════════════ */
+  .main{flex:1;position:relative;min-width:0;background:
+    radial-gradient(120% 90% at 30% 40%, #0A0F26 0%, #070A1A 55%, #05060F 100%)}
+
+  .main-head{position:absolute;top:0;left:0;right:0;z-index:3;pointer-events:none;
+    padding:26px 32px 20px;
+    background:linear-gradient(180deg,rgba(5,6,15,.92) 40%,rgba(5,6,15,0))}
+  .main-head h2{font-size:20px;font-weight:600;letter-spacing:.1em;color:#FFC661}
+  .main-head p{font-size:12.5px;line-height:1.7;color:rgba(178,196,240,.6);margin-top:8px;max-width:640px}
+
+  .stage{position:absolute;inset:0;overflow:hidden;cursor:grab}
+  .stage.drag{cursor:grabbing}
+  .world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+  .world svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+
+  .edge{fill:none;stroke:rgba(110,150,225,.26);stroke-width:1.1;transition:stroke .18s,stroke-width .18s}
+  .edge.dimmed{stroke:rgba(110,150,225,.07)}
+  .edge.lit{stroke-width:1.9}
+
+  .node{position:absolute;display:flex;align-items:center;gap:9px;
+    transform:translateY(-50%);cursor:pointer;white-space:nowrap;
+    transition:opacity .25s}
+  .node .dot{
+    flex:none;border-radius:50%;position:relative;
+    transition:transform .2s,box-shadow .2s;
+  }
+  /* 折叠标记：外圈虚环 + 数字，表示这里还藏着东西 */
+  .node .badge{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-family:var(--mono);font-size:8.5px;font-weight:600;color:#05060F;
+    pointer-events:none;
+  }
+  .node .lab{font-family:var(--sans);transition:color .18s,text-shadow .18s}
+  .node.dimmed{opacity:.2}
+  .node.lit .lab{color:#fff!important;text-shadow:0 0 14px currentColor}
+  .node.lit .dot{transform:scale(1.22)}
+
+  /* ══ 图例 / 提示 ════════════════════════════════ */
+  .legend{position:absolute;left:32px;bottom:26px;z-index:3;display:flex;flex-direction:column;gap:8px}
+  .legend .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;margin-bottom:3px}
+  .lg{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(198,212,255,.7)}
+  .lg i{width:11px;height:11px;border-radius:50%;display:block;flex:none}
+
+  .hint{position:absolute;right:32px;bottom:26px;z-index:3;text-align:right;
+    font-family:var(--mono);font-size:10px;letter-spacing:.13em;color:rgba(150,175,235,.34);line-height:1.95}
+
+  .tip{
+    position:fixed;z-index:20;pointer-events:none;opacity:0;
+    padding:9px 13px;border-radius:8px;max-width:320px;
+    background:rgba(10,15,36,.96);border:1px solid rgba(120,160,255,.26);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 34px rgba(0,0,0,.6);
+    font-size:12.5px;line-height:1.6;color:#E4ECFF;
+    transition:opacity .16s;
+  }
+  .tip.on{opacity:1}
+  .tip .path{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+    color:rgba(150,175,235,.6);margin-bottom:5px}
+
+  @media (max-width:900px){
+    .side{width:210px}
+    .main-head{padding:18px 20px 14px}
+    .legend,.hint{display:none}
+  }
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="side-head">
+    <div class="eyebrow">Document Topics</div>
+    <h1 id="sTitle">文档主题</h1>
+    <div class="cnt" id="sCount"></div>
+  </div>
+  <div class="topics" id="topicList"></div>
+</aside>
+
+<div class="main">
+  <div class="main-head">
+    <h2 id="mTitle"></h2>
+    <p id="mDesc"></p>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="world" id="world">
+      <svg id="edges"><g id="edgeG"></g></svg>
+      <div id="nodeLayer"></div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="lbl">层级</div>
+    <div id="legendItems"></div>
+  </div>
+  <div class="hint">
+    悬停节点 — 高亮从根到它的整条路径<br>
+    点击节点 — 折叠 / 展开该分支<br>
+    滚轮 — 缩放　拖拽 — 平移　双击空白 — 复位
+  </div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   DATA — 整页由数据渲染，层数不写死。
+   children 想套几层就套几层，样式配置会自动循环取值。
+   ══════════════════════════════════════════════════════════════════ */
+const DATA = {
+  title: "文档主题",
+  topics: [
+    {
+      name:"产品文档", desc:"产品功能说明、接口契约、部署配置与权限模型，面向实施与集成场景的一手资料。",
+      children:[
+        { name:"接口与集成", children:[
+          { name:"REST 接口规范", children:[
+            {name:"资源与鉴权约定"},{name:"错误码对照表"},{name:"分页与限流说明"} ]},
+          { name:"事件与回调", children:[
+            {name:"Webhook 事件目录"},{name:"重试与幂等策略"} ]},
+          { name:"SDK 接入", children:[
+            {name:"Java 快速开始"},{name:"Python 快速开始"} ]}
+        ]},
+        { name:"部署与配置", children:[
+          { name:"环境准备", children:[
+            {name:"前置条件清单"},{name:"资源规格建议"} ]},
+          { name:"安装流程", children:[
+            {name:"单机部署手册"},{name:"高可用部署手册"},{name:"离线包安装说明"} ]}
+        ]},
+        { name:"权限与账号", children:[
+          { name:"权限模型", children:[
+            {name:"角色与策略定义"},{name:"组织架构映射"} ]},
+          { name:"单点登录", children:[
+            {name:"OIDC 对接指引"},{name:"LDAP 同步配置"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"行业研报", desc:"第三方机构研究成果、市场规模测算与竞争格局分析，用于立项论证与对外材料引用。",
+      children:[
+        { name:"市场规模", children:[
+          { name:"总量测算", children:[
+            {name:"2026 规模测算模型"},{name:"口径与假设说明"} ]},
+          { name:"分行业拆解", children:[
+            {name:"金融行业细分"},{name:"制造行业细分"},{name:"能源行业细分"} ]}
+        ]},
+        { name:"竞争格局", children:[
+          { name:"厂商图谱", children:[
+            {name:"年度厂商综述"},{name:"能力矩阵评分"} ]},
+          { name:"价格带分析", children:[
+            {name:"公开中标价汇总"} ]}
+        ]},
+        { name:"技术趋势", children:[
+          { name:"演进路线", children:[
+            {name:"检索技术演进综述"},{name:"多模态落地观察"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"客户案例", desc:"已交付项目的实施背景、方案设计与量化收益，售前引用与复盘复用的核心素材。",
+      children:[
+        { name:"金融行业", children:[
+          { name:"银行", children:[
+            {name:"某股份行知识中台"},{name:"某城商行智能客服"} ]},
+          { name:"保险", children:[
+            {name:"某险企理赔问答"},{name:"某险企代理人助手"} ]}
+        ]},
+        { name:"制造行业", children:[
+          { name:"整车", children:[
+            {name:"某车企售后知识库"},{name:"某车企工艺检索"} ]},
+          { name:"装备", children:[
+            {name:"某装备厂图纸检索"} ]}
+        ]},
+        { name:"能源行业", children:[
+          { name:"油气", children:[
+            {name:"某管网运维知识库"},{name:"某炼化标准检索"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"法规合规", desc:"数据安全、隐私保护与行业监管的法规条文及内部解读，交付前必查的合规依据。",
+      children:[
+        { name:"数据安全", children:[
+          { name:"法律条文", children:[
+            {name:"数据安全法要点"},{name:"个人信息保护法要点"} ]},
+          { name:"实施细则", children:[
+            {name:"数据分类分级指引"},{name:"出境评估办法摘要"} ]}
+        ]},
+        { name:"等级保护", children:[
+          { name:"等保三级", children:[
+            {name:"技术要求条款"},{name:"管理要求条款"},{name:"测评常见问题"} ]}
+        ]},
+        { name:"行业监管", children:[
+          { name:"金融监管", children:[
+            {name:"金融数据分级指引"},{name:"外包风险管理要求"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"技术白皮书", desc:"架构设计、算法原理与技术选型论证，对外可发布的深度技术材料。",
+      children:[
+        { name:"系统架构", children:[
+          { name:"整体架构", children:[
+            {name:"检索增强架构白皮书"},{name:"多租户隔离设计"} ]},
+          { name:"存储层", children:[
+            {name:"向量索引选型论证"},{name:"冷热分层方案"} ]}
+        ]},
+        { name:"算法能力", children:[
+          { name:"检索召回", children:[
+            {name:"混合检索策略"},{name:"重排序模型说明"} ]},
+          { name:"文档解析", children:[
+            {name:"多模态解析技术报告"},{name:"表格还原方案"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"售前话术", desc:"标准应答、异议处理与竞品对比要点，面向售前与渠道的对客表达口径。",
+      children:[
+        { name:"标准应答", children:[
+          { name:"能力边界", children:[
+            {name:"可做与不可做清单"},{name:"效果承诺口径"} ]},
+          { name:"交付方式", children:[
+            {name:"私有化部署说明"},{name:"实施周期口径"} ]}
+        ]},
+        { name:"异议处理", children:[
+          { name:"常见质疑", children:[
+            {name:"幻觉问题应答"},{name:"数据安全应答"},{name:"投入产出应答"} ]}
+        ]},
+        { name:"竞品对比", children:[
+          { name:"对比要点", children:[
+            {name:"能力维度对照表"},{name:"差异化话术"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"运维知识", desc:"部署运行、故障处置与巡检规范，保障系统持续可用的操作性资料。",
+      children:[
+        { name:"日常运行", children:[
+          { name:"巡检", children:[
+            {name:"日常巡检规范"},{name:"巡检记录模板"} ]},
+          { name:"监控告警", children:[
+            {name:"指标阈值基线"},{name:"告警分级定义"} ]}
+        ]},
+        { name:"故障处置", children:[
+          { name:"应急预案", children:[
+            {name:"故障分级处置预案"},{name:"服务降级策略"} ]},
+          { name:"典型案例", children:[
+            {name:"检索超时排查记录"},{name:"索引损坏恢复记录"} ]}
+        ]},
+        { name:"变更管理", children:[
+          { name:"发布流程", children:[
+            {name:"生产变更审批流"},{name:"回滚操作手册"} ]}
+        ]}
+      ]
+    },
+    {
+      name:"会议纪要", desc:"内外部会议记录、决议事项与待办跟踪，决策过程的可追溯留痕。",
+      children:[
+        { name:"内部会议", children:[
+          { name:"产品评审", children:[
+            {name:"季度产品评审纪要"},{name:"需求优先级排期"} ]},
+          { name:"技术决策", children:[
+            {name:"架构决策记录"},{name:"技术债处理共识"} ]}
+        ]},
+        { name:"客户会议", children:[
+          { name:"需求对齐", children:[
+            {name:"客户需求对齐会"},{name:"验收标准确认"} ]},
+          { name:"项目例会", children:[
+            {name:"周例会问题跟踪"} ]}
+        ]}
+      ]
+    }
+  ]
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   层级样式配置 —— 数据深度超出这个数组时循环取值，
+   所以哪天变成六层七层也不会崩
+   ══════════════════════════════════════════════════════════════════ */
+const LEVELS = [
+  { name:"主题",   r:11,  font:15,   weight:600, color:"#FFC661" },
+  { name:"分类",   r:8.5, font:13.5, weight:600, color:"#FF9A66" },
+  { name:"子类",   r:7,   font:12.5, weight:500, color:"#4FD6A9" },
+  { name:"文档",   r:5.5, font:12,   weight:400, color:"#5B9EFF" },
+  { name:"条目",   r:5,   font:11.5, weight:400, color:"#A98CFF" }
+];
+const LV = d => LEVELS[d % LEVELS.length];
+
+const LAYOUT = {
+  rowGap   : 34,   // 行距下限（实际值按可用高度自适应，见 computeGaps）
+  rowGapMax: 88,
+  colGap   : 54,   // 列距下限（实际值按可用宽度自适应）
+  colGapMax: 300,
+  labelGap : 9,    // 圆点到文字的距离
+  elbowR   : 9,    // 折线圆角半径
+  padX     : 60,
+  padY     : 40
+};
+
+/* ── 颜色工具：伪 3D 小球的三个色阶 ───────────────── */
+const rgbOf = h=>{const v=parseInt(h.slice(1),16);return [v>>16&255,v>>8&255,v&255];};
+const mix=(c,t,k)=>c.map((v,i)=>Math.round(v+(t[i]-v)*k));
+const css=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const LIT=[255,251,244], AMB=[10,16,44], RIM=[236,244,255];
+function sphereStyle(color, r){
+  const b=rgbOf(color);
+  const lit=mix(b,LIT,.44), dark=mix(b,AMB,.62), rim=mix(b,RIM,.55);
+  return `width:${r*2}px;height:${r*2}px;`+
+    /* 受光点固定在左上，全场共用一个光源方向 */
+    `background:radial-gradient(circle at 33% 28%, ${css(lit)} 0%, ${css(b)} 46%, ${css(dark)} 100%);`+
+    /* 外发光 + 暗侧边缘光（inset 偏右下）——深底上让球从背景里脱出来的关键 */
+    `box-shadow:0 0 ${r*1.5}px ${css(b,.55)}, inset -${r*.28}px -${r*.28}px ${r*.4}px ${css(rim,.5)};`;
+}
+
+/* ══ 树的准备：赋 id、父指针、深度 ══════════════════ */
+let uid=0;
+function prep(node, parent, depth){
+  node._id = 'n'+(uid++);
+  node._p = parent;
+  node._d = depth;
+  node._collapsed = false;
+  if(node.children) node.children.forEach(c=>prep(c, node, depth+1));
+}
+DATA.topics.forEach(t=>prep(t, null, 0));
+
+const countLeaves = n => (!n.children||!n.children.length) ? 1 : n.children.reduce((s,c)=>s+countLeaves(c),0);
+const countAll = n => 1 + (n.children||[]).reduce((s,c)=>s+countAll(c),0);
+
+/* ── 文本测量：用离屏 canvas，不触发重排 ──────────── */
+const meas = document.createElement('canvas').getContext('2d');
+function textW(str, d){
+  const L=LV(d);
+  meas.font = `${L.weight} ${L.font}px "PingFang SC","Microsoft YaHei",sans-serif`;
+  return meas.measureText(str).width;
+}
+
+/* ══ 布局：列宽按各层最长标签实测，不截断 ═══════════
+   参考图的毛病就出在这——右列标签全截成 "GB 3836.13..."，
+   而左边一大片空白。列宽必须由内容决定。 */
+let visNodes=[], visLinks=[], colX=[], bbox={w:0,h:0};
+/* 行距列距不写死：按可用空间自适应，字号保持恒定。
+   这样切换主题时文字大小不变，但树始终铺满画布——
+   参考图的毛病之一就是树缩在中间、两侧大片空白 */
+const gap = { row:LAYOUT.rowGap, col:LAYOUT.colGap };
+
+function measureTree(root){
+  const byDepth=[];
+  (function walk(n){
+    (byDepth[n._d] ||= []).push(n);
+    if(n.children && !n._collapsed) n.children.forEach(walk);
+  })(root);
+  let contentW=0;
+  for(let d=0; d<byDepth.length; d++){
+    let maxW=0;
+    for(const n of byDepth[d]) maxW=Math.max(maxW, textW(n.name,d));
+    contentW += LV(d).r*2 + LAYOUT.labelGap + maxW;
+  }
+  return { cols:byDepth.length, contentW, leaves:countLeaves(root) };
+}
+
+function computeGaps(root, availW, availH){
+  const m=measureTree(root);
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  gap.row = clamp(availH / Math.max(1, m.leaves-1), LAYOUT.rowGap, LAYOUT.rowGapMax);
+  gap.col = clamp((availW - m.contentW) / Math.max(1, m.cols-1), LAYOUT.colGap, LAYOUT.colGapMax);
+}
+
+function layout(root){
+  // 1. 收集可见节点，按深度分组
+  const byDepth=[];
+  (function walk(n){
+    (byDepth[n._d] ||= []).push(n);
+    if(n.children && !n._collapsed) n.children.forEach(walk);
+  })(root);
+
+  // 2. 每层最长标签 → 该层占用宽度
+  colX=[]; let x=0;
+  for(let d=0; d<byDepth.length; d++){
+    colX[d]=x;
+    const L=LV(d);
+    let maxW=0;
+    for(const n of byDepth[d]) maxW=Math.max(maxW, textW(n.name, d));
+    x += L.r*2 + LAYOUT.labelGap + maxW + gap.col;
+  }
+
+  // 3. 叶子依次排开，父节点取子节点纵向中点
+  let y=0;
+  (function place(n){
+    n._x = colX[n._d] + LV(n._d).r;
+    if(!n.children || !n.children.length || n._collapsed){
+      n._y = y; y += gap.row;
+    } else {
+      n.children.forEach(place);
+      n._y = (n.children[0]._y + n.children[n.children.length-1]._y)/2;
+    }
+  })(root);
+
+  visNodes=[]; visLinks=[];
+  (function collect(n){
+    visNodes.push(n);
+    if(n.children && !n._collapsed) n.children.forEach(c=>{ visLinks.push({p:n,c}); collect(c); });
+  })(root);
+
+  // 4. 包围盒（含标签宽度）
+  let maxX=0, maxY=0;
+  for(const n of visNodes){
+    maxX=Math.max(maxX, n._x + LV(n._d).r + LAYOUT.labelGap + textW(n.name,n._d));
+    maxY=Math.max(maxY, n._y);
+  }
+  bbox={ w:maxX, h:maxY };
+}
+
+/* ══ 渲染 ═══════════════════════════════════════════ */
+const world=document.getElementById('world');
+const edgeG=document.getElementById('edgeG');
+const svg=document.getElementById('edges');
+const nodeLayer=document.getElementById('nodeLayer');
+const tip=document.getElementById('tip');
+const SVGNS='http://www.w3.org/2000/svg';
+
+let current=null;
+const els=new Map();     // id → {el, dot, lab, node, exiting}
+
+function elbow(p, c){
+  const px=p._x, py=p._y, cx=c._x, cy=c._y;
+  if(Math.abs(cy-py)<0.6) return `M${px},${py} L${cx},${cy}`;
+  const midX = cx - (gap.col*0.55);
+  const dir = cy>py ? 1 : -1;
+  const r = Math.min(LAYOUT.elbowR, Math.abs(cy-py)/2, Math.abs(midX-px), Math.abs(cx-midX));
+  return `M${px},${py} L${midX-r},${py} Q${midX},${py} ${midX},${py+r*dir}`+
+         ` L${midX},${cy-r*dir} Q${midX},${cy} ${midX+r},${cy} L${cx},${cy}`;
+}
+
+function render(animate=true){
+  layout(current);
+  svg.setAttribute('width', bbox.w+LAYOUT.padX*2);
+  svg.setAttribute('height', bbox.h+LAYOUT.padY*2);
+
+  // ── 连线 ──
+  edgeG.innerHTML='';
+  for(const l of visLinks){
+    const path=document.createElementNS(SVGNS,'path');
+    path.setAttribute('d', elbow(l.p,l.c));
+    path.setAttribute('class','edge');
+    path.dataset.to=l.c._id;
+    edgeG.appendChild(path);
+  }
+
+  // ── 节点 ──
+  const seen=new Set();
+  for(const n of visNodes){
+    seen.add(n._id);
+    let rec=els.get(n._id);
+    const L=LV(n._d);
+    if(!rec){
+      const el=document.createElement('div');
+      el.className='node';
+      el.dataset.id=n._id;
+      const dot=document.createElement('span');
+      dot.className='dot';
+      const lab=document.createElement('span');
+      lab.className='lab';
+      el.append(dot,lab);
+      // 新节点从父节点位置长出来
+      const src = n._p && els.get(n._p._id) ? n._p : n;
+      el.style.left=(src._x||n._x)+'px';
+      el.style.top=(src._y||n._y)+'px';
+      el.style.opacity='0';
+      nodeLayer.appendChild(el);
+      rec={el,dot,lab,node:n};
+      els.set(n._id, rec);
+      requestAnimationFrame(()=>{ el.style.transition='left .42s cubic-bezier(.22,.85,.3,1),top .42s cubic-bezier(.22,.85,.3,1),opacity .3s'; });
+    }
+    rec.node=n;
+    rec.dot.style.cssText = sphereStyle(L.color, L.r);
+    rec.lab.textContent = n.name;
+    rec.lab.style.cssText =
+      `font-size:${L.font}px;font-weight:${L.weight};color:${n._d<2?'rgba(232,240,255,.95)':'rgba(196,212,250,.82)'};`;
+
+    // 折叠角标：告诉用户这里还藏着多少
+    let badge=rec.el.querySelector('.badge');
+    if(n._collapsed && n.children){
+      if(!badge){ badge=document.createElement('span'); badge.className='badge'; rec.dot.appendChild(badge); }
+      badge.textContent = countLeaves(n);
+      rec.dot.style.boxShadow += `, 0 0 0 2px ${LV(n._d).color}`;
+    } else if(badge) badge.remove();
+
+    if(!animate){ rec.el.style.transition='none'; }
+    rec.el.style.left=n._x+'px';
+    rec.el.style.top=n._y+'px';
+    rec.el.style.opacity='1';
+    if(!animate) requestAnimationFrame(()=>{ rec.el.style.transition=''; });
+  }
+
+  // ── 收起时消失的节点：缩回父节点再移除 ──
+  for(const [id,rec] of els){
+    if(seen.has(id)) continue;
+    const p=rec.node._p;
+    if(p){ rec.el.style.left=p._x+'px'; rec.el.style.top=p._y+'px'; }
+    rec.el.style.opacity='0';
+    els.delete(id);
+    setTimeout(()=>rec.el.remove(), 420);
+  }
+}
+
+/* ══ 路径高亮：树里最有用的动作 ══════════════════════
+   树的核心问题是"这个叶子是怎么来的"，
+   高亮从根到它的整条路径正好回答这个 */
+function highlight(node){
+  const chain=new Set();
+  for(let n=node; n; n=n._p) chain.add(n._id);
+  const on = !!node;
+  for(const [id,rec] of els){
+    rec.el.classList.toggle('lit', on && chain.has(id));
+    rec.el.classList.toggle('dimmed', on && !chain.has(id));
+  }
+  edgeG.querySelectorAll('.edge').forEach(p=>{
+    const inChain = on && chain.has(p.dataset.to);
+    p.classList.toggle('lit', inChain);
+    p.classList.toggle('dimmed', on && !inChain);
+    if(inChain){
+      const n=visNodes.find(v=>v._id===p.dataset.to);
+      p.setAttribute('stroke', n ? LV(n._d).color : '');
+    } else p.removeAttribute('stroke');
+  });
+}
+
+/* ══ 视图：缩放 / 平移 / 自适应 ═════════════════════ */
+const stage=document.getElementById('stage');
+const view={k:1,x:0,y:0};
+function applyView(){ world.style.transform=`translate(${view.x}px,${view.y}px) scale(${view.k})`; }
+function avail(){
+  const r=stage.getBoundingClientRect();
+  return { w:r.width-LAYOUT.padX*2, h:r.height-150-LAYOUT.padY };
+}
+function fit(){
+  const a=avail();
+  view.k=Math.min(1.25, a.w/Math.max(bbox.w,1), a.h/Math.max(bbox.h,1));
+  view.x=LAYOUT.padX;
+  view.y=125 + Math.max(0,(a.h-bbox.h*view.k)/2);
+  applyView();
+}
+
+let panning=false, sx=0, sy=0;
+stage.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.node')) return;
+  panning=true; sx=e.clientX-view.x; sy=e.clientY-view.y;
+  stage.classList.add('drag'); stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',e=>{
+  if(!panning) return;
+  view.x=e.clientX-sx; view.y=e.clientY-sy; applyView();
+});
+stage.addEventListener('pointerup',()=>{ panning=false; stage.classList.remove('drag'); });
+stage.addEventListener('dblclick',e=>{ if(!e.target.closest('.node')) fit(); });
+stage.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=stage.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const gx=(mx-view.x)/view.k, gy=(my-view.y)/view.k;
+  view.k=Math.max(.28, Math.min(2.4, view.k*Math.pow(0.999,e.deltaY)));
+  view.x=mx-gx*view.k; view.y=my-gy*view.k;
+  applyView();
+},{passive:false});
+
+/* ══ 节点交互 ═══════════════════════════════════════ */
+nodeLayer.addEventListener('pointerover',e=>{
+  const el=e.target.closest('.node'); if(!el) return;
+  const rec=els.get(el.dataset.id); if(!rec) return;
+  highlight(rec.node);
+  // 浮层：完整名称 + 所属路径
+  const chain=[]; for(let n=rec.node._p; n; n=n._p) chain.unshift(n.name);
+  tip.innerHTML = (chain.length?`<span class="path">${chain.join(' / ')}</span>`:'')+rec.node.name;
+  tip.classList.add('on');
+});
+nodeLayer.addEventListener('pointermove',e=>{
+  if(!tip.classList.contains('on')) return;
+  const w=tip.offsetWidth, h=tip.offsetHeight;
+  tip.style.left=Math.min(innerWidth-w-14, e.clientX+16)+'px';
+  tip.style.top =Math.max(8, e.clientY-h-14)+'px';
+});
+nodeLayer.addEventListener('pointerout',e=>{
+  if(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.node')) return;
+  highlight(null); tip.classList.remove('on');
+});
+nodeLayer.addEventListener('click',e=>{
+  const el=e.target.closest('.node'); if(!el) return;
+  const rec=els.get(el.dataset.id); if(!rec) return;
+  const n=rec.node;
+  if(!n.children || !n.children.length) return;
+  n._collapsed=!n._collapsed;
+  highlight(null);
+  render(true);
+});
+
+/* ══ 左栏 ═══════════════════════════════════════════ */
+const topicList=document.getElementById('topicList');
+function selectTopic(i){
+  const t=DATA.topics[i];
+  current=t;
+  [...topicList.children].forEach((el,j)=>el.classList.toggle('on', j===i));
+  document.getElementById('mTitle').textContent=t.name;
+  document.getElementById('mDesc').textContent=t.desc||'';
+  // 切主题时全部展开，回到默认态
+  (function reset(n){ n._collapsed=false; (n.children||[]).forEach(reset); })(t);
+  const a=avail(); computeGaps(t, a.w, a.h);
+  // 旧树整批移除
+  for(const [id,rec] of els){ rec.el.remove(); els.delete(id); }
+  render(false);
+  fit();
+}
+DATA.topics.forEach((t,i)=>{
+  const el=document.createElement('div');
+  el.className='topic';
+  el.innerHTML=`<span class="no">${String(i+1).padStart(2,'0')}</span>`+
+               `<span class="nm">${t.name}</span>`+
+               `<span class="qty">${countLeaves(t)}</span>`;
+  el.onclick=()=>selectTopic(i);
+  topicList.appendChild(el);
+});
+
+/* ══ 图例：按实际用到的深度生成 ═════════════════════ */
+const maxDepth = Math.max(...DATA.topics.map(function md(n){
+  return (n.children&&n.children.length) ? 1+Math.max(...n.children.map(md)) : 0;
+}));
+const legendBox=document.getElementById('legendItems');
+for(let d=0; d<=maxDepth; d++){
+  const L=LV(d);
+  const el=document.createElement('div');
+  el.className='lg';
+  el.innerHTML=`<i style="${sphereStyle(L.color, 5.5)}"></i><span>${L.name}</span>`;
+  legendBox.appendChild(el);
+}
+
+/* ══ 启动 ═══════════════════════════════════════════ */
+document.getElementById('sTitle').textContent=DATA.title;
+document.getElementById('sCount').textContent=
+  `${DATA.topics.length} 个主题 · ${DATA.topics.reduce((s,t)=>s+countLeaves(t),0)} 份文档`;
+addEventListener('resize', ()=>{
+  if(current){ const a=avail(); computeGaps(current, a.w, a.h); render(false); }
+  fit();
+});
+selectTopic(0);
+</script>
+</body>
+</html>

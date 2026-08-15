@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识图谱 · 关系网络</title>
+<style>
+  :root{
+    --void:#05060F; --cyan:#22D3EE; --ice:#E8EDFF; --dim:#6F7DAE;
+    --hair:rgba(120,150,255,.15);
+    --sans:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  /* 纯净深色，不放任何背景图形 */
+  body{background:#05060F;font-family:var(--sans);color:var(--ice);-webkit-font-smoothing:antialiased}
+  canvas{position:fixed;inset:0;z-index:1;cursor:grab;display:block}
+  canvas.dragging{cursor:grabbing}
+  canvas.on-node{cursor:pointer}
+
+  .hud{position:fixed;inset:0;z-index:3;pointer-events:none}
+  .hud > *{pointer-events:auto}
+
+  .stats{position:absolute;top:32px;right:36px;display:flex;gap:30px;text-align:right}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase}
+  .stat .v{font-family:var(--mono);font-size:20px;font-weight:500;margin-top:5px;color:#D3DFFF}
+
+  .legend{position:absolute;left:36px;bottom:30px;display:flex;flex-direction:column;gap:7px}
+  .legend .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);
+    text-transform:uppercase;margin-bottom:4px}
+  .lg-item{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(198,212,255,.7);
+    cursor:pointer;padding:3px 10px 3px 4px;border-radius:13px;transition:background .18s,color .18s,opacity .18s}
+  .lg-item:hover{background:rgba(120,160,255,.08);color:#fff}
+  .lg-item.off{opacity:.28}
+  .lg-dot{width:12px;height:12px;border-radius:50%;flex:none}
+
+  .hint{position:absolute;right:36px;bottom:30px;text-align:right;
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(150,175,235,.35);line-height:1.95}
+
+  .panel{position:fixed;top:0;right:0;bottom:0;width:320px;z-index:4;
+    background:linear-gradient(180deg,rgba(11,16,40,.95),rgba(7,11,28,.97));
+    border-left:1px solid rgba(120,160,255,.16);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    transform:translateX(100%);transition:transform .34s cubic-bezier(.22,.9,.3,1);
+    display:flex;flex-direction:column}
+  .panel.open{transform:translateX(0)}
+  .p-head{padding:30px 26px 20px;border-bottom:1px solid var(--hair);position:relative}
+  .p-close{position:absolute;top:24px;right:22px;width:26px;height:26px;border-radius:50%;
+    border:1px solid rgba(120,160,255,.24);background:transparent;color:rgba(180,200,245,.68);
+    cursor:pointer;font-size:15px;line-height:1;transition:all .18s}
+  .p-close:hover{background:rgba(120,160,255,.13);color:#fff}
+  .p-type{font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;margin-bottom:10px}
+  .p-name{font-size:21px;font-weight:600;letter-spacing:.05em;line-height:1.35}
+  .p-desc{font-size:12.5px;line-height:1.75;color:rgba(178,196,240,.66);margin-top:13px}
+  .p-metrics{display:flex;gap:26px;margin-top:20px}
+  .p-metrics span{display:block}
+  .p-metrics .mk{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--dim)}
+  .p-metrics .mv{font-family:var(--mono);font-size:18px;color:#D3DFFF;margin-top:4px}
+  .p-body{flex:1;overflow-y:auto;padding:20px 26px 30px}
+  .p-body::-webkit-scrollbar{width:4px}
+  .p-body::-webkit-scrollbar-thumb{background:rgba(120,160,255,.22);border-radius:2px}
+  .rel-group{margin-bottom:20px}
+  .rel-title{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--dim);
+    text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:9px}
+  .rel-title::after{content:"";flex:1;height:1px;background:var(--hair)}
+  .rel-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;
+    font-size:12.5px;color:rgba(198,212,255,.78);cursor:pointer;transition:background .16s,color .16s}
+  .rel-item:hover{background:rgba(120,160,255,.1);color:#fff}
+  .rel-dot{width:8px;height:8px;border-radius:50%;flex:none}
+
+  @media (max-width:1000px){
+    .stats{top:20px;right:18px;gap:18px}.stat .v{font-size:15px}
+    .legend{left:18px;bottom:18px}.hint{display:none}.panel{width:100%}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+
+<div class="hud">
+  <div class="stats">
+    <div class="stat"><div class="k">节点</div><div class="v" id="sNodes">0</div></div>
+    <div class="stat"><div class="k">关系</div><div class="v" id="sLinks">0</div></div>
+    <div class="stat"><div class="k">平均度</div><div class="v" id="sDeg">0</div></div>
+  </div>
+  <div class="legend">
+    <div class="lbl">节点类型 · 点击隔离</div>
+    <div id="legendItems"></div>
+  </div>
+  <div class="hint">
+    拖拽节点 — 整网跟随　悬停 — 高亮邻域<br>
+    点击 — 展开详情　滚轮 — 缩放
+  </div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="p-head">
+    <button class="p-close" id="pClose">×</button>
+    <div class="p-type" id="pType"></div>
+    <div class="p-name" id="pName"></div>
+    <div class="p-desc" id="pDesc"></div>
+    <div class="p-metrics">
+      <div><span class="mk">连接数</span><span class="mv" id="pDeg">0</span></div>
+      <div><span class="mk">文档量</span><span class="mv" id="pDocs">—</span></div>
+    </div>
+  </div>
+  <div class="p-body" id="pBody"></div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   GRAPH — 换成自己的数据只改这个对象
+   ══════════════════════════════════════════════════════════════════ */
+const GRAPH = {
+  types: {
+    hub:      { label:"知识中枢",   color:"#7FA8FF" },
+    category: { label:"知识库类目", color:"#6B8CFF" },
+    doc:      { label:"文档",       color:"#4C7DFF" },
+    entity:   { label:"实体标签",   color:"#22D3EE" }
+  },
+  nodes: [
+    { id:"hub", label:"知识中枢", type:"hub", color:"#8FB4FF", desc:"统一检索入口，聚合全部知识库类目与实体标签，对外提供语义检索与问答能力。", docs:"7,740" },
+
+    { id:"c_doc", label:"产品文档", type:"category", color:"#4C7DFF", desc:"产品功能说明、接口文档、版本发布记录与使用手册。", docs:"1,248" },
+    { id:"c_rsh", label:"行业研报", type:"category", color:"#6B6BFF", desc:"第三方机构研究报告、市场规模测算与竞争格局分析。", docs:"862" },
+    { id:"c_cas", label:"客户案例", type:"category", color:"#8B5CFF", desc:"已交付项目的实施背景、方案设计与量化收益。", docs:"534" },
+    { id:"c_reg", label:"法规合规", type:"category", color:"#A855F7", desc:"数据安全、隐私保护与行业监管相关法规条文及解读。", docs:"1,076" },
+    { id:"c_wpr", label:"技术白皮书", type:"category", color:"#C24FD8", desc:"架构设计、算法原理与技术选型论证材料。", docs:"318" },
+    { id:"c_sls", label:"售前话术", type:"category", color:"#3AA0FF", desc:"标准应答库、异议处理与竞品对比要点。", docs:"645" },
+    { id:"c_ops", label:"运维知识", type:"category", color:"#22C8E0", desc:"部署手册、故障处置预案与巡检规范。", docs:"927" },
+    { id:"c_mtg", label:"会议纪要", type:"category", color:"#5AC8FA", desc:"内外部会议记录、决议事项与待办跟踪。", docs:"2,130" },
+
+    { id:"e_priv",  label:"私有化部署", type:"entity", desc:"客户在自有机房内完成全栈部署，数据不出域。" },
+    { id:"e_mask",  label:"数据脱敏",   type:"entity", desc:"对敏感字段做不可逆变换，兼顾可用性与合规要求。" },
+    { id:"e_vec",   label:"向量检索",   type:"entity", desc:"基于嵌入表示的相似度召回，支撑语义搜索与 RAG。" },
+    { id:"e_fin",   label:"金融行业",   type:"entity", desc:"银行、保险、证券三类客户的共性需求与监管约束。" },
+    { id:"e_lvl3",  label:"等保三级",   type:"entity", desc:"网络安全等级保护第三级，涉及审计、加密与容灾要求。" },
+    { id:"e_sla",   label:"SLA 承诺",   type:"entity", desc:"可用性、响应时长与故障恢复时间的合同化指标。" },
+    { id:"e_rag",   label:"RAG 架构",   type:"entity", desc:"检索增强生成，将知识库召回结果注入模型上下文。" },
+    { id:"e_perm",  label:"权限隔离",   type:"entity", desc:"按组织架构与角色控制知识可见范围。" },
+    { id:"e_cost",  label:"降本增效",   type:"entity", desc:"客户最常提出的立项动因，需要可量化的测算口径。" },
+    { id:"e_mfg",   label:"制造行业",   type:"entity", desc:"离散与流程制造两类场景的知识沉淀特点。" },
+    { id:"e_multi", label:"多模态",     type:"entity", desc:"图纸、表格、音视频等非纯文本资料的解析与索引。" },
+    { id:"e_audit", label:"审计留痕",   type:"entity", desc:"全链路操作日志，满足事后追溯与合规审查。" },
+
+    { id:"d1",  label:"接口文档 v3.2",     type:"doc", parent:"c_doc" },
+    { id:"d2",  label:"部署前置条件清单",   type:"doc", parent:"c_doc" },
+    { id:"d3",  label:"权限模型说明",       type:"doc", parent:"c_doc" },
+    { id:"d4",  label:"版本发布记录",       type:"doc", parent:"c_doc" },
+    { id:"d5",  label:"2026 市场规模测算",  type:"doc", parent:"c_rsh" },
+    { id:"d6",  label:"竞争格局年度综述",   type:"doc", parent:"c_rsh" },
+    { id:"d7",  label:"制造业数字化调研",   type:"doc", parent:"c_rsh" },
+    { id:"d8",  label:"某股份行知识中台",   type:"doc", parent:"c_cas" },
+    { id:"d9",  label:"某车企售后知识库",   type:"doc", parent:"c_cas" },
+    { id:"d10", label:"某险企理赔问答",     type:"doc", parent:"c_cas" },
+    { id:"d11", label:"数据安全法要点解读", type:"doc", parent:"c_reg" },
+    { id:"d12", label:"个保法合规检查表",   type:"doc", parent:"c_reg" },
+    { id:"d13", label:"金融数据分级指引",   type:"doc", parent:"c_reg" },
+    { id:"d14", label:"检索增强架构白皮书", type:"doc", parent:"c_wpr" },
+    { id:"d15", label:"向量索引选型论证",   type:"doc", parent:"c_wpr" },
+    { id:"d16", label:"多模态解析技术报告", type:"doc", parent:"c_wpr" },
+    { id:"d17", label:"标准应答库",         type:"doc", parent:"c_sls" },
+    { id:"d18", label:"竞品对比要点",       type:"doc", parent:"c_sls" },
+    { id:"d19", label:"ROI 测算模板",       type:"doc", parent:"c_sls" },
+    { id:"d20", label:"生产环境部署手册",   type:"doc", parent:"c_ops" },
+    { id:"d21", label:"故障分级处置预案",   type:"doc", parent:"c_ops" },
+    { id:"d22", label:"日常巡检规范",       type:"doc", parent:"c_ops" },
+    { id:"d23", label:"季度产品评审纪要",   type:"doc", parent:"c_mtg" },
+    { id:"d24", label:"客户需求对齐会",     type:"doc", parent:"c_mtg" },
+    { id:"d25", label:"架构决策记录",       type:"doc", parent:"c_mtg" }
+  ],
+  links: [
+    ["hub","c_doc","包含"],["hub","c_rsh","包含"],["hub","c_cas","包含"],["hub","c_reg","包含"],
+    ["hub","c_wpr","包含"],["hub","c_sls","包含"],["hub","c_ops","包含"],["hub","c_mtg","包含"],
+
+    ["c_doc","e_priv","涉及"],["c_doc","e_perm","涉及"],["c_doc","e_vec","涉及"],
+    ["c_rsh","e_fin","涉及"],["c_rsh","e_mfg","涉及"],["c_rsh","e_cost","涉及"],
+    ["c_cas","e_fin","涉及"],["c_cas","e_priv","涉及"],["c_cas","e_cost","涉及"],["c_cas","e_mfg","涉及"],
+    ["c_reg","e_mask","涉及"],["c_reg","e_lvl3","涉及"],["c_reg","e_audit","涉及"],["c_reg","e_fin","涉及"],
+    ["c_wpr","e_rag","涉及"],["c_wpr","e_vec","涉及"],["c_wpr","e_multi","涉及"],
+    ["c_sls","e_cost","涉及"],["c_sls","e_sla","涉及"],["c_sls","e_priv","涉及"],
+    ["c_ops","e_sla","涉及"],["c_ops","e_lvl3","涉及"],["c_ops","e_audit","涉及"],
+    ["c_mtg","e_rag","涉及"],["c_mtg","e_perm","涉及"],
+
+    ["d2","e_priv","引用"],["d3","e_perm","引用"],["d3","e_mask","引用"],
+    ["d5","e_cost","引用"],["d7","e_mfg","引用"],
+    ["d8","e_fin","引用"],["d8","e_priv","引用"],["d9","e_mfg","引用"],["d10","e_fin","引用"],
+    ["d11","e_mask","引用"],["d12","e_audit","引用"],["d13","e_fin","引用"],["d13","e_lvl3","引用"],
+    ["d14","e_rag","引用"],["d15","e_vec","引用"],["d16","e_multi","引用"],
+    ["d19","e_cost","引用"],["d18","e_sla","引用"],
+    ["d20","e_priv","引用"],["d21","e_sla","引用"],["d22","e_audit","引用"],
+    ["d25","e_rag","引用"],["d24","e_cost","引用"],
+
+    ["d14","d15","衍生"],["d8","d3","参考"],["d19","d5","参考"],["d21","d20","参考"],["d13","d11","参考"]
+  ]
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   物理参数 —— 张力长在结构里：靠分层的连边距离把簇撑开铺满全屏
+   ══════════════════════════════════════════════════════════════════ */
+const SIM = {
+  velocityDecay : 0.30,
+  alphaDecay    : 0.032,
+  alphaIdle     : 0.008,    // 常态不降到 0，网络永远微微游动
+  alphaDrag     : 0.34,     // 拖拽升温，整网跟随
+  charge        : -230,
+  chargeMaxDist : 460,
+  linkStrength  : 1.6,
+  collidePad    : 11,
+  collideStr    : 0.72,
+  centerStr     : 0.03,
+  radialStr     : 0.35,     // 类目锁在离中枢固定半径处，配合互斥自然摊成均匀环
+  catRepel      : 3.4,      // 类目之间额外增强的斥力，把环撑开
+  entityStr     : 0.35,     // 实体连边减弱，让它悬在簇之间而不是把类目拽成一团
+  aspectX       : 0.006,    // 各向异性收拢：纵向收得比横向紧，
+  aspectY       : 0.060,    /*   把布局压成横向比例。再大宽高比还能涨，
+                                 但类目环的角度均匀度会开始劣化，0.06 是拐点 */
+  dist: { hub:265, entity:150, category:66, other:88 }   // 分层距离，簇的铺开程度由它决定
+};
+
+/* 伪 3D 着色：全场共用一个光源方向（左上），不做高光反射 */
+const LIGHT = { x:-0.56, y:-0.73 };   // 指向光源的单位向量（屏幕坐标，y 向下）
+const SHADE = {
+  litMix   : 0.42,   // 受光面向白混合
+  darkMix  : 0.68,   // 背光面向场景深蓝混合（不只是压暗，带色相位移才通透）
+  rimMix   : 0.62,   // 暗侧边缘光亮度
+  rimWidth : 1.7,    // 边缘光线宽（屏幕像素）
+  haloAlpha: 0.30,   // 外发光晕强度（深底上投影无效，用光晕代替）
+  haloScale: 2.7
+};
+const LIT_WHITE = [255, 251, 244];
+const AMBIENT   = [ 12,  20,  52];   // 场景环境色，暗部向它偏移
+const RIM_WHITE = [232, 242, 255];
+
+/* ── 数据装配 ─────────────────────────────────────── */
+const nodes = [], nodeById = new Map(), links = [];
+// 固定种子的随机数：布局每次打开都一致，演示时不会这次好看下次难看
+let _seed = 20260815;
+const rnd = ()=>{ _seed = (_seed*1664525 + 1013904223) & 0x7fffffff; return _seed/0x7fffffff; };
+
+GRAPH.nodes.forEach(n=>{
+  nodes.push(Object.assign({}, n, {
+    x:0, y:0, vx:0, vy:0, fx:null, fy:null,
+    deg:0, neighbors:new Set(), rels:[]
+  }));
+});
+nodes.forEach(n=>nodeById.set(n.id,n));
+nodes.forEach(n=>{ if(!n.color && n.parent) n.color = nodeById.get(n.parent).color; });
+nodes.forEach(n=>{ if(!n.color) n.color = GRAPH.types[n.type].color; });
+
+function addLink(sid,tid,rel){
+  const s=nodeById.get(sid), t=nodeById.get(tid);
+  if(!s||!t) return;
+  links.push({ source:s, target:t, rel, flow:Math.random(), speed:.0018+Math.random()*.0026 });
+  s.deg++; t.deg++;
+  s.neighbors.add(t); t.neighbors.add(s);
+  s.rels.push({node:t,rel}); t.rels.push({node:s,rel});
+}
+GRAPH.links.forEach(([s,t,r])=>addLink(s,t,r));
+GRAPH.nodes.forEach(n=>{ if(n.parent) addLink(n.parent,n.id,"收录"); });
+
+/* 结构化初始布局：先把层级摆到大致正确的位置，物理只做微调。
+   完全随机起步时，力导向经常发现不了层级结构，陷在局部最优里——
+   实测同一组参数会忽好忽坏，类目环时常塌成半边空 */
+(function seedLayout(){
+  const R = SIM.dist.hub;
+  const cats = GRAPH.nodes.filter(n=>n.type==='category').map(n=>nodeById.get(n.id));
+  const catAngle = new Map();
+  cats.forEach((c,i)=>{
+    const a = (i/cats.length)*Math.PI*2 - Math.PI/2 + (rnd()-.5)*0.12;
+    catAngle.set(c.id, a);
+    c.x = Math.cos(a)*R; c.y = Math.sin(a)*R*0.72;   // 纵向预压，贴合横屏
+  });
+  // 实体标签落在它所连类目的角度均值上，半径取内圈
+  GRAPH.nodes.filter(n=>n.type==='entity').forEach(e=>{
+    const node = nodeById.get(e.id);
+    const conn = GRAPH.links.filter(([s,t])=>s===e.id||t===e.id)
+      .map(([s,t])=> s===e.id?t:s).filter(id=>catAngle.has(id));
+    let vx=0, vy=0;
+    conn.forEach(id=>{ vx+=Math.cos(catAngle.get(id)); vy+=Math.sin(catAngle.get(id)); });
+    const a = (conn.length && (vx||vy)) ? Math.atan2(vy,vx) : rnd()*Math.PI*2;
+    const rr = R*0.58;
+    node.x = Math.cos(a)*rr + (rnd()-.5)*40;
+    node.y = Math.sin(a)*rr*0.72 + (rnd()-.5)*30;
+  });
+  // 文档扇形展开在所属类目的外侧
+  const perCat = {};
+  GRAPH.nodes.filter(n=>n.type==='doc').forEach(d=>{ (perCat[d.parent] ||= []).push(d); });
+  Object.entries(perCat).forEach(([cid, list])=>{
+    const a0 = catAngle.get(cid) ?? 0;
+    list.forEach((d,i)=>{
+      const spread = (i - (list.length-1)/2) * 0.42;
+      const a = a0 + spread;
+      const node = nodeById.get(d.id);
+      node.x = Math.cos(a)*(R+95) + (rnd()-.5)*20;
+      node.y = Math.sin(a)*(R+95)*0.72 + (rnd()-.5)*20;
+    });
+  });
+})();
+
+const RANK = { hub:0, category:1, entity:2, doc:3 };
+nodes.forEach(n=>{
+  const base = n.type==='hub'?30 : n.type==='category'?17 : n.type==='entity'?10.5 : 7;
+  n.r = base + Math.sqrt(n.deg) * (n.type==='doc'?1.1:1.9);
+  n.charge = SIM.charge * (.5 + n.r/24);
+  n.rank = RANK[n.type];
+});
+links.forEach(l=>{
+  const s=l.source, t=l.target;
+  l.bias = s.deg/(s.deg+t.deg);
+  const isEnt = (s.type==='entity'||t.type==='entity');
+  l.strength = Math.min(0.85, SIM.linkStrength/Math.min(s.deg,t.deg)) * (isEnt?SIM.entityStr:1);
+  l.distance = (s.type==='hub'||t.type==='hub') ? SIM.dist.hub
+             : (s.type==='entity'||t.type==='entity') ? SIM.dist.entity
+             : (s.type==='category'||t.type==='category') ? SIM.dist.category
+             : SIM.dist.other;
+  l.major = (s.type==='hub'||t.type==='hub'||s.type==='category'||t.type==='category');
+});
+
+/* ── 力导向求解（速度 Verlet，结构同 d3-force） ────── */
+let alpha=1, alphaTarget=SIM.alphaIdle;
+function forceLink(a){
+  for(const l of links){
+    const s=l.source,t=l.target;
+    let dx=t.x+t.vx-s.x-s.vx, dy=t.y+t.vy-s.y-s.vy;
+    const d=Math.hypot(dx,dy)||1e-6, k=(d-l.distance)/d*a*l.strength;
+    dx*=k; dy*=k;
+    t.vx-=dx*l.bias;     t.vy-=dy*l.bias;
+    s.vx+=dx*(1-l.bias); s.vy+=dy*(1-l.bias);
+  }
+}
+function forceCharge(a){
+  const M2=SIM.chargeMaxDist**2;
+  for(let i=0;i<nodes.length;i++){
+    const p=nodes[i];
+    for(let j=i+1;j<nodes.length;j++){
+      const q=nodes[j];
+      let dx=q.x-p.x, dy=q.y-p.y, d2=dx*dx+dy*dy;
+      if(d2<1){ dx=Math.random()-.5; dy=Math.random()-.5; d2=dx*dx+dy*dy||1; }
+      if(d2>M2) continue;
+      // 类目之间额外加斥力，否则实体标签会把八个类目拽成一堆
+      const boost = (p.type==='category'&&q.type==='category') ? SIM.catRepel : 1;
+      const wq=q.charge*boost*a/d2, wp=p.charge*boost*a/d2;
+      p.vx+=dx*wq; p.vy+=dy*wq;
+      q.vx-=dx*wp; q.vy-=dy*wp;
+    }
+  }
+}
+function forceCollide(){
+  for(let i=0;i<nodes.length;i++){
+    const p=nodes[i];
+    for(let j=i+1;j<nodes.length;j++){
+      const q=nodes[j];
+      const rs=p.r+q.r+SIM.collidePad;
+      const dx=q.x+q.vx-p.x-p.vx, dy=q.y+q.vy-p.y-p.vy, d2=dx*dx+dy*dy;
+      if(d2>=rs*rs||d2===0) continue;
+      const d=Math.sqrt(d2)||1e-6, f=(rs-d)/d*SIM.collideStr;
+      const mp=p.r*p.r, mq=q.r*q.r, mt=mp+mq;
+      q.vx+=dx*f*(mp/mt); q.vy+=dy*f*(mp/mt);
+      p.vx-=dx*f*(mq/mt); p.vy-=dy*f*(mq/mt);
+    }
+  }
+}
+/* 类目锁定在离中枢的固定半径上。半径固定 + 互相排斥 →
+   它们会自己在圆周上摊匀，这是均匀辐射扇形的来源 */
+function forceRadial(a){
+  const hub=nodes.find(n=>n.type==='hub');
+  if(!hub) return;
+  for(const n of nodes){
+    if(n.type!=='category') continue;
+    const dx=n.x-hub.x, dy=n.y-hub.y, r=Math.hypot(dx,dy)||1e-6;
+    const k=(SIM.dist.hub-r)*SIM.radialStr*a/r;
+    n.vx+=dx*k; n.vy+=dy*k;
+  }
+}
+/* 各向异性收拢：纵向拉得比横向紧，把布局压成横向比例贴合 16:9 */
+function forceAspect(a){
+  for(const n of nodes){
+    n.vx -= n.x*SIM.aspectX*a;
+    n.vy -= n.y*SIM.aspectY*a;
+  }
+}
+function forceCenter(){
+  let sx=0,sy=0;
+  for(const n of nodes){ sx+=n.x; sy+=n.y; }
+  sx=sx/nodes.length*SIM.centerStr; sy=sy/nodes.length*SIM.centerStr;
+  for(const n of nodes){ n.x-=sx; n.y-=sy; }
+}
+function step(){
+  alpha += (alphaTarget-alpha)*SIM.alphaDecay;
+  forceLink(alpha); forceCharge(alpha); forceRadial(alpha); forceAspect(alpha); forceCollide(); forceCenter();
+  for(const n of nodes){
+    if(n.fx!==null){ n.x=n.fx; n.vx=0; } else { n.vx*=SIM.velocityDecay; n.x+=n.vx; }
+    if(n.fy!==null){ n.y=n.fy; n.vy=0; } else { n.vy*=SIM.velocityDecay; n.y+=n.vy; }
+  }
+}
+for(let i=0;i<420;i++) step();
+
+/* ── 颜色 ─────────────────────────────────────────── */
+const rgbOf = h=>{ const v=parseInt(h.slice(1),16); return [v>>16&255,v>>8&255,v&255]; };
+function mix(c, target, t){
+  return [ Math.round(c[0]+(target[0]-c[0])*t),
+           Math.round(c[1]+(target[1]-c[1])*t),
+           Math.round(c[2]+(target[2]-c[2])*t) ];
+}
+const css = (c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+nodes.forEach(n=>{
+  const b = rgbOf(n.color);
+  n.cBase = b;
+  n.cLit  = mix(b, LIT_WHITE, SHADE.litMix);
+  n.cDark = mix(b, AMBIENT,   SHADE.darkMix);
+  n.cRim  = mix(b, RIM_WHITE, SHADE.rimMix);
+});
+
+/* ── 画布 ─────────────────────────────────────────── */
+const cv=document.getElementById('cv'), g=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+const view={k:1,tx:0,ty:0};
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=innerWidth; H=innerHeight;
+  cv.width=W*DPR; cv.height=H*DPR;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+}
+function fitView(pad=110){
+  let a=1e9,b=1e9,c=-1e9,d=-1e9;
+  for(const n of nodes){ a=Math.min(a,n.x-n.r); c=Math.max(c,n.x+n.r);
+                         b=Math.min(b,n.y-n.r); d=Math.max(d,n.y+n.r); }
+  const avail=W-(W>1000?320:0);
+  view.k=Math.min(1.25, Math.min((avail-pad*2)/(c-a),(H-pad*2)/(d-b)));
+  view.tx=avail/2-(a+c)/2*view.k;
+  view.ty=H/2-(b+d)/2*view.k;
+}
+const toGraph=(sx,sy)=>({x:(sx-view.tx)/view.k, y:(sy-view.ty)/view.k});
+const toScreen=n=>({x:n.x*view.k+view.tx, y:n.y*view.k+view.ty});
+
+/* ── 交互状态 ─────────────────────────────────────── */
+let hovered=null, selected=null, dragNode=null, panning=false, px=0, py=0;
+const hidden=new Set();
+const visible=n=>!hidden.has(n.type);
+const neighborhood=n=> n ? new Set([n,...n.neighbors]) : null;
+
+/* ── 绘制 ─────────────────────────────────────────── */
+function ctrl(l){
+  const dx=l.target.x-l.source.x, dy=l.target.y-l.source.y;
+  return { x:(l.source.x+l.target.x)/2 - dy*0.075,
+           y:(l.source.y+l.target.y)/2 + dx*0.075 };
+}
+function bez(l,t){
+  const c=ctrl(l), u=1-t;
+  return { x:u*u*l.source.x+2*u*t*c.x+t*t*l.target.x,
+           y:u*u*l.source.y+2*u*t*c.y+t*t*l.target.y };
+}
+
+function drawSphere(n, focusAmt, dim){
+  const r = n.r * (1 + focusAmt*0.09);
+  const a = dim;
+
+  // 外发光晕：纯深色背景上投影无效，光晕才是有效的空间线索
+  const hr = r*SHADE.haloScale;
+  const hg = g.createRadialGradient(n.x,n.y,r*0.55, n.x,n.y,hr);
+  hg.addColorStop(0, css(n.cBase, SHADE.haloAlpha*a*(1+focusAmt*1.1)));
+  hg.addColorStop(0.45, css(n.cBase, SHADE.haloAlpha*0.28*a));
+  hg.addColorStop(1, css(n.cBase, 0));
+  g.globalCompositeOperation='lighter';
+  g.beginPath(); g.arc(n.x,n.y,hr,0,7); g.fillStyle=hg; g.fill();
+  g.globalCompositeOperation='source-over';
+
+  // 球体：受光点偏向光源，向背光侧过渡到环境色
+  const bg = g.createRadialGradient(
+    n.x + LIGHT.x*r*0.46, n.y + LIGHT.y*r*0.46, r*0.06,
+    n.x, n.y, r*1.02);
+  bg.addColorStop(0,    css(n.cLit,  a));
+  bg.addColorStop(0.38, css(mix(n.cBase, n.cLit, 0.35), a));
+  bg.addColorStop(0.72, css(n.cBase, a));
+  bg.addColorStop(1,    css(n.cDark, a));
+  g.beginPath(); g.arc(n.x,n.y,r,0,7); g.fillStyle=bg; g.fill();
+
+  /* 暗侧边缘光：背光那一侧的一道细亮弧。
+     没有它，暗面会直接融进背景，球就塌成半圆——
+     这是伪 3D 成立与否的关键一笔 */
+  const rg = g.createLinearGradient(
+    n.x + LIGHT.x*r, n.y + LIGHT.y*r,
+    n.x - LIGHT.x*r, n.y - LIGHT.y*r);
+  rg.addColorStop(0,    css(n.cRim, 0));
+  rg.addColorStop(0.42, css(n.cRim, 0));
+  rg.addColorStop(1,    css(n.cRim, a*(0.72+focusAmt*0.28)));
+  g.beginPath();
+  g.arc(n.x, n.y, r - SHADE.rimWidth/(2*view.k), 0, 7);
+  g.strokeStyle=rg; g.lineWidth=SHADE.rimWidth/view.k; g.stroke();
+}
+
+function draw(){
+  g.setTransform(DPR,0,0,DPR,0,0);
+  g.clearRect(0,0,W,H);
+  g.setTransform(DPR*view.k,0,0,DPR*view.k, DPR*view.tx, DPR*view.ty);
+
+  const focus = neighborhood(hovered||selected);
+
+  /* 连线：细，但发光、带弧度、有光点流动 */
+  g.globalCompositeOperation='lighter';
+  for(const l of links){
+    if(!visible(l.source)||!visible(l.target)) continue;
+    const on = !focus || (focus.has(l.source)&&focus.has(l.target));
+    const c = ctrl(l);
+    const grd=g.createLinearGradient(l.source.x,l.source.y,l.target.x,l.target.y);
+    const base = on ? (l.major?.55:.34) : .05;
+    grd.addColorStop(0, css(l.source.cBase, base));
+    grd.addColorStop(1, css(l.target.cBase, base*0.75));
+
+    g.beginPath();
+    g.moveTo(l.source.x,l.source.y);
+    g.quadraticCurveTo(c.x,c.y,l.target.x,l.target.y);
+    // 外圈辉光（宽而淡）+ 内芯（细而亮），比 shadowBlur 便宜也更可控
+    g.strokeStyle=grd; g.lineWidth=(on?3.4:1.6)/view.k;
+    g.globalAlpha=0.34; g.stroke();
+    g.globalAlpha=1;
+    g.lineWidth=((on?1.35:0.8)*(l.major?1.25:1))/view.k;
+    g.stroke();
+
+    l.flow += l.speed*(on?2.4:1);
+    if(l.flow>1) l.flow-=1;
+    const p=bez(l,l.flow);
+    g.beginPath();
+    g.arc(p.x,p.y,(on?2.3:1.35)/view.k,0,7);
+    g.fillStyle=css(l.target.cRim, on?.95:.22);
+    g.fill();
+  }
+  g.globalCompositeOperation='source-over';
+
+  /* 节点：小的先画，大的压在上面 */
+  const order=[...nodes].filter(visible).sort((a,b)=>b.rank-a.rank);
+  for(const n of order){
+    const on = !focus || focus.has(n);
+    const isF = (hovered===n||selected===n);
+    drawSphere(n, isF?1:0, on?1:0.17);
+    n._sr = n.r*(1+(isF?1:0)*0.09)*view.k;
+  }
+
+  g.setTransform(DPR,0,0,DPR,0,0);
+  drawLabels(focus);
+}
+
+/* ── 标签避让 ──────────────────────────────────────
+   参考图的标签在密集区糊成一片，近看是失败的。
+   按重要度排序逐个尝试四个方位，全撞车就不画——
+   宁可少几个标签，也不要一堆叠在一起的字。 */
+const FONT = { hub:15, category:13.5, entity:12, doc:11.5 };
+function drawLabels(focus){
+  const placed=[];
+  const hit=(r)=>placed.some(o=>!(r.x2<o.x1-3||r.x1>o.x2+3||r.y2<o.y1-3||r.y1>o.y2+3));
+
+  // 节点本体先占位，避免文字压在球上
+  for(const n of nodes){
+    if(!visible(n) || n.type==='doc') continue;
+    const s=toScreen(n), rr=(n._sr||n.r*view.k);
+    placed.push({x1:s.x-rr,y1:s.y-rr,x2:s.x+rr,y2:s.y+rr});
+  }
+
+  const cand=[...nodes].filter(n=>{
+    if(!visible(n)) return false;
+    const isF=(hovered===n||selected===n);
+    if(n.type==='hub'||n.type==='category') return true;
+    if(isF||(focus&&focus.has(n))) return true;
+    if(n.type==='entity') return view.k>0.62;
+    return view.k>1.08;
+  }).sort((a,b)=> a.rank-b.rank || b.deg-a.deg);
+
+  for(const n of cand){
+    const s=toScreen(n);
+    if(s.x<-80||s.x>W+80||s.y<-40||s.y>H+40) continue;
+    const on = !focus||focus.has(n);
+    const isF=(hovered===n||selected===n);
+    const fs=FONT[n.type];
+    g.font=`${n.type==='doc'?400:600} ${fs}px "PingFang SC","Microsoft YaHei",sans-serif`;
+    const tw=g.measureText(n.label).width, th=fs*1.15;
+    const rr=(n._sr||n.r*view.k)+6;
+
+    // 四个候选方位：下 / 上 / 右 / 左
+    const opts=[
+      {x:s.x,        y:s.y+rr,        al:'center', bl:'top'},
+      {x:s.x,        y:s.y-rr-th,     al:'center', bl:'top'},
+      {x:s.x+rr+4,   y:s.y-th/2,      al:'left',   bl:'top'},
+      {x:s.x-rr-4,   y:s.y-th/2,      al:'right',  bl:'top'}
+    ];
+    let put=null;
+    for(const o of opts){
+      const x1 = o.al==='center'? o.x-tw/2 : o.al==='left'? o.x : o.x-tw;
+      const r={x1, y1:o.y, x2:x1+tw, y2:o.y+th};
+      if(!hit(r)){ put=o; placed.push(r); break; }
+    }
+    if(!put) continue;
+
+    g.textAlign=put.al; g.textBaseline=put.bl;
+    g.lineWidth=3.4; g.strokeStyle='rgba(5,6,15,.92)';
+    g.strokeText(n.label, put.x, put.y);
+    g.fillStyle = isF ? '#fff'
+                : on ? (n.type==='doc'?'rgba(190,206,250,.76)':'rgba(224,234,255,.94)')
+                     : 'rgba(150,172,225,.13)';
+    g.fillText(n.label, put.x, put.y);
+  }
+}
+
+function loop(){ requestAnimationFrame(loop); step(); draw(); }
+
+/* ── 命中检测 ─────────────────────────────────────── */
+function pick(sx,sy){
+  const p=toGraph(sx,sy);
+  let best=null,bd=Infinity;
+  for(const n of nodes){
+    if(!visible(n)) continue;
+    const d=Math.hypot(n.x-p.x,n.y-p.y);
+    if(d<n.r+7 && d<bd){ bd=d; best=n; }
+  }
+  return best;
+}
+cv.addEventListener('pointermove',e=>{
+  if(dragNode){ const p=toGraph(e.clientX,e.clientY); dragNode.fx=p.x; dragNode.fy=p.y; return; }
+  if(panning){ view.tx+=e.clientX-px; view.ty+=e.clientY-py; px=e.clientX; py=e.clientY; return; }
+  const h=pick(e.clientX,e.clientY);
+  if(h!==hovered){ hovered=h; cv.classList.toggle('on-node',!!h); }
+});
+cv.addEventListener('pointerdown',e=>{
+  const n=pick(e.clientX,e.clientY);
+  cv.setPointerCapture(e.pointerId);
+  if(n){ dragNode=n; n.fx=n.x; n.fy=n.y; alphaTarget=SIM.alphaDrag; }
+  else { panning=true; px=e.clientX; py=e.clientY; cv.classList.add('dragging'); }
+});
+cv.addEventListener('pointerup',e=>{
+  if(dragNode){
+    const moved=Math.hypot(dragNode.x-dragNode.fx, dragNode.y-dragNode.fy);
+    dragNode.fx=dragNode.fy=null; alphaTarget=SIM.alphaIdle;
+    if(moved<2) selectNode(dragNode);
+    dragNode=null;
+  } else if(panning){
+    panning=false; cv.classList.remove('dragging');
+    if(Math.hypot(e.clientX-px,e.clientY-py)<3) selectNode(null);
+  }
+});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const p=toGraph(e.clientX,e.clientY);
+  const k=Math.max(.35,Math.min(3.2,view.k*Math.pow(0.999,e.deltaY)));
+  view.tx=e.clientX-p.x*k; view.ty=e.clientY-p.y*k; view.k=k;
+},{passive:false});
+
+/* ── 详情面板 ─────────────────────────────────────── */
+const panel=document.getElementById('panel');
+function selectNode(n){
+  selected=n;
+  if(!n){ panel.classList.remove('open'); return; }
+  const pt=document.getElementById('pType');
+  pt.textContent=GRAPH.types[n.type].label; pt.style.color=n.color;
+  document.getElementById('pName').textContent=n.label;
+  document.getElementById('pDesc').textContent = n.desc ||
+    (n.parent?`归属于「${nodeById.get(n.parent).label}」的文档条目。`:'');
+  document.getElementById('pDeg').textContent=n.deg;
+  document.getElementById('pDocs').textContent=n.docs||'—';
+  const groups={};
+  n.rels.forEach(r=>{ (groups[r.rel] ||= []).push(r.node); });
+  document.getElementById('pBody').innerHTML=Object.entries(groups).map(([rel,list])=>`
+    <div class="rel-group"><div class="rel-title">${rel} · ${list.length}</div>
+    ${list.map(t=>`<div class="rel-item" data-id="${t.id}">
+      <span class="rel-dot" style="background:${t.color};box-shadow:0 0 9px ${t.color}"></span>
+      <span>${t.label}</span></div>`).join('')}</div>`).join('');
+  document.getElementById('pBody').querySelectorAll('.rel-item').forEach(el=>{
+    el.onclick=()=>selectNode(nodeById.get(el.dataset.id));
+  });
+  panel.classList.add('open');
+}
+document.getElementById('pClose').onclick=()=>selectNode(null);
+
+/* ── 图例 ─────────────────────────────────────────── */
+const legendBox=document.getElementById('legendItems');
+Object.entries(GRAPH.types).forEach(([key,t])=>{
+  const el=document.createElement('div');
+  el.className='lg-item';
+  el.innerHTML=`<span class="lg-dot" style="background:${t.color};box-shadow:0 0 11px ${t.color}"></span><span>${t.label}</span>`;
+  el.onclick=()=>{
+    hidden.has(key)?hidden.delete(key):hidden.add(key);
+    el.classList.toggle('off',hidden.has(key));
+    alphaTarget=0.22; setTimeout(()=>alphaTarget=SIM.alphaIdle,900);
+  };
+  legendBox.appendChild(el);
+});
+
+/* ── 启动 ─────────────────────────────────────────── */
+document.getElementById('sNodes').textContent=nodes.length;
+document.getElementById('sLinks').textContent=links.length;
+document.getElementById('sDeg').textContent=(2*links.length/nodes.length).toFixed(1);
+addEventListener('resize',()=>{ resize(); fitView(); });
+resize(); fitView(); loop();
+</script>
+</body>
+</html>
