@@ -105,8 +105,99 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 10px;
+}
+
+.ov-quality-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(9, 18, 25, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.ov-quality-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ov-quality-title {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ov-quality-head small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ov-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ov-quality-item {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 6px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.ov-quality-item.ok {
+  border-color: rgba(48, 198, 157, 0.28);
+}
+
+.ov-quality-item.warn {
+  border-color: rgba(255, 184, 77, 0.34);
+}
+
+.ov-quality-item.danger {
+  border-color: rgba(255, 82, 102, 0.38);
+}
+
+.ov-quality-label {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-quality-value {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-top: 2px;
+  color: var(--ink);
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ov-quality-value small {
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 10px;
+}
+
+.ov-quality-item em {
+  display: block;
+  overflow: hidden;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ov-site-list-card {

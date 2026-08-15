@@ -23,12 +23,14 @@
   var Contract = window.HunanContract;
   var Sites = window.HunanSites;
   var Series = window.HunanSeries;
+  var Quality = window.HunanInspectionQuality;
   var STATUS_LABEL = { ok: "正常", warn: "关注", danger: "异常" };
 
   function assertLoaded() {
     if (!Contract) throw new Error("[OverviewScene] window.HunanContract 未加载");
     if (!Sites) throw new Error("[OverviewScene] window.HunanSites 未加载");
     if (!Series) throw new Error("[OverviewScene] window.HunanSeries 未加载");
+    if (!Quality) throw new Error("[OverviewScene] window.HunanInspectionQuality 未加载");
   }
 
   // ---------------------------------------------------------------------
@@ -241,6 +243,47 @@
     });
   }
 
+  function metricTone(value, warnAt, dangerAt) {
+    if (value >= dangerAt) return "danger";
+    if (value >= warnAt) return "warn";
+    return "ok";
+  }
+
+  function renderQualityMetric(label, value, unit, note, status) {
+    return h("div", { class: "ov-quality-item " + status }, [
+      h("span", { class: "ov-quality-label", text: label }),
+      h("strong", { class: "ov-quality-value" }, [
+        String(value),
+        unit ? h("small", { text: unit }) : null,
+      ]),
+      note ? h("em", { text: note }) : null,
+    ]);
+  }
+
+  function renderQualityCard(state) {
+    var q = Quality.current(state.zoneId);
+    var riskStatus = q.riskLevel === "P1" ? "danger" : (q.riskLevel === "P2" ? "warn" : "ok");
+    var completionStatus = q.completionRate < 95 ? "warn" : "ok";
+    return h("section", {
+      class: "ov-quality-card",
+      "data-quality-scope": state.zoneId == null ? "province" : state.zoneId,
+    }, [
+      h("div", { class: "ov-quality-head" }, [
+        h("span", { class: "ov-quality-title", text: "巡检质量指标" }),
+        h("small", { text: q.name }),
+      ]),
+      h("div", { class: "ov-quality-grid" }, [
+        renderQualityMetric("当前风险", q.riskLevel, "", q.currentRisk > 0 ? q.currentRisk + "项" : "无P1", riskStatus),
+        renderQualityMetric("巡检完成率", q.completionRate.toFixed(1), "%", q.completed + "/" + q.planned, completionStatus),
+        renderQualityMetric("发现问题数", q.issues, "项", "P1 " + q.p1Issues, metricTone(q.issues, 1, 4)),
+        renderQualityMetric("时长异常", q.duration, "次", "<10min", metricTone(q.duration, 1, 3)),
+        renderQualityMetric("间隔异常", q.interval, "次", "<10s", metricTone(q.interval, 1, 3)),
+        renderQualityMetric("时段异常", q.offWindow, "次", "偏移30min", metricTone(q.offWindow, 1, 2)),
+        renderQualityMetric("AI 提醒", q.aiAlerts, "条", "时序/轨迹", metricTone(q.aiAlerts, 1, 3)),
+      ]),
+    ]);
+  }
+
   function siteStatusBadgeText(status) {
     return STATUS_LABEL[status];
   }
@@ -267,7 +310,10 @@
 
   function renderDrillSection(state) {
     if (state.zoneId == null) {
-      return h("div", { class: "ov-drill-section" }, [renderProvinceHint()]);
+      return h("div", { class: "ov-drill-section" }, [
+        renderProvinceHint(),
+        renderQualityCard(state),
+      ]);
     }
     var sites = Sites.sitesByZone(state.zoneId).slice().sort(function (a, b) {
       if (a.status === b.status) return a.name < b.name ? -1 : 1;
@@ -294,6 +340,7 @@
     var activeId = state.siteId != null ? state.siteId : items[0].id;
     var activeSite = sites.filter(function (s) { return s.id === activeId; })[0];
     return h("div", { class: "ov-drill-section" }, [
+      renderQualityCard(state),
       h("div", { class: "ov-site-list-card" }, [
         h("div", { class: "ov-rank-card-head" }, [
           h("span", { class: "ov-rank-card-title", text: Contract.ZONE_NAMES[state.zoneId] + " · " + sites.length + " 个站点" }),
