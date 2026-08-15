@@ -1,0 +1,46 @@
+/* 02-semantic.css: 语义层 —— 骨架文件（04..08）只准使用这一层暴露的变量，
+   不许穿透语义层直接引用 01-theme.css 的 --c-*（DESIGN.md 第 5 章执法规则 3）。
+
+   本文件自身只准出现 `var(--c-*)`，绝不许出现任何色值字面量（#hex / rgb() /
+   hsl() / oklch()）—— 见 verify/verify_tokens.js 执法规则 2。每一条声明都是
+   “把主题层的某个色槽，转发成一个带业务语义的名字”，不做任何取值计算。
+
+   命名以“这块东西是什么角色”而非“它长什么颜色”来起名 —— 换主题（比如以后
+   出一份暖色系）只需要重写 01-theme.css，本文件与骨架层零改动。 */
+
+:root {
+  /* ---- 表面：三档背景，对应主题层的三档背景 ---- */
+  --surface-panel: var(--c-bg-800); /* 大面板、展台桌面级背景 */
+  --surface-card: var(--c-bg-700); /* 前排/近处卡片背景 */
+  --surface-card-far: var(--c-bg-800); /* 后排/远处卡片背景，比近处卡片更沉 */
+
+  /* ---- 文字：三档语义化命名，对应主题层的三档亮度 ---- */
+  --text-title: var(--c-ink-100); /* 标题、强调数字 */
+  --text-body: var(--c-ink-300); /* 正文、次级标签 */
+  --text-dim: var(--c-ink-500); /* 弱化文字、占位、禁用态 */
+
+  /* ---- 边框与焦点环 ---- */
+  --border-hair: var(--c-line-hair); /* 卡片/面板发丝级分隔线 */
+  --border-strong: var(--c-line-strong); /* 需要强调的边界线 */
+  --focus-ring: var(--c-accent-a40); /* 键盘可达焦点环，复用强调色高透明度档 */
+
+  /* ---- 强调色的三种业务用法：填充 / 线条 / 文字 ---- */
+  --accent-fill: var(--c-accent-a12); /* 激活态的浅色底色填充 */
+  --accent-line: var(--c-accent); /* 激活态描边、图形高亮线 */
+  --accent-text: var(--c-accent); /* 强调色文字（数值高亮、链接态） */
+
+  /* ---- 层级色：levels[] 派生，level i → var(--level-i) ----
+     DESIGN.md 2.1 节「派生规则」冻结的命名：层级色槽位与层级数量脱钩于业务
+     命名（不叫 --task/--direction），换课题改层级 label 不影响这里。 */
+  --level-0: var(--c-level-0);
+  --level-1: var(--c-level-1);
+  --level-2: var(--c-level-2);
+  --level-3: var(--c-level-3);
+  --level-4: var(--c-level-4);
+
+  /* ---- 横切色：facets[] 派生，facet j → var(--facet-{j+1}) ---- */
+  --facet-1: var(--c-facet-1);
+  --facet-2: var(--c-facet-2);
+  --facet-3: var(--c-facet-3);
+  --facet-4: var(--c-facet-4);
+}

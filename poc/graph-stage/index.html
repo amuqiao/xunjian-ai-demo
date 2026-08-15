@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>国家管网技术图谱 · 知识图谱展台</title>
+
+    <link rel="stylesheet" href="styles/01-theme.css" />
+    <link rel="stylesheet" href="styles/02-semantic.css" />
+    <link rel="stylesheet" href="styles/03-geometry.css" />
+    <link rel="stylesheet" href="preview/stage-2d5.css" />
+  </head>
+  <body>
+    <!--
+      2.5D 展台。视角固定 ⇒ 每个"立体"形状都只是一个固定的投影 ⇒ 直接画那个投影。
+      全部 DOM + CSS，无 WebGL：中文锐利、元素天然可点可 Tab、改形就是改数值。
+      三页壳与图谱/文档页由后续任务产出，届时本文件重写、preview/ 删除。
+    -->
+    <div id="screen">
+
+      <header class="topbar">
+        <div class="tb-clock">
+          <span class="tb-time" id="clockTime">--:--:--</span>
+          <span class="tb-date"><i id="clockDate"></i><i id="clockWeek"></i></span>
+        </div>
+
+        <nav class="tb-nav tb-nav--l" aria-label="左侧导航">
+          <button type="button" class="tb-btn is-active" data-go="stage">首页</button>
+          <button type="button" class="tb-btn" data-go="graph" data-view="domain">七大技术领域</button>
+        </nav>
+
+        <h1 class="tb-title"><span>国家管网技术图谱</span></h1>
+
+        <nav class="tb-nav tb-nav--r" aria-label="右侧导航">
+          <button type="button" class="tb-btn" data-go="graph" data-view="business">三大业务</button>
+          <button type="button" class="tb-btn" data-go="graph" data-view="task">十大重点任务</button>
+          <button type="button" class="tb-btn" data-go="graph">图谱看板</button>
+        </nav>
+      </header>
+
+      <aside class="rail" aria-label="功能入口">
+        <button type="button" class="rail-btn" data-go="docs" aria-label="文档搜索">
+          <span class="rail-hex" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
+          <span class="rail-label">文档搜索</span>
+        </button>
+        <button type="button" class="rail-btn" data-go="graph" aria-label="图谱搜索">
+          <span class="rail-hex" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>
+              <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="12" y2="18"/>
+              <line x1="18" y1="6" x2="12" y2="18"/>
+            </svg>
+          </span>
+          <span class="rail-label">图谱搜索</span>
+        </button>
+        <button type="button" class="rail-btn" data-go="docs" data-focus="intro" aria-label="图谱介绍">
+          <span class="rail-hex" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/>
+              <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/>
+            </svg>
+          </span>
+          <span class="rail-label">图谱介绍</span>
+        </button>
+      </aside>
+
+      <main id="pages">
+        <section class="page is-active" id="page-stage">
+          <div class="bg" aria-hidden="true">
+            <div class="bg-grid"></div>
+            <div class="bg-glow"></div>
+            <div class="bg-vignette"></div>
+          </div>
+
+          <!-- 四层堆叠由 JS 按数据填充；每层的椭圆台是 CSS，卡片是 DOM -->
+          <div class="stage" id="stage" data-stage-host>
+            <div class="stage-layer" id="stageLayer"></div>
+          </div>
+
+          <div class="stage-hint" id="stageHint">
+            <span class="sh-type">图谱总览</span>
+            <span class="sh-text">悬停展台上的任意元素查看详情</span>
+          </div>
+        </section>
+      </main>
+
+    </div>
+
+    <script src="scripts/core/screen-scale.js"></script>
+    <script src="preview/stage-2d5.js"></script>
+  </body>
+</html>

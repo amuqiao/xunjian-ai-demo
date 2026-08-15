@@ -1,0 +1,273 @@
+/* 04-shell.css —— 骨架层第一份文件：全局 reset、#screen 等比缩放容器、顶栏、三页
+   .page 切换、以及会被后续骨架文件（05 起的卡片/表单/统计板等）复用的几个最基础
+   外壳基元（.panel/.kicker/.muted/.tool-btn 一族）。
+
+   token 纪律（DESIGN.md 第 5 章，verify/verify_tokens.js 静态扫描执法）：本文件只
+   准引用语义层或几何层暴露的变量，绝不直连主题层的颜色槽位，也绝不出现任何色值
+   字面量——颜色一律经 02-semantic.css 转发的语义变量间接引用。
+   --screen-scale/--screen-offset-x/--screen-offset-y 三个例外：它们不是三层
+   token 契约里的变量，而是 scripts/core/screen-scale.js 在运行期直接写到 :root 上
+   的换算系数，本文件是唯一消费它们的骨架文件。
+
+   DOM 契约（供 boot.js / scripts/core/router.js 之后落地时对齐，本文件不建立
+   router，只是先把承接它的容器和状态类准备好）：
+
+   <body>
+     <div id="screen">
+       <header class="topbar panel">
+         <div class="topbar-brand">...</div>
+         <nav class="topbar-nav" aria-label="三页切换">
+           <button type="button" class="topbar-nav-btn is-active" data-page="stage">3D 展台</button>
+           <button type="button" class="topbar-nav-btn" data-page="graph">图谱搜索</button>
+           <button type="button" class="topbar-nav-btn" data-page="docs">文档搜索</button>
+         </nav>
+         <div class="topbar-aside">...</div>
+       </header>
+       <main id="pages">
+         <section class="page is-active" id="page-stage">...</section>
+         <section class="page" id="page-graph">...</section>
+         <section class="page" id="page-docs">...</section>
+       </main>
+     </div>
+   </body>
+
+   哪个 .page 带 .is-active 由路由层维护，本文件只负责："只有一页可见时该有的视觉
+   与性能表现"。 */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface-panel);
+  color: var(--text-body);
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   #screen：设计坐标 1920×1080（默认值，实际读 --screen-design-width/height）
+   的固定画布，用 transform: scale() 等比缩放并居中。left/top 用
+   --screen-offset-x/-y 而不是 translate(-50%,-50%)：后者会让"视口坐标 ->
+   设计坐标"的换算多一次居中项，DESIGN.md 第 6 章冻结的护栏断言
+   `projected.x * screenScale + screenOffsetX ≈ rect(card).centerX` 就是按
+   左上角 + offset 这套模型推导的，两套模型不能混用。
+   --------------------------------------------------------------------------- */
+#screen {
+  position: fixed;
+  left: var(--screen-offset-x);
+  top: var(--screen-offset-y);
+  width: var(--screen-design-width);
+  height: var(--screen-design-height);
+  overflow: hidden;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+  will-change: transform;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+/* ---------------------------------------------------------------------------
+   三页容器：#pages 撑满 #screen 剩余空间，三个 .page 用绝对定位叠在一起，
+   默认态与 .is-active 用透明度过渡切换。
+
+   非激活页叠加 visibility:hidden 是"隐藏延迟、显示不延迟"的经典双态写法：
+   .page（覆盖非激活态）把 visibility 的 transition-delay 设成
+   --dur-slow，与 opacity 淡出时长完全一致——只有等淡出动画真正播完（用户已经
+   看不到）才会真正切到 visibility:hidden，不会出现"淡出到一半突然消失"的跳
+   变；.page.is-active 把 delay 清零，重新进入该页时 visibility 立即变回
+   visible（CSS 对 visibility 这类离散属性的规则是"由 hidden 变 visible 时不
+   等 transition 结束，一开始就切换"），淡入过程从第一帧就能看见。
+
+   这不是可有可无的润色：非激活页一旦真正拿到 visibility:hidden，就会被浏览器
+   整体移出渲染树的合成阶段，页面内任何 CSS 动画（呼吸效果、迷你趋势条动画等）
+   都会随之停止参与合成，不会在切走之后继续在后台空跑消耗主线程/GPU——这正是
+   DESIGN.md 1.2 节"展台无常驻 WebGL 动画，氛围呼吸做在 DOM 层的 CSS 上"这条
+   立场能够成立的前提：如果非激活页的 CSS 动画不停，`debugInfo().idle` 永远
+   收敛不到 true，`frames` 也就无法被断言"切走后停止增长"。
+   --------------------------------------------------------------------------- */
+#pages {
+  position: relative;
+  min-height: 0;
+}
+
+.page {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--dur-slow) var(--ease-out), visibility 0s var(--dur-slow);
+}
+
+.page.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity var(--dur-slow) var(--ease-out), visibility 0s;
+}
+
+/* ---------------------------------------------------------------------------
+   顶栏：三段 grid——左侧品牌 / 中间三页切换导航 / 右侧预留（时钟、全局操作等，
+   具体内容由使用本文件的场景自行填充，本文件不假设其内容）。
+   --------------------------------------------------------------------------- */
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto minmax(160px, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 64px;
+  padding: 0 var(--space-5);
+  z-index: var(--z-panel);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--text-title);
+}
+
+.topbar-aside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.topbar-nav-btn {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.topbar-nav-btn:hover {
+  border-color: var(--accent-line);
+  color: var(--text-title);
+}
+
+.topbar-nav-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.topbar-nav-btn.is-active {
+  border-color: var(--accent-line);
+  background: var(--accent-fill);
+  color: var(--accent-text);
+}
+
+/* ---------------------------------------------------------------------------
+   通用外壳基元：面板底 / 弱化大写标注 / 次要文字 —— 后续 05 起的卡片、表单、
+   统计板等骨架文件在这几个基元上叠自己的专属样式，不重新定义背景/边框/圆角
+   这类最基础的视觉属性，保证换主题时只需要改 01-theme.css 一处。
+   --------------------------------------------------------------------------- */
+.panel {
+  border: 1px solid var(--border-hair);
+  border-radius: var(--radius-lg);
+  background: var(--surface-panel);
+}
+
+.kicker {
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.tool-btn,
+.plain-button {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-body);
+  transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.tool-btn:hover,
+.plain-button:hover {
+  border-color: var(--accent-line);
+  color: var(--text-title);
+}
+
+.tool-btn:focus-visible,
+.plain-button:focus-visible,
+.topbar-nav-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.primary-action {
+  min-height: 34px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-md);
+  background: var(--accent-fill);
+  color: var(--accent-text);
+  font-weight: 800;
+}
+
+.primary-action:disabled {
+  border-color: var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.primary-action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* 自定义滚动条：细、用强调线色，供图谱/文档页内部滚动容器统一观感。 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-line);
+}
