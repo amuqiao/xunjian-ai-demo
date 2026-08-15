@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识中枢 · 知识图谱模板</title>
+
+    <link rel="stylesheet" href="styles/tokens.css">
+    <link rel="stylesheet" href="shell/shell.css">
+    <link rel="stylesheet" href="views/stage/stage.css">
+    <link rel="stylesheet" href="views/graph/graph.css">
+    <link rel="stylesheet" href="views/tree/tree.css">
+    <link rel="stylesheet" href="core/transition.css">
+    <link rel="stylesheet" href="../flow-nav/flow-nav.css">
+  </head>
+  <body>
+    <div id="screen">
+
+      <!-- 顶栏：三个视图的切换 + 焦点面包屑（shell/shell.js 填充）。
+           这是唯一的常驻导航，画面里不再放第二处入口。 -->
+      <header id="topbar" class="topbar"></header>
+
+      <!-- 三个视图，叠在同一位置，靠 .is-active 切换 -->
+      <main id="views">
+        <section class="view" id="view-stage"></section>
+        <section class="view" id="view-graph"></section>
+        <section class="view" id="view-tree"></section>
+      </main>
+
+      <!-- 浮层：检索面板 / 说明面板 / 降级提示 -->
+      <div id="overlays"></div>
+
+      <!-- 转场层 -->
+      <div id="trLayer" class="tr-layer" aria-hidden="true"></div>
+
+    </div>
+
+    <!-- 顺序即依赖顺序，不可调换：
+         vendor → 数据 → 派生 → core → 视图 → shell → app -->
+    <script src="vendor/three.min.js"></script>
+
+    <script src="data/kg-config.js"></script>
+    <script src="data/kg-data.js"></script>
+    <script src="data/kg-derive.js"></script>
+
+    <script src="core/dom.js"></script>
+    <script src="core/bus.js"></script>
+    <script src="core/views.js"></script>
+    <script src="core/router.js"></script>
+    <script src="core/transition.js"></script>
+
+    <script src="views/stage/stage.js"></script>
+    <script src="views/graph/graph.js"></script>
+    <script src="views/tree/tree.js"></script>
+
+    <script src="shell/shell.js"></script>
+    <script src="app.js"></script>
+    <script src="../flow-nav/flow-nav.js"></script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+/* 设计变量。整个 POC 的颜色、间距、圆角只从这里取，场景样式里不出现裸色值。
+   换课题不改这个文件——它是骨架的一部分，不是领域数据。 */
+:root {
+  /* 三色语义：贯穿状态点、徽标、曲线、卡片描边。三个词的含义在全项目统一：
+     danger=已越线 / warn=接近线或有缺项 / ok=正常 */
+  --danger: #ff5c6c;
+  --warn: #ffb454;
+  --ok: #3ddc97;
+
+  --bg: #070b16;
+  --bg-soft: #0c1426;
+  --panel: rgba(18, 26, 44, 0.86);
+  --panel-2: rgba(24, 34, 56, 0.72);
+  --line: rgba(255, 255, 255, 0.10);
+  --line-strong: rgba(255, 255, 255, 0.20);
+
+  --text: #e8eefc;
+  --text-dim: rgba(232, 238, 252, 0.68);
+  --text-mute: rgba(232, 238, 252, 0.42);
+
+  --accent: #4d8dff;
+  --accent-soft: rgba(77, 141, 255, 0.16);
+
+  --radius: 10px;
+  --radius-lg: 14px;
+  --gap: 12px;
+  --gap-lg: 16px;
+
+  --font: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --mono: "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --screen-scale: 1;
+}

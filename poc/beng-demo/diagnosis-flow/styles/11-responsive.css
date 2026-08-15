@@ -1,0 +1,12 @@
+/* 常规演示窗口直接铺满视口。这里只处理极窄窗口和打印场景。 */
+
+/* 窗口极窄时允许查看最小演示画布。 */
+@media (max-width: 900px), (max-height: 560px) {
+  body { overflow: auto; }
+  .app-shell { position: relative; width: 1280px; height: 720px; }
+}
+
+/* 打印 / 截图时去掉背景光晕，避免大面积渐变在投影仪上偏色 */
+@media print {
+  .app-shell { background: var(--bg); }
+}

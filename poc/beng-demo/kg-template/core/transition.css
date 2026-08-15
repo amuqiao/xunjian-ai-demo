@@ -1,0 +1,68 @@
+/**
+ * transition.css —— 转场层
+ * 转场层平时完全不拦事件，只有播放中才盖住画面。
+ */
+.tr-layer{
+  position:fixed;inset:0;z-index:60;
+  pointer-events:none;
+  overflow:hidden;
+}
+.tr-layer.is-playing{pointer-events:auto}   /* 播放中吃掉误触，避免连点打断 */
+
+/* ── 幻影：被点的那个节点的替身 ── */
+.tr-ghost{
+  position:absolute;
+  border-radius:12px;
+  background:
+    radial-gradient(120% 120% at 32% 26%,
+      color-mix(in srgb, var(--tr-color) 42%, #ffffff) 0%,
+      var(--tr-color) 52%,
+      color-mix(in srgb, var(--tr-color) 60%, #060B1E) 100%);
+  box-shadow:
+    0 0 26px color-mix(in srgb, var(--tr-color) 70%, transparent),
+    0 0 72px color-mix(in srgb, var(--tr-color) 40%, transparent);
+  transform-origin:center center;
+  will-change:transform,opacity;
+  display:flex;align-items:center;justify-content:center;
+}
+.tr-ghost-label{
+  font-family:var(--sans);
+  font-size:13px;font-weight:600;letter-spacing:.06em;
+  color:#fff;
+  text-shadow:0 1px 8px rgba(0,0,0,.65);
+  white-space:nowrap;
+  padding:0 10px;
+}
+
+/* ── 白闪：切换视图那一瞬间的遮盖 ── */
+.tr-flash{
+  position:absolute;inset:0;
+  background:
+    linear-gradient(100deg, transparent 0%, rgba(190,215,255,.5) 45%, transparent 90%),
+    #F2F6FF;
+  opacity:0;
+  transition:opacity 180ms ease-out;
+}
+.tr-flash.on{
+  opacity:.88;
+  transition:opacity 140ms ease-in;
+}
+
+/* ── 涟漪：落地确认 ── */
+.tr-ripple{
+  position:absolute;
+  border-radius:50%;
+  border:1.5px solid;
+  opacity:.85;
+  transform:scale(.6);
+  transition:transform .82s cubic-bezier(.16,.8,.3,1), opacity .82s ease-out;
+}
+.tr-ripple.on{
+  transform:scale(3.1);
+  opacity:0;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .tr-ghost,.tr-ripple{display:none}
+  .tr-flash{transition-duration:80ms}
+}

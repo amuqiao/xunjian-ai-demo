@@ -1,0 +1,72 @@
+/* 浮层外壳：Agent 对话 / 文档阅读器 / 入库动画共用。
+   浮层挂在 #overlayRoot（app-shell 之外），所以要自己做一次等比缩放，
+   否则在缩放后的窗口里会比底层界面大一圈。 */
+
+#overlayRoot { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+
+.overlay-mask {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 8, 18, 0.62);
+  backdrop-filter: blur(3px);
+  pointer-events: auto;
+  animation: overlay-in 0.16s ease-out;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.overlay-panel {
+  width: min(920px, 76vw);
+  max-height: 78vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: #0f1728;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.overlay-mask.wide .overlay-panel { width: min(1280px, 88vw); }
+
+.overlay-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.overlay-head h3 { margin: 0; font-size: 17px; }
+
+.overlay-close {
+  width: 30px; height: 30px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.overlay-close:hover:not(:disabled) { color: var(--text); border-color: var(--line-strong); }
+.overlay-close:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.overlay-body { padding: 18px 20px; overflow: auto; min-height: 0; }
+
+/* 定高的浮层（目前只有 Agent 卡片）由内部各列自己滚，body 本身不滚——否则会出现
+   "外面滚一层、里面又滚一层"的双滚动条。 */
+.overlay-panel.ag-overlay .overlay-body { overflow: hidden; }
+
+.overlay-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+}

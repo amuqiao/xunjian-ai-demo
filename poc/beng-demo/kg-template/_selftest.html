@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <title>自测</title>
+    <link rel="stylesheet" href="styles/tokens.css">
+    <link rel="stylesheet" href="shell/shell.css">
+    <link rel="stylesheet" href="views/stage/stage.css">
+    <link rel="stylesheet" href="views/graph/graph.css">
+    <link rel="stylesheet" href="views/tree/tree.css">
+    <link rel="stylesheet" href="core/transition.css">
+  </head>
+  <body>
+    <div id="screen">
+      <header id="topbar" class="topbar"></header>
+      <main id="views">
+        <section class="view" id="view-stage"></section>
+        <section class="view" id="view-graph"></section>
+        <section class="view" id="view-tree"></section>
+      </main>
+      <div id="overlays"></div>
+      <div id="trLayer" class="tr-layer" aria-hidden="true"></div>
+    </div>
+
+    <script src="vendor/three.min.js"></script>
+    <script src="data/kg-config.js"></script>
+    <script src="data/kg-data.js"></script>
+    <script src="data/kg-derive.js"></script>
+    <script src="core/dom.js"></script>
+    <script src="core/bus.js"></script>
+    <script src="core/views.js"></script>
+    <script src="core/router.js"></script>
+    <script src="core/transition.js"></script>
+    <script src="views/stage/stage.js"></script>
+    <script src="views/graph/graph.js"></script>
+    <script src="views/tree/tree.js"></script>
+    <script src="shell/shell.js"></script>
+    <script src="app.js"></script>
+
+    <script>
+    (function () {
+      var R = [];
+      var lastNote = null;
+      function ok(name, cond, extra) {
+        R.push((cond ? 'PASS' : 'FAIL') + ' | ' + name + (extra !== undefined ? '  -> ' + extra : ''));
+      }
+      function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+      function open(id, view) {
+        var from = KG.views.locate(view, id);
+        lastNote = null;
+        KG.bus.emit('node:open', { id: id, view: view, from: from });
+        return wait(800);
+      }
+      function dump() {
+        var pre = document.createElement('pre');
+        pre.id = 'selftest';
+        pre.textContent = R.join('\n');
+        document.body.appendChild(pre);
+        document.title = 'SELFTEST-DONE';
+      }
+
+      window.addEventListener('error', function (e) { R.push('FAIL | 运行时异常  -> ' + e.message); });
+
+      setTimeout(function () {
+        KG.bus.on('view:changed', function (p) { if (p.note) lastNote = p.note; });
+
+        var D = KG.derive;
+        var firstCat = D.categories[0];
+        var featuredCat = D.categories.find(function (c) { return c.featured && c.featured.length; });
+        var featuredId = featuredCat && featuredCat.featured[0];
+        var entity = D.entities[0];
+        var nonFeatured = null;
+        var branch = null;
+
+        D.categories.some(function (cat) {
+          var featured = cat.featured || [];
+          nonFeatured = D.leavesOf(cat.id).find(function (leaf) {
+            return featured.indexOf(leaf.id) < 0;
+          });
+          return !!nonFeatured;
+        });
+        if (firstCat) {
+          branch = D.childrenOf(firstCat.id).find(function (n) { return n.children && n.children.length; });
+        }
+
+        Promise.resolve()
+          .then(function () {
+            var report = D.validate();
+            ok('数据体检通过', report.ok);
+            ok('当前样例没有体检 warnings', report.warnings.length === 0, report.warnings.join('; '));
+            ok('自测找到首个类目', !!firstCat, firstCat && firstCat.id);
+            ok('自测找到代表叶子', !!featuredId, featuredId);
+            ok('自测找到横向实体', !!entity, entity && entity.id);
+            ok('自测找到非代表叶子', !!nonFeatured, nonFeatured && nonFeatured.id);
+            ok('自测找到目录分支', !!branch, branch && branch.id);
+            ok('三视图均已注册', KG.views.has('stage') && KG.views.has('graph') && KG.views.has('tree'));
+            ok('首屏落在展台', KG.views.current() === 'stage', KG.views.current());
+            ok('画面里不再有左侧栏', !document.querySelector('#rail'));
+            ok('顶栏 3 个视图按钮', document.querySelectorAll('#topbar .kg-viewbtn').length === 3,
+               document.querySelectorAll('#topbar .kg-viewbtn').length);
+
+            var sum = D.stageCards().reduce(function (s, c) { return s + c.sample; }, 0);
+            ok('展台样本数合计 == 树叶子总数', sum === D.stats().sampleTotal, sum + ' / ' + D.stats().sampleTotal);
+
+            KG.shell.openIntro();
+            return wait(120);
+          })
+          .then(function () {
+            var keys = Array.prototype.map.call(document.querySelectorAll('.kg-statcell .kg-sk'), function (el) {
+              return el.textContent.trim();
+            });
+            var expectedKeys = D.ui.intro.stats.map(function (s) { return s.key; });
+            ok('说明浮层统计标题来自配置', keys.join('|') === expectedKeys.join('|'), keys.join('|'));
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+            var loc = KG.views.locate('stage', firstCat.id);
+            ok('展台能投影出立牌屏幕坐标', !!loc, loc ? Math.round(loc.x) + ',' + Math.round(loc.y) + ' ' + Math.round(loc.w) + 'x' + Math.round(loc.h) : 'null');
+            return open(firstCat.id, 'stage');
+          })
+          .then(function () {
+            ok('展台点类目立牌 -> 树视图', KG.views.current() === 'tree', KG.views.current());
+            ok('树接住了该类目焦点', KG.ctx.focusId === firstCat.id, KG.ctx.focusId);
+
+            KG.views.impl().focus(featuredId);
+            return wait(420);
+          })
+          .then(function () {
+            var l = KG.views.locate('tree', featuredId);
+            ok('树能定位到代表叶子', !!l, l ? Math.round(l.x) + ',' + Math.round(l.y) : 'null');
+            return open(featuredId, 'tree');
+          })
+          .then(function () {
+            ok('树点代表叶子 -> 图谱直接命中', KG.views.current() === 'graph' && KG.ctx.focusId === featuredId,
+               KG.views.current() + ' / ' + KG.ctx.focusId);
+            ok('直接命中时不应有降级解释', lastNote === null, lastNote);
+            return open(entity.id, 'graph');
+          })
+          .then(function () {
+            var expected = D.resolveView(entity.id, 'tree').focusId;
+            ok('图谱点横向实体 -> 树降级到关联最多的类目', KG.views.current() === 'tree' && KG.ctx.focusId === expected,
+               KG.views.current() + ' / ' + KG.ctx.focusId);
+            ok('实体降级给出了解释', !!lastNote, lastNote);
+
+            KG.bus.emit('view:reset', null);
+            return wait(300);
+          })
+          .then(function () {
+            ok('树重置后仍停在树视图', KG.views.current() === 'tree', KG.views.current());
+            ok('树重置后焦点已清空', KG.ctx.focusId === null, KG.ctx.focusId);
+            ok('树重置后当前类目仍可定位', !!KG.views.locate('tree', firstCat.id));
+
+            KG.views.impl().focus(nonFeatured.id);
+            return wait(420);
+          })
+          .then(function () {
+            return open(nonFeatured.id, 'tree');
+          })
+          .then(function () {
+            var expected = D.resolveView(nonFeatured.id, 'graph').focusId;
+            ok('非代表叶子 -> 图谱降级到所属类目', KG.views.current() === 'graph' && KG.ctx.focusId === expected,
+               KG.views.current() + ' / ' + KG.ctx.focusId);
+            ok('非代表叶子降级给出了解释', !!lastNote, lastNote);
+
+            return open(D.hub.id, 'stage');
+          })
+          .then(function () {
+            ok('展台中心核心 -> 图谱', KG.views.current() === 'graph' && KG.ctx.focusId === D.hub.id,
+               KG.views.current() + ' / ' + KG.ctx.focusId);
+
+            KG.router.go('tree', branch.id);
+            return wait(500);
+          })
+          .then(function () {
+            lastNote = null;
+            return open(branch.id, 'tree');
+          })
+          .then(function () {
+            var expected = D.resolveView(branch.id, 'graph').focusId;
+            ok('目录分支 -> 图谱降级到所属类目', KG.views.current() === 'graph' && KG.ctx.focusId === expected,
+               KG.views.current() + ' / ' + KG.ctx.focusId);
+            ok('目录分支降级给出解释', !!lastNote, lastNote);
+
+            KG.router.go('stage', firstCat.id);
+            return wait(900);
+          })
+          .then(function () {
+            KG.bus.emit('view:reset', null);
+            return wait(300);
+          })
+          .then(function () {
+            ok('展台重置后仍停在展台', KG.views.current() === 'stage', KG.views.current());
+            ok('展台重置后焦点已清空', KG.ctx.focusId === null, KG.ctx.focusId);
+            ok('展台重置后仍可定位立牌', !!KG.views.locate('stage', firstCat.id));
+
+            var sb = document.querySelector('#topbar .kg-searchbtn');
+            ok('顶栏有搜索按钮', !!sb, sb ? sb.textContent.trim() : 'null');
+            if (sb) sb.click();
+            ok('点搜索按钮能拉起检索浮层',
+               !!document.querySelector('#overlays .kg-overlay--search.is-open'));
+
+            var q = firstCat.label.slice(0, 2);
+            var input = document.querySelector('.kg-searchinput');
+            input.value = q;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            return wait(120);
+          })
+          .then(function () {
+            var hit = document.querySelector('.kg-hit');
+            ok('检索 UI 渲染结果行', !!hit, hit && hit.dataset.id);
+            var hitId = hit && hit.dataset.id;
+            var hitNode = D.get(hitId);
+            var expected = D.resolveView(hitId, D.viewOfType(hitNode.type));
+            hit.click();
+            return wait(700).then(function () {
+              ok('点击检索结果后关闭浮层', !document.querySelector('#overlays .kg-overlay--search.is-open'));
+              ok('点击检索结果后跳到目标视图', KG.views.current() === expected.view && KG.ctx.focusId === expected.focusId,
+                 KG.views.current() + ' / ' + KG.ctx.focusId);
+            });
+          })
+          .then(function () {
+            var q = firstCat.label.slice(0, 2);
+            var g = D.search(q);
+            ok('全局检索能命中当前数据', g.length >= 1,
+               g.map(function (x) { return x.label + ':' + x.hits.length; }).join(' '));
+
+            ok('跨视图回溯栈已积累', KG.ctx.history.length > 0, KG.ctx.history.length);
+            var prev = KG.ctx.back();
+            ok('回溯能取出上一处', !!prev, prev ? prev.view + '/' + prev.focusId : 'null');
+
+            KG.bus.emit('view:reset', null);
+            return wait(300);
+          })
+          .then(function () {
+            ok('重置视野后焦点已清空', KG.ctx.focusId === null, KG.ctx.focusId);
+            ok('重置后仍停在原视图', KG.views.current() === 'tree', KG.views.current());
+            dump();
+          })
+          .catch(function (e) {
+            R.push('FAIL | 测试链抛异常  -> ' + (e && e.message ? e.message : e));
+            dump();
+          });
+      }, 900);
+    })();
+    </script>
+  </body>
+</html>
