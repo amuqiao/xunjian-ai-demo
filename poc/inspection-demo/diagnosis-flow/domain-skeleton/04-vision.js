@@ -11,54 +11,55 @@
 //   link    = 关联点位帧，用于旁证
 window.DOMAIN_VISION = {
   media: {
-    placeholderCurrent: "media/placeholder-current.svg",
-    placeholderCompare: "media/placeholder-compare.svg",
-    placeholderLink: "media/placeholder-link.svg"
+    pumpCurrent: "media/visual-models/pump-current.png",
+    pumpCompare: "media/visual-models/pump-compare.png",
+    plcCurrent: "media/visual-models/plc-current.png",
+    powerCurrent: "media/visual-models/power-current.png"
   },
 
   frames: [
     {
       id: "FRM-1-CUR",
       partId: "PART-1",
-      label: "占位当前帧",
-      src: "placeholderCurrent",
-      bbox: { x: 0.32, y: 0.28, w: 0.3, h: 0.26 },
-      boxLabel: "占位目标 0.89",
-      findings: ["占位识别项一 0.89", "占位识别项二 0.76", "占位识别项三 0.71"],
+      label: "泵区关键帧 · 设备状态",
+      src: "pumpCurrent",
+      bbox: { x: 0.36, y: 0.12, w: 0.16, h: 0.24 },
+      boxLabel: "设备区域 0.89",
+      findings: ["泵组主体识别 0.89", "管线与阀门区域完整 0.84", "巡检补拍位可复核 0.78"],
       confidence: 0.89,
       role: "current"
     },
     {
       id: "FRM-1-CMP",
       partId: "PART-1",
-      label: "占位对比帧",
-      src: "placeholderCompare",
-      bbox: { x: 0.3, y: 0.27, w: 0.29, h: 0.25 },
-      boxLabel: "占位目标 0.90",
-      findings: ["占位识别项一 0.90"],
+      label: "泵区关键帧 · 同点位对比",
+      src: "pumpCompare",
+      bbox: { x: 0.36, y: 0.12, w: 0.16, h: 0.24 },
+      boxLabel: "同点位对比 0.90",
+      findings: ["同路线泵组位置匹配 0.90", "现场遮挡关系一致 0.82"],
       confidence: 0.9,
       role: "compare"
     },
     {
       id: "FRM-1-LNK",
       partId: "PART-1",
-      label: "占位关联帧",
-      src: "placeholderLink",
-      bbox: { x: 0.18, y: 0.4, w: 0.44, h: 0.3 },
-      boxLabel: "占位关联点位 0.81",
-      findings: ["占位识别项四 0.81"],
-      confidence: 0.81,
+      label: "PLC 联动帧 · 柜体状态",
+      src: "plcCurrent",
+      bbox: { x: 0.1, y: 0.13, w: 0.32, h: 0.78 },
+      boxLabel: "联动核验 0.91",
+      findings: ["PLC 柜体区域识别 0.91", "区域标识与巡检对象匹配 0.86"],
+      confidence: 0.91,
       role: "link"
     },
     {
       id: "FRM-2-CUR",
       partId: "PART-2",
-      label: "占位对照部位当前帧",
-      src: "placeholderCurrent",
-      bbox: { x: 0.4, y: 0.36, w: 0.22, h: 0.2 },
-      boxLabel: "占位对照目标 0.84",
-      findings: ["占位识别项五 0.84"],
-      confidence: 0.84,
+      label: "配电间关键帧 · 低压柜状态",
+      src: "powerCurrent",
+      bbox: { x: 0.54, y: 0.06, w: 0.36, h: 0.74 },
+      boxLabel: "低压柜核验 0.87",
+      findings: ["低压柜状态识别 0.87", "柜面仪表与标签清晰 0.82"],
+      confidence: 0.87,
       role: "current"
     }
   ]
