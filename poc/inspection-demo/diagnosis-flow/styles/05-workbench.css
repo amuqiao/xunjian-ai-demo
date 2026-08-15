@@ -1,0 +1,172 @@
+/* 诊断工作台。布局意图：左列报表固定 620px（表格要放得下 6 列不换行），右侧网格
+   时序/视觉按内容撑满、AI 判断卡与 Agent 卡按内容定死高度——不用同一种尺寸装信息量
+   差三倍的内容。 */
+
+.wb-layout {
+  display: grid;
+  grid-template-columns: 620px 1fr;
+  gap: var(--gap);
+  min-height: 0;
+}
+
+.wb-records { display: grid; grid-template-rows: auto 1fr; padding: 12px 14px; min-height: 0; }
+.wb-records-scroll { overflow: auto; min-height: 0; }
+
+.wb-focus { display: grid; grid-template-rows: 44px 1fr; gap: var(--gap); min-height: 0; }
+
+.wb-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.wb-summary-result { color: var(--text); font-size: 13px; }
+
+.wb-focus-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* 下面一行给 288px 而不是更小：AI 判断卡要装下结论 + 置信度条 + 两行依据链 +
+     按钮，给少了按钮会被卡片的 overflow 裁掉——而裁掉之后页面不报错，只是那个
+     "进入人工复核"按钮凭空消失。 */
+  grid-template-rows: 1fr 288px;
+  gap: var(--gap);
+  min-height: 0;
+}
+.wb-card { display: grid; padding: 12px 14px; min-height: 0; }
+
+/* 每张卡都要显式声明**与自己子元素数量相同**的行模板。
+   踩过一次：.wb-card 统一写 `auto 1fr auto`（3 行），而时序卡有 4 个子元素
+   （标题 / 判读语 / 图表 / 按钮），图表落进了第 3 行的 auto、按钮落进隐式行——
+   图表容器被压到 50px 高，曲线糊成贴着 x 轴的一条直线。CSS 不会为行数不匹配报错，
+   ECharts 也不会为宿主太矮报错，两边都"正常工作"，只有肉眼能发现。 */
+.wb-trend { grid-template-rows: auto auto 1fr auto; }
+.wb-vision { grid-template-rows: auto 1fr auto auto; }
+
+/* ---------------- 时间范围 ---------------- */
+
+.wb-range { display: flex; gap: 6px; }
+.wb-range-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-mute);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.wb-range-btn:hover { color: var(--text); border-color: var(--line-strong); }
+.wb-range-btn.active { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+
+/* ---------------- 时序卡 ---------------- */
+
+.wb-alert { margin: 0 0 6px; font-size: 12px; }
+.wb-alert.ok { color: var(--ok); }
+.wb-alert.warn { color: var(--warn); }
+.wb-alert.danger { color: var(--danger); }
+.wb-trend-chart { min-height: 0; }
+
+/* ---------------- 视觉卡 ---------------- */
+
+.wb-frame-wrap {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  border-radius: var(--radius);
+  background: #070c18;
+  overflow: hidden;
+}
+/* figure 必须精确等于图片渲染盒，bbox 的百分比定位才不会因为容器和图片宽高比不同
+   而整体偏移。留白由外层 .wb-frame-wrap 的深色底填，不是图片自己的白边。 */
+.wb-frame {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+  height: 100%;
+  line-height: 0;
+}
+.wb-frame-img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+.wb-frame-box {
+  position: absolute;
+  border: 2px solid var(--warn);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+.wb-frame-box-label {
+  position: absolute;
+  top: -20px; left: -2px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--warn);
+  color: #1a1204;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.wb-finding { margin: 6px 0; font-size: 12px; color: var(--text-dim); }
+
+/* ---------------- AI 判断卡 ---------------- */
+
+.wb-ai { grid-template-rows: auto auto auto 1fr auto; gap: 8px; }
+.wb-ai.danger { border-color: rgba(255, 92, 108, 0.4); }
+.wb-ai.warn { border-color: rgba(255, 180, 84, 0.4); }
+.wb-ai-conclusion { margin: 0; font-size: 13.5px; line-height: 1.7; }
+.wb-ai-go { justify-self: start; }
+
+/* ---------------- 依据链 ---------------- */
+
+.ev-chain-wrap { display: grid; gap: 8px; align-content: start; }
+.ev-chain { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+.ev-chip {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 6px;
+  padding: 7px 9px;
+  text-align: left;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.16s, background 0.16s;
+}
+.ev-chip:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+.ev-chip-icon { grid-row: 1 / span 2; align-self: center; font-size: 15px; }
+.ev-chip-body small { display: block; font-size: 10px; color: var(--text-mute); letter-spacing: 1px; }
+.ev-chip-body strong { display: block; font-size: 12px; font-weight: 500; }
+.ev-chip-detail { grid-column: 2; font-size: 10.5px; color: var(--text-mute); }
+
+/* 锁态不是"永远不可点"，是"归档后解锁"。归档完成后同一枚芯片会亮起来。 */
+.ev-chip.locked { opacity: 0.42; cursor: not-allowed; border-style: dashed; }
+.ev-chip.case:not(.locked) { border-color: var(--ok); background: rgba(61, 220, 151, 0.10); }
+
+.ev-rule-card {
+  display: none;
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+}
+.ev-rule-card.open { display: block; }
+.ev-rule-card strong { font-size: 12.5px; }
+.ev-rule-card p { margin: 4px 0; font-size: 12px; color: var(--text-dim); line-height: 1.7; }
+.ev-rule-card small { font-size: 11px; color: var(--text-mute); }
+
+/* ---------------- Agent 入口卡 ---------------- */
+
+.wb-agent { grid-template-rows: auto auto 1fr auto; }
+.wb-agent p { margin: 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.7; }
+.wb-agent-tags { display: flex; flex-wrap: wrap; gap: 6px; align-content: start; margin-top: 8px; }
+.wb-agent-tags span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong);
+  font-size: 11px;
+  color: var(--text-mute);
+}

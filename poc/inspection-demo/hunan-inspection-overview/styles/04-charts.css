@@ -1,0 +1,36 @@
+/* 04-charts.css: chart-box / chart-box-mini —— scripts/core/charts.js 的
+   Charts.slot(id) 产出的 ECharts 宿主盒。
+
+   Charts.slot(id) 只创建并持久化一个 <div class="chart-box"> 节点（跨渲染
+   存活，避免每次 render 都 dispose 再 init 一次 ECharts 实例），本文件只管
+   这个宿主盒的尺寸，不关心 ECharts 的 option 内容——那是未来 chartopts.js
+   的职责，颜色口径要读 01-tokens.css 的 --status-ok/--status-warn/--status-danger
+   （见该文件头部“三色语义契约”）。
+
+   本文件不含任何颜色声明，因此湖南省油气管网大屏总览的两个姐妹 POC
+   （hunan-inspection-overview 青蓝版 / hunan-pump-overview 暖琥珀版）这一片
+   CSS 逐字节相同——尺寸类基元不随配色基调变化。
+
+   下面的媒体查询按本项目固定画布的约定，统一加 `and (max-width: 0px)` 闸死，
+   使其永远不会真的触发——本项目靠 --screen-scale 整体等比缩放来适配窗口，
+   不走浏览器原生的响应式断点，写在这里只是保留“未来若要恢复响应式，加这个
+   尺寸”的落点，不是死代码占位。 */
+
+.chart-box {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 0px) and (max-width: 1180px) {
+  .chart-box {
+    min-height: 260px;
+  }
+}
+
+/* .chart-box-mini 供迷你图（如 card-metric-spark / sl-item-spark 内嵌的走势图）
+   使用：容器不应像常规 .chart-box 那样撑满整个网格行高，而是维持一段紧凑高度。 */
+.chart-box.chart-box-mini {
+  height: auto;
+  min-height: 96px;
+}

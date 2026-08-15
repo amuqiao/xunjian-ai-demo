@@ -1,0 +1,207 @@
+/* 10-taskcard.css: 顶栏任务卡。
+   DOM 由 scenes/map.js 产出（组 5 才写），本文件确立并冻结以下类名契约，
+   组 5 必须照此实现，不得另起字面量类名：
+
+     div.task-card
+       div.task-card-main
+         div.task-card-title
+           strong.task-card-name
+           span.badge.ok|.warn|.danger        —— 复用 03-cards.css 已有的 .badge，
+                                                    不新起徽标样式；"未超期"用 ok，
+                                                    "已超期"用 danger
+         dl.task-card-fields
+           div.task-field[.wide]?              —— .wide 给"计划"/"实际"这类
+                                                    时间区间字段更多可伸展宽度，
+                                                    不加则按内容宽度紧凑排布
+             dt.task-field-label
+             dd.task-field-value
+           ……（计划 / 巡检站场 / 巡检人 / 实际 / 进度共 5 组，顺序不作硬性
+               要求，但"计划"和"实际"这两组时间区间字段建议都带 .wide）
+       div.task-card-check[.done]?              —— 右侧大勾图标容器，.done 时
+                                                    才点亮（未完成态呈灰）
+       div.task-card-foot
+         ul.task-card-status[role=list]         —— 只读状态 pill：
+                                                    全部/待执行/执行中/已完成/已取消，
+                                                    当前态的那一项带 .active
+           li > span.task-status-pill[.active]
+         ul.task-card-tabs[role=list]           —— 只读 tab 呈现：
+                                                    巡检统计/巡检列表/问题列表，
+                                                    当前态的那一项带 .active
+           li > span.task-tab[.active]
+
+   task-card-status 和 task-card-tabs 这两组"只读呈现当前态、不可切换"——真实
+   业务里点击切换的交互入口在别处（比如场景导航），这里只是把当前所处的状态
+   显示出来，绝不能做成看起来能点的样子：本文件里两者都不给 cursor:pointer、
+   不给 hover 态、显式 pointer-events:none，且字号/亮度明显弱于上方的主字段
+   （name/badge/fields），一眼就能分出"这行是可操作的信息，那两行只是背景状态"
+   这层视觉主次。
+
+   顶栏 .topbar 所在的那一行是 .app-shell 网格的 auto 行（02-shell.css），
+   不是硬性钉死的高度，.topbar 自身只给了 min-height:76px 的下限——所以本卡片
+   横向排布放不下的内容用 ellipsis 收敛，纵向多出的两行（foot）会让整个
+   topbar 自然长高，不会被裁切或撑出滚动条。 */
+
+.task-card {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "main  check"
+    "foot  foot";
+  column-gap: 16px;
+  row-gap: 5px;
+  align-items: center;
+}
+
+/* ---------- 主区块：巡检表名称 + 徽标 + 5 组字段，一行横排 ---------- */
+
+.task-card-main {
+  grid-area: main;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.task-card-title {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.task-card-name {
+  overflow: hidden;
+  color: #f4fbff;
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 巡检表名称在真实数据里可能较长（如"永州分输清管站常规巡检表"），限宽
+     把横排空间留给右侧同样重要的计划/站场/巡检人等字段，超长部分用省略号，
+     不允许它把其余字段挤到不可见。 */
+  max-width: 230px;
+}
+
+.task-card-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  /* 顶栏一行放不下全部 5 组字段时，直接裁掉溢出的部分，而不是把 .topbar
+     撑到需要横向滚动——横向滚动条在顶栏这种固定视觉位置里体验很差，宁可
+     裁掉最不紧急的字段（DOM 顺序里排在最后的）。 */
+  overflow: hidden;
+}
+
+.task-field {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.task-field.wide {
+  flex: 1 1 auto;
+}
+
+.task-field-label {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.task-field-value {
+  flex: 1 1 auto;
+  margin: 0;
+  overflow: hidden;
+  color: #dff5fb;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 右侧大勾：全部完成时点亮，用色和 .badge.ok 同一套语义 ---------- */
+
+.task-card-check {
+  grid-area: check;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(135, 163, 184, 0.14);
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.task-card-check.done {
+  background: rgba(48, 198, 157, 0.16);
+  color: var(--status-ok);
+}
+
+/* ---------- 底部只读呈现：状态 pill + tab，视觉权重明显弱于主字段 ---------- */
+
+.task-card-foot {
+  grid-area: foot;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.task-card-status,
+.task-card-tabs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* 只读呈现，不是可点击控件：不给手型指针、不做 hover 反馈。 */
+  pointer-events: none;
+}
+
+.task-status-pill {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--muted);
+  padding: 1px 8px;
+  font-size: 10px;
+}
+
+.task-status-pill.active {
+  border-color: rgba(56, 198, 236, 0.35);
+  background: rgba(56, 198, 236, 0.14);
+  color: #dff5fb;
+}
+
+.task-tab {
+  position: relative;
+  color: var(--muted);
+  padding: 1px 4px;
+  font-size: 10px;
+}
+
+/* 非首个 tab 前面加一个点分隔符，纯 CSS content，不引入任何图片/图标字体。 */
+.task-tab + .task-tab::before {
+  content: "·";
+  margin-right: 8px;
+  color: var(--line-strong);
+}
+
+.task-tab.active {
+  color: var(--cyan);
+  font-weight: 700;
+}

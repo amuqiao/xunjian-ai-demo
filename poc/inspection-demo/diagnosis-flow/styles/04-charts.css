@@ -1,0 +1,12 @@
+/* 图表容器。.chart-box 由 core/charts.js 创建（跨渲染持久存活），这里只负责让它
+   在各自的父容器里撑满——ECharts 需要一个确定高度的宿主，高度塌成 0 时它会静默
+   画不出来，不报错。 */
+
+.chart-box {
+  width: 100%;
+  height: 100%;
+  min-height: 60px;
+}
+
+/* 迷你曲线：证据卡里的 spark，高度由卡片给定 */
+.card-metric-spark .chart-box { min-height: 0; }

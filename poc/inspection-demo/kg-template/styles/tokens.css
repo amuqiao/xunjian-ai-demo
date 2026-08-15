@@ -1,0 +1,60 @@
+/**
+ * tokens.css —— 全局设计变量 + reset + 视图容器
+ *
+ * 三份原稿各写了一份高度重合的 :root（--void / --ice / --dim / --sans / --mono），
+ * 合到这里只留一份。视图私有的变量仍留在各自的 css 里。
+ */
+:root{
+  /* 底色与面板 */
+  --void:#05060F;
+  --deep:#0A0E1F;
+  --panel:#080C1E;
+
+  /* 文字 */
+  --ice:#E8EDFF;
+  --dim:#6F7DAE;
+
+  /* 强调色 */
+  --blue:#4C7DFF;
+  --violet:#A855F7;
+  --cyan:#22D3EE;
+  --gold:#FFC661;
+
+  /* 分隔线 */
+  --hair:rgba(120,150,255,.15);
+
+  --sans:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+  --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  /* shell 尺寸：视图内部布局要给它们让位 */
+  --rail-w:86px;
+  --topbar-h:62px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--void);
+  font-family:var(--sans);
+  color:var(--ice);
+  -webkit-font-smoothing:antialiased;
+}
+
+#screen{position:fixed;inset:0;overflow:hidden}
+
+/* 三个视图叠在同一位置，靠 is-active 切换。
+   .view 是 absolute 定位上下文——视图内部原本相对 body 的 fixed 定位
+   必须改成相对它，否则三个视图会互相盖住。 */
+#views{position:absolute;inset:0}
+.view{
+  position:absolute;inset:0;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .3s ease;
+}
+.view.is-active{opacity:1;visibility:visible;pointer-events:auto}
+
+/* 视图内容整体避让 shell：左侧 rail 常驻，顶栏浮在上层 */
+.view-inset{position:absolute;top:var(--topbar-h);left:var(--rail-w);right:0;bottom:0}
+
+#overlays{position:fixed;inset:0;z-index:40;pointer-events:none}
+#overlays > *{pointer-events:auto}

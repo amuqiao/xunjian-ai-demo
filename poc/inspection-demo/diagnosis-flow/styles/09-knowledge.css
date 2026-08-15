@@ -1,0 +1,230 @@
+/* 知识库页 + 入库动画 + 文档阅读器。
+   本页不含任何关系图 / 节点连线——文档关系可视化由独立的知识文档地图 POC 承担。 */
+
+.kb-scene { display: grid; grid-template-rows: auto 1fr; gap: var(--gap); min-height: 0; }
+.kb-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+.kb-layout { display: grid; grid-template-columns: 1fr 420px; gap: var(--gap); min-height: 0; }
+
+.kb-index { display: grid; grid-template-rows: auto auto 1fr; gap: 10px; padding: 14px 16px; min-height: 0; }
+.kb-category-list { grid-template-columns: repeat(4, 1fr); display: grid; gap: 6px; }
+
+.kb-doc-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  align-content: start;
+  overflow: auto;
+  min-height: 0;
+}
+.kb-doc {
+  display: grid;
+  gap: 6px;
+  padding: 11px 13px;
+  text-align: left;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+}
+.kb-doc:hover { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+.kb-doc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kb-doc-head strong { font-size: 13.5px; }
+.kb-doc p { margin: 0; font-size: 12px; color: var(--text-mute); line-height: 1.6; }
+.kb-doc-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kb-doc-foot small { font-size: 11px; color: var(--text-mute); }
+.kb-doc-badge { padding: 2px 8px; border-radius: 999px; font-size: 10.5px; border: 1px solid var(--line); }
+.kb-doc-badge.full { border-color: var(--ok); color: var(--ok); }
+.kb-doc-badge.brief { color: var(--text-mute); }
+
+/* 本轮归档进来的那篇：观众要一眼看到"刚才那份报告真的进来了"。 */
+.kb-doc.fresh { border-color: var(--ok); background: rgba(61, 220, 151, 0.08); }
+.kb-doc-new {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--ok);
+  color: #04140c;
+  font-size: 10px;
+  animation: new-pulse 1.6s ease-in-out 3;
+}
+@keyframes new-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.42; }
+}
+
+/* ---------------- 操作台 ---------------- */
+
+.kb-actions { display: grid; grid-template-rows: auto auto auto; gap: 12px; padding: 14px 16px; align-content: start; }
+.kb-upload, .kb-agent {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.kb-upload p, .kb-agent p { margin: 0; font-size: 12px; color: var(--text-mute); line-height: 1.7; }
+.kb-upload-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--line-strong);
+}
+.kb-upload-file span { font-size: 11px; color: var(--text-mute); }
+.kb-upload-file strong { font-size: 12.5px; }
+.kb-agent-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.kb-agent-tags span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+/* ---------------- 文档阅读器 ---------------- */
+
+.kb-reader { display: grid; grid-template-columns: 260px 1fr; gap: 18px; }
+.kb-reader-side { display: grid; gap: 8px; align-content: start; }
+.kb-reader-type {
+  justify-self: start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+.kb-reader-side h4 { margin: 0; font-size: 16px; }
+.kb-reader-side p { margin: 0; font-size: 12.5px; color: var(--text-mute); line-height: 1.7; }
+.kb-reader-meta { display: grid; gap: 3px; font-size: 11.5px; color: var(--text-mute); }
+.kb-download { justify-self: start; text-decoration: none; }
+
+.kb-reader-main { display: grid; gap: 8px; align-content: start; }
+.kb-chunk {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.kb-chunk-index { font-size: 10.5px; color: var(--text-mute); letter-spacing: 1px; }
+.kb-chunk p { margin: 4px 0 0; font-size: 13px; color: var(--text-dim); line-height: 1.85; }
+/* 命中跳转的落点：引用不是贴标签，是真指到某一段。 */
+.kb-chunk.target { border-color: var(--accent); background: var(--accent-soft); }
+.kb-chunk.target p { color: var(--text); }
+
+/* ---------------- 入库动画 ---------------- */
+
+.kb-ingest { display: grid; gap: 14px; }
+
+.kb-roadmap { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.kb-roadmap-step {
+  display: grid;
+  gap: 1px;
+  padding: 7px 9px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  opacity: 0.36;
+  transition: opacity 0.3s, border-color 0.3s, background 0.3s;
+}
+.kb-roadmap-step.done { opacity: 1; }
+.kb-roadmap-step.active { border-color: var(--accent); background: var(--accent-soft); }
+.kb-roadmap-index { font-size: 10px; color: var(--text-mute); font-family: var(--mono); }
+.kb-roadmap-label { font-size: 12.5px; }
+.kb-roadmap-step small { font-size: 10.5px; color: var(--text-mute); }
+
+/* 总进度条。宽度由 JS 按步数写（step / 总步数），这里只负责让每次变化平滑过渡。
+   不用 CSS 关键帧：关键帧是"一次性从 0 跑到 100%"，第一步就会把条拉满，后面五步
+   一动不动——看起来像整个流程瞬间做完了。transition 则是"每次到达一个新值就平滑
+   走过去"，六步就是六段。 */
+.kb-progress {
+  display: grid;
+  grid-template-columns: 220px 1fr 116px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+}
+.kb-progress-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-progress-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.10); overflow: hidden; }
+.kb-progress-track i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.5s cubic-bezier(0.34, 0.8, 0.4, 1);
+}
+.kb-progress-text {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-mute);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.kb-chunk-field { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kb-rag-chunk {
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  opacity: 0;
+  transform: translateY(8px);
+}
+/* chunk 卡逐个落下：--i 是段序号，用它做步进延迟，不用给每张卡各写一条规则。 */
+.kb-chunk-field.visible .kb-rag-chunk {
+  animation: chunk-drop 0.36s ease-out forwards;
+  animation-delay: calc(var(--i) * 90ms);
+}
+@keyframes chunk-drop {
+  to { opacity: 1; transform: none; }
+}
+.kb-rag-index { font-size: 10.5px; color: var(--text-mute); }
+.kb-rag-chunk p {
+  margin: 4px 0 6px;
+  font-size: 11.5px;
+  color: var(--text-mute);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.kb-rag-score { font-size: 11px; color: var(--text-mute); font-family: var(--mono); }
+.kb-rag-chunk.scored .kb-rag-score { color: var(--text-dim); }
+.kb-rag-chunk.hit { border-color: var(--ok); background: rgba(61, 220, 151, 0.12); }
+.kb-rag-chunk.hit .kb-rag-score { color: var(--ok); }
+
+.kb-vector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--line-strong);
+  font-size: 12.5px;
+  color: var(--text-mute);
+}
+.kb-vector.done { border-style: solid; border-color: var(--accent); color: var(--text); }
+
+.kb-query {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(77, 141, 255, 0.10);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.kb-query.visible { opacity: 1; }
+.kb-query-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+}
+.kb-query strong { font-size: 13px; }
+.kb-query-hit { margin-left: auto; font-size: 12px; color: var(--ok); }

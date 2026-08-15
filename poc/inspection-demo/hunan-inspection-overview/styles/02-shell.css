@@ -1,0 +1,418 @@
+/* 02-shell.css: app-shell / topbar（居中大标题 + 左右两组信息） / stage /
+   panel / kicker / dot（三色语义点） / tool-btn 三件套 / muted / panel-title /
+   bottombar（返回按钮 + 三级面包屑 + 操作栏）—— 全场景通用的“外壳级”基元。
+
+   骨架结构移植自 poc/inspection-3d-sandbox/styles/02-shell.css：.app-shell 的
+   固定画布 + 三行网格、.panel/.kicker/.dot/三件套按钮/.muted/.panel-title 这些
+   会被 scripts/ui/cards.js、selectlist.js、detailcard.js 直接复用的基元逐字保留
+   （类名、结构完全不变，颜色只是把 var(--cyan) 换成本文件 01-tokens.css 里定义的
+   var(--accent)）。
+
+   母本里专属于“站内巡检”的 .flow-rail / .flow-track（6 步巡检流程轨）在这份大屏
+   里没有对应场景，替换成本项目自己的两块新结构：
+     1) .topbar 从母本的单行 flex（brand 靠左 + 预留任务卡位）改成三列 grid，
+        中间新增居中大标题区（.topbar-title 一族），贴合“挂图作战指挥”那种顶栏
+        标题居中带装饰的大屏形态；
+     2) 母本没有的 .bottombar（返回按钮 + .crumbs 三级面包屑 + .bottombar-actions
+        操作栏），对应本项目底部条“‹返回全省 + 操作栏 + 湖南省 › 岳阳作业区 ›
+        长岭首站”的下钻面包屑需求。
+   这两块是本文件相对母本新增的部分，DOM 契约见各自小节前的注释，写 index.html /
+   boot.js 时按这份契约拼 DOM。
+
+   .stage 不包含内部的三列网格（左栏信息卡 / 中央地图 / 右栏图表——那是
+   06-overview-scene.css 的职责，属于组 4，不是本文件范围），这里的 .stage 只保证
+   自己是“能让子网格撑满、min-height:0 不会被内容顶破”的容器：用 display:grid +
+   隐式单格，让唯一的子节点（未来的三列场景网格容器）天然拉伸铺满。 */
+
+.app-shell {
+  position: fixed;
+  left: var(--screen-offset-x);
+  top: var(--screen-offset-y);
+  width: var(--screen-design-width);
+  max-width: none;
+  height: var(--screen-design-height);
+  min-height: 0;
+  margin: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) 62px;
+  gap: 8px;
+  overflow: hidden;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+  will-change: transform;
+}
+
+/* ---------------------------------------------------------------------------
+   topbar：三列 grid（左信息 / 中间居中大标题 / 右信息），中间标题两侧各带一段
+   “装饰线 + 菱形节点”的 .topbar-wing，营造指挥大屏顶栏的仪式感。
+
+   DOM 契约：
+   <header class="topbar panel">
+     <div class="topbar-left">
+       <div class="brand">
+         <span class="brand-mark">湘</span>
+         <div><h1>...</h1><small>...</small></div>
+       </div>
+     </div>
+     <div class="topbar-title">
+       <span class="topbar-wing left" aria-hidden="true"></span>
+       <div class="topbar-title-main">
+         <p class="kicker">...（英文/拼音副标）</p>
+         <h1>湖南省油气管网巡检总览</h1>
+         <div class="topbar-title-rule"></div>
+       </div>
+       <span class="topbar-wing right" aria-hidden="true"></span>
+     </div>
+     <div class="topbar-right">
+       <button type="button" class="tool-btn">...</button>
+       <div class="topbar-clock"><strong>14:03:22</strong><small>2026-08-13 周四</small></div>
+     </div>
+   </header>
+   .topbar-left 里的 .brand/.brand-mark 是母本原有类，未改动；.topbar-title 一族
+   与 .topbar-right/.topbar-clock 是本文件新增。 --------------------------------------------------------------------------- */
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 76px;
+  padding: 10px 22px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  display: grid;
+  place-items: center;
+  /* 字面值是 --accent(56,198,236) 的 14% 透明度副本，改 --accent 记得同步改这里
+     （暖琥珀姐妹 POC 会换成对应的暖色数字，见那份文件的同名注释）。 */
+  background: rgba(56, 198, 236, 0.14);
+  color: #e2f8ff;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+}
+
+.brand h1 {
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.brand small {
+  color: var(--muted);
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.topbar-wing {
+  position: relative;
+  flex: 0 0 auto;
+  width: 110px;
+  height: 16px;
+}
+
+.topbar-wing::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 14px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line-strong));
+  transform: translateY(-50%);
+}
+
+.topbar-wing::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--accent);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.topbar-wing.right::before {
+  left: 14px;
+  right: 0;
+  background: linear-gradient(90deg, var(--line-strong), transparent);
+}
+
+.topbar-wing.right::after {
+  right: auto;
+  left: 0;
+}
+
+.topbar-title-main {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.topbar-title-main .kicker {
+  font-size: 11px;
+}
+
+.topbar-title-main h1 {
+  overflow: hidden;
+  color: #eef9ff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* 字面值是 --accent(56,198,236) 的 40% 透明度副本，用于标题字发光，改
+     --accent 记得同步改这里。 */
+  text-shadow: 0 0 16px rgba(56, 198, 236, 0.4);
+}
+
+.topbar-title-rule {
+  width: 168px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.topbar-clock {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  line-height: 1.3;
+}
+
+.topbar-clock strong {
+  color: #eef9ff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.topbar-clock small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stage {
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+  outline: none;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(18, 34, 46, 0.96), rgba(10, 20, 28, 0.96));
+  box-shadow: var(--shadow);
+}
+
+.kicker {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--status-ok);
+}
+
+.dot.warn {
+  background: var(--status-warn);
+}
+
+.dot.danger {
+  background: var(--status-danger);
+}
+
+.dot.ok {
+  background: var(--status-ok);
+}
+
+.primary-action,
+.plain-button,
+.tool-btn {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  padding: 0 13px;
+}
+
+.primary-action {
+  /* 这一对渐变色（#1a9bc4 → #2fbf95）与描边 rgba(96,220,220,0.72) 是母本手写的
+     “确认/推进”专用配色，不是 --accent 的透明度派生（母本本身也没用变量），暖
+     琥珀姐妹 POC 会换成一组与它同等视觉权重、但落在暖色系里的手写配色，不是按
+     通道互换机械算出来的（机械互换出来的颜色偏橄绿，不像“确认”按钮）。 */
+  background: linear-gradient(135deg, #1a9bc4, #2fbf95);
+  border-color: rgba(96, 220, 220, 0.72);
+  color: #f8ffff;
+  font-weight: 800;
+}
+
+.primary-action:disabled {
+  background: #232f39;
+  border-color: #3a4a56;
+  color: #758797;
+}
+
+.tool-btn:hover,
+.plain-button:hover,
+.primary-action:hover {
+  border-color: var(--accent);
+}
+
+.muted,
+.panel-title small {
+  color: var(--muted);
+}
+
+.panel-title {
+  min-height: 32px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  /* min-width:0 让本元素在被塞进更窄的父级（如左栏 320px 卡片）时，不会把自己的
+     min-content 宽度反向撑大父级——配合下面 small 的 flex-shrink:0，把“挤压预算”
+     全部让给中文标题（Chinese 文本天然逐字可断行，收缩空间很大），保证右侧英文
+     小标签永远按自身内容宽度完整显示，不会被裁掉最后一个字符。 */
+  min-width: 0;
+  color: #dff5fb;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.panel-title small {
+  /* flex-shrink:0：英文小标签（OVERVIEW/PIPELINE/ZONE RANK/TODAY 一类单词，内部
+     没有可换行的空格）绝不参与收缩，需要多少宽度就占多少宽度，避免在窄容器里被
+     压缩到显示不全；左边中文标题吸收全部收缩压力。 */
+  flex-shrink: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+   bottombar：底部操作条，三段布局——最左返回按钮 / 中间三级下钻面包屑（弹性拉伸，
+   超长自动省略）/ 最右操作按钮组，高度与母本 .flow-rail 保持一致（62px），落在
+   .app-shell 网格的第三行。
+
+   DOM 契约：
+   <footer class="bottombar panel">
+     <button type="button" class="tool-btn bottombar-back" data-action="...">
+       <span aria-hidden="true">‹</span>返回全省
+     </button>
+     <nav class="crumbs" aria-label="下钻路径">
+       <span class="crumb">湖南省</span>
+       <span class="crumb-sep" aria-hidden="true">›</span>
+       <span class="crumb">岳阳作业区</span>
+       <span class="crumb-sep" aria-hidden="true">›</span>
+       <span class="crumb current">长岭首站</span>
+     </nav>
+     <div class="bottombar-actions">
+       <button type="button" class="tool-btn">刷新数据</button>
+       <button type="button" class="primary-action">进入巡检模式</button>
+     </div>
+   </footer>
+   当前所在层级用 .crumb.current 标记（通常是面包屑里最后一节，即钻取到的最深
+   一级）；祖先层级保持 .crumb 默认弱化色，可点击回退（点击行为由 boot.js 绑定，
+   本文件只管样子）。 --------------------------------------------------------------------------- */
+
+.bottombar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 62px;
+  padding: 0 18px 0 14px;
+}
+
+.bottombar-back {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.bottombar-back span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.crumbs {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.crumb {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumb.current {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.crumb-sep {
+  flex: 0 0 auto;
+  color: var(--line-strong);
+  font-size: 12px;
+}
+
+.bottombar-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+}

@@ -1,0 +1,127 @@
+/* 01-tokens.css: CSS 变量 / reset / 排版基元 / 固定画布变量
+   —— 「湖南省油气管网大屏总览」巡检站总览分屏（POC: hunan-inspection-overview），
+   深蓝黑 + 电光青基调。整体结构与色板直接派生自
+   poc/inspection-3d-sandbox/styles/01-tokens.css（那套母本已验收通过），本文件
+   刻意保留母本的取值，不重新设计配色——这块大屏会和 inspection-3d-sandbox 串成
+   一条“省域大屏 → 站内地图”的下钻链路，配色一旦出现断层，用户会以为切进了
+   另一套系统。
+
+   【跨 POC 命名契约——写给 poc/hunan-pump-overview/styles/01-tokens.css，那份文件
+   的文件头也写了同一段话】本文件与湖南省泵站总览（暖琥珀基调，成品油语义）共用
+   同一份变量名单，两份文件的变量名必须逐条相同，只有取值不同：3D 层、图表层读
+   同名变量就能拿到各自 POC 的配色，代码零分叉。名单如下（以后谁要新增变量，两份
+   文件必须同步加，不能只加一侧）：
+     --screen-design-width / --screen-design-height / --screen-scale /
+     --screen-offset-x / --screen-offset-y
+     --bg / --panel / --panel-2 / --panel-3 / --ink / --muted / --line / --line-strong
+     --accent / --accent-2
+     --status-danger / --status-warn / --status-ok
+     --shadow
+
+   【关于 --accent / --accent-2 这两个改了名的变量】母本 inspection-3d-sandbox 用
+   的是 --cyan / --blue，字面写死了色相。这两个姐妹 POC 需要用同一个变量名承载两种
+   完全不同的色相（这份文件里是电光青，泵站那份是琥珀金），继续叫 "--cyan" 在暖色
+   那份文件里会自相矛盾（变量名字面是青色、取值却是金色，读代码的人会被名字误导）。
+   所以两份文件都改用色相中立的名字：--accent（主强调色/焦点色，对应母本 --cyan 的
+   职责：激活态、地图定位框选、kicker 文字、发光描边）、--accent-2（次强调色，对应
+   母本 --blue，专门给巡检轨迹/路线一类图形元素用，不参与下面的三色语义判定，避免
+   和状态色混淆）。这是本文件相对母本唯一的命名改动，取值本身在这份青蓝版里不变。
+
+   【三色语义契约——与母本保持完全一致，也是两个姐妹 POC 的唯一真源】
+   --status-danger / --status-warn / --status-ok 分别对应“异常 / 关注 / 正常”，
+   两个姐妹 POC 的取值必须逐字节相同，这里没有“基调不同”的豁免。以下三处都要同步：
+     1) 本文件（.dot / .badge / 各卡片状态色，见 02/03/04 三片 CSS）
+     2) 未来 map3d 层（如 engine.js 一类文件）的热点材质 emissive/发光色
+     3) 未来图表层（如 chartopts.js 一类文件）的 ECharts series 状态色
+   三处色值字面必须完全一致，否则“3D 高亮红了、面板圆点却还是绿的”这种割裂
+   会立刻在演示里露出来。 */
+
+:root {
+  /* 固定画布模式：页面内部始终按这组设计尺寸排版，外层只做等比缩放，沿用
+     inspection-3d-sandbox（及更早 pump-demo）同一套画布尺寸口径
+     （2471 × 1289）。两个姐妹 POC 也保持同一尺寸，并排展示时不需要分别调整
+     缩放策略。 */
+  --screen-design-width: 2471px;
+  --screen-design-height: 1289px;
+  --screen-scale: 1;
+  --screen-offset-x: 0px;
+  --screen-offset-y: 0px;
+
+  /* 基底色板：与母本 inspection-3d-sandbox 完全一致，深蓝黑基调。 */
+  --bg: #070f16;
+  --panel: #0d1a24;
+  --panel-2: #12222e;
+  --panel-3: #182f3d;
+  --ink: #eaf6fb;
+  --muted: #87a3b8;
+  --line: rgba(129, 166, 194, 0.22);
+  --line-strong: rgba(112, 190, 224, 0.5);
+
+  /* 强调色：--accent 对应母本 --cyan（原值 #38c6ec，电光青，用于焦点态/激活态/
+     地图定位框选/发光描边），--accent-2 对应母本 --blue（原值 #5a8cff，专用于
+     巡检轨迹/路线一类图形元素），取值与母本一字不改。 */
+  --accent: #38c6ec;
+  --accent-2: #5a8cff;
+
+  /* 三色语义（危险/关注/正常）——见文件头“三色语义契约”，两个姐妹 POC 禁止
+     只改一侧。 */
+  --status-danger: #ff625c;
+  --status-warn: #eeb44a;
+  --status-ok: #30c69d;
+
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  /* 背景：双层坐标网格（23px 细网格 + 92px 粗网格，4:1）模拟省域大屏常见的地图
+     坐标刻度，叠两处柔光斑（左上电光青、右下蓝）呼应场景里的定位标注和巡检
+     轨迹配色，与母本 inspection-3d-sandbox 完全同构，纯 CSS 渐变实现，不引入
+     任何外部图片/字体资源。下面几处 rgba 字面值是 --accent(56,198,236) /
+     --accent-2(90,140,255) 的手写副本，改了上面两个变量记得同步改这里——
+     暖琥珀姐妹 POC 里这一段的字面值会换成对应的暖色数字。 */
+  background:
+    linear-gradient(rgba(56, 198, 236, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 198, 236, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(56, 198, 236, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 198, 236, 0.1) 1px, transparent 1px),
+    radial-gradient(circle at 18% 0%, rgba(56, 198, 236, 0.16), transparent 36%),
+    radial-gradient(circle at 90% 94%, rgba(90, 140, 255, 0.12), transparent 42%),
+    var(--bg);
+  background-size: 23px 23px, 23px 23px, 92px 92px, 92px 92px, auto, auto, auto;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}

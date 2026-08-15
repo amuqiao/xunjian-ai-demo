@@ -1,0 +1,334 @@
+/* 人工复核页。布局意图：左 40% 是只读证据（人看完就不再动它），右 60% 是人工介入
+   （整页唯一可操作的地方），下方通栏是处置路径（结论没选之前它是暗的）。 */
+
+.rv-stack {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--gap);
+  min-height: 0;
+}
+.rv-grid {
+  display: grid;
+  grid-template-columns: 40% 1fr;
+  gap: var(--gap);
+  min-height: 0;
+}
+.rv-evidence, .rv-panel { padding: 14px 16px; overflow: auto; }
+
+/* ---------------- 身份芯片 ---------------- */
+
+.rv-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel-2);
+}
+.rv-identity-label { font-size: 12px; color: var(--text-mute); }
+.rv-identity-select {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.rv-identity-select option { background: #0f1728; color: var(--text); }
+
+/* ---------------- 段头 ---------------- */
+
+.rv-section-head { align-items: center; }
+.rv-section-title { display: flex; align-items: center; gap: 8px; }
+.rv-step-index {
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+/* ---------------- ① 证据 ---------------- */
+
+.rv-lead { margin: 0 0 10px; font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+.rv-metrics { display: grid; gap: 10px; }
+.rv-subhead { margin: 14px 0 6px; font-size: 12px; color: var(--text-mute); }
+.rv-hit-list { display: grid; gap: 8px; }
+
+/* ---------------- L0 表决 ---------------- */
+
+.rv-vote-block {
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(77, 141, 255, 0.06);
+}
+.rv-vote-head { display: grid; gap: 6px; margin-bottom: 10px; }
+.rv-vote-kicker { font-size: 11px; color: var(--text-mute); letter-spacing: 1px; }
+.rv-vote-head strong { font-size: 15px; }
+
+.rv-vote-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rv-vote {
+  display: grid;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rv-vote:hover:not(:disabled) { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+.rv-vote:disabled { opacity: 0.32; cursor: not-allowed; }
+.rv-vote strong { font-size: 14px; }
+.rv-vote small { font-size: 11px; color: var(--text-mute); }
+.rv-vote.accept.active { border-color: var(--ok); background: rgba(61, 220, 151, 0.14); color: #fff; }
+.rv-vote.revise.active { border-color: var(--warn); background: rgba(255, 180, 84, 0.14); color: #fff; }
+.rv-vote.reject.active { border-color: var(--danger); background: rgba(255, 92, 108, 0.14); color: #fff; }
+
+/* ---------------- L1 结论 ---------------- */
+
+/* 未表决前整段变暗且不可交互：这一页的顺序是"先对 AI 表态，再下自己的结论"。 */
+.rv-outcome-block { margin-top: 12px; }
+.rv-outcome-block.pending { opacity: 0.36; pointer-events: none; }
+.rv-outcome-options { display: grid; gap: 6px; }
+.rv-outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rv-outcome:hover { border-color: var(--line-strong); color: var(--text); }
+.rv-outcome.active { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+.rv-outcome-radio {
+  width: 14px; height: 14px;
+  margin-top: 3px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+}
+.rv-outcome.active .rv-outcome-radio { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--accent); }
+.rv-outcome strong { display: block; font-size: 13.5px; font-weight: 500; }
+.rv-outcome small { font-size: 11.5px; color: var(--text-mute); }
+.rv-outcome-impact {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--accent);
+  font-size: 12px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ---------------- L2 结构化 ---------------- */
+
+.rv-fields-block {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.rv-field { display: grid; gap: 4px; }
+.rv-field-checks { grid-column: 1 / -1; }
+.rv-field-label { font-size: 11.5px; color: var(--text-mute); }
+.rv-required { color: var(--danger); font-style: normal; margin-left: 3px; }
+.rv-select {
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+/* 必填未填时描边转红：这是"还差什么"的第一层提示，第二层是执行按钮旁的文字。 */
+.rv-field.missing .rv-select { border-color: var(--danger); }
+
+.rv-check-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rv-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.rv-check.on { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
+.rv-check-box {
+  width: 14px; height: 14px;
+  display: grid; place-items: center;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  font-size: 10px;
+}
+.rv-check.on .rv-check-box { border-color: var(--accent); background: var(--accent); }
+
+/* ---------------- 分歧 ---------------- */
+
+/* 分歧条是这一页最重要的一处状态提示，对比度必须够——它偏暗的时候，演示现场
+   投影上基本看不见，而它恰好是"人推翻了 AI"这件事的唯一视觉信号。 */
+.rv-divergence {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: var(--radius);
+  border: 1px solid var(--warn);
+  border-left-width: 4px;
+  background: rgba(255, 180, 84, 0.18);
+  animation: diverge-in 0.22s ease-out;
+}
+.rv-divergence strong { font-size: 13.5px; color: #ffd08a; }
+.rv-divergence span { font-size: 12px; color: var(--text); }
+
+@keyframes diverge-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------------- L3 文本 ---------------- */
+
+.rv-note-block { margin-top: 12px; }
+.rv-note-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 12px;
+  color: var(--text-mute);
+}
+.rv-note {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+  resize: vertical;
+}
+.rv-note::placeholder { color: var(--text-mute); }
+.rv-note-block.required .rv-note { border-color: var(--warn); }
+
+.rv-phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.rv-phrase {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--text-mute);
+  font-family: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.rv-phrase:hover { color: var(--text); border-style: solid; border-color: var(--accent); }
+
+/* ---------------- ③ 处置路径 ---------------- */
+
+.rv-path { padding: 12px 16px; }
+.rv-path.pending { opacity: 0.42; pointer-events: none; }
+.rv-path-list { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--text-mute); line-height: 1.9; }
+.rv-path-body { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; }
+.rv-path-label { margin: 0; font-size: 13px; color: var(--text-dim); white-space: nowrap; }
+.rv-path-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+.rv-gate-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--warn);
+}
+.rv-gate-hint.hidden { display: none; }
+.rv-execute { white-space: nowrap; }
+
+/* ---------------- 复测退回横幅 ---------------- */
+
+.rv-retest-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--danger);
+  background: rgba(255, 92, 108, 0.12);
+}
+.rv-retest-banner strong { font-size: 13px; color: var(--danger); }
+.rv-retest-banner span { font-size: 12px; color: var(--text-dim); }
+
+/* ---------------- 执行屏 ---------------- */
+
+.rv-exec-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.9fr;
+  gap: var(--gap);
+  min-height: 0;
+}
+.rv-ticket, .rv-exec-note, .rv-retest { padding: 14px 16px; overflow: auto; }
+.rv-ticket-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.rv-ticket-meta span {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--text-mute);
+}
+.rv-ticket-steps { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-dim); line-height: 2.1; }
+.rv-exec-note-body {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--accent);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13.5px;
+  line-height: 1.9;
+}
+.rv-exec-diverge { font-size: 12px; color: var(--warn); }
+.rv-retest-actions { display: grid; gap: 8px; margin-top: 12px; }
+.rv-retest-fail { border-color: var(--danger); color: var(--danger); }
+.rv-retest-fail:hover { background: rgba(255, 92, 108, 0.12); color: #fff; }
+
+/* ---------------- 置信度条（跨页复用，随 ReviewForm 一起用） ---------------- */
+
+.confidence { display: flex; align-items: center; gap: 8px; }
+.confidence-label { font-size: 11px; color: var(--text-mute); }
+.confidence-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  overflow: hidden;
+}
+.confidence-track i { display: block; height: 100%; border-radius: 999px; }
+.confidence.ok .confidence-track i { background: var(--ok); }
+.confidence.warn .confidence-track i { background: var(--warn); }
+.confidence.danger .confidence-track i { background: var(--danger); }
+.confidence-value { font-size: 13px; font-family: var(--mono); }
+.confidence-band { font-size: 11.5px; }
+.confidence.ok .confidence-band { color: var(--ok); }
+.confidence.warn .confidence-band { color: var(--warn); }
+.confidence.danger .confidence-band { color: var(--danger); }
