@@ -65,9 +65,9 @@ const SHADE = {
   haloAlpha: 0.30,   // 外发光晕强度（深底上投影无效，用光晕代替）
   haloScale: 2.7
 };
-const LIT_WHITE = [255, 251, 244];
-const AMBIENT   = [ 12,  20,  52];   // 场景环境色，暗部向它偏移
-const RIM_WHITE = [232, 242, 255];
+const LIT_WHITE = [238, 245, 255];
+const AMBIENT   = [  6,  17,  31];   // 场景环境色，暗部向它偏移
+const RIM_WHITE = [194, 216, 255];
 
 const RANK = { hub:0, category:1, entity:2, doc:3 };
 const FONT = { hub:15, category:13.5, entity:12, doc:11.5 };
@@ -508,11 +508,11 @@ function drawLabels(focus){
     if(!put) continue;
 
     g.textAlign=put.al; g.textBaseline=put.bl;
-    g.lineWidth=3.4; g.strokeStyle='rgba(5,6,15,.92)';
+    g.lineWidth=3.4; g.strokeStyle='rgba(4,12,24,.94)';
     g.strokeText(n.label, put.x, put.y);
     g.fillStyle = isF ? '#fff'
-                : on ? (n.type==='doc'?'rgba(190,206,250,.76)':'rgba(224,234,255,.94)')
-                     : 'rgba(150,172,225,.13)';
+                : on ? (n.type==='doc'?'rgba(178,202,238,.76)':'rgba(220,232,255,.94)')
+                     : 'rgba(127,154,179,.16)';
     g.fillText(n.label, put.x, put.y);
   }
 }

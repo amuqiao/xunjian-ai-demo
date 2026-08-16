@@ -19,11 +19,18 @@
   --ice:#E8F4FF;
   --dim:#7897B2;
 
-  /* 强调色 */
-  --blue:#2F8CFF;
-  --violet:#4B6FFF;
-  --cyan:#38C6EC;
-  --gold:#7DBBFF;
+  /* 泵专题强调色：深企业蓝底 + 钴蓝/钢蓝识别，区别于巡检知识图谱的亮青蓝 */
+  --pump-primary:#2F6BFF;
+  --pump-steel:#4FB6D8;
+  --pump-ice:#9DC9FF;
+  --pump-violet:#5A72E8;
+  --pump-muted:#6F8FB5;
+
+  /* 兼容现有视图变量名，实际色值走泵专题色 */
+  --blue:var(--pump-primary);
+  --violet:var(--pump-violet);
+  --cyan:var(--pump-steel);
+  --gold:var(--pump-ice);
   --kg-stage-clear:#06111F;
   --kg-stage-deep:#0B1C2D;
   --kg-stage-panel:#0D2235;

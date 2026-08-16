@@ -46,13 +46,13 @@
 /* 左侧竖条：选中时点亮，是"当前在看哪个"的主指示 */
 #view-tree .topic::before{
   content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-  background:rgba(110,145,230,.3);transition:background .2s,box-shadow .2s;
+  background:rgba(79,132,178,.32);transition:background .2s,box-shadow .2s;
 }
 #view-tree .topic:hover{background:linear-gradient(100deg,rgba(19,55,82,.7),rgba(13,34,53,.45));
-  border-color:rgba(56,198,236,.28)}
+  border-color:rgba(79,182,216,.28)}
 #view-tree .topic.on{
   background:linear-gradient(100deg,rgba(24,70,104,.85),rgba(20,44,76,.5));
-  border-color:rgba(125,187,255,.42);
+  border-color:rgba(157,201,255,.42);
 }
 #view-tree .topic.on::before{background:var(--tv-gold);box-shadow:0 0 14px var(--tv-gold)}
 #view-tree .topic .no{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(118,169,213,.58);flex:none}
@@ -81,8 +81,8 @@
 #view-tree .world.glide{transition:transform .52s cubic-bezier(.22,.85,.3,1)}
 #view-tree .world svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
 
-#view-tree .edge{fill:none;stroke:rgba(110,150,225,.26);stroke-width:1.1;transition:stroke .18s,stroke-width .18s}
-#view-tree .edge.dimmed{stroke:rgba(110,150,225,.07)}
+#view-tree .edge{fill:none;stroke:rgba(79,132,178,.28);stroke-width:1.1;transition:stroke .18s,stroke-width .18s}
+#view-tree .edge.dimmed{stroke:rgba(79,132,178,.08)}
 #view-tree .edge.lit{stroke-width:1.9}
 
 #view-tree .node{position:absolute;display:flex;align-items:center;gap:9px;
@@ -105,9 +105,9 @@
    悬停的 .lit 只改 transform / color，两者互不覆盖 */
 #view-tree .node.focused .dot{
   outline:2px solid var(--tv-gold);outline-offset:3px;
-  filter:drop-shadow(0 0 8px rgba(125,187,255,.75));
+  filter:drop-shadow(0 0 8px rgba(157,201,255,.75));
 }
-#view-tree .node.focused .lab{color:var(--tv-gold)!important;text-shadow:0 0 12px rgba(125,187,255,.45)}
+#view-tree .node.focused .lab{color:var(--tv-gold)!important;text-shadow:0 0 12px rgba(157,201,255,.45)}
 #view-tree .node.focused.dimmed{opacity:.55}
 
 #view-tree .node.lit .lab{color:#fff!important;text-shadow:0 0 14px currentColor}
@@ -170,7 +170,7 @@
   font-size:17px;line-height:1;color:rgba(160,185,240,.6);
   transition:background .16s,color .16s;
 }
-#view-tree .doccard .dc-x:hover{background:rgba(56,198,236,.14);color:#E8F4FF}
+#view-tree .doccard .dc-x:hover{background:rgba(79,182,216,.14);color:#E8F4FF}
 #view-tree .doccard .dc-path{
   font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;line-height:1.75;
   color:rgba(118,169,213,.68);padding-right:24px;
@@ -188,14 +188,14 @@
   display:block;width:100%;margin-top:16px;padding:10px 14px;
   border-radius:8px;cursor:pointer;
   font-family:var(--sans);font-size:12.5px;letter-spacing:.08em;color:#EAF1FF;
-  background:linear-gradient(100deg,rgba(56,198,236,.24),rgba(47,140,255,.16));
+  background:linear-gradient(100deg,rgba(79,182,216,.24),rgba(47,107,255,.16));
   border:1px solid rgba(118,169,213,.34);
   transition:background .18s,border-color .18s,box-shadow .18s;
 }
 #view-tree .doccard .dc-go:hover{
-  background:linear-gradient(100deg,rgba(56,198,236,.38),rgba(47,140,255,.22));
+  background:linear-gradient(100deg,rgba(79,182,216,.38),rgba(47,107,255,.22));
   border-color:var(--tv-card-accent);
-  box-shadow:0 0 18px rgba(56,198,236,.28);
+  box-shadow:0 0 18px rgba(79,182,216,.28);
 }
 
 /* pause()：视图切走后不留任何还在跑的过渡与动画 */

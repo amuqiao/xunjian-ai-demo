@@ -60,7 +60,7 @@
   };
 
   /* ── 伪 3D 小球的三个色阶 ─────────────────────────── */
-  const LIT = [255, 251, 244], AMB = [10, 16, 44], RIM = [236, 244, 255];
+  const LIT = [238, 245, 255], AMB = [6, 17, 31], RIM = [194, 216, 255];
   function sphereStyle(color, r) {
     const b = dom.rgbOf(color);
     const lit = dom.mix(b, LIT, .44), dark = dom.mix(b, AMB, .62), rim = dom.mix(b, RIM, .55);
@@ -250,7 +250,7 @@
       rec.dot.style.cssText = sphereStyle(colorOf(n), L.r);
       rec.lab.textContent = n.name;
       rec.lab.style.cssText =
-        `font-size:${L.font}px;font-weight:${L.weight};color:${n._d < 2 ? 'rgba(232,240,255,.95)' : 'rgba(196,212,250,.82)'};`;
+        `font-size:${L.font}px;font-weight:${L.weight};color:${n._d < 2 ? 'rgba(220,232,255,.95)' : 'rgba(178,202,238,.82)'};`;
 
       // 折叠角标：告诉用户这里还藏着多少
       let badge = rec.el.querySelector('.badge');

@@ -33,8 +33,8 @@
   content:'';
   position:absolute; left:0; right:0; bottom:0; height:1px;
   background:linear-gradient(90deg,
-    transparent, rgba(56,198,236,.28) 14%, rgba(47,140,255,.38) 50%,
-    rgba(56,198,236,.28) 86%, transparent);
+    transparent, rgba(79,182,216,.28) 14%, rgba(47,107,255,.38) 50%,
+    rgba(79,182,216,.28) 86%, transparent);
   pointer-events:none;
 }
 
@@ -65,11 +65,11 @@
   color:var(--dim);
   transition:color .18s ease, background .18s ease;
 }
-#topbar .kg-viewbtn:hover{color:var(--ice);background:rgba(56,198,236,.1)}
+#topbar .kg-viewbtn:hover{color:var(--ice);background:rgba(79,182,216,.1)}
 #topbar .kg-viewbtn.is-on{
   color:var(--ice);
-  background:linear-gradient(180deg, rgba(56,198,236,.3), rgba(47,140,255,.16));
-  box-shadow:0 0 0 1px rgba(118,169,213,.28) inset, 0 4px 16px -6px rgba(56,198,236,.5);
+  background:linear-gradient(180deg, rgba(79,182,216,.3), rgba(47,107,255,.16));
+  box-shadow:0 0 0 1px rgba(118,169,213,.28) inset, 0 4px 16px -6px rgba(79,182,216,.5);
 }
 #topbar .kg-viewbtn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #topbar .kg-viewbtn .kg-viewbtn-en{
@@ -100,12 +100,12 @@
 }
 #topbar .kg-searchbtn:hover{
   color:var(--ice);
-  border-color:rgba(56,198,236,.42);
+  border-color:rgba(79,182,216,.42);
   background:rgba(13,34,53,.82);
 }
 #topbar .kg-searchbtn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 #topbar .kg-searchbtn svg{width:15px;height:15px;flex:none}
-#topbar .kg-searchbtn:hover svg{filter:drop-shadow(0 0 6px rgba(56,198,236,.55))}
+#topbar .kg-searchbtn:hover svg{filter:drop-shadow(0 0 6px rgba(79,182,216,.55))}
 #topbar .kg-searchbtn-k{
   font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;
   color:rgba(120,151,178,.9);
@@ -132,7 +132,7 @@
   max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   transition:color .16s ease, background .16s ease;
 }
-#topbar .kg-crumb-seg:hover{color:var(--ice);background:rgba(56,198,236,.12)}
+#topbar .kg-crumb-seg:hover{color:var(--ice);background:rgba(79,182,216,.12)}
 #topbar .kg-crumb-seg:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 #topbar .kg-crumb-seg.is-last{color:var(--ice);cursor:default}
 #topbar .kg-crumb-seg.is-last:hover{background:none}
@@ -160,7 +160,7 @@
   background:var(--panel-bg);
   border:1px solid var(--hair);
   border-radius:16px;
-  box-shadow:0 30px 90px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(56,198,236,.06);
+  box-shadow:0 30px 90px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(79,182,216,.06);
   display:flex;flex-direction:column;
   overflow:hidden;
   animation:kgRise .22s cubic-bezier(.22,.9,.3,1) both;
@@ -176,7 +176,7 @@
   font-size:15px;line-height:1;
   transition:background .18s ease, color .18s ease;
 }
-#overlays .kg-close:hover{background:rgba(56,198,236,.13);color:var(--ice)}
+#overlays .kg-close:hover{background:rgba(79,182,216,.13);color:var(--ice)}
 
 #overlays .kg-scroll::-webkit-scrollbar{width:4px}
 #overlays .kg-scroll::-webkit-scrollbar-thumb{background:rgba(118,169,213,.24);border-radius:2px}
@@ -231,8 +231,8 @@
   transition:background .14s ease;
 }
 #overlays .kg-hit:hover,
-#overlays .kg-hit.is-active{background:rgba(56,198,236,.12)}
-#overlays .kg-hit.is-active{box-shadow:0 0 0 1px rgba(56,198,236,.28) inset}
+#overlays .kg-hit.is-active{background:rgba(79,182,216,.12)}
+#overlays .kg-hit.is-active{box-shadow:0 0 0 1px rgba(79,182,216,.28) inset}
 #overlays .kg-hit-dot{
   width:8px;height:8px;border-radius:50%;flex:none;
 }
@@ -245,7 +245,7 @@
 #overlays .kg-hit:hover .kg-hit-label{color:var(--ice)}
 #overlays .kg-hit-label em{
   font-style:normal;color:var(--cyan);
-  text-shadow:0 0 10px rgba(56,198,236,.4);
+  text-shadow:0 0 10px rgba(79,182,216,.4);
 }
 #overlays .kg-hit-path{
   flex:1;min-width:0;text-align:right;
@@ -369,7 +369,7 @@
   font-size:12px;color:rgba(232,244,255,.8);
 }
 #overlays .kg-rel .kg-relbar{width:16px;height:2px;border-radius:1px;background:rgba(120,151,178,.62)}
-#overlays .kg-rel.is-major .kg-relbar{background:var(--cyan);box-shadow:0 0 8px rgba(56,198,236,.6)}
+#overlays .kg-rel.is-major .kg-relbar{background:var(--cyan);box-shadow:0 0 8px rgba(79,182,216,.6)}
 #overlays .kg-rel .kg-relkey{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--dim)}
 
 /* 接入指南 */
@@ -379,20 +379,20 @@
 #overlays .kg-guide code{
   font-family:var(--mono);font-size:11.5px;
   color:var(--gold);
-  background:rgba(125,187,255,.08);
-  border:1px solid rgba(125,187,255,.16);
+  background:rgba(157,201,255,.08);
+  border:1px solid rgba(157,201,255,.16);
   border-radius:5px;padding:1px 6px;
 }
 #overlays .kg-guide-btn{
   margin-top:12px;
-  border:1px solid rgba(56,198,236,.3);border-radius:8px;
-  background:rgba(56,198,236,.08);
+  border:1px solid rgba(79,182,216,.3);border-radius:8px;
+  background:rgba(79,182,216,.08);
   color:var(--ice);cursor:pointer;
   font-family:var(--mono);font-size:10px;letter-spacing:.16em;
   padding:8px 14px;
   transition:background .18s ease;
 }
-#overlays .kg-guide-btn:hover{background:rgba(56,198,236,.18)}
+#overlays .kg-guide-btn:hover{background:rgba(79,182,216,.18)}
 
 /* ══ 六、降级提示条 ══════════════════════════════════════════════
    跨视图跳转时解释"为什么落到了这里"。压在顶栏下方、rail 右侧，
@@ -407,7 +407,7 @@
   padding:9px 12px 9px 14px;
   border-radius:10px;
   background:var(--panel-bg);
-  border:1px solid rgba(125,187,255,.24);
+  border:1px solid rgba(157,201,255,.24);
   box-shadow:0 14px 40px -14px rgba(0,0,0,.9);
   opacity:0;visibility:hidden;pointer-events:none;
   transition:opacity .26s ease, transform .26s ease, visibility .26s;
@@ -419,7 +419,7 @@
 }
 #overlays .kg-tip .kg-tip-mark{
   width:6px;height:6px;border-radius:50%;flex:none;
-  background:var(--gold);box-shadow:0 0 10px rgba(125,187,255,.8);
+  background:var(--gold);box-shadow:0 0 10px rgba(157,201,255,.8);
 }
 #overlays .kg-tip .kg-tip-text{
   font-size:12.5px;line-height:1.6;color:rgba(226,232,255,.9);

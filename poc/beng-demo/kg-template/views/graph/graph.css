@@ -41,7 +41,7 @@
   text-transform:uppercase;margin-bottom:4px}
 #view-graph .g-lg-item{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(232,244,255,.72);
   cursor:pointer;padding:3px 10px 3px 4px;border-radius:13px;transition:background .18s,color .18s,opacity .18s}
-#view-graph .g-lg-item:hover{background:rgba(56,198,236,.1);color:#fff}
+#view-graph .g-lg-item:hover{background:rgba(79,182,216,.1);color:#fff}
 #view-graph .g-lg-item.g-off{opacity:.28}
 #view-graph .g-lg-dot{width:12px;height:12px;border-radius:50%;flex:none}
 
@@ -65,7 +65,7 @@
 #view-graph .g-p-close{position:absolute;top:24px;right:22px;width:26px;height:26px;border-radius:50%;
   border:1px solid rgba(118,169,213,.24);background:transparent;color:rgba(190,218,245,.68);
   cursor:pointer;font-size:15px;line-height:1;transition:all .18s}
-#view-graph .g-p-close:hover{background:rgba(56,198,236,.13);color:#fff}
+#view-graph .g-p-close:hover{background:rgba(79,182,216,.13);color:#fff}
 #view-graph .g-p-type{font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;margin-bottom:10px}
 #view-graph .g-p-name{font-size:21px;font-weight:600;letter-spacing:.05em;line-height:1.35}
 /* 归属路径：替代原稿那句"归属于「X」的文档条目" */
@@ -86,7 +86,7 @@
 #view-graph .g-rel-title::after{content:"";flex:1;height:1px;background:var(--hair)}
 #view-graph .g-rel-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;
   font-size:12.5px;color:rgba(232,244,255,.78);cursor:pointer;transition:background .16s,color .16s}
-#view-graph .g-rel-item:hover{background:rgba(56,198,236,.1);color:#fff}
+#view-graph .g-rel-item:hover{background:rgba(79,182,216,.1);color:#fff}
 #view-graph .g-rel-dot{width:8px;height:8px;border-radius:50%;flex:none}
 
 /* 面板底部的跨视图入口 */
@@ -97,7 +97,7 @@
   border:1px solid var(--hair);background:var(--surface-bg);
   color:#D8E4FF;font-family:var(--sans);font-size:12.5px;letter-spacing:.06em;
   cursor:pointer;transition:background .18s,border-color .18s,color .18s}
-#view-graph .g-jump:hover{background:rgba(56,198,236,.18);border-color:rgba(56,198,236,.5);color:#fff}
+#view-graph .g-jump:hover{background:rgba(79,182,216,.18);border-color:rgba(79,182,216,.5);color:#fff}
 #view-graph .g-jump .g-arrow{font-family:var(--mono);font-size:13px;opacity:.7}
 
 @media (max-width:1000px){
