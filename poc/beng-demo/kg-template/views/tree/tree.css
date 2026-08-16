@@ -21,10 +21,11 @@
 #view-tree .tv-side{
   position:absolute;top:var(--topbar-h);left:var(--rail-w);bottom:0;width:var(--tv-side);
   display:flex;flex-direction:column;z-index:2;
-  background:var(--panel-bg);
-  border-right:1px solid var(--tv-hair);
+  background:linear-gradient(180deg,rgba(8,24,40,.98),rgba(5,15,27,.99));
+  border-right:1px solid rgba(79,132,178,.34);
+  box-shadow:inset -1px 0 0 rgba(157,201,255,.06);
 }
-#view-tree .side-head{padding:26px 24px 18px;border-bottom:1px solid var(--tv-hair)}
+#view-tree .side-head{padding:26px 24px 18px;border-bottom:1px solid rgba(79,132,178,.28)}
 #view-tree .side-head .eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.38em;
   text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:10px;margin-bottom:11px}
 #view-tree .side-head .eyebrow::before{content:"";width:20px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
@@ -37,24 +38,24 @@
 
 #view-tree .topic{
   position:relative;display:flex;align-items:center;gap:13px;
-  padding:13px 14px 13px 16px;margin-bottom:7px;border-radius:8px;cursor:pointer;
-  background:var(--surface-bg);
-  border:1px solid rgba(118,169,213,.14);
+  padding:13px 14px 13px 18px;margin-bottom:8px;border-radius:4px;cursor:pointer;
+  background:rgba(7,24,39,.72);
+  border:1px solid rgba(79,132,178,.22);
   transition:background .2s,border-color .2s,transform .2s;
   overflow:hidden;
 }
 /* 左侧竖条：选中时点亮，是"当前在看哪个"的主指示 */
 #view-tree .topic::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-  background:rgba(79,132,178,.32);transition:background .2s,box-shadow .2s;
+  content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
+  background:rgba(79,132,178,.36);transition:background .2s,box-shadow .2s;
 }
-#view-tree .topic:hover{background:linear-gradient(100deg,rgba(19,55,82,.7),rgba(13,34,53,.45));
+#view-tree .topic:hover{background:linear-gradient(100deg,rgba(18,45,68,.86),rgba(7,24,39,.72));
   border-color:rgba(79,182,216,.28)}
 #view-tree .topic.on{
-  background:linear-gradient(100deg,rgba(24,70,104,.85),rgba(20,44,76,.5));
-  border-color:rgba(157,201,255,.42);
+  background:linear-gradient(100deg,rgba(22,58,88,.96),rgba(8,28,48,.82));
+  border-color:rgba(157,201,255,.46);
 }
-#view-tree .topic.on::before{background:var(--tv-gold);box-shadow:0 0 14px var(--tv-gold)}
+#view-tree .topic.on::before{background:var(--tv-gold);box-shadow:none}
 #view-tree .topic .no{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(118,169,213,.58);flex:none}
 #view-tree .topic.on .no{color:var(--tv-gold)}
 #view-tree .topic .nm{font-size:14px;letter-spacing:.05em;color:rgba(210,222,255,.86);flex:1}
@@ -65,7 +66,11 @@
 #view-tree .tv-main{
   position:absolute;top:var(--topbar-h);bottom:0;right:0;
   left:calc(var(--rail-w) + var(--tv-side));
-  background:radial-gradient(120% 90% at 30% 40%, #102B42 0%, #0B1C2D 55%, var(--screen-bg) 100%);
+  background:
+    linear-gradient(rgba(79,132,178,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,132,178,.055) 1px, transparent 1px),
+    radial-gradient(120% 90% at 30% 40%, #102B42 0%, #0B1C2D 55%, var(--screen-bg) 100%);
+  background-size:32px 32px,32px 32px,auto;
 }
 
 #view-tree .main-head{position:absolute;top:0;left:0;right:0;z-index:3;pointer-events:none;
@@ -81,9 +86,9 @@
 #view-tree .world.glide{transition:transform .52s cubic-bezier(.22,.85,.3,1)}
 #view-tree .world svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
 
-#view-tree .edge{fill:none;stroke:rgba(79,132,178,.28);stroke-width:1.1;transition:stroke .18s,stroke-width .18s}
+#view-tree .edge{fill:none;stroke:rgba(79,132,178,.34);stroke-width:1.25;stroke-linecap:square;stroke-dasharray:8 5;transition:stroke .18s,stroke-width .18s}
 #view-tree .edge.dimmed{stroke:rgba(79,132,178,.08)}
-#view-tree .edge.lit{stroke-width:1.9}
+#view-tree .edge.lit{stroke-width:2.1;stroke-dasharray:none}
 
 #view-tree .node{position:absolute;display:flex;align-items:center;gap:9px;
   transform:translateY(-50%);cursor:pointer;white-space:nowrap;
@@ -105,12 +110,12 @@
    悬停的 .lit 只改 transform / color，两者互不覆盖 */
 #view-tree .node.focused .dot{
   outline:2px solid var(--tv-gold);outline-offset:3px;
-  filter:drop-shadow(0 0 8px rgba(157,201,255,.75));
+  filter:drop-shadow(0 0 6px rgba(157,201,255,.48));
 }
-#view-tree .node.focused .lab{color:var(--tv-gold)!important;text-shadow:0 0 12px rgba(157,201,255,.45)}
+#view-tree .node.focused .lab{color:var(--tv-gold)!important;text-shadow:0 0 8px rgba(157,201,255,.28)}
 #view-tree .node.focused.dimmed{opacity:.55}
 
-#view-tree .node.lit .lab{color:#fff!important;text-shadow:0 0 14px currentColor}
+#view-tree .node.lit .lab{color:#fff!important;text-shadow:0 0 8px currentColor}
 #view-tree .node.lit .dot{transform:scale(1.22)}
 
 /* highlight(ids) 的"相关"脉冲光圈：从实体标签切过来时标出关联文档 */

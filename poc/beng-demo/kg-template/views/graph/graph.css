@@ -55,8 +55,9 @@
 /* ── 详情面板 ─────────────────────────────────────── */
 #view-graph .g-panel{
   position:absolute;top:var(--topbar-h);right:0;bottom:0;width:var(--g-panel-w);z-index:4;
-  background:var(--panel-bg);
-  border-left:1px solid var(--hair);
+  background:linear-gradient(180deg,rgba(8,24,40,.98),rgba(5,15,27,.99));
+  border-left:1px solid rgba(79,132,178,.34);
+  box-shadow:inset 1px 0 0 rgba(157,201,255,.06);
   transform:translateX(100%);transition:transform .34s cubic-bezier(.22,.9,.3,1);
   display:flex;flex-direction:column}
 #view-graph .g-panel.g-open{transform:translateX(0)}

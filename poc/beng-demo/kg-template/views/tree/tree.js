@@ -67,8 +67,8 @@
     return `width:${r * 2}px;height:${r * 2}px;` +
       /* 受光点固定在左上，全场共用一个光源方向 */
       `background:radial-gradient(circle at 33% 28%, ${dom.css(lit)} 0%, ${dom.css(b)} 46%, ${dom.css(dark)} 100%);` +
-      /* 外发光 + 暗侧边缘光（inset 偏右下）——深底上让球从背景里脱出来的关键 */
-      `box-shadow:0 0 ${r * 1.5}px ${dom.css(b, .55)}, inset -${r * .28}px -${r * .28}px ${r * .4}px ${dom.css(rim, .5)};`;
+      /* 冷钢徽章感：压低外发光，保留内侧金属边 */
+      `box-shadow:0 0 ${r * .95}px ${dom.css(b, .26)}, inset -${r * .32}px -${r * .32}px ${r * .44}px ${dom.css(rim, .42)}, 0 0 0 1px ${dom.css(rim, .22)};`;
   }
 
   /* ══ 树的准备：父指针、深度、折叠位 ═══════════════════

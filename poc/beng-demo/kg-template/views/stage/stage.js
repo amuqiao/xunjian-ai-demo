@@ -405,33 +405,47 @@
     var pad = 16, x = pad, y = pad, w = W - pad * 2, h = H - pad * 2, r = 22;
     var col = cat.color;
 
-    // 外发光
+    // 外发光：泵专题收敛成设备铭牌感，不做大片霓虹晕光
     g.save();
-    g.shadowColor = col; g.shadowBlur = hot ? 58 : 26;
+    g.shadowColor = col; g.shadowBlur = hot ? 34 : 10;
     g.fillStyle = 'rgba(8,24,40,.001)'; rr(g, x, y, w, h, r); g.fill();
     g.restore();
 
-    // 卡面
+    // 卡面：更实的钢蓝面板，减少玻璃透明感
     var bg = g.createLinearGradient(0, y, 0, y + h);
-    bg.addColorStop(0, hot ? 'rgba(22,50,82,.97)' : 'rgba(13,34,53,.94)');
-    bg.addColorStop(.55, hot ? 'rgba(10,31,52,.96)' : 'rgba(8,24,40,.93)');
-    bg.addColorStop(1, hot ? 'rgba(8,24,40,.97)' : 'rgba(6,17,31,.95)');
+    bg.addColorStop(0, hot ? 'rgba(17,42,66,.99)' : 'rgba(9,28,46,.98)');
+    bg.addColorStop(.48, hot ? 'rgba(8,25,42,.99)' : 'rgba(6,20,34,.98)');
+    bg.addColorStop(1, hot ? 'rgba(5,15,27,.99)' : 'rgba(4,13,24,.99)');
     rr(g, x, y, w, h, r); g.fillStyle = bg; g.fill();
 
-    // 描边
-    g.lineWidth = hot ? 3 : 1.6;
-    g.strokeStyle = hot ? col : 'rgba(118,169,213,.30)';
+    // 粗钢边 + 内描边，和巡检的轻玻璃卡片拉开
+    g.lineWidth = hot ? 5.2 : 3.2;
+    g.strokeStyle = hot ? col : 'rgba(79,132,178,.56)';
     rr(g, x, y, w, h, r); g.stroke();
+    g.lineWidth = 1;
+    g.strokeStyle = hot ? 'rgba(220,232,255,.36)' : 'rgba(157,201,255,.16)';
+    rr(g, x + 12, y + 12, w - 24, h - 24, r - 8); g.stroke();
 
-    // 顶部色条
+    // 顶部色条 + 左侧设备铭牌边条
     g.save(); rr(g, x, y, w, h, r); g.clip();
     var bar = g.createLinearGradient(x, 0, x + w, 0);
-    bar.addColorStop(0, 'rgba(255,255,255,0)'); bar.addColorStop(.5, col); bar.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = bar; g.fillRect(x, y, w, hot ? 6 : 4);
-    // 卡面细网格
-    g.strokeStyle = 'rgba(118,169,213,.055)'; g.lineWidth = 1;
-    for (var i = 1; i < 9; i++) { g.beginPath(); g.moveTo(x, y + i * h / 9); g.lineTo(x + w, y + i * h / 9); g.stroke(); }
+    bar.addColorStop(0, 'rgba(47,107,255,.45)'); bar.addColorStop(.42, col); bar.addColorStop(1, 'rgba(79,132,178,.14)');
+    g.fillStyle = bar; g.fillRect(x, y, w, hot ? 18 : 14);
+    g.fillStyle = hot ? col : 'rgba(79,182,216,.72)';
+    g.fillRect(x, y + 42, hot ? 9 : 6, h - 84);
+    // 工业面板细刻线
+    g.strokeStyle = 'rgba(118,169,213,.045)'; g.lineWidth = 1;
+    for (var i = 1; i < 12; i++) { g.beginPath(); g.moveTo(x + 34, y + i * h / 12); g.lineTo(x + w - 28, y + i * h / 12); g.stroke(); }
+    g.strokeStyle = 'rgba(157,201,255,.08)';
+    for (var d = -H; d < W; d += 42) { g.beginPath(); g.moveTo(d, y + h); g.lineTo(d + h, y); g.stroke(); }
     g.restore();
+
+    // 四角铆钉/定位点，强化设备面板感
+    [[x + 34, y + 34], [x + w - 34, y + 34], [x + 34, y + h - 34], [x + w - 34, y + h - 34]].forEach(function (p) {
+      g.beginPath(); g.arc(p[0], p[1], 4.2, 0, 7);
+      g.fillStyle = 'rgba(157,201,255,.52)'; g.fill();
+      g.strokeStyle = 'rgba(4,13,24,.9)'; g.lineWidth = 1.2; g.stroke();
+    });
 
     // 代号
     g.font = '500 20px "SF Mono",Menlo,monospace';
@@ -440,7 +454,7 @@
 
     // 状态点
     g.beginPath(); g.arc(x + w - 34, y + 45, 5, 0, 7);
-    g.fillStyle = hot ? col : 'rgba(79,182,216,.42)'; g.fill();
+    g.fillStyle = hot ? col : 'rgba(79,182,216,.32)'; g.fill();
 
     // 图标
     var drawIcon = ICONS[cat.icon];
@@ -474,7 +488,7 @@
     // 分隔线
     var ln = g.createLinearGradient(x + 60, 0, x + w - 60, 0);
     ln.addColorStop(0, 'rgba(255,255,255,0)');
-    ln.addColorStop(.5, hot ? col : 'rgba(79,182,216,.4)');
+    ln.addColorStop(.5, hot ? col : 'rgba(79,132,178,.48)');
     ln.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = ln; g.fillRect(x + 60, y + 394, w - 120, 1.4);
 
@@ -490,12 +504,12 @@
     /* 分母不再写死：由派生层给出（默认取最大类目的文档量），
        于是进度条表达的是"该类目在全部类目中的相对体量"，换任何数据都成立 */
     var ratio = Math.min(1, cat.countRaw / KG.derive.progressBase());
-    g.fillStyle = 'rgba(79,182,216,.14)'; rr(g, x + 62, y + 560, w - 124, 5, 3); g.fill();
+    g.fillStyle = 'rgba(79,132,178,.22)'; rr(g, x + 62, y + 560, w - 124, 7, 2); g.fill();
     g.fillStyle = col; rr(g, x + 62, y + 560, (w - 124) * ratio, 5, 3); g.fill();
 
     // 底座
-    g.fillStyle = hot ? 'rgba(255,255,255,.12)' : 'rgba(79,182,216,.07)';
-    rr(g, W / 2 - 96, y + h - 52, 192, 34, 8); g.fill();
+    g.fillStyle = hot ? 'rgba(157,201,255,.16)' : 'rgba(79,132,178,.12)';
+    rr(g, W / 2 - 106, y + h - 54, 212, 36, 4); g.fill();
     g.font = '400 16px "SF Mono",Menlo,monospace';
     g.fillStyle = 'rgba(118,169,213,.58)';
     g.fillText(KG.derive.ui.stage.cardFooter, W / 2, y + h - 30);
@@ -551,7 +565,7 @@
          文字亮度必须恒定，不能让灯光把它压暗 */
       var matFace = new THREE.MeshBasicMaterial({ map: texCold, transparent: true, opacity: 1 });
       // 侧边与倒角受光：明暗过渡全靠它
-      var matEdge = new THREE.MeshLambertMaterial({ color: 0x174A70, emissive: 0x0A2440 });
+      var matEdge = new THREE.MeshLambertMaterial({ color: 0x12304A, emissive: 0x061B2D });
 
       var card = new THREE.Mesh(SLAB_GEO, [matFace, matEdge]);
       card.position.y = CARD_LIFT + CARD_H / 2 * Math.cos(CARD_TILT);
@@ -582,7 +596,7 @@
       var column = new THREE.Mesh(
         new THREE.CylinderGeometry(0.30, 0.46, CARD_LIFT, 24, 1, true),
         new THREE.MeshBasicMaterial({
-          map: colTex, color: col, transparent: true, opacity: .24,
+          map: colTex, color: col, transparent: true, opacity: .16,
           blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
         })
       );
