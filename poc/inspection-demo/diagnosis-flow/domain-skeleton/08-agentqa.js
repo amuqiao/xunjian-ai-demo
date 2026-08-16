@@ -85,11 +85,11 @@ window.DOMAIN_AGENTQA = {
           label: "近期有什么检修提醒?",
           question: "湘潭站泵棚区近期有没有维检修作业需要加强巡检？",
           thinkingText: "正在检索近期维检修作业提醒…",
-          answer: "湘潭站泵棚区已于 2026年7月28日完成 P-3 泵大修作业。大修后巡检应加强泄漏检查、出口管线压力和温度检查、运行情况确认、油位检查和外观检查；发现与大修后基准不一致时，应补充现场照片、复测数据和运行工况说明。",
+          answer: "湘潭站泵棚区计划于 2026年7月28日开展 P-3 泵大修作业。大修前巡检应加强泄漏检查、出口管线压力和温度检查、运行情况确认、油位检查和外观检查；同时补充大修前基准照片、复测数据和运行工况说明。",
           hit: true,
           hits: [
             { kind: "workcard", text: "P-3 泵 2026年7月28日大修作业", docId: "DOC-XT-MAINT", chunkIndex: 0 },
-            { kind: "workcard", text: "大修后巡检重点", docId: "DOC-XT-MAINT", chunkIndex: 1 },
+            { kind: "workcard", text: "大修前巡检重点", docId: "DOC-XT-MAINT", chunkIndex: 1 },
             { kind: "workcard", text: "异常记录要求", docId: "DOC-XT-MAINT", chunkIndex: 2 }
           ]
         }
@@ -196,14 +196,14 @@ window.DOMAIN_AGENTQA = {
         },
         {
           id: "kb-q6",
-          label: "P-3 大修后查什么?",
-          question: "P-3 泵大修后巡检要重点检查哪些内容？",
+          label: "P-3 大修前查什么?",
+          question: "P-3 泵大修前巡检要重点检查哪些内容？",
           thinkingText: "正在检索维检修提醒…",
-          answer: "P-3 泵已于 2026年7月28日完成大修，巡检重点包括泄漏、出口管线压力、温度、运行情况、油位和外观。若压力、温度、油位或外观与大修后基准不一致，应补充现场照片、复测数据和运行工况说明。",
+          answer: "P-3 泵计划于 2026年7月28日开展大修，巡检重点包括泄漏、出口管线压力、温度、运行情况、油位和外观。巡检人员应补充大修前基准照片、复测数据和运行工况说明，便于大修后对照。",
           hit: true,
           hits: [
             { kind: "workcard", text: "P-3 泵大修作业提醒", docId: "DOC-XT-MAINT", chunkIndex: 0 },
-            { kind: "workcard", text: "大修后巡检重点清单", docId: "DOC-XT-MAINT", chunkIndex: 1 },
+            { kind: "workcard", text: "大修前巡检重点清单", docId: "DOC-XT-MAINT", chunkIndex: 1 },
             { kind: "workcard", text: "异常留痕要求", docId: "DOC-XT-MAINT", chunkIndex: 2 }
           ]
         }

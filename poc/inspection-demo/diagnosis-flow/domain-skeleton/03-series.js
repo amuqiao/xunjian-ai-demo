@@ -29,7 +29,7 @@ window.DOMAIN_SERIES = (function () {
   // 每个测点在"本轮演示"里的剧本：主测点越线（danger），其余平稳。
   // drift 是区间末端相对基线的偏移比例，noise 是抖动幅度（相对基线）。
   var SCENARIO = {
-    "PT-1": { base: 2.0, drift: 1.6, noise: 0.08 },
+    "PT-1": { base: 8.15, drift: 0.15, noise: 0.02 },
     "PT-2": { base: 68, drift: 0.02, noise: 0.03 },
     "PT-3": { base: 93, drift: -0.02, noise: 0.02 }
   };

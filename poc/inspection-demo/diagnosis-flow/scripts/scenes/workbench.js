@@ -48,18 +48,18 @@
         id: record.id,
         status: flag.status,
         cells: {
-          dateShift: record.date + " · " + record.shift,
-          partLabel: AppState.partById(record.partId).label,
+          formNo: record.no ? "第 " + record.no + " 项" : record.id,
+          area: record.area || AppState.partById(record.partId).short,
+          device: record.device || AppState.partById(record.partId).component,
           item: record.item,
-          // 缺项记录的人工结果就是空的——这正是 aiFlag=gap 要表达的东西。表格单元格
-          // 不接受 null，所以在这里显式转成一个可读的占位词，而不是让组件抛错。
+          // 表格单元格不接受 null；若后续演示数据确实留空，这里显式转成可读文案。
           result: record.result || "（未填写）",
           aiFlagText: flag.badge
         }
       };
     });
     return h("section", { class: "panel wb-records" }, [
-      AppState.panelTitle("巡检记录", AppState.rangeLabel() + " · 共 " + records.length + " 条"),
+      AppState.panelTitle("巡检记录", "共 " + records.length + " 条"),
       h("div", { class: "wb-records-scroll" }, [
         window.SelectList.render({
           name: "workbench-record",
@@ -76,9 +76,12 @@
   // ---------------------------------------------------------------- 摘要条
 
   function renderSummaryBar(record, part) {
+    var formNo = record.no ? "第 " + record.no + " 项" : record.id;
+    var area = record.area || part.short;
+    var device = record.device || part.component;
     return h("div", { class: "panel wb-summary" }, [
       h("span", {
-        text: [record.date, record.shift, record.inspector, part.label, record.item].join(" · ")
+        text: [formNo, area, device, record.item, record.date + " " + record.shift, record.inspector].join(" · ")
       }),
       h("span", { class: "wb-summary-result", text: record.result || "（未填写）" })
     ]);

@@ -8,20 +8,20 @@
 // 全局名，字段一个不少。缺字段、id 悬空一律在启动时抛错，不做兜底。
 window.DOMAIN_META = {
   contractVersion: 1,
-  domainId: "skeleton",
+  domainId: "inspection-demo",
 
-  title: "诊断流程骨架",
-  subtitle: "占位对象 OBJ-A · 占位部位 PART-1 · SKELETON-000",
-  batchId: "SKELETON-000",
+  title: "巡检诊断流程演示",
+  subtitle: "长郴-湘潭站 · 巡检表单质检 · XJ-20260721-A",
+  batchId: "XJ-20260721-A",
   clockText: "2026-07-22 16:31",
-  statusLine: "骨架数据包已加载，本包仅用于跑通骨架，不用于演示。",
+  statusLine: "巡检表单、时序趋势、视觉关键帧与知识库依据已接入演示链路。",
 
   // 骨架层里所有面向用户的名词都从这里取。换课题时只改这里，不改 scripts/。
   terms: {
-    object: "对象",
-    part: "部位",
-    record: "记录",
-    inspector: "记录人",
+    object: "站场",
+    part: "巡检部位",
+    record: "表单记录",
+    inspector: "巡检人",
     workOrder: "处置票卡"
   },
 
@@ -49,8 +49,8 @@ window.DOMAIN_META = {
   // role 目前只进报告插槽，不影响处置步骤——角色分工规则要由业务提供，编一套假的
   // 塞进 demo 会变成误导。
   reviewers: [
-    { id: "reviewer-a", name: "复核人 A", role: "技术员" },
-    { id: "reviewer-b", name: "复核人 B", role: "班组长" }
+    { id: "reviewer-a", name: "廖震宇", role: "生产运维技术员" },
+    { id: "reviewer-b", name: "王铭", role: "站场班组长" }
   ],
   defaultReviewerId: "reviewer-a",
 

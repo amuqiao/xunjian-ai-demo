@@ -21,18 +21,18 @@ window.DOMAIN_VISION = {
     {
       id: "FRM-1-CUR",
       partId: "PART-1",
-      label: "泵区关键帧 · 设备状态",
+      label: "泵棚区关键帧 · P-3 泵状态",
       src: "pumpCurrent",
       bbox: { x: 0.36, y: 0.12, w: 0.16, h: 0.24 },
-      boxLabel: "设备区域 0.89",
-      findings: ["泵组主体识别 0.89", "管线与阀门区域完整 0.84", "巡检补拍位可复核 0.78"],
+      boxLabel: "P-3 泵区域 0.89",
+      findings: ["P-3 泵及出口管线识别 0.89", "压力仪表点位需近景复核 0.84", "大修前外观基准可留存 0.78"],
       confidence: 0.89,
       role: "current"
     },
     {
       id: "FRM-1-CMP",
       partId: "PART-1",
-      label: "泵区关键帧 · 同点位对比",
+      label: "泵棚区关键帧 · 同点位对比",
       src: "pumpCompare",
       bbox: { x: 0.36, y: 0.12, w: 0.16, h: 0.24 },
       boxLabel: "同点位对比 0.90",
@@ -54,11 +54,11 @@ window.DOMAIN_VISION = {
     {
       id: "FRM-2-CUR",
       partId: "PART-2",
-      label: "配电间关键帧 · 低压柜状态",
+      label: "配电间关键帧 · P6 高压柜状态",
       src: "powerCurrent",
       bbox: { x: 0.54, y: 0.06, w: 0.36, h: 0.74 },
-      boxLabel: "低压柜核验 0.87",
-      findings: ["低压柜状态识别 0.87", "柜面仪表与标签清晰 0.82"],
+      boxLabel: "柜面复查 0.87",
+      findings: ["高压柜柜面区域识别 0.87", "表计与测显装置可用于复查 0.82"],
       confidence: 0.87,
       role: "current"
     }
