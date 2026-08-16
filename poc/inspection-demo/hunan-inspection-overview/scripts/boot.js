@@ -63,7 +63,7 @@
     sitesByZone: Sites.sitesByZone
   });
 
-  var state = { zoneId: null, siteId: null };
+  var state = { zoneId: null, siteId: null, dateRangeId: "7d" };
 
   // ---- 供 model-pipelines.js 消费的管道范围：只取"全部 nodeIds 都落在当前 POC
   // 站点范围内"的管道——A（全量）覆盖 24 条里 22 条非空 nodeIds 的管道；B（成品油
@@ -89,7 +89,7 @@
     window.HunanMap3D.detach();
 
     root.innerHTML = "";
-    root.appendChild(window.OverviewScene.renderTopbar());
+    root.appendChild(window.OverviewScene.renderTopbar(state));
     root.appendChild(renderStage());
     root.appendChild(window.OverviewScene.renderBottombar(state));
 
@@ -185,12 +185,24 @@
     render();
   }
 
+  function selectDateRange(rangeId) {
+    if (!window.OverviewScene.isDateRangeId(rangeId)) {
+      throw new Error("selectDateRange 收到非法范围：" + rangeId);
+    }
+    state.dateRangeId = rangeId;
+    render();
+  }
+
   // ==========================================================================
   // 事件委托（bindStage）
   // ==========================================================================
 
-  function handleAction(action) {
+  function handleAction(action, sourceEl) {
     if (action === "refresh") { render(); return; }
+    if (action === "set-date-range") {
+      selectDateRange(sourceEl.getAttribute("data-date-range"));
+      return;
+    }
     if (action === "back-to-overview") { selectZone(null); return; }
     if (action === "map-zoom-in") { window.HunanMap3D.zoom(-140); return; }
     if (action === "map-zoom-out") { window.HunanMap3D.zoom(140); return; }
@@ -210,7 +222,7 @@
     var actionEl = target.closest("[data-action]");
     if (actionEl) {
       if (actionEl.hasAttribute("disabled")) return;
-      handleAction(actionEl.getAttribute("data-action"));
+      handleAction(actionEl.getAttribute("data-action"), actionEl);
       return;
     }
 

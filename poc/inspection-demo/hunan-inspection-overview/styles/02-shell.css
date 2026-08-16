@@ -93,7 +93,9 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 14px;
+  row-gap: 4px;
   min-width: 0;
 }
 
@@ -228,6 +230,54 @@
 .topbar-clock small {
   color: var(--muted);
   font-size: 11px;
+}
+
+.date-range-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.date-range-label {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.date-range-options {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-bg);
+}
+
+.date-range-btn {
+  min-width: 48px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.date-range-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.date-range-btn.is-active {
+  border-color: var(--accent);
+  background: rgba(56, 198, 236, 0.16);
+  color: #eafcff;
+  box-shadow: 0 0 14px rgba(56, 198, 236, 0.18);
 }
 
 .stage {

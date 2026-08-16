@@ -197,21 +197,26 @@
   // 二、A（巡检站总览）独有：对应"巡检"业务语义
   // ============================================================
 
-  // 近 7 日巡检任务完成率趋势（100% 演示设定）。
+  // 巡检任务完成率趋势（100% 演示设定）。
   //
   // 为什么是演示设定：topology.js 只有站场/阀室的静态拓扑关系，没有巡检工单/
-  // 执行记录表，本 POC 数据范围内没有任何字段能派生出"过去 7 天每天完成了多少
+  // 执行记录表，本 POC 数据范围内没有任何字段能派生出"过去 N 天每天完成了多少
   // 巡检任务"。这里用一个确定性公式（不是 Math.random，保证同一份代码每次跑出
-  // 同样的演示曲线，方便截图/回归对比）生成 7 个有起伏的百分比，只用来在折线图
-  // 上演示"完成率"这个概念，不代表任何真实巡检系统的历史数据。
-  // 公式：rate(i) = 88 + round(sin(i * 0.9) * 6) + i，其中 i = 0..6 为"6 天前"到
-  // "今天"的相对日序号；sin 波动项模拟日间起伏，+i 项让整体呈弱上升趋势，最后
-  // clamp 到 [60, 100] 区间。
-  function inspectionCoverageTrend() {
-    var days = ["D-6", "D-5", "D-4", "D-3", "D-2", "D-1", "D-0"];
+  // 同样的演示曲线，方便截图/回归对比）生成有起伏的百分比，只用来在折线图
+  // 上演示"完成率随日期范围变化"这个概念，不代表任何真实巡检系统的历史数据。
+  function inspectionCoverageTrend(options) {
+    options = options || {};
+    var pointCount = options.pointCount || 7;
+    if (pointCount < 1 || pointCount > 31) {
+      throw new Error("[HunanSeries] inspectionCoverageTrend pointCount 应在 1..31 之间，实际 " + pointCount);
+    }
+    var lastIndex = pointCount - 1;
+    var days = [];
+    for (var d = lastIndex; d >= 0; d -= 1) days.push("D-" + d);
     return days.map(function (label, i) {
       var wave = Math.round(Math.sin(i * 0.9) * 6);
-      var rate = 88 + wave + i;
+      var slope = lastIndex === 0 ? 0 : Math.round((i / lastIndex) * 6);
+      var rate = 88 + wave + slope;
       if (rate > 100) rate = 100;
       if (rate < 60) rate = 60;
       return { day: label, completionRate: rate };

@@ -191,11 +191,12 @@
     };
   }
 
-  // ---------- inspectionCoverageTrend()：近 7 日巡检完成率趋势（无轴迷你折线可复用 spark） ----------
-  function inspectionCoverageTrend() {
+  // ---------- inspectionCoverageTrend()：巡检完成率趋势（日期范围为演示口径） ----------
+  function inspectionCoverageTrend(options) {
     var theme = requireTheme();
-    var rows = requireSeries("inspectionCoverageTrend()").inspectionCoverageTrend();
+    var rows = requireSeries("inspectionCoverageTrend()").inspectionCoverageTrend(options);
     if (!rows.length) throw new Error("[ChartOptions] inspectionCoverageTrend() 需要至少一行数据");
+    var labelInterval = rows.length > 16 ? 4 : (rows.length > 10 ? 2 : 0);
 
     return {
       grid: { left: 40, right: 16, top: 20, bottom: 24 },
@@ -209,7 +210,7 @@
       xAxis: {
         type: "category",
         data: rows.map(function (row) { return row.day; }),
-        axisLabel: { color: theme.muted, fontSize: 10 },
+        axisLabel: { color: theme.muted, fontSize: 10, interval: labelInterval },
         axisLine: { lineStyle: { color: theme.lineStrong } }
       },
       yAxis: {

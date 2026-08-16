@@ -25,6 +25,12 @@
   var Series = window.HunanSeries;
   var Quality = window.HunanInspectionQuality;
   var STATUS_LABEL = { ok: "正常", warn: "关注", danger: "异常" };
+  var DATE_RANGES = [
+    { id: "7d", label: "近7天", shortLabel: "近7日", days: 7 },
+    { id: "30d", label: "近30天", shortLabel: "近30日", days: 30 },
+    { id: "month", label: "本月", shortLabel: "本月", monthToDate: true },
+    { id: "custom", label: "自定义", shortLabel: "7/28-8/4", pointCount: 8, fixedText: "2026-07-28 至 2026-08-04" },
+  ];
 
   function assertLoaded() {
     if (!Contract) throw new Error("[OverviewScene] window.HunanContract 未加载");
@@ -37,9 +43,71 @@
   // 顶栏 / 底栏（DOM 契约见 styles/02-shell.css 文件头注释）
   // ---------------------------------------------------------------------
 
-  function renderTopbar() {
+  function pad2(n) {
+    return n < 10 ? "0" + n : String(n);
+  }
+
+  function formatDate(date) {
+    return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
+  }
+
+  function dateRangeById(id) {
+    for (var i = 0; i < DATE_RANGES.length; i += 1) {
+      if (DATE_RANGES[i].id === id) return DATE_RANGES[i];
+    }
+    throw new Error("未知日期范围：" + id);
+  }
+
+  function isDateRangeId(id) {
+    for (var i = 0; i < DATE_RANGES.length; i += 1) {
+      if (DATE_RANGES[i].id === id) return true;
+    }
+    return false;
+  }
+
+  function activeDateRange(state) {
+    return dateRangeById(state && state.dateRangeId ? state.dateRangeId : "7d");
+  }
+
+  function dateRangeText(range, now) {
+    if (range.fixedText) return range.fixedText;
+    var start = new Date(now.getTime());
+    if (range.monthToDate) {
+      start.setDate(1);
+    } else {
+      start.setDate(start.getDate() - range.days + 1);
+    }
+    return formatDate(start) + " 至 " + formatDate(now);
+  }
+
+  function dateRangePointCount(range, now) {
+    if (range.pointCount) return range.pointCount;
+    if (range.monthToDate) return now.getDate();
+    return range.days;
+  }
+
+  function renderDateRangePicker(state, now) {
+    var active = activeDateRange(state);
+    return h("div", { class: "date-range-picker", "aria-label": "数据日期范围" }, [
+      h("span", { class: "date-range-label", text: "数据窗口" }),
+      h("div", { class: "date-range-options" }, DATE_RANGES.map(function (range) {
+        var isActive = range.id === active.id;
+        return h("button", {
+          type: "button",
+          class: "date-range-btn" + (isActive ? " is-active" : ""),
+          "data-action": "set-date-range",
+          "data-date-range": range.id,
+          "aria-pressed": isActive ? "true" : "false",
+          title: range.label + " · " + dateRangeText(range, now),
+          text: range.label,
+        });
+      })),
+    ]);
+  }
+
+  function renderTopbar(state) {
     var now = new Date();
-    var pad2 = function (n) { return n < 10 ? "0" + n : String(n); };
+    var range = activeDateRange(state);
     var weekday = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][now.getDay()];
     return h("header", { class: "topbar panel" }, [
       h("div", { class: "topbar-left" }, [
@@ -61,10 +129,11 @@
         h("span", { class: "topbar-wing right", "aria-hidden": "true" }),
       ]),
       h("div", { class: "topbar-right" }, [
+        renderDateRangePicker(state, now),
         h("button", { type: "button", class: "tool-btn", "data-action": "refresh", text: "刷新数据" }),
         h("div", { class: "topbar-clock" }, [
           h("strong", { text: pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds()) }),
-          h("small", { text: now.getFullYear() + "-" + pad2(now.getMonth() + 1) + "-" + pad2(now.getDate()) + " " + weekday }),
+          h("small", { text: formatDate(now) + " " + weekday + " · " + range.shortLabel }),
         ]),
       ]),
     ]);
@@ -90,12 +159,13 @@
   // 左栏：4 张卡（总体 KPI / 管线概览 / 作业区排名 / 今日动态）
   // ---------------------------------------------------------------------
 
-  function renderKpiCard() {
+  function renderKpiCard(state) {
     var sp = Series.provinceSummary();
+    var range = activeDateRange(state);
     return h("div", { class: "ov-kpi-row" }, [
       window.Cards.metric({ label: "站点总数", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok", note: "站场 " + sp.stationTotal + " · 阀室 " + sp.valveTotal }),
       window.Cards.metric({ label: "管道总数", value: sp.pipelineTotal, unit: "条", status: "ok", note: sp.zoneTotal + " 作业区 · " + sp.districtTotal + " 市" }),
-      window.Cards.metric({ label: "问题合计", value: sp.issueTotal, unit: "项", status: sp.issueTotal > 0 ? "warn" : "ok", note: "关注 + 异常" }),
+      window.Cards.metric({ label: "问题合计", value: sp.issueTotal, unit: "项", status: sp.issueTotal > 0 ? "warn" : "ok", note: range.shortLabel + " · 关注 + 异常" }),
     ]);
   }
 
@@ -149,17 +219,18 @@
     ]);
   }
 
-  function renderTodayCard() {
-    return window.Cards.chart({ title: "今日动态 · 近 7 日巡检完成率", chartId: "chart-coverage-trend" });
+  function renderTodayCard(state) {
+    var range = activeDateRange(state);
+    return window.Cards.chart({ title: "动态趋势 · " + range.shortLabel + "巡检完成率", chartId: "chart-coverage-trend" });
   }
 
   function renderLeftColumn(state) {
     assertLoaded();
     return h("section", { class: "panel ov-left-col" }, [
-      renderKpiCard(),
+      renderKpiCard(state),
       renderPipelineOverviewCard(),
       renderZoneRankCard(state),
-      renderTodayCard(),
+      renderTodayCard(state),
     ]);
   }
 
@@ -262,6 +333,7 @@
 
   function renderQualityCard(state) {
     var q = Quality.current(state.zoneId);
+    var range = activeDateRange(state);
     var riskStatus = q.riskLevel === "P1" ? "danger" : (q.riskLevel === "P2" ? "warn" : "ok");
     var completionStatus = q.completionRate < 95 ? "warn" : "ok";
     return h("section", {
@@ -270,7 +342,7 @@
     }, [
       h("div", { class: "ov-quality-head" }, [
         h("span", { class: "ov-quality-title", text: "巡检质量指标" }),
-        h("small", { text: q.name }),
+        h("small", { text: q.name + " · " + range.shortLabel }),
       ]),
       h("div", { class: "ov-quality-grid" }, [
         renderQualityMetric("当前风险", q.riskLevel, "", q.currentRisk > 0 ? q.currentRisk + "项" : "无P1", riskStatus),
@@ -370,9 +442,12 @@
   // 图表绘制（boot.js 在 DOM append 之后调用，接上 mountChartSlots 留好的容器）
   // ---------------------------------------------------------------------
 
-  function renderCharts() {
+  function renderCharts(state) {
+    var range = activeDateRange(state);
     window.Charts.draw("chart-site-kind-mix", window.ChartOptions.siteKindMix());
-    window.Charts.draw("chart-coverage-trend", window.ChartOptions.inspectionCoverageTrend());
+    window.Charts.draw("chart-coverage-trend", window.ChartOptions.inspectionCoverageTrend({
+      pointCount: dateRangePointCount(range, new Date()),
+    }));
     window.Charts.draw("chart-zone-status-mix", window.ChartOptions.zoneStatusMix());
     window.Charts.draw("chart-issue-discipline", window.ChartOptions.issueByDiscipline());
     window.Charts.draw("chart-zone-coverage", window.ChartOptions.zoneCoverageRows());
@@ -385,5 +460,6 @@
     renderMapPanel: renderMapPanel,
     renderRightColumn: renderRightColumn,
     renderCharts: renderCharts,
+    isDateRangeId: isDateRangeId,
   };
 })();
