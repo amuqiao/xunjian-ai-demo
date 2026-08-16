@@ -27,22 +27,23 @@ window.DOMAIN_AGENTQA = {
           label: "这条异常怎么判的?",
           question: "这条异常是怎么判出来的？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：主测点越过关注线，且视觉关键帧显示目标偏移，副测点未同步变化，符合占位判据 R-001。",
+          answer: "当前判断来自多源交叉复核：差压趋势接近关注线，规程要求结合历史曲线、相关测点和现场工况比对；同时工业电视关键帧可作为辅助证据，支撑进入人工复核。",
           hit: true,
           hits: [
-            { kind: "standard", text: "占位制度 DOC-STD §1.1", docId: "DOC-STD", chunkIndex: 0 },
-            { kind: "rule", text: "占位判据 R-001", docId: "DOC-STD", chunkIndex: 1 }
+            { kind: "rule", text: "压力表、差压表复核要求", docId: "DOC-CARD", chunkIndex: 1 },
+            { kind: "metric", text: "工业电视辅助复核依据", docId: "DOC-METRIC", chunkIndex: 1 }
           ]
         },
         {
           id: "wb-q2",
-          label: "依据哪些标准?",
+          label: "依据哪些资料?",
           question: "判读依据哪些标准？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：依据占位制度文档中的阈值条款与判据条款。",
+          answer: "主要依据巡检管理流程说明和压力表、差压表操作及维护规程：巡检任务通过 IMS 留痕，现场复核需要把时序、工况、视频和复测记录放在一起判断。",
           hit: true,
           hits: [
-            { kind: "metric", text: "占位指标口径 DOC-STD §1.2", docId: "DOC-STD", chunkIndex: 2 }
+            { kind: "standard", text: "IMS 下发与问题记录", docId: "DOC-STD", chunkIndex: 2 },
+            { kind: "rule", text: "复测与处置记录", docId: "DOC-CARD", chunkIndex: 2 }
           ]
         },
         {
@@ -50,7 +51,7 @@ window.DOMAIN_AGENTQA = {
           label: "备件库存够不够?",
           question: "相关备件库存够不够？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：知识库暂无库存类资料，以下为模型基于历史处置记录的推断，建议人工确认。",
+          answer: "知识库暂无备件库存和供应商库存类资料，以下只能作为模型推断，建议人工确认库存台账。",
           hit: false,
           hits: []
         }
@@ -67,13 +68,13 @@ window.DOMAIN_AGENTQA = {
       questions: [
         {
           id: "rv-q1",
-          label: "三条结论有什么区别?",
-          question: "三条结论分别意味着什么？",
+          label: "确认后怎么闭环?",
+          question: "确认异常后怎么进入处置闭环？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：确认异常进入处置闭环并解锁案例复用；继续观察与排除误报都只形成记录，不生成处置票卡。",
+          answer: "确认异常后应记录复测前后数值、设备运行状态、处置措施和复核人意见；需要转处置时，同步生成作业票卡或问题整改记录，并在归档后支撑后续相似案例复用。",
           hit: true,
           hits: [
-            { kind: "workcard", text: "占位作业模板 DOC-CARD", docId: "DOC-CARD", chunkIndex: 0 }
+            { kind: "workcard", text: "处置与复测留痕要求", docId: "DOC-CARD", chunkIndex: 2 }
           ]
         },
         {
@@ -81,7 +82,7 @@ window.DOMAIN_AGENTQA = {
           label: "现在该找谁签字?",
           question: "这一步需要谁签字确认？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：知识库暂无审批权限矩阵，以下为模型推断，建议按现场制度人工确认。",
+          answer: "知识库暂无审批权限矩阵，以下只能作为模型推断，建议按现场制度和当班负责人要求人工确认。",
           hit: false,
           hits: []
         }
@@ -98,13 +99,14 @@ window.DOMAIN_AGENTQA = {
       questions: [
         {
           id: "kb-q1",
-          label: "阈值标准是多少?",
-          question: "占位阈值标准是多少？",
+          label: "复核依据有哪些?",
+          question: "差压趋势异常复核要看哪些依据？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：依据占位制度文档，主测点关注线为 4.5 mm/s。",
+          answer: "需要同时查看历史曲线、上下游相关测点、现场工况和工业电视关键帧，确认后还要记录复测前后数值、处置措施和复核意见。",
           hit: true,
           hits: [
-            { kind: "standard", text: "占位制度 DOC-STD §1.2", docId: "DOC-STD", chunkIndex: 2 }
+            { kind: "rule", text: "压力表、差压表复核要求", docId: "DOC-CARD", chunkIndex: 1 },
+            { kind: "metric", text: "工业电视关键帧复核", docId: "DOC-METRIC", chunkIndex: 1 }
           ]
         },
         {
@@ -112,10 +114,10 @@ window.DOMAIN_AGENTQA = {
           label: "有没有可参考的历史案例?",
           question: "有没有可参考的历史案例？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：本轮归档的处置报告已进入知识库，可作为同类异常的参考案例。",
+          answer: "本轮归档的差压趋势异常案例已进入知识库，后续相似记录可引用它来提示复核路径、证据组合和处置留痕要求。",
           hit: true,
           hits: [
-            { kind: "case", text: "占位归档案例 DOC-CASE", docId: "DOC-CASE", chunkIndex: 0 }
+            { kind: "case", text: "差压趋势异常归档案例", docId: "DOC-CASE", chunkIndex: 3 }
           ],
           unlockedBy: "archived"
         },
@@ -124,7 +126,7 @@ window.DOMAIN_AGENTQA = {
           label: "有没有厂家联系方式?",
           question: "有没有设备厂家的联系方式？",
           thinkingText: "正在检索知识库…",
-          answer: "占位答案：知识库暂无厂家通讯类资料，以下为模型推断，建议人工确认。",
+          answer: "知识库暂无厂家通讯录或外协单位联系方式，以下只能作为模型推断，建议人工确认通讯录。",
           hit: false,
           hits: []
         }

@@ -29,18 +29,18 @@ window.DOMAIN_REVIEW = {
   outcomes: [
     {
       id: "fix",
-      label: "占位结论：确认异常，转处置",
+      label: "确认异常，转处置",
       hint: "生成处置票卡并进入复测",
       impact: "选定后不再生成观察记录，直接进入处置闭环。",
       track: "treatment",
       fields: ["crew", "window", "riskLevel", "flags"],
       steps: [
-        "占位处置步骤一：停机挂牌",
-        "占位处置步骤二：拆除防护",
-        "占位处置步骤三：执行处置作业",
-        "占位处置步骤四：复紧与恢复",
-        "占位处置步骤五：试运行观察",
-        "占位处置步骤六：复测并记录"
+        "处置步骤一：确认巡检对象和风险等级",
+        "处置步骤二：落实停机挂牌和现场监护",
+        "处置步骤三：执行仪表复核或现场处置作业",
+        "处置步骤四：恢复运行条件并试运行观察",
+        "处置步骤五：完成压力、差压复测",
+        "处置步骤六：回填 IMS 闭环记录"
       ],
       executeText: "生成处置票卡",
       executedText: "处置票卡已生成",
@@ -55,16 +55,16 @@ window.DOMAIN_REVIEW = {
     },
     {
       id: "observe",
-      label: "占位结论：继续观察",
+      label: "继续观察",
       hint: "设置观察窗口，不生成处置票卡",
       impact: "选定后仅形成观察记录，不进入处置闭环、不解锁案例复用。",
       track: "closure",
       fields: ["window", "flags"],
       steps: [
-        "占位闭环步骤一：设置观察窗口",
-        "占位闭环步骤二：登记复评条件",
-        "占位闭环步骤三：通知下一班次",
-        "占位闭环步骤四：形成观察记录"
+        "闭环步骤一：设置观察窗口",
+        "闭环步骤二：登记复评条件",
+        "闭环步骤三：通知下一班次重点关注",
+        "闭环步骤四：形成观察记录"
       ],
       executeText: "确认观察记录",
       executedText: "观察记录已确认",
@@ -79,15 +79,15 @@ window.DOMAIN_REVIEW = {
     },
     {
       id: "reject",
-      label: "占位结论：排除误报",
+      label: "排除误报",
       hint: "记录排除依据并回流模型样本",
       impact: "选定后记录为误报样本，不进入处置闭环、不解锁案例复用。",
       track: "closure",
       fields: ["riskLevel", "flags"],
       steps: [
-        "占位闭环步骤一：登记排除依据",
-        "占位闭环步骤二：标记模型样本",
-        "占位闭环步骤三：形成误报记录"
+        "闭环步骤一：登记排除依据",
+        "闭环步骤二：标记模型样本",
+        "闭环步骤三：形成误报记录"
       ],
       executeText: "确认误报记录",
       executedText: "误报记录已确认",
@@ -108,8 +108,8 @@ window.DOMAIN_REVIEW = {
       type: "select",
       required: true,
       options: [
-        { id: "crew-1", label: "占位班组一" },
-        { id: "crew-2", label: "占位班组二" }
+        { id: "crew-1", label: "站场巡检班组" },
+        { id: "crew-2", label: "仪控维护班组" }
       ]
     },
     window: {

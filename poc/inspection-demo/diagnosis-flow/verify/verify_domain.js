@@ -447,7 +447,8 @@ expectReject("命中卡 docId 悬空", function (w) {
   w.DOMAIN_AGENTQA.contexts[0].questions[0].hits[0].docId = "DOC-X";
 });
 expectReject("命中卡引用了无正文文档", function (w) {
-  w.DOMAIN_AGENTQA.contexts[0].questions[0].hits[0].docId = "DOC-METRIC";
+  w.DOMAIN_KB.raw.documents.filter(function (doc) { return doc.id === "DOC-CARD"; })[0].body = null;
+  w.DOMAIN_AGENTQA.contexts[0].questions[0].hits[0].docId = "DOC-CARD";
 });
 expectReject("unlockedBy 非法取值", function (w) {
   w.DOMAIN_AGENTQA.contexts[2].questions[1].unlockedBy = "someday";
@@ -462,7 +463,8 @@ expectReject("文档 categoryId 悬空", function (w) {
   w.DOMAIN_KB.raw.documents[0].categoryId = "cat-x";
 });
 expectReject("citations 引用了无正文文档", function (w) {
-  w.DOMAIN_KB.raw.qaPresets[0].citations[0].docId = "DOC-METRIC";
+  w.DOMAIN_KB.raw.documents.filter(function (doc) { return doc.id === "DOC-STD"; })[0].body = null;
+  w.DOMAIN_KB.raw.qaPresets[0].citations[0].docId = "DOC-STD";
 });
 expectReject("hintChunks 越界", function (w) {
   w.DOMAIN_KB.raw.qaPresets[0].citations[0].hintChunks = [99];
@@ -481,7 +483,8 @@ expectReject("ingestion 步数不足 5", function (w) {
   w.DOMAIN_KB.raw.ingestion = w.DOMAIN_KB.raw.ingestion.slice(0, 3);
 });
 expectReject("ingestDemoDocId 指向无正文文档", function (w) {
-  w.DOMAIN_KB.raw.ingestDemoDocId = "DOC-METRIC";
+  w.DOMAIN_KB.raw.documents.filter(function (doc) { return doc.id === "DOC-CARD"; })[0].body = null;
+  w.DOMAIN_KB.raw.ingestDemoDocId = "DOC-CARD";
 });
 expectReject("archiveTarget.categoryId 悬空", function (w) {
   w.DOMAIN_KB.raw.archiveTarget.categoryId = "cat-x";
