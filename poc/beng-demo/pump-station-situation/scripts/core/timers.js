@@ -41,6 +41,7 @@
   // 自然触发时会在执行回调前先把自己从 registry 里摘掉，避免注册表无限增长。
   var registry = {};
   var nextId = 1;
+  var paused = false;
 
   function assertSceneKey(sceneKey, where) {
     if (typeof sceneKey !== "string" || sceneKey === "") {
@@ -70,6 +71,19 @@
     }
   }
 
+  function schedule(id, delayMs) {
+    var record = registry[id];
+    if (!record) throw new Error("SceneTimers.schedule 收到未知 timer id：" + id);
+    record.startedAt = Date.now();
+    record.remainingMs = delayMs;
+    record.handle = window.setTimeout(function () {
+      // 自然触发：先从注册表摘除，再执行调用方的回调——这样回调内部即使同步抛错，
+      // 注册表也不会留下一条已经触发过的死记录。
+      delete registry[id];
+      record.fn();
+    }, delayMs);
+  }
+
   function setSceneTimeout(sceneKey, fn, delayMs, persist) {
     assertSceneKey(sceneKey, "SceneTimers.setTimeout");
     assertFn(fn);
@@ -79,18 +93,16 @@
     var id = nextId;
     nextId += 1;
 
-    var handle = window.setTimeout(function () {
-      // 自然触发：先从注册表摘除，再执行调用方的回调——这样回调内部即使同步抛错，
-      // 注册表也不会留下一条已经触发过的死记录。
-      delete registry[id];
-      fn();
-    }, delayMs);
-
     registry[id] = {
       sceneKey: sceneKey,
-      handle: handle,
+      fn: fn,
+      delayMs: delayMs,
+      remainingMs: delayMs,
+      startedAt: 0,
+      handle: 0,
       persist: persist === true
     };
+    if (!paused) schedule(id, delayMs);
 
     return id;
   }
@@ -122,14 +134,43 @@
     });
   }
 
+  function pauseAll() {
+    if (paused) return;
+    paused = true;
+    var now = Date.now();
+    Object.keys(registry).forEach(function (id) {
+      var record = registry[id];
+      if (!record.handle) return;
+      window.clearTimeout(record.handle);
+      record.remainingMs = Math.max(0, record.remainingMs - (now - record.startedAt));
+      record.handle = 0;
+    });
+  }
+
+  function resumeAll() {
+    if (!paused) return;
+    paused = false;
+    Object.keys(registry).forEach(function (id) {
+      var record = registry[id];
+      if (record.handle) return;
+      schedule(id, record.remainingMs);
+    });
+  }
+
   function debugInfo() {
-    return { active: Object.keys(registry).length };
+    var persistCount = 0;
+    Object.keys(registry).forEach(function (id) {
+      if (registry[id].persist) persistCount += 1;
+    });
+    return { active: Object.keys(registry).length, persist: persistCount, paused: paused };
   }
 
   window.SceneTimers = {
     setTimeout: setSceneTimeout,
     clearScene: clearScene,
     clearAll: clearAll,
+    pauseAll: pauseAll,
+    resumeAll: resumeAll,
     debugInfo: debugInfo
   };
 })();

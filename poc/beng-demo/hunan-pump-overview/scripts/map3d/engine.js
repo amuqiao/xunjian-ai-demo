@@ -898,6 +898,7 @@
 
       if (!engine.host || !engine.host.isConnected) return;
       if (document.hidden) return;
+      if (!engine.shellActive) return;
       if (!engine.visible) return;
       if (engine.host.clientWidth === 0 || engine.host.clientHeight === 0) return;
 
@@ -930,6 +931,11 @@
 
     engine.frameFn = frame;
     markDirty(engine);
+  }
+
+  function markDirtyWhenShellActive(instance) {
+    if (!instance.shellActive) return;
+    markDirty(instance);
   }
 
   // 供 mount()/setLevel()/resetView() 计算某个 level 应该对准的 target。
@@ -1071,6 +1077,7 @@
       resetViewCount: 0,
       frames: 0,
       rafId: 0,
+      shellActive: true,
       visible: true,
       dirty: false,
       frameScheduled: false,
@@ -1097,23 +1104,23 @@
     pointerQuery.addEventListener("change", function (event) { orbit.setMobileDisabled(event.matches); });
     reducedMotionQuery.addEventListener("change", function (event) {
       orbit.setReducedMotion(event.matches);
-      markDirty(instance);
+      markDirtyWhenShellActive(instance);
     });
 
     instance.resizeObserver = new ResizeObserver(function () { resize(instance); });
     instance.intersectionObserver = new IntersectionObserver(function (entries) {
       var wasVisible = instance.visible;
       instance.visible = entries[entries.length - 1].isIntersecting;
-      if (instance.visible && !wasVisible) markDirty(instance);
+      if (instance.visible && !wasVisible) markDirtyWhenShellActive(instance);
     });
 
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) markDirty(instance);
+      if (!document.hidden) markDirtyWhenShellActive(instance);
     });
 
-    window.addEventListener("focus", function () { markDirty(instance); });
-    window.addEventListener("pageshow", function () { markDirty(instance); });
-    canvas.addEventListener("webglcontextrestored", function () { markDirty(instance); });
+    window.addEventListener("focus", function () { markDirtyWhenShellActive(instance); });
+    window.addEventListener("pageshow", function () { markDirtyWhenShellActive(instance); });
+    canvas.addEventListener("webglcontextrestored", function () { markDirtyWhenShellActive(instance); });
     // ==== 段 7：webglcontextlost -> throw（逐字抄自源引擎）====
     canvas.addEventListener("webglcontextlost", function () {
       throw new Error("湖南省大屏地图的 WebGL 上下文已丢失（通常是 GPU 驱动重置或显存不足），请刷新页面");
@@ -1303,6 +1310,14 @@
     markDirty(engine);
   }
 
+  function setShellActive(active) {
+    if (!engine) return;
+    if (typeof active !== "boolean") throw new Error("HunanMap3D.setShellActive 需要布尔值");
+    var wasActive = engine.shellActive;
+    engine.shellActive = active;
+    if (active && !wasActive) markDirty(engine);
+  }
+
   function debugInfo() {
     if (!engine) throw new Error("HunanMap3D 尚未挂载，无法获取调试信息");
     var width = engine.host ? engine.host.clientWidth : 0;
@@ -1350,6 +1365,7 @@
     setPipelineVisible: setPipelineVisible,
     zoom: zoom,
     resetView: resetView,
+    setShellActive: setShellActive,
     debugInfo: debugInfo
   };
 })();

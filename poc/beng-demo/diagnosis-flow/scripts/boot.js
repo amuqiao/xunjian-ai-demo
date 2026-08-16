@@ -709,6 +709,13 @@
     });
   }
 
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "beng-demo:visibility") return;
+    if (data.active) window.SceneTimers.resumeAll();
+    else window.SceneTimers.pauseAll();
+  });
+
   // ---------------------------------------------------------------- 启动
 
   function boot() {

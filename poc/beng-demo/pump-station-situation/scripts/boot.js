@@ -937,6 +937,14 @@
     button.addEventListener("click", resetState);
   });
 
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "beng-demo:visibility") return;
+    window.Pump3D.setShellActive(!!data.active);
+    if (data.active) window.SceneTimers.resumeAll();
+    else window.SceneTimers.pauseAll();
+  });
+
   // 这里没有 window.addEventListener("resize", ...)，是有意的：所有图表都走
   // window.Charts，它内部用单个 ResizeObserver 直接观察每个 chart-box 节点
   // （见 core/charts.js 的 ensureResizeObserver()/resizeAll()），比监听 window resize

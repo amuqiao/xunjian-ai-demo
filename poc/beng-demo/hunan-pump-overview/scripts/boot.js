@@ -228,5 +228,11 @@
     root.addEventListener("click", handleClick);
   }
 
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "beng-demo:visibility") return;
+    window.HunanMap3D.setShellActive(!!data.active);
+  });
+
   render();
 })();

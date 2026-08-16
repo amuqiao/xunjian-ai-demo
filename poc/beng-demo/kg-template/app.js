@@ -84,6 +84,15 @@
 
   KG.bus.on('node:open', openNode);
 
+  window.addEventListener('message', function (event) {
+    var data = event.data;
+    if (!data || data.type !== 'beng-demo:visibility') return;
+
+    var impl = KG.views.impl();
+    if (data.active) impl.resume();
+    else impl.pause();
+  });
+
   function boot() {
     document.title = KG.derive.meta.title + ' · ' + KG.derive.ui.pageTitleSuffix;
 

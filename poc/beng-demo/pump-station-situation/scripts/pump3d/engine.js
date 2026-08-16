@@ -806,6 +806,7 @@
       // markDirty() 把循环唤醒，不需要在这里空转等待（那正是旧版会持续吃 CPU/GPU 的地方）。
       if (!engine.host || !engine.host.isConnected) return;
       if (document.hidden) return;
+      if (!engine.shellActive) return;
       if (!engine.visible) return;
       if (engine.host.clientWidth === 0 || engine.host.clientHeight === 0) return;
 
@@ -841,6 +842,11 @@
 
     engine.frameFn = frame;
     markDirty(engine);
+  }
+
+  function markDirtyWhenShellActive(instance) {
+    if (!instance.shellActive) return;
+    markDirty(instance);
   }
 
   function createEngine(presetName) {
@@ -956,6 +962,7 @@
       mountCount: 0,
       frames: 0,
       rafId: 0,
+      shellActive: true,
       // 按需渲染状态：visible 由 IntersectionObserver 维护；dirty/frameScheduled/
       // lastRenderTime/frameFn 由 markDirty()/startLoop() 维护，见第 14 章。
       visible: true,
@@ -973,7 +980,7 @@
     pointerQuery.addEventListener("change", function (event) { orbit.setMobileDisabled(event.matches); });
     reducedMotionQuery.addEventListener("change", function (event) {
       orbit.setReducedMotion(event.matches);
-      markDirty(instance);
+      markDirtyWhenShellActive(instance);
     });
 
     instance.resizeObserver = new ResizeObserver(function () { resize(instance); });
@@ -983,22 +990,22 @@
     instance.intersectionObserver = new IntersectionObserver(function (entries) {
       var wasVisible = instance.visible;
       instance.visible = entries[entries.length - 1].isIntersecting;
-      if (instance.visible && !wasVisible) markDirty(instance);
+      if (instance.visible && !wasVisible) markDirtyWhenShellActive(instance);
     });
 
     // 标签页从隐藏切回可见时唤醒一次；隐藏期间循环已经彻底停止排队，不依赖
     // document.hidden 的逐帧检查来"空转等待恢复"。
     document.addEventListener("visibilitychange", function () {
-      if (!document.hidden) markDirty(instance);
+      if (!document.hidden) markDirtyWhenShellActive(instance);
     });
 
     // 下面这几个都是"合成器可能已经丢掉这一层的内容、但我们的 dirty 标记却是干净的"
     // 的时机。配合 GL_ATTRS 的 preserveDrawingBuffer 一起用：preserveDrawingBuffer
     // 保住绝大多数情况，这几个钩子兜住剩下的（窗口失焦再回来、从 bfcache 恢复、
     // GPU 上下文丢失后恢复）。少画一帧的代价远小于用户看到一块空白。
-    window.addEventListener("focus", function () { markDirty(instance); });
-    window.addEventListener("pageshow", function () { markDirty(instance); });
-    canvas.addEventListener("webglcontextrestored", function () { markDirty(instance); });
+    window.addEventListener("focus", function () { markDirtyWhenShellActive(instance); });
+    window.addEventListener("pageshow", function () { markDirtyWhenShellActive(instance); });
+    canvas.addEventListener("webglcontextrestored", function () { markDirtyWhenShellActive(instance); });
     // 上下文丢失必须显式报出来，不能静默：丢了之后画面不会再更新，用户看到的就是
     // 一块凝固的旧画面，若不报错根本无从排查。
     canvas.addEventListener("webglcontextlost", function () {
@@ -1080,6 +1087,14 @@
     engine.orbit.setHost(null);
   }
 
+  function setShellActive(active) {
+    if (!engine) return;
+    if (typeof active !== "boolean") throw new Error("Pump3D.setShellActive 需要布尔值");
+    var wasActive = engine.shellActive;
+    engine.shellActive = active;
+    if (active && !wasActive) markDirty(engine);
+  }
+
   function debugInfo() {
     if (!engine) throw new Error("Pump3D 尚未挂载，无法获取调试信息");
     var width = engine.host ? engine.host.clientWidth : 0;
@@ -1104,6 +1119,7 @@
   window.Pump3D = {
     mount: mount,
     detach: detach,
+    setShellActive: setShellActive,
     debugInfo: debugInfo
   };
 })();

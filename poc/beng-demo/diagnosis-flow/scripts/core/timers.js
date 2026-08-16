@@ -27,6 +27,7 @@
 
   var registry = {};
   var nextId = 1;
+  var paused = false;
 
   function assertSceneKey(sceneKey, where) {
     if (typeof sceneKey !== "string" || sceneKey === "") {
@@ -34,7 +35,7 @@
     }
   }
 
-  function setSceneTimeout(sceneKey, fn, delayMs, persist) {
+  function assertTimerArgs(sceneKey, fn, delayMs, persist) {
     assertSceneKey(sceneKey, "SceneTimers.setTimeout");
     if (typeof fn !== "function") throw new Error("SceneTimers.setTimeout 的 fn 必须是函数");
     if (typeof delayMs !== "number" || !isFinite(delayMs) || delayMs < 0) {
@@ -43,17 +44,36 @@
     if (persist != null && typeof persist !== "boolean") {
       throw new Error("SceneTimers.setTimeout 的 persist 必须是布尔值（不传则视为 false）");
     }
+  }
+
+  function schedule(id, delayMs) {
+    var record = registry[id];
+    if (!record) throw new Error("SceneTimers.schedule 收到未知 timer id：" + id);
+    record.startedAt = Date.now();
+    record.remainingMs = delayMs;
+    record.handle = window.setTimeout(function () {
+      // 自然触发：先摘除再执行回调，这样回调内部同步抛错也不会在注册表里留死记录。
+      delete registry[id];
+      record.fn();
+    }, delayMs);
+  }
+
+  function setSceneTimeout(sceneKey, fn, delayMs, persist) {
+    assertTimerArgs(sceneKey, fn, delayMs, persist);
 
     var id = nextId;
     nextId += 1;
 
-    var handle = window.setTimeout(function () {
-      // 自然触发：先摘除再执行回调，这样回调内部同步抛错也不会在注册表里留死记录。
-      delete registry[id];
-      fn();
-    }, delayMs);
-
-    registry[id] = { sceneKey: sceneKey, handle: handle, persist: persist === true };
+    registry[id] = {
+      sceneKey: sceneKey,
+      fn: fn,
+      delayMs: delayMs,
+      remainingMs: delayMs,
+      startedAt: 0,
+      handle: 0,
+      persist: persist === true
+    };
+    if (!paused) schedule(id, delayMs);
     return id;
   }
 
@@ -83,12 +103,35 @@
     });
   }
 
+  function pauseAll() {
+    if (paused) return;
+    paused = true;
+    var now = Date.now();
+    Object.keys(registry).forEach(function (id) {
+      var record = registry[id];
+      if (!record.handle) return;
+      window.clearTimeout(record.handle);
+      record.remainingMs = Math.max(0, record.remainingMs - (now - record.startedAt));
+      record.handle = 0;
+    });
+  }
+
+  function resumeAll() {
+    if (!paused) return;
+    paused = false;
+    Object.keys(registry).forEach(function (id) {
+      var record = registry[id];
+      if (record.handle) return;
+      schedule(id, record.remainingMs);
+    });
+  }
+
   function debugInfo() {
     var persistCount = 0;
     Object.keys(registry).forEach(function (id) {
       if (registry[id].persist) persistCount += 1;
     });
-    return { active: Object.keys(registry).length, persist: persistCount };
+    return { active: Object.keys(registry).length, persist: persistCount, paused: paused };
   }
 
   window.SceneTimers = {
@@ -96,6 +139,8 @@
     clearScene: clearScene,
     clearAll: clearAll,
     clearEverything: clearEverything,
+    pauseAll: pauseAll,
+    resumeAll: resumeAll,
     debugInfo: debugInfo
   };
 })();

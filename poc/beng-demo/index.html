@@ -2,14 +2,185 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=hunan-pump-overview/index.html">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>泵站演示大屏</title>
-    <script>
-      window.location.replace("hunan-pump-overview/index.html");
-    </script>
+    <link rel="stylesheet" href="flow-nav/flow-nav.css">
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #050b12;
+      }
+
+      .demo-frame-stage {
+        position: fixed;
+        inset: 0;
+        background: #050b12;
+      }
+
+      .demo-frame {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        background: #050b12;
+      }
+
+      .demo-frame.is-active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .demo-boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: rgba(225, 245, 255, 0.86);
+        font: 600 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        letter-spacing: 0.12em;
+        background: radial-gradient(circle at center, rgba(30, 144, 190, 0.18), rgba(5, 11, 18, 0.96) 56%);
+        transition: opacity 0.24s ease, visibility 0.24s ease;
+        pointer-events: none;
+      }
+
+      .demo-boot.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+      }
+    </style>
   </head>
   <body>
-    <a href="hunan-pump-overview/index.html">进入大屏总览</a>
+    <main class="demo-frame-stage" id="frameStage" aria-label="泵站演示组件容器"></main>
+    <div class="demo-boot" id="bootMask">泵站演示加载中</div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var steps = [
+          { key: "overview", label: "大屏总览", href: "hunan-pump-overview/index.html" },
+          { key: "station", label: "泵站态势", href: "pump-station-situation/index.html" },
+          { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow/index.html" },
+          { key: "graph", label: "知识图谱", href: "kg-template/index.html" }
+        ];
+
+        var stage = document.getElementById("frameStage");
+        var bootMask = document.getElementById("bootMask");
+        var frames = {};
+        var activeKey = "overview";
+        var preloadTimers = [];
+
+        function stepByKey(key) {
+          for (var i = 0; i < steps.length; i += 1) {
+            if (steps[i].key === key) return steps[i];
+          }
+          throw new Error("[beng-demo] 未知组件：" + key);
+        }
+
+        function createFrame(step) {
+          var frame = document.createElement("iframe");
+          frame.className = "demo-frame";
+          frame.title = step.label;
+          frame.dataset.key = step.key;
+          frame.dataset.loaded = "0";
+          frame.setAttribute("loading", step.key === "overview" ? "eager" : "lazy");
+          frame.addEventListener("load", function () {
+            frame.dataset.loaded = "1";
+            postVisibility(step.key);
+            if (step.key === activeKey) {
+              bootMask.classList.add("is-hidden");
+            }
+          });
+          frame.src = step.href;
+          stage.appendChild(frame);
+          frames[step.key] = frame;
+          return frame;
+        }
+
+        function ensureFrame(key) {
+          return frames[key] || createFrame(stepByKey(key));
+        }
+
+        function postVisibility(key) {
+          var frame = frames[key];
+          if (!frame || !frame.contentWindow) return;
+          frame.contentWindow.postMessage({
+            type: "beng-demo:visibility",
+            key: key,
+            active: key === activeKey
+          }, "*");
+        }
+
+        function syncFrameVisibility() {
+          Object.keys(frames).forEach(postVisibility);
+        }
+
+        function setNavActive(key) {
+          document.querySelectorAll(".inspection-flow-nav a").forEach(function (link) {
+            link.classList.toggle("is-active", link.dataset.key === key);
+          });
+        }
+
+        function activate(key) {
+          var frame = ensureFrame(key);
+          if (key === activeKey && frame.classList.contains("is-active")) return;
+
+          activeKey = key;
+          Object.keys(frames).forEach(function (frameKey) {
+            frames[frameKey].classList.toggle("is-active", frameKey === key);
+          });
+          syncFrameVisibility();
+          setNavActive(key);
+          if (frame.dataset.loaded !== "1") bootMask.classList.remove("is-hidden");
+          else bootMask.classList.add("is-hidden");
+        }
+
+        function idle(fn, timeout) {
+          if ("requestIdleCallback" in window) {
+            return window.requestIdleCallback(fn, { timeout: timeout || 1600 });
+          }
+          return window.setTimeout(fn, timeout || 600);
+        }
+
+        function preloadRest() {
+          var order = ["station", "diagnosis", "graph"];
+          order.forEach(function (key, index) {
+            preloadTimers.push(window.setTimeout(function () {
+              idle(function () { ensureFrame(key); }, 1200);
+            }, 500 + index * 700));
+          });
+        }
+
+        window.BengDemoShell = {
+          steps: steps,
+          currentKey: function () { return activeKey; },
+          switchTo: activate
+        };
+
+        window.addEventListener("message", function (event) {
+          var data = event.data;
+          if (!data || data.type !== "beng-demo:switch") return;
+          activate(data.key);
+        });
+
+        window.addEventListener("beforeunload", function () {
+          preloadTimers.forEach(function (timer) { window.clearTimeout(timer); });
+        });
+
+        ensureFrame("overview").classList.add("is-active");
+        syncFrameVisibility();
+        preloadRest();
+      })();
+    </script>
+    <script src="flow-nav/flow-nav.js"></script>
   </body>
 </html>
