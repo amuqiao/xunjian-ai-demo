@@ -2,26 +2,26 @@
 //
 // 这是 domain-skeleton —— 一份"最小假数据"领域包，唯一职责是让骨架层能在没有任何
 // 真实业务数据的情况下跑起来、并让 scripts/schema.js 的每一条校验都有东西可校。
-// 它不是演示数据：所有文案都刻意写成占位口吻，不要拿它去做演示。
+// 这里承载泵课题演示数据，页面层只消费这些配置。
 //
 // 真实课题包（domain-pump / domain-inspection）必须提供同样的 10 份文件、同样的
 // 全局名，字段一个不少。缺字段、id 悬空一律在启动时抛错，不做兜底。
 window.DOMAIN_META = {
   contractVersion: 1,
-  domainId: "skeleton",
+  domainId: "pump-demo",
 
-  title: "诊断流程骨架",
-  subtitle: "占位对象 OBJ-A · 占位部位 PART-1 · SKELETON-000",
-  batchId: "SKELETON-000",
+  title: "输油泵智能诊断流程演示",
+  subtitle: "长岭站 P-1 输油泵 · 联轴器/振动复核 · PUMP-20260722-A",
+  batchId: "PUMP-20260722-A",
   clockText: "2026-07-22 16:31",
-  statusLine: "骨架数据包已加载，本包仅用于跑通骨架，不用于演示。",
+  statusLine: "泵课题表单、时序趋势、视觉证据与知识库依据已接入演示链路。",
 
   // 骨架层里所有面向用户的名词都从这里取。换课题时只改这里，不改 scripts/。
   terms: {
-    object: "对象",
-    part: "部位",
-    record: "记录",
-    inspector: "记录人",
+    object: "泵机组",
+    part: "诊断部位",
+    record: "巡检记录",
+    inspector: "巡检人",
     workOrder: "处置票卡"
   },
 
@@ -49,8 +49,8 @@ window.DOMAIN_META = {
   // role 目前只进报告插槽，不影响处置步骤——角色分工规则要由业务提供，编一套假的
   // 塞进 demo 会变成误导。
   reviewers: [
-    { id: "reviewer-a", name: "复核人 A", role: "技术员" },
-    { id: "reviewer-b", name: "复核人 B", role: "班组长" }
+    { id: "reviewer-a", name: "王建国", role: "设备管理工程师" },
+    { id: "reviewer-b", name: "李明", role: "站场班组长" }
   ],
   defaultReviewerId: "reviewer-a",
 

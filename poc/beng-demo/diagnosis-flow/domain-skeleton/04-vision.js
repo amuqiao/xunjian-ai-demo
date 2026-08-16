@@ -11,53 +11,53 @@
 //   link    = 关联点位帧，用于旁证
 window.DOMAIN_VISION = {
   media: {
-    placeholderCurrent: "media/placeholder-current.svg",
-    placeholderCompare: "media/placeholder-compare.svg",
-    placeholderLink: "media/placeholder-link.svg"
+    pumpCurrent: "media/pump-current.jpg",
+    pumpCompare: "media/pump-compare.jpg",
+    pumpClose: "media/pump-close.jpg"
   },
 
   frames: [
     {
       id: "FRM-1-CUR",
       partId: "PART-1",
-      label: "占位当前帧",
-      src: "placeholderCurrent",
-      bbox: { x: 0.32, y: 0.28, w: 0.3, h: 0.26 },
-      boxLabel: "占位目标 0.89",
-      findings: ["占位识别项一 0.89", "占位识别项二 0.76", "占位识别项三 0.71"],
+      label: "泵棚区关键帧 · P-1 联轴器状态",
+      src: "pumpCurrent",
+      bbox: { x: 0.34, y: 0.2, w: 0.3, h: 0.42 },
+      boxLabel: "联轴器区域 0.89",
+      findings: ["P-1 泵组及联轴器区域识别 0.89", "泵驱动端周边可用于复核 0.84", "建议补充激光对中近景 0.78"],
       confidence: 0.89,
       role: "current"
     },
     {
       id: "FRM-1-CMP",
       partId: "PART-1",
-      label: "占位对比帧",
-      src: "placeholderCompare",
-      bbox: { x: 0.3, y: 0.27, w: 0.29, h: 0.25 },
-      boxLabel: "占位目标 0.90",
-      findings: ["占位识别项一 0.90"],
+      label: "激光对中仪 · 调整前",
+      src: "pumpCompare",
+      bbox: { x: 0.24, y: 0.2, w: 0.48, h: 0.46 },
+      boxLabel: "对中读数 0.90",
+      findings: ["激光对中仪读数可复核 0.90", "调整前状态作为处置前证据 0.86"],
       confidence: 0.9,
       role: "compare"
     },
     {
       id: "FRM-1-LNK",
       partId: "PART-1",
-      label: "占位关联帧",
-      src: "placeholderLink",
-      bbox: { x: 0.18, y: 0.4, w: 0.44, h: 0.3 },
-      boxLabel: "占位关联点位 0.81",
-      findings: ["占位识别项四 0.81"],
+      label: "现场近景 · 联轴器与地脚",
+      src: "pumpClose",
+      bbox: { x: 0.18, y: 0.24, w: 0.44, h: 0.42 },
+      boxLabel: "复核近景 0.81",
+      findings: ["联轴器与地脚区域可复核 0.81", "用于补充现场照片证据 0.76"],
       confidence: 0.81,
       role: "link"
     },
     {
       id: "FRM-2-CUR",
       partId: "PART-2",
-      label: "占位对照部位当前帧",
-      src: "placeholderCurrent",
-      bbox: { x: 0.4, y: 0.36, w: 0.22, h: 0.2 },
-      boxLabel: "占位对照目标 0.84",
-      findings: ["占位识别项五 0.84"],
+      label: "泵棚区关键帧 · 底座基础",
+      src: "pumpCurrent",
+      bbox: { x: 0.18, y: 0.55, w: 0.56, h: 0.22 },
+      boxLabel: "底座区域 0.84",
+      findings: ["底座基础区域识别 0.84", "地脚状态需现场复核 0.79"],
       confidence: 0.84,
       role: "current"
     }

@@ -13,61 +13,64 @@ window.DOMAIN_KB = (function () {
 
   var DATA = {
     categories: [
-      { id: "cat-std", title: "制度规范", desc: "占位分类说明：制度、规程、标准。" },
-      { id: "cat-metric", title: "指标口径", desc: "占位分类说明：阈值与统计口径。" },
-      { id: "cat-card", title: "作业模板", desc: "占位分类说明：作业卡与票卡模板。" },
-      { id: "cat-case", title: "归档案例", desc: "占位分类说明：历史复核与处置报告。" }
+      { id: "cat-std", title: "标准规范", desc: "API 610/API 682、输油泵运行维护和专家复核边界。" },
+      { id: "cat-metric", title: "监测指标", desc: "振动、相位差、频谱、基础振动和复测验收口径。" },
+      { id: "cat-card", title: "作业模板", desc: "对中作业卡、轴承拆装、机械密封和标准化检修票卡。" },
+      { id: "cat-case", title: "归档案例", desc: "P-1 不对中处置、后续复检相似命中和历史停泵/泄漏案例。" }
     ],
 
     documents: [
       {
         id: "DOC-STD",
         categoryId: "cat-std",
-        title: "占位制度文档",
-        type: "制度",
-        summary: "占位摘要：覆盖巡检、复核与异常闭环要求。",
-        source: "占位来源：企业标准 X-000",
-        updatedAt: "2026-07-18",
+        title: "输油泵诊断复核边界说明",
+        type: "标准规范",
+        summary: "说明输油泵智能诊断只组织证据和建议，最终结论需专家复核确认。",
+        source: "API 610-2010；油气站场设备设施资产完整性管理规范；演示方案",
+        updatedAt: "2026-07-22",
         body: [
-          "占位正文第一段：巡检作业应按路线逐项记录，不得代填。",
-          "占位正文第二段：主测点越过关注线时，应结合视觉证据与副测点变化综合判读。",
-          "占位正文第三段：主测点关注线取 4.5 mm/s，接近关注线时须人工复核。"
+          "输油泵智能诊断用于组织时序趋势、频谱特征、巡检记录、现场照片和专家规则，形成复核建议；它不能替代专家最终结论。",
+          "当泵驱动端振动升高、联轴器相位差异常且 2X 频谱成分突出时，应进入联轴器不对中复核，并结合底座基础振动和管道约束排查。",
+          "泵驱动端振动关注线按 4.5mm/s 演示口径处理；接近或越过关注线时，应补充现场复测、激光对中读数和复核意见。"
         ]
       },
       {
         id: "DOC-CARD",
         categoryId: "cat-card",
-        title: "占位作业模板卡",
+        title: "ZLMI400 07型鲁尔输油泵对中作业卡",
         type: "作业模板",
-        summary: "占位摘要：处置作业的标准步骤与验收口径。",
-        source: "占位来源：作业指导书 Y-000",
-        updatedAt: "2026-07-15",
+        summary: "用于 P-1 联轴器不对中复核和处置票卡生成的标准模板。",
+        source: "P1/04-ZLMI400 07型鲁尔输油泵对中作业卡.doc",
+        updatedAt: "2026-07-22",
         body: [
-          "占位正文第一段：作业前应停机挂牌并确认监护到位。",
-          "占位正文第二段：作业完成后须复测并记录前后数值。"
+          "对中作业前应完成停机挂牌、监护确认、工器具准备和现场风险交底，确认泵组具备安全作业条件。",
+          "激光对中仪安装后，应记录调整前读数、联轴器相位状态和地脚垫片调整情况；调整过程应避免管道约束导致重复偏移。",
+          "作业完成后应复测泵驱动端振动、联轴器相位差和基础振动，记录调整前后数值并回填处置票卡。"
         ]
       },
       {
         id: "DOC-METRIC",
         categoryId: "cat-metric",
-        title: "占位指标口径说明",
+        title: "输油泵机组运行状态监测指标说明",
         type: "指标口径",
-        summary: "占位摘要：仅索引用，不提供全文。",
-        source: "占位来源：待业务确认",
-        updatedAt: "2026-07-20",
+        summary: "解释振动、相位差、2X 频谱和基础振动在不对中诊断中的演示口径；本演示仅保留摘要，不参与 chunk 切分。",
+        source: "输油泵机组运行状态监测报告2026年5月/6月-湖南公司",
+        updatedAt: "2026-07-22",
         body: null
       },
       {
         id: "DOC-CASE",
         categoryId: "cat-case",
-        title: "占位历史归档案例",
+        title: "长岭站 P-1 输油泵不对中诊断与处置报告",
         type: "归档案例",
-        summary: "占位摘要：同类异常的历史复核与处置记录。",
-        source: "占位来源：本演示归档",
-        updatedAt: "2026-07-21",
+        summary: "记录 P-1 从疑似不对中、专家复核、对中处置到后续复检相似命中的闭环样例。",
+        source: "湖南公司长岭站P-1输油泵机组状态检测与评估报告；本演示归档案例",
+        updatedAt: "2026-07-22",
         body: [
-          "占位正文第一段：本案例记录了一次同类异常的完整复核过程。",
-          "占位正文第二段：处置后复测数值回落至关注线以下。"
+          "P-1 输油泵在巡检中出现泵驱动端振动升高、联轴器相位差异常和 2X 频谱突出，AI 组织证据后建议进入不对中复核。",
+          "专家复核调取激光对中仪读数、现场近景照片、底座基础振动和作业卡模板，确认需要执行对中复核和处置票卡。",
+          "处置后复测显示泵驱动端振动由 5.82mm/s 回落至 1.80mm/s，联轴器相位差由 81° 收敛至可接受范围。",
+          "案例归档后，P-1 后续复检再次出现相似 2X 频谱、相位差异常和基础振动偏大标签时，可复用复核路径和作业清单，但不能直接继承上一次结论。"
         ]
       }
     ],
@@ -75,26 +78,53 @@ window.DOMAIN_KB = (function () {
     qaPresets: [
       {
         id: "QA-1",
-        question: "占位阈值标准是多少？",
-        answer: "占位答案：主测点关注线为 4.5 mm/s，接近时须人工复核。",
-        citations: [{ docId: "DOC-STD", hintChunks: [2] }]
+        question: "P-1 为什么判断为疑似不对中？",
+        answer: "P-1 泵驱动端振动升高、联轴器相位差异常且 2X 频谱突出，同时底座基础振动作为并发证据，符合不对中复核规则。",
+        citations: [
+          { docId: "DOC-STD", hintChunks: [1] },
+          { docId: "DOC-CASE", hintChunks: [0] }
+        ]
       },
       {
         id: "QA-2",
-        question: "处置作业有哪些标准步骤？",
-        answer: "占位答案：停机挂牌、监护到位、作业后复测并记录前后数值。",
-        citations: [{ docId: "DOC-CARD", hintChunks: [0, 1] }]
+        question: "对中作业要记录哪些内容？",
+        answer: "对中作业需要记录停机挂牌、调整前读数、相位状态、地脚垫片调整情况，以及处置后的振动、相位差和基础振动复测结果。",
+        citations: [{ docId: "DOC-CARD", hintChunks: [0, 1, 2] }]
+      },
+      {
+        id: "QA-3",
+        question: "P-1 后续复检命中归档案例后能复用什么？",
+        answer: "可以复用 P-1 的复核路径、作业模板、复测指标和报告结构；后续复检是否确认不对中仍需依据本轮现场复核重新判断。",
+        citations: [{ docId: "DOC-CASE", hintChunks: [3] }]
+      },
+      {
+        id: "QA-4",
+        question: "泵驱动端振动和相位差阈值是多少？",
+        answer: "演示口径中泵驱动端振动关注线为 4.5mm/s；P-1 当前 5.82mm/s 已越线，联轴器相位差约 81°，需要结合 2X 频谱和现场复测综合判断。",
+        citations: [
+          { docId: "DOC-STD", hintChunks: [2] },
+          { docId: "DOC-CASE", hintChunks: [0] }
+        ]
+      },
+      {
+        id: "QA-5",
+        question: "处置后复测要看哪些指标？",
+        answer: "处置后应复测泵驱动端振动、联轴器相位差和基础振动，并记录调整前后数值回填处置票卡；P-1 案例中振动由 5.82mm/s 回落至 1.80mm/s。",
+        citations: [
+          { docId: "DOC-CARD", hintChunks: [2] },
+          { docId: "DOC-CASE", hintChunks: [2] }
+        ]
       }
     ],
 
     // 入库动画的步骤条。ms 是每步停留时长，全程约 4 秒——再长会拖节奏。
     ingestion: [
-      { key: "upload", label: "上传", desc: "占位文档进入待解析队列", ms: 700 },
-      { key: "parse", label: "解析", desc: "抽取正文段落", ms: 700 },
-      { key: "chunk", label: "切分", desc: "按段落切成 chunk", ms: 700 },
-      { key: "embed", label: "向量化", desc: "生成检索向量", ms: 700 },
-      { key: "index", label: "入库", desc: "写入演示向量索引", ms: 700 },
-      { key: "search", label: "可检索", desc: "Agent 可引用该来源", ms: 700 }
+      { key: "upload", label: "上传", desc: "输油泵报告和作业卡进入待解析队列", ms: 700 },
+      { key: "parse", label: "解析", desc: "抽取设备、测点、故障模式和处置段落", ms: 700 },
+      { key: "chunk", label: "切分", desc: "按报告章节和作业步骤生成 chunk", ms: 700 },
+      { key: "embed", label: "向量化", desc: "生成泵课题语义检索向量", ms: 700 },
+      { key: "index", label: "入库", desc: "写入泵智能运维知识索引", ms: 700 },
+      { key: "search", label: "可检索", desc: "Agent 可引用报告、规则和作业卡", ms: 700 }
     ],
 
     ingestDemoDocId: "DOC-CARD",

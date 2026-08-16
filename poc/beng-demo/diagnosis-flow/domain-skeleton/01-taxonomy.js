@@ -8,30 +8,30 @@
 // 自己报错，所以必须在启动校验里卡死。
 window.DOMAIN_TAXONOMY = {
   objects: [
-    { id: "OBJ-A", label: "占位对象 A", short: "A", note: "本轮主线对象" },
-    { id: "OBJ-B", label: "占位对象 B", short: "B", note: "对照对象" }
+    { id: "OBJ-A", label: "长岭站 P-1 输油泵", short: "P-1", note: "本轮主线诊断泵机组" },
+    { id: "OBJ-B", label: "长岭站 P-2 输油泵", short: "P-2", note: "同站健康对照机组" }
   ],
 
   parts: [
     {
       id: "PART-1",
       objectId: null,
-      label: "占位部位一",
-      short: "部位一",
+      label: "联轴器与泵驱动端",
+      short: "联轴器",
       badge: "主线",
-      component: "占位构件",
-      summary: "占位部位一的一句话说明，用于工作台摘要条。",
-      checkItem: "占位检查项一"
+      component: "联轴器 / 泵驱动端轴承",
+      summary: "P-1 联轴器相位差异常，泵驱动端振动升高，需复核是否存在不对中。",
+      checkItem: "联轴器对中与振动复核"
     },
     {
       id: "PART-2",
       objectId: null,
-      label: "占位部位二",
-      short: "部位二",
+      label: "底座基础与地脚",
+      short: "底座基础",
       badge: "对照",
-      component: "占位构件",
-      summary: "占位部位二的一句话说明。",
-      checkItem: "占位检查项二"
+      component: "底座 / 地脚螺栓",
+      summary: "底座基础振动和地脚状态作为并发证据，用于排查管道约束或基础松动。",
+      checkItem: "底座基础振动和地脚状态"
     }
   ],
 
@@ -41,7 +41,7 @@ window.DOMAIN_TAXONOMY = {
     {
       id: "PT-1",
       partId: "PART-1",
-      label: "占位主测点",
+      label: "泵驱动端振动",
       unit: "mm/s",
       primary: true,
       threshold: 4.5,
@@ -50,20 +50,20 @@ window.DOMAIN_TAXONOMY = {
     {
       id: "PT-2",
       partId: "PART-1",
-      label: "占位副测点",
-      unit: "℃",
+      label: "联轴器相位差",
+      unit: "°",
       primary: false,
-      threshold: 75,
+      threshold: 60,
       safeSide: "below"
     },
     {
       id: "PT-3",
       partId: "PART-2",
-      label: "占位对照测点",
-      unit: "%",
+      label: "基础振动",
+      unit: "mm/s",
       primary: true,
-      threshold: 88,
-      safeSide: "above"
+      threshold: 3.5,
+      safeSide: "below"
     }
   ]
 };

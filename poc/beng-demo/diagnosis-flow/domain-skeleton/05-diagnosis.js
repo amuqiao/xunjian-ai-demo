@@ -22,47 +22,79 @@ window.DOMAIN_DIAGNOSIS = {
       recordId: "REC-001",
       suggestion: {
         outcomeId: "fix",
-        label: "占位建议结论：确认异常",
-        text: "占位 AI 结论正文：主测点越线且视觉帧显示目标偏移，副测点未同步变化。"
+        label: "建议结论：确认异常",
+        text: "P-1 泵驱动端振动已越过关注线，联轴器相位差达到异常区间，2X 频谱突出，建议现场复核对中并生成处置票卡。"
       },
       confidence: 82,
       confidenceBand: "needs-review",
       evidenceChain: [
-        { kind: "series", label: "占位主测点越线", detail: "越过关注线", pointId: "PT-1" },
-        { kind: "vision", label: "占位视觉偏移", detail: "标注框命中目标", frameId: "FRM-1-CUR" },
-        { kind: "rule", label: "占位判据 R-001", detail: "命中规则条件", ruleId: "R-001" },
-        { kind: "case", label: "占位历史案例", detail: "归档后解锁", docId: "DOC-CASE", locked: true }
+        { kind: "series", label: "泵驱动端振动", detail: "当前 5.82mm/s，越过 4.5mm/s 关注线", pointId: "PT-1" },
+        { kind: "vision", label: "联轴器关键帧", detail: "P-1 联轴器和泵驱动端需现场复核", frameId: "FRM-1-CUR" },
+        { kind: "rule", label: "不对中诊断规则", detail: "2X 频谱 + 相位差异常 + 振动升高", ruleId: "R-001" },
+        { kind: "case", label: "P-1 不对中归档案例", detail: "归档后解锁复用", docId: "DOC-CASE", locked: true }
       ],
-      summary: "占位案情摘要：本轮主线异常，模型给出建议但置信度不足，需人工确认。"
+      summary: "案情摘要：本轮巡检记录未见异常，但模型证据指向 P-1 联轴器疑似不对中，需要人工复核确认。"
     },
     {
-      id: "DIAG-002",
-      objectId: "OBJ-B",
+      id: "DIAG-003",
+      objectId: "OBJ-A",
       partId: "PART-1",
-      recordId: "REC-004",
+      recordId: "REC-002",
       suggestion: {
-        outcomeId: "fix",
-        label: "占位建议结论：确认异常",
-        text: "占位 AI 结论正文：特征与本轮已归档案例一致。"
+        outcomeId: "observe",
+        label: "建议结论：补充复核读数",
+        text: "同一巡检项前一日缺少联轴器对中复核读数，建议补充读数或说明未复测原因。"
       },
-      confidence: 91,
-      confidenceBand: "high",
+      confidence: 74,
+      confidenceBand: "needs-review",
       evidenceChain: [
-        { kind: "series", label: "占位主测点越线", detail: "越过关注线", pointId: "PT-1" },
-        { kind: "vision", label: "占位视觉偏移", detail: "标注框命中目标", frameId: "FRM-1-CUR" },
-        { kind: "rule", label: "占位判据 R-001", detail: "命中规则条件", ruleId: "R-001" },
-        { kind: "case", label: "占位历史案例已命中", detail: "引用本轮归档报告", docId: "DOC-CASE", locked: true }
+        { kind: "series", label: "相位差趋势", detail: "联轴器相位差已进入异常区间", pointId: "PT-2" },
+        { kind: "vision", label: "激光对中仪", detail: "调整前读数可作为复核依据", frameId: "FRM-1-CMP" },
+        { kind: "rule", label: "对中作业记录要求", detail: "复核应留存调整前后读数", ruleId: "R-002" },
+        { kind: "case", label: "对中作业模板卡", detail: "查看标准步骤", docId: "DOC-CARD", locked: false }
       ],
-      summary: "占位案情摘要：二次命中演示用。归档后本条的置信度与依据链会体现历史案例。"
+      summary: "案情摘要：本条用于演示巡检记录缺项和作业卡引用。"
+    },
+    {
+      id: "DIAG-004",
+      objectId: "OBJ-A",
+      partId: "PART-2",
+      recordId: "REC-003",
+      suggestion: {
+        outcomeId: "observe",
+        label: "建议结论：继续观察",
+        text: "底座基础振动接近关注区，地脚状态未见异常，建议纳入 48 小时趋势复评并与联轴器复核同步观察。"
+      },
+      confidence: 68,
+      confidenceBand: "insufficient",
+      evidenceChain: [
+        { kind: "series", label: "基础振动趋势", detail: "当前接近关注线但未形成独立异常", pointId: "PT-3" },
+        { kind: "vision", label: "底座基础关键帧", detail: "地脚状态需现场确认", frameId: "FRM-2-CUR" },
+        { kind: "rule", label: "基础并发证据口径", detail: "作为不对中复核的辅助证据", ruleId: "R-003" },
+        { kind: "case", label: "运行状态监测报告", detail: "查看并发证据说明", docId: "DOC-METRIC", locked: false }
+      ],
+      summary: "案情摘要：本条用于演示正常/关注项如何作为主线异常的辅助证据。"
     }
   ],
 
   rules: [
     {
       id: "R-001",
-      title: "占位判据一",
-      text: "占位规则正文：当主测点越过关注线且副测点未同步变化时，判为该类异常。",
-      source: "占位来源：企业标准 X-000"
+      title: "不对中诊断专家规则",
+      text: "当泵驱动端振动升高、联轴器相位差异常且 2X 频谱成分突出时，应进入联轴器不对中复核；底座基础振动偏大可作为并发证据。",
+      source: "长岭站 P-1 输油泵运行状态监测报告；ZLMI400 07型鲁尔输油泵对中作业卡"
+    },
+    {
+      id: "R-002",
+      title: "对中作业记录要求",
+      text: "对中复核应记录停机前状态、激光对中仪调整前后读数、地脚垫片调整情况和复测结果。",
+      source: "04-ZLMI400 07型鲁尔输油泵对中作业卡"
+    },
+    {
+      id: "R-003",
+      title: "基础振动并发证据口径",
+      text: "底座基础振动和地脚状态不单独定性不对中，但可作为管道约束、基础松动或轴系异常的辅助判断依据。",
+      source: "输油泵机组运行状态监测报告2026年6月-湖南公司"
     }
   ]
 };

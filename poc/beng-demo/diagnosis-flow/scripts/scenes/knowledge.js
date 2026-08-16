@@ -150,7 +150,7 @@
       h("div", { class: "kb-agent" }, [
         h("strong", { text: context.entryTitle }),
         h("p", { text: context.entryText }),
-        h("div", { class: "kb-agent-tags" }, context.questions.slice(0, 3).map(function (question) {
+        h("div", { class: "kb-agent-tags" }, context.questions.slice(0, 5).map(function (question) {
           return h("span", { text: question.label });
         })),
         h("button", {
