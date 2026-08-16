@@ -36,6 +36,7 @@
   transform: scale(var(--screen-scale));
   transform-origin: top left;
   will-change: transform;
+  background: var(--app-bg);
 }
 
 .topbar {
@@ -88,7 +89,7 @@
 .panel {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.96), rgba(10, 20, 28, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
 }
 
@@ -200,7 +201,7 @@
   min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--surface-bg);
   color: var(--ink);
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr);

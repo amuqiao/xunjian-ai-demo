@@ -7,7 +7,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--bg);
+  background: var(--page-bg);
   color: var(--text);
   font-family: var(--font);
   overflow: hidden;
@@ -28,14 +28,11 @@ body {
   grid-template-rows: 80px minmax(0, 1fr) 92px;
   gap: var(--gap-lg);
   padding: var(--gap-lg);
-  background:
-    radial-gradient(1200px 700px at 20% -10%, rgba(77, 141, 255, 0.16), transparent 60%),
-    radial-gradient(900px 600px at 110% 20%, rgba(61, 220, 151, 0.08), transparent 60%),
-    var(--bg);
+  background: var(--app-bg);
 }
 
 .panel {
-  background: var(--panel);
+  background: var(--panel-bg);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   backdrop-filter: blur(6px);

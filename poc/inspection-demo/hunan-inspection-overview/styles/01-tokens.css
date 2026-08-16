@@ -14,6 +14,8 @@
      --screen-design-width / --screen-design-height / --screen-scale /
      --screen-offset-x / --screen-offset-y
      --bg / --panel / --panel-2 / --panel-3 / --ink / --muted / --line / --line-strong
+     --screen-bg / --app-bg / --panel-bg / --panel-bg-strong / --surface-bg /
+     --map-host-bg / --label-bg / --control-bg
      --accent / --accent-2
      --status-danger / --status-warn / --status-ok
      --shadow
@@ -48,14 +50,35 @@
   --screen-offset-y: 0px;
 
   /* 基底色板：与母本 inspection-3d-sandbox 完全一致，深蓝黑基调。 */
-  --bg: #070f16;
-  --panel: #0d1a24;
-  --panel-2: #12222e;
-  --panel-3: #182f3d;
+  --bg: #05060f;
+  --panel: #080c1e;
+  --panel-2: #101936;
+  --panel-3: #17264a;
   --ink: #eaf6fb;
   --muted: #87a3b8;
-  --line: rgba(129, 166, 194, 0.22);
-  --line-strong: rgba(112, 190, 224, 0.5);
+  --line: rgba(120, 150, 255, 0.18);
+  --line-strong: rgba(120, 170, 255, 0.48);
+  --bg-scanline: rgba(140, 170, 255, 0.035);
+  --bg-vignette-mid: rgba(5, 6, 15, 0.50);
+  --bg-vignette-edge: rgba(5, 6, 15, 0.90);
+  --bg-top-glow: rgba(76, 125, 255, 0.08);
+  --bg-blue-glow: rgba(76, 125, 255, 0.18);
+  --bg-violet-glow: rgba(168, 85, 247, 0.12);
+  --screen-bg:
+    repeating-linear-gradient(180deg, var(--bg-scanline) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 90% at 50% 42%, transparent 42%, var(--bg-vignette-mid) 78%, var(--bg-vignette-edge) 100%),
+    linear-gradient(180deg, var(--bg-top-glow) 0%, transparent 32%),
+    radial-gradient(circle at 18% 0%, var(--bg-blue-glow), transparent 38%),
+    radial-gradient(circle at 86% 92%, var(--bg-violet-glow), transparent 44%),
+    var(--bg);
+  --app-bg: var(--screen-bg);
+  --panel-bg: linear-gradient(180deg, rgba(8, 12, 30, 0.92), rgba(5, 6, 15, 0.96));
+  --panel-bg-strong: linear-gradient(180deg, rgba(16, 25, 54, 0.88), rgba(8, 12, 30, 0.96));
+  --surface-bg: rgba(16, 25, 54, 0.46);
+  --table-head-bg: var(--panel-bg-strong);
+  --map-host-bg: linear-gradient(180deg, rgba(10, 14, 31, 0.72), rgba(5, 6, 15, 0.94));
+  --label-bg: rgba(8, 12, 30, 0.92);
+  --control-bg: rgba(8, 12, 30, 0.82);
 
   /* 强调色：--accent 对应母本 --cyan（原值 #38c6ec，电光青，用于焦点态/激活态/
      地图定位框选/发光描边），--accent-2 对应母本 --blue（原值 #5a8cff，专用于
@@ -85,21 +108,10 @@ body {
   height: 100%;
   min-height: 100%;
   overflow: hidden;
-  /* 背景：双层坐标网格（23px 细网格 + 92px 粗网格，4:1）模拟省域大屏常见的地图
-     坐标刻度，叠两处柔光斑（左上电光青、右下蓝）呼应场景里的定位标注和巡检
-     轨迹配色，与母本 inspection-3d-sandbox 完全同构，纯 CSS 渐变实现，不引入
-     任何外部图片/字体资源。下面几处 rgba 字面值是 --accent(56,198,236) /
-     --accent-2(90,140,255) 的手写副本，改了上面两个变量记得同步改这里——
-     暖琥珀姐妹 POC 里这一段的字面值会换成对应的暖色数字。 */
-  background:
-    linear-gradient(rgba(56, 198, 236, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 198, 236, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(56, 198, 236, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 198, 236, 0.1) 1px, transparent 1px),
-    radial-gradient(circle at 18% 0%, rgba(56, 198, 236, 0.16), transparent 36%),
-    radial-gradient(circle at 90% 94%, rgba(90, 140, 255, 0.12), transparent 42%),
-    var(--bg);
-  background-size: 23px 23px, 23px 23px, 92px 92px, 92px 92px, auto, auto, auto;
+  /* 背景与知识图谱展台保持同一深蓝黑基底：蓝紫柔光 + 四角暗角 + 轻扫描线，
+     不搬 Three.js 粒子，避免影响大屏本身的 3D 地图和图表性能。 */
+  background: var(--screen-bg);
+  background-size: auto, auto, auto, auto, auto, auto;
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }

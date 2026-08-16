@@ -83,7 +83,7 @@
   min-height: 0;
   border-radius: 8px;
   border: 1px solid var(--line-strong);
-  background: linear-gradient(180deg, rgba(10, 20, 28, 0.7), rgba(5, 10, 15, 0.92));
+  background: var(--map-host-bg);
 }
 
 /* ---------- canvas：见文件头不变量 2 ---------- */
@@ -121,7 +121,7 @@
   min-width: 52px;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
-  background: rgba(6, 13, 19, 0.92);
+  background: var(--label-bg);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   color: var(--ink);
   padding: 4px 7px 5px;
@@ -212,7 +212,7 @@
   height: 34px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: rgba(9, 18, 25, 0.82);
+  background: var(--control-bg);
   color: var(--ink);
   display: grid;
   place-items: center;

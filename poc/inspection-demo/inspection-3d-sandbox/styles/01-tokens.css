@@ -28,14 +28,35 @@
   /* 基底色板【地图化调整 1】：比参考项目更深、更偏蓝黑，贴近夜间地图/态势
      大屏的观感（参考项目 --bg 是 #0b1117，偏工业机房；这里下探到 #070f16，
      让 3D 地图场景和青色标注在深色画布上更“亮”）。 */
-  --bg: #070f16;
-  --panel: #0d1a24;
-  --panel-2: #12222e;
-  --panel-3: #182f3d;
+  --bg: #05060f;
+  --panel: #080c1e;
+  --panel-2: #101936;
+  --panel-3: #17264a;
   --ink: #eaf6fb;
   --muted: #87a3b8;
-  --line: rgba(129, 166, 194, 0.22);
-  --line-strong: rgba(112, 190, 224, 0.5);
+  --line: rgba(120, 150, 255, 0.18);
+  --line-strong: rgba(120, 170, 255, 0.48);
+  --bg-scanline: rgba(140, 170, 255, 0.035);
+  --bg-vignette-mid: rgba(5, 6, 15, 0.50);
+  --bg-vignette-edge: rgba(5, 6, 15, 0.90);
+  --bg-top-glow: rgba(76, 125, 255, 0.08);
+  --bg-blue-glow: rgba(76, 125, 255, 0.18);
+  --bg-violet-glow: rgba(168, 85, 247, 0.12);
+  --screen-bg:
+    repeating-linear-gradient(180deg, var(--bg-scanline) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 90% at 50% 42%, transparent 42%, var(--bg-vignette-mid) 78%, var(--bg-vignette-edge) 100%),
+    linear-gradient(180deg, var(--bg-top-glow) 0%, transparent 32%),
+    radial-gradient(circle at 18% 0%, var(--bg-blue-glow), transparent 38%),
+    radial-gradient(circle at 86% 92%, var(--bg-violet-glow), transparent 44%),
+    var(--bg);
+  --app-bg: var(--screen-bg);
+  --panel-bg: linear-gradient(180deg, rgba(8, 12, 30, 0.92), rgba(5, 6, 15, 0.96));
+  --panel-bg-strong: linear-gradient(180deg, rgba(16, 25, 54, 0.88), rgba(8, 12, 30, 0.96));
+  --surface-bg: rgba(16, 25, 54, 0.46);
+  --table-head-bg: var(--panel-bg-strong);
+  --map-host-bg: linear-gradient(180deg, rgba(10, 14, 31, 0.72), rgba(5, 6, 15, 0.94));
+  --label-bg: rgba(8, 12, 30, 0.92);
+  --control-bg: rgba(8, 12, 30, 0.82);
 
   /* 强调色【地图化调整 2】：青色调亮做“地图定位/框选/激活态”专用强调色
      （参考项目 --cyan 是 #4bb3d3，这里提到 #38c6ec，更接近 GIS/态势图里
@@ -67,19 +88,10 @@ body {
   height: 100%;
   min-height: 100%;
   overflow: hidden;
-  /* 背景【地图化调整 3】：参考项目是单层 38px 网格 + 一处光斑，这里叠成
-     “细网格 + 粗网格”双层坐标网格（23px / 92px，即 4:1）模拟地图坐标刻度，
-     再加两处柔光斑（左上青、右下蓝）呼应场景里的定位标注和巡检轨迹配色，
-     纯 CSS 渐变实现，不引入任何外部图片/字体资源。 */
-  background:
-    linear-gradient(rgba(56, 198, 236, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 198, 236, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(56, 198, 236, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 198, 236, 0.1) 1px, transparent 1px),
-    radial-gradient(circle at 18% 0%, rgba(56, 198, 236, 0.16), transparent 36%),
-    radial-gradient(circle at 90% 94%, rgba(90, 140, 255, 0.12), transparent 42%),
-    var(--bg);
-  background-size: 23px 23px, 23px 23px, 92px 92px, 92px 92px, auto, auto, auto;
+  /* 背景与知识图谱展台保持同一深蓝黑基底：蓝紫柔光 + 四角暗角 + 轻扫描线。
+     仍然是纯 CSS 渐变，不搬 Three.js 粒子。 */
+  background: var(--screen-bg);
+  background-size: auto, auto, auto, auto, auto, auto;
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }

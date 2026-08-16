@@ -7,19 +7,40 @@
   --warn: #ffb454;
   --ok: #3ddc97;
 
-  --bg: #070b16;
-  --bg-soft: #0c1426;
-  --panel: rgba(18, 26, 44, 0.86);
-  --panel-2: rgba(24, 34, 56, 0.72);
-  --line: rgba(255, 255, 255, 0.10);
-  --line-strong: rgba(255, 255, 255, 0.20);
+  --bg: #05060f;
+  --bg-soft: #0a0e1f;
+  --panel: rgba(8, 12, 30, 0.88);
+  --panel-2: rgba(16, 25, 54, 0.74);
+  --line: rgba(120, 150, 255, 0.15);
+  --line-strong: rgba(120, 170, 255, 0.34);
+  --bg-scanline: rgba(140, 170, 255, 0.030);
+  --bg-vignette-mid: rgba(5, 6, 15, 0.42);
+  --bg-vignette-edge: rgba(5, 6, 15, 0.82);
+  --bg-top-glow: rgba(76, 125, 255, 0.08);
+  --bg-blue-glow: rgba(76, 125, 255, 0.16);
+  --bg-violet-glow: rgba(168, 85, 247, 0.10);
+  --page-bg: var(--bg);
+  --screen-bg:
+    repeating-linear-gradient(180deg, var(--bg-scanline) 0 1px, transparent 1px 3px),
+    radial-gradient(120% 90% at 50% 42%, transparent 42%, var(--bg-vignette-mid) 78%, var(--bg-vignette-edge) 100%),
+    linear-gradient(180deg, var(--bg-top-glow) 0%, transparent 32%),
+    radial-gradient(1200px 700px at 20% -10%, var(--bg-blue-glow), transparent 60%),
+    radial-gradient(900px 600px at 110% 20%, var(--bg-violet-glow), transparent 60%),
+    var(--bg);
+  --app-bg: var(--screen-bg);
+  --panel-bg: rgba(8, 12, 30, 0.88);
+  --panel-bg-strong: rgba(16, 25, 54, 0.74);
+  --surface-bg: rgba(16, 25, 54, 0.46);
+  --media-bg: #05060f;
+  --chip-bg: var(--panel-bg-strong);
+  --print-bg: var(--bg);
 
   --text: #e8eefc;
   --text-dim: rgba(232, 238, 252, 0.68);
   --text-mute: rgba(232, 238, 252, 0.42);
 
-  --accent: #4d8dff;
-  --accent-soft: rgba(77, 141, 255, 0.16);
+  --accent: #4c7dff;
+  --accent-soft: rgba(76, 125, 255, 0.16);
 
   --radius: 10px;
   --radius-lg: 14px;

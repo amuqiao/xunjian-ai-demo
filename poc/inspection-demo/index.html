@@ -6,19 +6,40 @@
     <title>巡检演示大屏</title>
     <link rel="stylesheet" href="flow-nav/flow-nav.css">
     <style>
+      :root {
+        --demo-bg: #05060f;
+        --demo-bg-scanline: rgba(140, 170, 255, 0.03);
+        --demo-bg-vignette-mid: rgba(5, 6, 15, 0.42);
+        --demo-bg-vignette-edge: rgba(5, 6, 15, 0.82);
+        --demo-bg-top-glow: rgba(76, 125, 255, 0.08);
+        --demo-bg-blue-glow: rgba(76, 125, 255, 0.16);
+        --demo-bg-violet-glow: rgba(168, 85, 247, 0.10);
+        --demo-screen-bg:
+          repeating-linear-gradient(180deg, var(--demo-bg-scanline) 0 1px, transparent 1px 3px),
+          radial-gradient(120% 90% at 50% 42%, transparent 42%, var(--demo-bg-vignette-mid) 78%, var(--demo-bg-vignette-edge) 100%),
+          linear-gradient(180deg, var(--demo-bg-top-glow) 0%, transparent 32%),
+          radial-gradient(1200px 700px at 20% -10%, var(--demo-bg-blue-glow), transparent 60%),
+          radial-gradient(900px 600px at 110% 20%, var(--demo-bg-violet-glow), transparent 60%),
+          var(--demo-bg);
+        --demo-boot-bg:
+          repeating-linear-gradient(180deg, var(--demo-bg-scanline) 0 1px, transparent 1px 3px),
+          radial-gradient(circle at center, rgba(76, 125, 255, 0.18), rgba(5, 6, 15, 0.96) 58%),
+          radial-gradient(circle at 86% 92%, var(--demo-bg-violet-glow), transparent 44%);
+      }
+
       html,
       body {
         width: 100%;
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background: #050b12;
+        background: var(--demo-bg);
       }
 
       .demo-frame-stage {
         position: fixed;
         inset: 0;
-        background: #050b12;
+        background: var(--demo-screen-bg);
       }
 
       .demo-frame {
@@ -30,7 +51,7 @@
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        background: #050b12;
+        background: var(--demo-bg);
       }
 
       .demo-frame.is-active {
@@ -47,7 +68,7 @@
         color: rgba(225, 245, 255, 0.86);
         font: 600 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
         letter-spacing: 0.12em;
-        background: radial-gradient(circle at center, rgba(30, 144, 190, 0.18), rgba(5, 11, 18, 0.96) 56%);
+        background: var(--demo-boot-bg);
         transition: opacity 0.24s ease, visibility 0.24s ease;
         pointer-events: none;
       }

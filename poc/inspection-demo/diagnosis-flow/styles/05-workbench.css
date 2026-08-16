@@ -76,7 +76,7 @@
   place-items: center;
   min-height: 0;
   border-radius: var(--radius);
-  background: #070c18;
+  background: var(--media-bg);
   overflow: hidden;
 }
 /* figure 必须精确等于图片渲染盒，bbox 的百分比定位才不会因为容器和图片宽高比不同

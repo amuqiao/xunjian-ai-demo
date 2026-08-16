@@ -41,7 +41,7 @@
   border: 1px solid var(--line);
   border-left: 3px solid var(--line-strong);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.96), rgba(10, 20, 28, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 12px 14px;
   display: grid;
@@ -123,7 +123,7 @@
 .card-chart {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(9, 18, 25, 0.94));
+  background: var(--panel-bg-strong);
   box-shadow: var(--shadow);
   padding: 10px 12px 12px;
   display: grid;
@@ -244,7 +244,7 @@
 .card-detail {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.94), rgba(10, 20, 28, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 14px;
   display: grid;
@@ -454,7 +454,7 @@
   z-index: 1;
   height: 34px;
   border-bottom: 1px solid var(--line-strong);
-  background: var(--panel-2);
+  background: var(--table-head-bg);
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;

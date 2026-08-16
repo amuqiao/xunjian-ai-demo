@@ -6,7 +6,7 @@
   .app-shell { position: relative; width: 1280px; height: 720px; }
 }
 
-/* 打印 / 截图时去掉背景光晕，避免大面积渐变在投影仪上偏色 */
+/* 打印时去掉背景光晕，避免大面积渐变在投影仪上偏色 */
 @media print {
-  .app-shell { background: var(--bg); }
+  .app-shell { background: var(--print-bg); }
 }
