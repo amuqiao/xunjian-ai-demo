@@ -54,6 +54,44 @@ window.DOMAIN_AGENTQA = {
           answer: "知识库暂无备件库存和供应商库存类资料，以下只能作为模型推断，建议人工确认库存台账。",
           hit: false,
           hits: []
+        },
+        {
+          id: "wb-q4",
+          label: "区域近期重点问题?",
+          question: "湘潭站这个区域近期有哪些重点巡检问题？",
+          thinkingText: "正在检索湘潭站巡检问题记录…",
+          answer: "湘潭站配电间近期重点关注 P6 泵高压柜表计及测显装置无显示问题：4月24日巡检发现后，排查到二次回路控制电源空开跳闸、微机综保报控制回路断线，最终确认为操作柱接线松动并已修复。建议巡检时继续关注控制电源、综保报警、测显装置和操作柱接线状态。",
+          hit: true,
+          hits: [
+            { kind: "case", text: "P6 泵高压柜无显示巡检记录", docId: "DOC-XT-ISSUE", chunkIndex: 0 },
+            { kind: "case", text: "控制回路断线与处置结果", docId: "DOC-XT-ISSUE", chunkIndex: 1 },
+            { kind: "case", text: "操作柱接线松动已修复", docId: "DOC-XT-ISSUE", chunkIndex: 2 }
+          ]
+        },
+        {
+          id: "wb-q5",
+          label: "联锁报警值是多少?",
+          question: "P-3 泵出口压力变送器 PT6903B 的安全联锁报警值是多少？",
+          thinkingText: "正在检索联锁仪表台账…",
+          answer: "湘潭站泵棚区 P-3 泵出口管线压力变送器 PT6903B 的高报警值为 9.0MPa，高高报警值为 9.8MPa。巡检发现压力接近阈值、波动异常或现场读数与系统读数不一致时，应升级复核。",
+          hit: true,
+          hits: [
+            { kind: "standard", text: "PT6903B 仪表位号与区域", docId: "DOC-XT-INTERLOCK", chunkIndex: 0 },
+            { kind: "standard", text: "高报 9.0MPa / 高高报 9.8MPa", docId: "DOC-XT-INTERLOCK", chunkIndex: 1 }
+          ]
+        },
+        {
+          id: "wb-q6",
+          label: "近期有什么检修提醒?",
+          question: "湘潭站泵棚区近期有没有维检修作业需要加强巡检？",
+          thinkingText: "正在检索近期维检修作业提醒…",
+          answer: "湘潭站泵棚区已于 2026年7月28日完成 P-3 泵大修作业。大修后巡检应加强泄漏检查、出口管线压力和温度检查、运行情况确认、油位检查和外观检查；发现与大修后基准不一致时，应补充现场照片、复测数据和运行工况说明。",
+          hit: true,
+          hits: [
+            { kind: "workcard", text: "P-3 泵 2026年7月28日大修作业", docId: "DOC-XT-MAINT", chunkIndex: 0 },
+            { kind: "workcard", text: "大修后巡检重点", docId: "DOC-XT-MAINT", chunkIndex: 1 },
+            { kind: "workcard", text: "异常记录要求", docId: "DOC-XT-MAINT", chunkIndex: 2 }
+          ]
         }
       ]
     },
@@ -129,6 +167,45 @@ window.DOMAIN_AGENTQA = {
           answer: "知识库暂无厂家通讯录或外协单位联系方式，以下只能作为模型推断，建议人工确认通讯录。",
           hit: false,
           hits: []
+        },
+        {
+          id: "kb-q4",
+          label: "P6 高压柜问题怎么处置?",
+          question: "湘潭站 P6 泵高压柜表计无显示问题是怎么处置的？",
+          thinkingText: "正在检索湘潭站巡检案例…",
+          answer: "该问题发生在 4月24日湘潭站配电间巡检中，表现为 P6 泵高压柜开关柜上表计及测显装置无显示。排查发现高压柜二次回路控制电源空开跳闸，综保报控制回路断线，最终确认为操作柱接线松动，完成修复。",
+          hit: true,
+          hits: [
+            { kind: "case", text: "表计及测显装置无显示", docId: "DOC-XT-ISSUE", chunkIndex: 0 },
+            { kind: "case", text: "控制电源空开跳闸与综保报警", docId: "DOC-XT-ISSUE", chunkIndex: 1 },
+            { kind: "case", text: "操作柱接线松动处置结果", docId: "DOC-XT-ISSUE", chunkIndex: 2 }
+          ]
+        },
+        {
+          id: "kb-q5",
+          label: "PT6903B 阈值是多少?",
+          question: "PT6903B 的高报和高高报阈值是多少？",
+          thinkingText: "正在检索联锁阈值资料…",
+          answer: "PT6903B 是湘潭站泵棚区 P-3 泵出口管线压力变送器。系统提醒高报警值 9.0MPa、高高报警值 9.8MPa；巡检时应同时核对压力趋势、上下游工况、泄漏迹象和仪表引压管状态。",
+          hit: true,
+          hits: [
+            { kind: "standard", text: "PT6903B 仪表位号", docId: "DOC-XT-INTERLOCK", chunkIndex: 0 },
+            { kind: "standard", text: "报警阈值与升级复核", docId: "DOC-XT-INTERLOCK", chunkIndex: 1 },
+            { kind: "rule", text: "联锁仪表巡检复核项", docId: "DOC-XT-INTERLOCK", chunkIndex: 2 }
+          ]
+        },
+        {
+          id: "kb-q6",
+          label: "P-3 大修后查什么?",
+          question: "P-3 泵大修后巡检要重点检查哪些内容？",
+          thinkingText: "正在检索维检修提醒…",
+          answer: "P-3 泵已于 2026年7月28日完成大修，巡检重点包括泄漏、出口管线压力、温度、运行情况、油位和外观。若压力、温度、油位或外观与大修后基准不一致，应补充现场照片、复测数据和运行工况说明。",
+          hit: true,
+          hits: [
+            { kind: "workcard", text: "P-3 泵大修作业提醒", docId: "DOC-XT-MAINT", chunkIndex: 0 },
+            { kind: "workcard", text: "大修后巡检重点清单", docId: "DOC-XT-MAINT", chunkIndex: 1 },
+            { kind: "workcard", text: "异常留痕要求", docId: "DOC-XT-MAINT", chunkIndex: 2 }
+          ]
         }
       ]
     }
