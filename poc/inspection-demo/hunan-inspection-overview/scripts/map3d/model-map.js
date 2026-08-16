@@ -1,16 +1,29 @@
 // 湖南省油气管网大屏总览 —— 3D model 之一：省域 14 市挤出块。window.HunanModelMap。
 //
 // 【POC：hunan-inspection-overview（巡检站总览）】
-// 本文件与 poc/hunan-pump-overview/scripts/map3d/model-map.js 是逐字节相同的独立副本
-// （除本段 POC 名称注释）——两块大屏刻意互不耦合，各持完整 model 副本，运行时零共享。
+// ⚠️ 本文件曾与 poc/hunan-pump-overview/scripts/map3d/model-map.js 逐字节相同，
+// 现已**主动分叉**：本 POC 的地图改成了"统一深蓝 + 青色顶面描边 + 侧面渐变"的
+// 指挥大屏配色（见下方【地图配色】一节），泵站总览那份仍是原来的作业区图例色。
+// 两份文件从此不再互为副本，同步改动时不能再直接对拷，需要逐段判断。
+//
+// 【地图配色（本轮改动）】色值来自甲方给的参考大屏工程导出
+// assets/.data/历届参赛作品/NB-Map2026814124352.json：
+//   顶面 mapColor      #0d50b5
+//   侧面 mapSideColor  #1d2d3d（底） → mapSideEndColor #006793（顶）
+//   顶面描边 outerLine.lineColor #6becf5
+// 原先 14 市是按"该市境内站点最多的作业区"的源表图例色（topology.js 的
+// zones[].rgb，黄/淡蓝/银灰等粉彩色）分别染色的，本轮按需求改成全省统一深蓝——
+// **作业区之间不再有颜色差异**，作业区归属改由两处表达：地图上的作业区标签，以及
+// 点击后 engine.js 打上的青色选中高亮。这是一次刻意的信息编码取舍，不是遗漏：
+// 静态画面上确实看不出作业区边界了。zoneMeshes 的分组逻辑（按作业区合并网格）
+// 保持不变，选中高亮照常工作。
 //
 // 只做 engine.js 真正会用到的那部分：14 个 ExtrudeGeometry 挤出块（bevelEnabled:
-// false）+ 按"该市境内站点最多的作业区"着色（众数，不是排他归属——contract.js 的
-// assertZoneDistrictMap 早已论证过作业区与市是多对多，参见该文件注释）+ 10 作业区的
-// 面积加权质心锚点。不做"选中态微微抬高"：engine.js 的 setActiveZoneHighlight 只会
-// 修改 material.emissive/emissiveIntensity，没有任何钩子会改网格的 position，若要做
-// 物理抬高需要改 engine.js（冻结、不可改），因此本文件只依赖材质层面的高亮
-// （见 createMaterials 里 emissiveIntensity 基线的注释），这是刻意的简化取舍。
+// false）+ 统一配色 + 10 作业区的面积加权质心锚点。不做"选中态微微抬高"：
+// engine.js 的 setActiveZoneHighlight 只会修改 material.emissive/emissiveIntensity，
+// 没有任何钩子会改网格的 position，若要做物理抬高需要改 engine.js（冻结、不可改），
+// 因此本文件只依赖材质层面的高亮（见 createMaterials 里 emissiveIntensity 基线的
+// 注释），这是刻意的简化取舍。
 //
 // 坐标换算陷阱：THREE.ExtrudeGeometry 默认在形状的局部 XY 平面里画 2D 轮廓，沿 +Z
 // 挤出，而本项目的世界坐标是 Y 朝上、地图铺在 XZ 平面（X 向东，Z 向南，见
@@ -24,6 +37,17 @@
 
   var DISTRICT_HEIGHT = 22;
 
+  // 见文件头【地图配色】。挤出高度仍是 22（参考工程用的是 depth 36，但高度不是
+  // 纯视觉参数：zoneAnchors 的 y、站点光柱与管道 Tube 的 elevationY、相机 target
+  // 全都挂在 topY 上，改高度会连带动几何布局，超出本轮"只改配色"的范围）。
+  var MAP_COLOR = 0x0d50b5;
+  var SIDE_COLOR_BOTTOM = 0x1d2d3d;
+  var SIDE_COLOR_TOP = 0x006793;
+  var OUTLINE_COLOR = 0x6becf5;
+  // 描边浮在顶面之上一点点，避免与顶盖共面导致的 z-fighting（顶面在 y=22，
+  // 这里取 +0.35：小到看不出悬空，大到足够跳出深度缓冲的精度抖动）。
+  var OUTLINE_LIFT = 0.35;
+
   function requireContract() {
     if (!window.HunanContract) throw new Error("[HunanModelMap] window.HunanContract 未加载");
     return window.HunanContract;
@@ -36,19 +60,9 @@
     return window.HunanSites;
   }
 
-  function requireTopology() {
-    if (!window.HunanTopology || !Array.isArray(window.HunanTopology.zones)) {
-      throw new Error("[HunanModelMap] window.HunanTopology.zones 未加载");
-    }
-    return window.HunanTopology;
-  }
-
-  function rgbToHex(rgb) {
-    if (!Array.isArray(rgb) || rgb.length !== 3) {
-      throw new Error("[HunanModelMap] rgbToHex 需要 [r,g,b] 三元数组，实际为 " + rgb);
-    }
-    return (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
-  }
+  // 注：本文件原有的 requireTopology()/rgbToHex() 已随"统一深蓝"一并删除——它们
+  // 唯一的用途是把 topology.js 的 zones[].rgb 图例色转成各作业区的挤出块颜色，
+  // 现在 14 市统一用 MAP_COLOR，不再读 window.HunanTopology。
 
   // 每个市染"该市境内站点最多的作业区"的颜色（众数）。当前数据口径下某个市可能
   // 一个站点都没有（比如泵站总览只覆盖成品油沿线 8 个市，另外 6 个市没有任何站点）
@@ -119,12 +133,6 @@
   // 材质实例（cacheAndApplySelection 的选中态互不影响），只是把同一作业区名下
   // 原本分散的市域几何体在同一次 ExtrudeGeometry 调用里一起挤出。
   function buildDistricts(THREE, materials, Contract, geo, sites, zoneDistrictMap, group) {
-    var Topology = requireTopology();
-    var zoneColorHex = {};
-    Topology.zones.forEach(function (zone) {
-      zoneColorHex[zone.id] = rgbToHex(zone.rgb);
-    });
-
     var districtZoneId = computeDistrictZoneId(Contract, sites, zoneDistrictMap);
 
     var byAdcode = {};
@@ -157,8 +165,11 @@
       });
       var geometry = new THREE.ExtrudeGeometry(shapes, { depth: DISTRICT_HEIGHT, bevelEnabled: false });
       geometry.rotateX(-Math.PI / 2);
+      // 顺序要紧：必须在 rotateX 之后再写顶点色，渐变是按世界 Y 分档的，
+      // 旋转前挤出方向还在局部 Z 上，那时候读 position.getY() 拿到的是轮廓坐标。
+      applyFaceColors(THREE, geometry);
 
-      var material = materials.makeDistrict(zoneColorHex[zoneId]);
+      var material = materials.makeDistrict();
       var mesh = new THREE.Mesh(geometry, material);
       mesh.name = "hunan-zone-districts-" + zoneId;
       mesh.receiveShadow = true;
@@ -209,23 +220,130 @@
   // makeDistrict 是工厂函数而不是单个材质：14 个市各自需要独立的材质实例（哪怕颜色
   // 相同）——engine.js 的 cacheAndApplySelection 直接修改 material.emissive，若多个
   // 网格共享同一个材质实例，选中一个市所在的作业区会连带点亮所有共享同色材质的市。
-  // emissiveIntensity 给一个很低的基线（0.06，用市自身的颜色微微自发光），不是装饰：
-  // engine.js 选中某个作业区时会把该作业区名下所有市的材质 emissive 覆盖成青色高亮
-  // （HOTSPOT.selection），取消选中时再用 cacheAndApplySelection 存的旧值还原——
-  // 这个基线让"选中态更亮"和"其余保持较暗的本色"形成对比，不需要额外维护一套
-  // "把其它区块调暗"的状态机（那需要 engine.js 提供本项目没有的钩子）。
+  // emissiveIntensity 给一个很低的基线（0.06，用顶面色 MAP_COLOR 微微自发光），
+  // 不是装饰：engine.js 选中某个作业区时会把该作业区名下所有市的材质 emissive
+  // 覆盖成青色高亮（HOTSPOT.selection），取消选中时再用 cacheAndApplySelection 存的
+  // 旧值还原——这个基线让"选中态更亮"和"其余保持较暗的本色"形成对比，不需要额外
+  // 维护一套"把其它区块调暗"的状态机（那需要 engine.js 提供本项目没有的钩子）。
+  // 现在 14 市统一深蓝，这条高亮已经是作业区归属在画面上仅剩的两种表达之一
+  // （另一种是地图标签），比改配色之前更吃重。
+  //
+  // 顶面色与侧面渐变**全部走顶点色，共用一个材质**，不用 [顶盖, 侧面] 材质数组。
+  //
+  // ⚠️ 这一条是踩过坑才定下来的，改之前先读完：ExtrudeGeometry 确实自带
+  // materialIndex 0(顶/底盖)/1(侧面壁) 的分组，看起来天生适合材质数组，但它是
+  // **每个 shape 各 addGroup 一次**，14 市抽稀后共 17 个 shape（有飞地的市不止一个
+  // 环）——一旦 mesh.material 变成数组，three 就会按 group 逐个发 draw call，
+  // 9 个挤出块网格从 9 次暴涨到 34 次。实测下钻到岳阳（最坏路径）的 renderCalls
+  // 会从 191 升到 216，直接击穿 engine.js 的 <200 护栏（verify_overview.js 会断言）。
+  // 单材质时 three 忽略 groups、整个 geometry 一次画完，代价只有"顶盖和侧面不能有
+  // 不同的 roughness/metalness"，对这块大屏完全够用。
+  //
+  // 走顶点色而不是 onBeforeCompile 注入 shader：ExtrudeGeometry 在 bevelEnabled:false
+  // 且无 steps 时，侧面顶点只存在 y=0 与 y=DISTRICT_HEIGHT 两层，两层各写一个端色、
+  // 中间交给 GPU 插值，正好就是要的上下渐变，不必碰 shader（shader 注入在 three 小
+  // 版本升级时是常见的破裂点，这里没必要冒这个险）。
   function createMaterials(THREE) {
     return {
-      makeDistrict: function (colorHex) {
+      makeDistrict: function () {
         return new THREE.MeshStandardMaterial({
-          color: colorHex,
+          // 顶点色是**乘性**的，material.color 必须留白，否则配色会被再乘一次底色。
+          color: 0xffffff,
+          vertexColors: true,
           roughness: 0.82,
           metalness: 0.05,
-          emissive: colorHex,
+          // emissive 不受顶点色影响，是整块网格统一的一份自发光。基线取顶面色的
+          // 低强度，作用见下方 makeDistrict 工厂函数那段注释（给选中态留对比度）。
+          emissive: MAP_COLOR,
           emissiveIntensity: 0.06
+        });
+      },
+      makeOutline: function () {
+        return new THREE.LineBasicMaterial({
+          color: OUTLINE_COLOR,
+          transparent: true,
+          opacity: 0.85
         });
       }
     };
+  }
+
+  // 写 color attribute：顶/底盖（materialIndex 0 的 group）统一 MAP_COLOR，侧面壁
+  // （materialIndex 1）按顶点的世界 Y（rotateX 之后 y∈[0, DISTRICT_HEIGHT]）在
+  // SIDE_COLOR_BOTTOM → SIDE_COLOR_TOP 之间插值。底盖朝下、任何机位都看不到，跟着
+  // 顶盖走即可，不额外分档。
+  //
+  // 这里必须靠 groups 而不是"按 y 判断是不是顶面"来区分顶盖和侧面：顶盖顶点和侧面
+  // 上沿顶点的 y 都等于 DISTRICT_HEIGHT，光看 y 分不开这两类面。ExtrudeGeometry 是
+  // 非索引几何体，group 的 start/count 直接就是顶点区间。
+  //
+  // THREE.Color 构造时会按 ColorManagement 把 sRGB 字面值转到线性工作空间，所以
+  // 下面的 lerp 是在线性空间里做的，与渲染管线一致。
+  function applyFaceColors(THREE, geometry) {
+    var lid = new THREE.Color(MAP_COLOR);
+    var bottom = new THREE.Color(SIDE_COLOR_BOTTOM);
+    var top = new THREE.Color(SIDE_COLOR_TOP);
+    var position = geometry.attributes.position;
+    var colors = new Float32Array(position.count * 3);
+    var scratch = new THREE.Color();
+
+    if (!geometry.groups || geometry.groups.length === 0) {
+      throw new Error("[HunanModelMap] ExtrudeGeometry 未产出 groups，无法区分顶盖与侧面");
+    }
+
+    geometry.groups.forEach(function (group) {
+      var end = group.start + group.count;
+      for (var i = group.start; i < end; i += 1) {
+        if (group.materialIndex === 0) {
+          scratch.copy(lid);
+        } else {
+          var t = position.getY(i) / DISTRICT_HEIGHT;
+          if (t < 0) t = 0;
+          if (t > 1) t = 1;
+          scratch.copy(bottom).lerp(top, t);
+        }
+        colors[i * 3] = scratch.r;
+        colors[i * 3 + 1] = scratch.g;
+        colors[i * 3 + 2] = scratch.b;
+      }
+    });
+
+    geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  }
+
+  // 顶面描边：把 14 市所有环的相邻点对摊平进**一个** LineSegments，全省边界只花
+  // 一次 draw call——engine.js 有 renderCalls < 200 的护栏（verify/verify_overview.js
+  // 会断言），下钻到岳阳那种最坏路径本来就贴着上限，描边不能按市各开一个网格。
+  //
+  // ⚠️ 已知与参考图的差距：参考工程 outerLine.lineWidth 是 3，而这里画出来只有 1px。
+  // WebGL 下 LineBasicMaterial.linewidth 被浏览器钳死在 1，要画粗线只能上 Line2/
+  // LineMaterial，而本项目用的 three r160 UMD 构建里没有 Line2（model-pipelines.js
+  // 文件头记的也是同一条限制）。用 TubeGeometry 描边能做粗，但 14 市抽稀后仍有
+  // 4549 个顶点，铺成管子会额外吃掉数万三角形，触碰 triangles < 260000 的护栏，
+  // 因此本轮选择 1px 细描边。
+  function buildOutlines(THREE, materials, geo, group) {
+    var positions = [];
+    var y = DISTRICT_HEIGHT + OUTLINE_LIFT;
+    geo.districts.forEach(function (district) {
+      district.rings.forEach(function (ring) {
+        for (var i = 0; i < ring.length - 1; i += 1) {
+          positions.push(ring[i][0], y, ring[i][1]);
+          positions.push(ring[i + 1][0], y, ring[i + 1][1]);
+        }
+      });
+    });
+    if (positions.length === 0) {
+      throw new Error("[HunanModelMap] geo.districts 没有任何可用于描边的环");
+    }
+    var geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    var lines = new THREE.LineSegments(geometry, materials.makeOutline());
+    lines.name = "hunan-district-outlines";
+    // 描边不参与拾取：engine.js 的 raycaster 打到它会得到一条没有 zoneId 的线，
+    // 白白多一层判断。frustumCulled 保持默认即可（整省一个包围盒，本来就总在视锥内）。
+    lines.raycast = function () {};
+    group.add(lines);
+    return lines;
   }
 
   function build(THREE, materials, geo, sites) {
@@ -245,6 +363,7 @@
     group.name = "hunan-map";
 
     var built = buildDistricts(THREE, materials, Contract, geo, sites, zoneDistrictMap, group);
+    buildOutlines(THREE, materials, geo, group);
     var zoneAnchors = computeZoneAnchors(THREE, Contract, geo, zoneDistrictMap, DISTRICT_HEIGHT);
 
     return {

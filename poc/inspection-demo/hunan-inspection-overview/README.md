@@ -15,7 +15,8 @@
 
 ## 怎么玩
 
-- 省域视图：中间 3D 地图显示 14 个市的挤出块（按所辖站点最多的作业区染色）+
+- 省域视图：中间 3D 地图显示 14 个市的挤出块（全省统一深蓝 + 青色顶面描边 +
+  侧面上下渐变，配色见下方「地图配色」一节）+
   10 个作业区标签热点。
 - 点击左栏"作业区排名"表格的某一行，或点击地图上的作业区标签，下钻进入该作业区：
   相机推进、右栏切换成该作业区的站点清单 + 站点详情卡。
@@ -29,7 +30,7 @@
 index.html                     唯一入口，串联全部 <script>/<link>（L0 vendor 到 L7 引导）
 scripts/
   map3d/contract.js            L1 契约：14 市/10 作业区 id 空间、DOM 命名、断言（只读，未改）
-  map3d/model-map.js           3D model 之一：14 市 ExtrudeGeometry 挤出块 + 按作业区着色
+  map3d/model-map.js           3D model 之一：14 市 ExtrudeGeometry 挤出块 + 统一配色 + 顶面描边
   map3d/model-sites.js         3D model 之二：站点光柱（3 个 InstancedMesh，按状态分组）
   map3d/model-pipelines.js     3D model 之三：管道 Tube；同时是三份 model 的装配入口
                                 （window.HunanMapModel，engine.js 唯一认识的两函数契约）
@@ -48,6 +49,38 @@ styles/05-hunan3d.css          3D 宿主契约样式（本轮新增）
 styles/06-overview-scene.css   三列场景骨架（本轮新增）
 verify/verify_overview.js      Playwright 验收脚本（node verify/verify_overview.js）
 ```
+
+## 地图配色
+
+3D 地图的色值取自甲方给的参考大屏工程导出
+`assets/.data/历届参赛作品/NB-Map2026814124352.json`（那是另一套 3D 地图组件的配置
+存档，不是可直接替换的地图数据——它的几何是 SVG path + 2D 屏幕坐标，与本项目
+`data/geo.js` 的世界坐标不同源，只取色值）：
+
+| 部位 | 色值 | 参考工程字段 |
+|---|---|---|
+| 挤出块顶面 | `#0d50b5` | `mapColor` |
+| 挤出块侧面（底 → 顶） | `#1d2d3d` → `#006793` | `mapSideColor` / `mapSideEndColor` |
+| 顶面描边 | `#6becf5` | `outerLine.lineColor` |
+
+三处都写在 `scripts/map3d/model-map.js` 顶部的常量里（`MAP_COLOR` /
+`SIDE_COLOR_BOTTOM` / `SIDE_COLOR_TOP` / `OUTLINE_COLOR`）。
+
+**两条要如实记录的取舍：**
+
+1. **14 市不再按作业区分色。** 改配色前，每个市染的是源表图例色
+   （`topology.js` 的 `zones[].rgb`，黄/淡蓝/银灰等粉彩色）；现在全省统一深蓝，
+   作业区归属只剩两处表达：地图上的作业区标签，以及点击后的青色选中高亮。
+   静态画面上确实看不出作业区边界了，这是刻意的取舍不是遗漏。
+2. **描边只有 1px，参考工程是 3px。** WebGL 把 `LineBasicMaterial.linewidth`
+   钳死在 1，画粗线要用 Line2/LineMaterial，而本项目的 three r160 UMD 构建里没有
+   Line2。改用 TubeGeometry 描边能做粗，但 14 市抽稀后仍有 4549 个顶点，铺成管子
+   会额外吃掉数万三角形，触碰 `triangles < 260000` 的护栏。
+
+另外，本 POC 的 `model-map.js` 因这次改配色已与姐妹 POC `poc/hunan-pump-overview`
+的同名文件**分叉**（后者仍是作业区图例色），两份文件不再互为副本，同步改动时不能
+再直接对拷。面板/卡片/图表的 CSS 与 `01-tokens.css` 的变量取值本轮**未改动**，
+跨 POC 的 token 契约保持完好。
 
 ## 数据来源
 
