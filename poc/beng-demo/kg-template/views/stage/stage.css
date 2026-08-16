@@ -18,7 +18,7 @@
 #view-stage{
   /* 原稿的 --hair 是 .16，tokens.css 的全局值是 .15。
      指标条那道分隔线照原稿走，所以在视图内自带一份。 */
-  --stg-hair:rgba(120,150,255,.16);
+  --stg-hair:rgba(118,169,213,.16);
 }
 
 #view-stage .stg-canvas{position:absolute;inset:0}
@@ -28,12 +28,12 @@
 #view-stage .stg-vignette{
   position:absolute;inset:0;pointer-events:none;z-index:2;
   background:
-    radial-gradient(120% 90% at 50% 42%, transparent 42%, rgba(5,6,15,.55) 78%, rgba(5,6,15,.92) 100%),
-    linear-gradient(180deg, rgba(76,125,255,.06) 0%, transparent 30%);
+    radial-gradient(120% 90% at 50% 42%, transparent 42%, rgba(6,17,31,.55) 78%, rgba(6,17,31,.92) 100%),
+    linear-gradient(180deg, rgba(56,198,236,.06) 0%, transparent 30%);
 }
 #view-stage .stg-scanlines{
   position:absolute;inset:0;pointer-events:none;z-index:3;opacity:.35;
-  background:repeating-linear-gradient(180deg, rgba(140,170,255,.045) 0 1px, transparent 1px 3px);
+  background:repeating-linear-gradient(180deg, rgba(118,169,213,.045) 0 1px, transparent 1px 3px);
   mix-blend-mode:screen;
 }
 
@@ -53,18 +53,18 @@
 #view-stage .stg-eyebrow::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
 #view-stage .stg-brand h1{
   font-size:30px;font-weight:600;letter-spacing:.16em;
-  background:linear-gradient(100deg,#fff 10%,#A9C4FF 55%,#C9A6FF 95%);
+  background:linear-gradient(100deg,#fff 10%,#BFE4FF 55%,#2F8CFF 95%);
   -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
 }
 #view-stage .stg-brand .stg-sub{
-  font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:rgba(160,180,230,.5);margin-top:9px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:rgba(118,169,213,.58);margin-top:9px;
 }
 
 /* 原稿 top:44px，现在压在顶栏下方 */
 #view-stage .stg-live{
   position:absolute;top:calc(var(--topbar-h) + 22px);right:46px;
   display:flex;align-items:center;gap:9px;
-  font-family:var(--mono);font-size:11px;letter-spacing:.26em;color:rgba(160,180,230,.62);
+  font-family:var(--mono);font-size:11px;letter-spacing:.26em;color:rgba(118,169,213,.68);
 }
 #view-stage .stg-dot{
   width:6px;height:6px;border-radius:50%;background:var(--cyan);
@@ -87,24 +87,24 @@
 #view-stage .stg-focus{text-align:right;min-width:230px}
 #view-stage .stg-focus .k{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase}
 #view-stage .stg-focus .v{font-size:19px;font-weight:500;letter-spacing:.1em;margin-top:8px;color:#fff;transition:color .3s}
-#view-stage .stg-focus .c{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:rgba(160,180,230,.45);margin-top:5px}
+#view-stage .stg-focus .c{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:rgba(118,169,213,.5);margin-top:5px}
 
 /* 俯角读数：只在按方向键时浮出，1.5 秒后自己消失，不占路演画面。
    居中基准从"视口中心"改成"让开左竖栏后的内容区中心" */
 #view-stage .stg-readout{
   position:absolute;left:calc(50% + var(--rail-w) / 2);bottom:110px;transform:translateX(-50%);z-index:8;
   font-family:var(--mono);font-size:12px;letter-spacing:.26em;color:rgba(190,210,255,.85);
-  background:rgba(10,16,40,.72);border:1px solid rgba(120,160,255,.28);border-radius:20px;
+  background:rgba(8,24,40,.72);border:1px solid rgba(118,169,213,.28);border-radius:20px;
   padding:8px 20px;opacity:0;transition:opacity .35s ease;pointer-events:none;backdrop-filter:blur(8px);
 }
 
 #view-stage .stg-loading{
   position:absolute;inset:0;z-index:9;display:grid;place-content:center;gap:16px;justify-items:center;
-  background:var(--void);transition:opacity .8s ease;
+  background:var(--app-bg);transition:opacity .8s ease;
 }
 #view-stage .stg-loading.gone{opacity:0;pointer-events:none}
 #view-stage .stg-loading .stg-ring{
-  width:34px;height:34px;border:1px solid rgba(120,150,255,.2);border-top-color:var(--cyan);
+  width:34px;height:34px;border:1px solid rgba(118,169,213,.2);border-top-color:var(--cyan);
   border-radius:50%;animation:stgSpin 1s linear infinite;
 }
 @keyframes stgSpin{to{transform:rotate(360deg)}}

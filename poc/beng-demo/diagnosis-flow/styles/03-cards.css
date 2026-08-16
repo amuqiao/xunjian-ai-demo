@@ -1,7 +1,7 @@
 /* 通用卡片：指标卡 / 结论卡 / 可选列表 / 表格。跨场景复用，不含任何单页专属规则。 */
 
 .card {
-  background: var(--panel-2);
+  background: var(--panel-bg-strong);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 12px 14px;

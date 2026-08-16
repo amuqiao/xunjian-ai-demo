@@ -10,9 +10,9 @@
  */
 #view-tree{
   --tv-side:296px;
-  --tv-hair:rgba(120,150,255,.14);
-  --tv-gold:#FFC661;
-  --tv-rel:#22D3EE;
+  --tv-hair:rgba(118,169,213,.14);
+  --tv-gold:var(--gold);
+  --tv-rel:var(--cyan);
   font-family:var(--sans);
   color:var(--ice);
 }
@@ -21,25 +21,25 @@
 #view-tree .tv-side{
   position:absolute;top:var(--topbar-h);left:var(--rail-w);bottom:0;width:var(--tv-side);
   display:flex;flex-direction:column;z-index:2;
-  background:linear-gradient(180deg,#0A0F24,#070A1A);
+  background:var(--panel-bg);
   border-right:1px solid var(--tv-hair);
 }
 #view-tree .side-head{padding:26px 24px 18px;border-bottom:1px solid var(--tv-hair)}
 #view-tree .side-head .eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.38em;
   text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:10px;margin-bottom:11px}
-#view-tree .side-head .eyebrow::before{content:"";width:20px;height:1px;background:linear-gradient(90deg,#4FD6A9,transparent)}
+#view-tree .side-head .eyebrow::before{content:"";width:20px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
 #view-tree .side-head h1{font-size:19px;font-weight:600;letter-spacing:.13em;color:#E4ECFF}
-#view-tree .side-head .cnt{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(150,175,235,.5);margin-top:8px}
+#view-tree .side-head .cnt{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(118,169,213,.58);margin-top:8px}
 
 #view-tree .topics{flex:1;overflow-y:auto;padding:14px 16px 24px}
 #view-tree .topics::-webkit-scrollbar{width:4px}
-#view-tree .topics::-webkit-scrollbar-thumb{background:rgba(120,160,255,.2);border-radius:2px}
+#view-tree .topics::-webkit-scrollbar-thumb{background:rgba(118,169,213,.24);border-radius:2px}
 
 #view-tree .topic{
   position:relative;display:flex;align-items:center;gap:13px;
   padding:13px 14px 13px 16px;margin-bottom:7px;border-radius:8px;cursor:pointer;
-  background:linear-gradient(100deg,rgba(24,34,72,.55),rgba(14,20,46,.35));
-  border:1px solid rgba(110,145,230,.14);
+  background:var(--surface-bg);
+  border:1px solid rgba(118,169,213,.14);
   transition:background .2s,border-color .2s,transform .2s;
   overflow:hidden;
 }
@@ -48,29 +48,29 @@
   content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
   background:rgba(110,145,230,.3);transition:background .2s,box-shadow .2s;
 }
-#view-tree .topic:hover{background:linear-gradient(100deg,rgba(34,48,100,.7),rgba(18,26,58,.45));
-  border-color:rgba(130,170,255,.28)}
+#view-tree .topic:hover{background:linear-gradient(100deg,rgba(19,55,82,.7),rgba(13,34,53,.45));
+  border-color:rgba(56,198,236,.28)}
 #view-tree .topic.on{
-  background:linear-gradient(100deg,rgba(40,58,124,.85),rgba(20,30,66,.5));
-  border-color:rgba(255,198,97,.42);
+  background:linear-gradient(100deg,rgba(24,70,104,.85),rgba(20,44,76,.5));
+  border-color:rgba(125,187,255,.42);
 }
 #view-tree .topic.on::before{background:var(--tv-gold);box-shadow:0 0 14px var(--tv-gold)}
-#view-tree .topic .no{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(150,175,235,.5);flex:none}
+#view-tree .topic .no{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:rgba(118,169,213,.58);flex:none}
 #view-tree .topic.on .no{color:var(--tv-gold)}
 #view-tree .topic .nm{font-size:14px;letter-spacing:.05em;color:rgba(210,222,255,.86);flex:1}
 #view-tree .topic.on .nm{color:#fff;font-weight:600}
-#view-tree .topic .qty{font-family:var(--mono);font-size:10px;color:rgba(150,175,235,.42)}
+#view-tree .topic .qty{font-family:var(--mono);font-size:10px;color:rgba(118,169,213,.5)}
 
 /* ══ 右栏：树 ═══════════════════════════════════════ */
 #view-tree .tv-main{
   position:absolute;top:var(--topbar-h);bottom:0;right:0;
   left:calc(var(--rail-w) + var(--tv-side));
-  background:radial-gradient(120% 90% at 30% 40%, #0A0F26 0%, #070A1A 55%, #05060F 100%);
+  background:radial-gradient(120% 90% at 30% 40%, #102B42 0%, #0B1C2D 55%, var(--screen-bg) 100%);
 }
 
 #view-tree .main-head{position:absolute;top:0;left:0;right:0;z-index:3;pointer-events:none;
   padding:26px 32px 20px;
-  background:linear-gradient(180deg,rgba(5,6,15,.92) 40%,rgba(5,6,15,0))}
+  background:linear-gradient(180deg,rgba(6,17,31,.92) 40%,rgba(6,17,31,0))}
 #view-tree .main-head h2{font-size:20px;font-weight:600;letter-spacing:.1em;color:var(--tv-gold)}
 #view-tree .main-head p{font-size:12.5px;line-height:1.7;color:rgba(178,196,240,.6);margin-top:8px;max-width:640px}
 
@@ -105,9 +105,9 @@
    悬停的 .lit 只改 transform / color，两者互不覆盖 */
 #view-tree .node.focused .dot{
   outline:2px solid var(--tv-gold);outline-offset:3px;
-  filter:drop-shadow(0 0 8px rgba(255,198,97,.75));
+  filter:drop-shadow(0 0 8px rgba(125,187,255,.75));
 }
-#view-tree .node.focused .lab{color:var(--tv-gold)!important;text-shadow:0 0 12px rgba(255,198,97,.45)}
+#view-tree .node.focused .lab{color:var(--tv-gold)!important;text-shadow:0 0 12px rgba(125,187,255,.45)}
 #view-tree .node.focused.dimmed{opacity:.55}
 
 #view-tree .node.lit .lab{color:#fff!important;text-shadow:0 0 14px currentColor}
@@ -129,35 +129,35 @@
 /* ══ 图例 / 提示 ════════════════════════════════════ */
 #view-tree .legend{position:absolute;left:32px;bottom:26px;z-index:3;display:flex;flex-direction:column;gap:8px}
 #view-tree .legend .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase;margin-bottom:3px}
-#view-tree .lg{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(198,212,255,.7)}
+#view-tree .lg{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(232,244,255,.72)}
 #view-tree .lg i{width:11px;height:11px;border-radius:50%;display:block;flex:none}
 
 /* 树铺满可用区时，右下角的叶子会顶到提示文字上（实测「LDAP 同步配置」正好压中），
    所以提示必须自带一层向左淡出的底衬，否则两层字叠在一起谁也读不清。 */
 #view-tree .hint{position:absolute;right:32px;bottom:26px;z-index:3;text-align:right;
-  font-family:var(--mono);font-size:10px;letter-spacing:.13em;color:rgba(150,175,235,.34);line-height:1.95;
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;color:rgba(118,169,213,.42);line-height:1.95;
   padding:10px 14px 10px 26px;border-radius:10px;pointer-events:none;
-  background:linear-gradient(285deg, rgba(5,6,15,.93) 58%, rgba(5,6,15,0));
+  background:linear-gradient(285deg, rgba(6,17,31,.93) 58%, rgba(6,17,31,0));
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 
 /* 跟随鼠标，相对视口定位是对的，保留 fixed */
 #view-tree .tip{
   position:fixed;z-index:20;pointer-events:none;opacity:0;
   padding:9px 13px;border-radius:8px;max-width:320px;
-  background:rgba(10,15,36,.96);border:1px solid rgba(120,160,255,.26);
+  background:rgba(8,24,40,.96);border:1px solid rgba(118,169,213,.26);
   box-shadow:0 10px 34px rgba(0,0,0,.6);
   font-size:12.5px;line-height:1.6;color:#E4ECFF;
   transition:opacity .16s;
 }
 #view-tree .tip.on{opacity:1}
 #view-tree .tip .path{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
-  color:rgba(150,175,235,.6);margin-bottom:5px}
+  color:rgba(118,169,213,.66);margin-bottom:5px}
 
 /* ══ 文档详情卡：叶子节点点击后弹出，可交互 ══════════ */
 #view-tree .doccard{
   position:fixed;z-index:22;width:340px;
   padding:20px 22px 18px;border-radius:12px;
-  background:rgba(10,15,36,.96);border:1px solid rgba(120,160,255,.3);
+  background:rgba(8,24,40,.96);border:1px solid rgba(118,169,213,.3);
   box-shadow:0 18px 52px rgba(0,0,0,.66), inset 0 1px 0 rgba(150,185,255,.14);
   opacity:0;transform:translateY(6px) scale(.985);
   transition:opacity .18s ease,transform .18s cubic-bezier(.22,.85,.3,1);
@@ -170,10 +170,10 @@
   font-size:17px;line-height:1;color:rgba(160,185,240,.6);
   transition:background .16s,color .16s;
 }
-#view-tree .doccard .dc-x:hover{background:rgba(120,160,255,.14);color:#E8EDFF}
+#view-tree .doccard .dc-x:hover{background:rgba(56,198,236,.14);color:#E8F4FF}
 #view-tree .doccard .dc-path{
   font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;line-height:1.75;
-  color:rgba(150,175,235,.62);padding-right:24px;
+  color:rgba(118,169,213,.68);padding-right:24px;
 }
 #view-tree .doccard .dc-title{
   font-size:16px;font-weight:600;letter-spacing:.05em;line-height:1.5;
@@ -184,18 +184,18 @@
   margin-top:11px;padding-top:11px;border-top:1px solid var(--tv-hair);
 }
 #view-tree .doccard .dc-go{
-  --tv-card-accent:#5B9EFF;
+  --tv-card-accent:var(--cyan);
   display:block;width:100%;margin-top:16px;padding:10px 14px;
   border-radius:8px;cursor:pointer;
   font-family:var(--sans);font-size:12.5px;letter-spacing:.08em;color:#EAF1FF;
-  background:linear-gradient(100deg,rgba(76,125,255,.26),rgba(34,211,238,.14));
-  border:1px solid rgba(120,160,255,.34);
+  background:linear-gradient(100deg,rgba(56,198,236,.24),rgba(47,140,255,.16));
+  border:1px solid rgba(118,169,213,.34);
   transition:background .18s,border-color .18s,box-shadow .18s;
 }
 #view-tree .doccard .dc-go:hover{
-  background:linear-gradient(100deg,rgba(76,125,255,.42),rgba(34,211,238,.22));
+  background:linear-gradient(100deg,rgba(56,198,236,.38),rgba(47,140,255,.22));
   border-color:var(--tv-card-accent);
-  box-shadow:0 0 18px rgba(76,125,255,.28);
+  box-shadow:0 0 18px rgba(56,198,236,.28);
 }
 
 /* pause()：视图切走后不留任何还在跑的过渡与动画 */

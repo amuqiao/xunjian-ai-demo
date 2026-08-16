@@ -64,7 +64,7 @@
   min-height: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(9, 18, 25, 0.94));
+  background: var(--panel-bg-strong);
   box-shadow: var(--shadow);
   padding: 10px 12px 12px;
   display: grid;
@@ -114,7 +114,7 @@
   min-height: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(18, 34, 46, 0.9), rgba(9, 18, 25, 0.94));
+  background: var(--panel-bg-strong);
   box-shadow: var(--shadow);
   padding: 10px 12px 12px;
   display: grid;

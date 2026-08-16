@@ -7,19 +7,28 @@
   --warn: #ffb454;
   --ok: #3ddc97;
 
-  --bg: #070b16;
-  --bg-soft: #0c1426;
-  --panel: rgba(18, 26, 44, 0.86);
-  --panel-2: rgba(24, 34, 56, 0.72);
-  --line: rgba(255, 255, 255, 0.10);
-  --line-strong: rgba(255, 255, 255, 0.20);
+  --screen-bg: #06111f;
+  --app-bg:
+    radial-gradient(1200px 700px at 18% -10%, rgba(56, 198, 236, 0.16), transparent 60%),
+    radial-gradient(900px 600px at 108% 20%, rgba(47, 140, 255, 0.12), transparent 62%),
+    var(--screen-bg);
+  --bg: var(--screen-bg);
+  --bg-soft: #0b1c2d;
+  --panel: rgba(13, 34, 53, 0.88);
+  --panel-2: rgba(16, 43, 66, 0.74);
+  --panel-bg: linear-gradient(180deg, rgba(13, 34, 53, 0.9), rgba(6, 17, 31, 0.94));
+  --panel-bg-strong: linear-gradient(180deg, rgba(16, 43, 66, 0.86), rgba(8, 24, 40, 0.94));
+  --surface-bg: rgba(16, 43, 66, 0.44);
+  --line: rgba(118, 169, 213, 0.16);
+  --line-strong: rgba(56, 198, 236, 0.3);
 
   --text: #e8eefc;
   --text-dim: rgba(232, 238, 252, 0.68);
   --text-mute: rgba(232, 238, 252, 0.42);
 
-  --accent: #4d8dff;
-  --accent-soft: rgba(77, 141, 255, 0.16);
+  --accent: #38c6ec;
+  --accent-2: #2f8cff;
+  --accent-soft: rgba(56, 198, 236, 0.16);
 
   --radius: 10px;
   --radius-lg: 14px;

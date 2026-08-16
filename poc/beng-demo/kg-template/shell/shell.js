@@ -422,7 +422,7 @@
     btn.type = 'button';
     btn.addEventListener('click', function () {
       var v = KG.derive.validate();
-      console.log('%c[KG] validate()', 'color:#22D3EE;font-weight:600', v);
+      console.log('%c[KG] validate()', 'color:#38C6EC;font-weight:600', v);
       v.errors.forEach(function (m) { console.error('[KG][error] ' + m); });
       v.warnings.forEach(function (m) { console.warn('[KG][warn] ' + m); });
     });

@@ -83,7 +83,7 @@
   min-height: 0;
   border-radius: 8px;
   border: 1px solid var(--line-strong);
-  background: linear-gradient(180deg, rgba(10, 20, 28, 0.7), rgba(5, 10, 15, 0.92));
+  background: var(--map-bg);
 }
 
 /* ---------- canvas：见文件头不变量 2 ---------- */
@@ -187,8 +187,8 @@
 [data-hunan-zone].active,
 [data-hunan-zone][data-active-zone-label] {
   border-color: var(--accent);
-  background: rgba(245, 218, 114, 0.16);
-  box-shadow: 0 0 0 2px rgba(245, 218, 114, 0.28), 0 2px 10px rgba(0, 0, 0, 0.55);
+  background: rgba(56, 198, 236, 0.16);
+  box-shadow: 0 0 0 2px rgba(56, 198, 236, 0.28), 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 [data-hunan-zone].active .zone-pin-name,
@@ -232,7 +232,7 @@
 }
 
 .ov-zoom-reset {
-  border-color: rgba(245, 218, 114, 0.4);
+  border-color: rgba(56, 198, 236, 0.4);
   font-size: 15px;
 }
 

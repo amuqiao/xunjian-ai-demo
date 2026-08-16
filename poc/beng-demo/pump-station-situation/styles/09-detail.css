@@ -19,7 +19,7 @@
 .inline-detail-panel {
   display: grid;
   gap: 14px;
-  border-color: rgba(75, 179, 211, 0.48);
+  border-color: rgba(56, 198, 236, 0.48);
 }
 
 .compact-evidence-detail {

@@ -8,7 +8,7 @@
 // 的构造器不同——本文件是 pipelineProfile/pumpHealthRank/throughputRows（对应成品油
 // 泵站语义），姐妹文件换成 issueByDiscipline/zoneCoverageRows/inspectionCoverageTrend
 // （对应巡检语义）。不写死任何色值：颜色全部现读
-// getComputedStyle(document.documentElement)，本 POC 暖琥珀基调因此自动生效。不引入
+// getComputedStyle(document.documentElement)，本 POC 企业蓝基调因此自动生效。不引入
 // ECharts 地图组件——省域地图由 Three.js 负责，这里只画统计图表。
 (function () {
   "use strict";

@@ -20,7 +20,7 @@
   "use strict";
 
   var PIPE_RADIUS = { oil: 1.6, gas: 1.0 };
-  var PIPE_COLOR = { oil: 0xc9812f, gas: 0x3aa0c4 }; // oil 偏暖（琥珀橙），gas 偏青
+  var PIPE_COLOR = { oil: 0x2f8cff, gas: 0x38c6ec };
   var TUBE_RADIAL_SEGMENTS = 8;
 
   function createMaterials(THREE) {

@@ -2,18 +2,8 @@
    （scripts/ui/selectlist.js）+ DetailCard 内部结构（scripts/ui/detailcard.js）。
 
    这三个 JS 组件会从 poc/inspection-3d-sandbox 原样搬进本项目复用，产出的 DOM
-   结构/类名逐字相同，所以本文件与青蓝版姐妹 POC hunan-inspection-overview 的
-   同名文件逐条对应，选择器、结构、状态色（var(--status-ok/warn/danger)）完全
-   不变，只把两类字面颜色换成暖色：
-     1) 母本手写的 rgba(56, 198, 236, x)（--accent 的透明度派生）→
-        rgba(245, 218, 114, x)（--accent 暖琥珀版的透明度派生——不是简单机械互换
-        结果，--accent 为了和 --status-warn 拉开辨识度做过二次校准提亮，取值推导
-        见 01-tokens.css 文件头“强调色与三色语义的色相冲突”）
-     2) 卡片背板渐变用的中性深色字面值（如 rgba(18,34,46,x)/rgba(10,20,28,x)
-        一类，母本没有用 var(--panel) 而是手写了具体数字）→ 按 01-tokens.css
-        文件头现行的“G 通道锚点 + 极小 bump”方法换成对应的暖色数字（不再是完整
-        R/B 互换）
-   逐处都标了注释，改 01-tokens.css 的 --accent 记得同步排查这里。
+   结构/类名逐字相同。状态色（var(--status-ok/warn/danger)）保持语义不变，
+   主题高亮统一读取企业蓝 token；少量手写 rgba 是 --accent 的透明度副本。 */
 
    四类卡片要“一眼分得出层级”：
    - card-metric   权重最高：大数字（状态色）+ 小标签，字号/字重全场最重
@@ -45,7 +35,7 @@
   border-radius: 8px;
   /* 字面值按 01-tokens.css 文件头“G 通道锚点 + 极小 bump”方法，从青蓝版
      rgba(18,34,46,.96)/rgba(10,20,28,.96) 换算而来（不再是完整 R/B 互换）。 */
-  background: linear-gradient(180deg, rgba(39, 34, 29, 0.96), rgba(25, 20, 15, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 12px 14px;
   display: grid;
@@ -89,7 +79,7 @@
 }
 
 .card-metric-value strong {
-  color: #fffaf0;
+  color: #e8f8ff;
   font-family: Bahnschrift, "DIN Alternate", sans-serif;
   font-size: 30px;
   font-weight: 800;
@@ -129,7 +119,7 @@
   border-radius: 8px;
   /* 字面值按 01-tokens.css 文件头“G 通道锚点 + 极小 bump”方法，从青蓝版
      rgba(18,34,46,.9)/rgba(9,18,25,.94) 换算而来（不再是完整 R/B 互换）。 */
-  background: linear-gradient(180deg, rgba(39, 34, 29, 0.9), rgba(23, 18, 13, 0.94));
+  background: var(--panel-bg-strong);
   box-shadow: var(--shadow);
   padding: 10px 12px 12px;
   display: grid;
@@ -172,7 +162,7 @@
   border-radius: 8px;
   /* 字面值按 01-tokens.css 文件头“G 通道锚点 + 极小 bump”方法，从青蓝版
      rgba(13,22,30,.6) 换算而来（不再是完整 R/B 互换）。 */
-  background: rgba(27, 22, 17, 0.6);
+  background: var(--surface-bg);
   padding: 9px 11px;
   display: grid;
   gap: 6px;
@@ -211,10 +201,9 @@
   color: var(--muted);
   padding: 2px 7px;
   font-size: 10px;
-  /* 边框/背景是 --accent(245,218,114) 的透明度派生字面值，对应青蓝版的
-     rgba(56,198,236,.32)/rgba(56,198,236,.08)，改 --accent 记得同步改这里。 */
-  border: 1px solid rgba(245, 218, 114, 0.32);
-  background: rgba(245, 218, 114, 0.08);
+  /* --accent 的透明度副本，改 --accent 时同步检查。 */
+  border: 1px solid rgba(56, 198, 236, 0.32);
+  background: rgba(56, 198, 236, 0.08);
 }
 
 /* badge：DetailCard 的状态徽标（detail-head 内），三色语义 + 中性态 */
@@ -254,7 +243,7 @@
   border-radius: 8px;
   /* 字面值按 01-tokens.css 文件头“G 通道锚点 + 极小 bump”方法，从青蓝版
      rgba(18,34,46,.94)/rgba(10,20,28,.96) 换算而来（不再是完整 R/B 互换）。 */
-  background: linear-gradient(180deg, rgba(39, 34, 29, 0.94), rgba(25, 20, 15, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 14px;
   display: grid;
@@ -269,7 +258,7 @@
 }
 
 .detail-title {
-  color: #fffaf0;
+  color: #e8f8ff;
   font-size: 16px;
   font-weight: 800;
 }
@@ -304,7 +293,7 @@
 }
 
 .detail-metric strong {
-  color: #fffaf0;
+  color: #e8f8ff;
   font-size: 15px;
   font-weight: 700;
 }
@@ -397,9 +386,8 @@
 
 .sl-item.active {
   border-color: var(--accent);
-  /* 字面值是 --accent(245,218,114) 的 14% 透明度副本，对应青蓝版的
-     rgba(56,198,236,.14)，改 --accent 记得同步改这里。 */
-  background: rgba(245, 218, 114, 0.14);
+  /* --accent 的 14% 透明度副本。 */
+  background: rgba(56, 198, 236, 0.14);
 }
 
 .sl-item:hover {
@@ -424,7 +412,7 @@
 }
 
 .sl-item-value {
-  color: #fffaf0;
+  color: #e8f8ff;
   font-size: 18px;
   font-weight: 800;
 }
@@ -502,9 +490,8 @@
 }
 
 .sl-table-row.active {
-  /* 字面值是 --accent(245,218,114) 的 14% 透明度副本，对应青蓝版的
-     rgba(56,198,236,.14)，改 --accent 记得同步改这里。 */
-  background: rgba(245, 218, 114, 0.14);
+  /* --accent 的 14% 透明度副本。 */
+  background: rgba(56, 198, 236, 0.14);
   box-shadow: inset 3px 0 0 var(--accent);
 }
 

@@ -23,7 +23,7 @@
 /* 人工填写的两段要一眼看得出来：观众要能认出"这句话是刚才那个人打的"。 */
 .ar-section.human {
   border-left: 3px solid var(--accent);
-  background: rgba(77, 141, 255, 0.09);
+  background: var(--surface-bg);
 }
 .ar-section.human p { color: var(--text); }
 .ar-human-tag {

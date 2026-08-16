@@ -89,7 +89,7 @@
 
 .record-list-scroll::-webkit-scrollbar-thumb {
   border-radius: 99px;
-  background: rgba(75, 179, 211, 0.35);
+  background: rgba(56, 198, 236, 0.35);
 }
 
 /* .sl-table-head th 自带 position:sticky（03-cards.css），这里补一个不透明的吸顶
@@ -265,7 +265,7 @@
   grid-area: agent;
   min-height: 0;
   overflow: hidden;
-  border-color: rgba(75, 179, 211, 0.42);
+  border-color: rgba(56, 198, 236, 0.42);
 }
 
 .focus-tags {
@@ -276,9 +276,9 @@
 
 .focus-tags span {
   min-height: 24px;
-  border: 1px solid rgba(75, 179, 211, 0.34);
+  border: 1px solid rgba(56, 198, 236, 0.34);
   border-radius: 6px;
-  background: rgba(75, 179, 211, 0.08);
+  background: rgba(56, 198, 236, 0.08);
   color: #dff5fb;
   padding: 3px 7px;
   font-size: 11px;

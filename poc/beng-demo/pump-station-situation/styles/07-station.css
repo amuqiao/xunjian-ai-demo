@@ -110,7 +110,7 @@
 
 .station-side::-webkit-scrollbar-thumb {
   border-radius: 99px;
-  background: rgba(75, 179, 211, 0.35);
+  background: var(--accent-soft-strong);
 }
 
 /* ---------- 左下：部位风险雷达 + 机组对照，左右并排的纯布局包裹层
@@ -191,7 +191,7 @@
 
 .station-units-scroll::-webkit-scrollbar-thumb {
   border-radius: 99px;
-  background: rgba(75, 179, 211, 0.35);
+  background: var(--accent-soft-strong);
 }
 
 /* SelectList 的 sl-item-spark 默认继承 04-charts.css 的 .chart-box-mini

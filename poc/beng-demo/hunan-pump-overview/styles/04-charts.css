@@ -8,7 +8,7 @@
    （见该文件头部“三色语义契约”）。
 
    本文件不含任何颜色声明，因此湖南省油气管网大屏总览的两个姐妹 POC
-   （hunan-inspection-overview 青蓝版 / hunan-pump-overview 暖琥珀版，即本文件）
+   （hunan-inspection-overview / hunan-pump-overview，即本文件）
    这一片 CSS 逐字节相同——尺寸类基元不随配色基调变化。
 
    下面的媒体查询按本项目固定画布的约定，统一加 `and (max-width: 0px)` 闸死，

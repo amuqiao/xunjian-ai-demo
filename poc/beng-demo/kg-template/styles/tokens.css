@@ -6,22 +6,30 @@
  */
 :root{
   /* 底色与面板 */
-  --void:#05060F;
-  --deep:#0A0E1F;
-  --panel:#080C1E;
+  --screen-bg:#06111F;
+  --app-bg:#06111F;
+  --panel-bg:linear-gradient(180deg, rgba(13,34,53,.95), rgba(6,17,31,.97));
+  --panel-bg-strong:linear-gradient(180deg, rgba(16,43,66,.94), rgba(8,24,40,.97));
+  --surface-bg:rgba(16,43,66,.42);
+  --void:var(--screen-bg);
+  --deep:#0B1C2D;
+  --panel:#0D2235;
 
   /* 文字 */
-  --ice:#E8EDFF;
-  --dim:#6F7DAE;
+  --ice:#E8F4FF;
+  --dim:#7897B2;
 
   /* 强调色 */
-  --blue:#4C7DFF;
-  --violet:#A855F7;
-  --cyan:#22D3EE;
-  --gold:#FFC661;
+  --blue:#2F8CFF;
+  --violet:#4B6FFF;
+  --cyan:#38C6EC;
+  --gold:#7DBBFF;
+  --kg-stage-clear:#06111F;
+  --kg-stage-deep:#0B1C2D;
+  --kg-stage-panel:#0D2235;
 
   /* 分隔线 */
-  --hair:rgba(120,150,255,.15);
+  --hair:rgba(118,169,213,.18);
 
   --sans:"HarmonyOS Sans SC","PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
   --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,Menlo,Consolas,monospace;

@@ -42,8 +42,8 @@
   border: 2px solid var(--cyan);
   display: grid;
   place-items: center;
-  background: rgba(75, 179, 211, 0.14);
-  color: #e2f8ff;
+  background: var(--accent-soft);
+  color: #e8fff7;
   font-size: 24px;
   font-weight: 800;
   font-family: Bahnschrift, "DIN Alternate", sans-serif;
@@ -86,7 +86,7 @@
 
 .scene-button.active {
   border-color: var(--cyan);
-  background: rgba(75, 179, 211, 0.16);
+  background: var(--accent-soft);
 }
 
 .scene-button.locked {
@@ -266,7 +266,7 @@
 
 .flow-track .flow-step.active {
   border-color: var(--cyan);
-  background: linear-gradient(135deg, rgba(27, 157, 190, 0.32), rgba(47, 191, 149, 0.22));
+  background: var(--accent-mixed-bg);
 }
 
 .flow-track .flow-step:disabled {
@@ -288,8 +288,8 @@
 
 .flow-step.done {
   color: var(--ink);
-  border-color: rgba(75, 179, 211, 0.42);
-  background: rgba(75, 179, 211, 0.09);
+  border-color: rgba(56, 198, 236, 0.42);
+  background: rgba(56, 198, 236, 0.09);
 }
 
 .flow-step span {

@@ -42,7 +42,7 @@
   justify-content: center;
   border: 1px solid var(--cyan);
   border-radius: 50%;
-  background: rgba(75, 179, 211, 0.16);
+  background: rgba(56, 198, 236, 0.16);
   color: #e2f8ff;
   font-size: 12px;
   font-weight: 800;
@@ -101,7 +101,7 @@
 
 .verdict-button.active {
   border-color: var(--cyan);
-  background: rgba(75, 179, 211, 0.14);
+  background: rgba(56, 198, 236, 0.14);
 }
 
 .verdict-boundary {

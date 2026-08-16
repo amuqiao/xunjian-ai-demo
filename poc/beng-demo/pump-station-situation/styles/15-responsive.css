@@ -17,7 +17,7 @@
     overflow-x: auto;
     padding-bottom: 2px;
     scroll-snap-type: x proximity;
-    box-shadow: inset -18px 0 18px -18px rgba(75, 179, 211, 0.55);
+    box-shadow: inset -18px 0 18px -18px rgba(56, 198, 236, 0.55);
   }
 
   .scene-button {
@@ -63,7 +63,7 @@
     overflow-x: auto;
     scroll-snap-type: x proximity;
     padding-bottom: 2px;
-    box-shadow: inset -18px 0 18px -18px rgba(75, 179, 211, 0.55);
+    box-shadow: inset -18px 0 18px -18px rgba(56, 198, 236, 0.55);
   }
 
   .flow-track .flow-step,

@@ -1,98 +1,8 @@
 /* 01-tokens.css: CSS 变量 / reset / 排版基元 / 固定画布变量
-   —— 「湖南省油气管网大屏总览」泵站总览分屏（POC: hunan-pump-overview），暖琥珀/
-   橙基调，对应成品油语义。整体结构派生自
-   poc/inspection-3d-sandbox/styles/01-tokens.css（那套母本已验收通过）。
-
-   【配色方法修正记录——本文件曾用过一版被否决的方法，写在这里防止以后又踩回去】
-   最初的版本对 A（青蓝版 hunan-inspection-overview）每个中性色/强调色做“R/B 通道
-   互换、G 不动”的机械换算，理由是三通道之和（近似亮度）不变、只翻转冷暖朝向。这
-   在数学上没错，但视觉上不成立：A 的 --bg #070f16 是中性深海军蓝（大屏标准底盘），
-   互换后的 #160f07 是明显的深褐色，读作“泛黄/陈旧”，--panel/--panel-2/--panel-3/
-   --ink/--muted 全部一起偏黄，导致整屏读成单色 sepia，图表占位块（大片使用
-   --panel-2/-3 填色）把这个问题进一步放大。“明度等价”不等于“观感等价”，机械换色法
-   在这里失效，所以改成下面这套新方法。 */
-
-  /* 现在的做法：中性底盘（chrome）基本保持中性深色、只做极轻微的暖味偏移，两套
-     POC 之间的视觉差异集中到 --accent / --accent-2 这两个强调色上——这才是真实
-     双主题大屏的常见做法（chrome 不换色相，只换 accent）。中性色的推导规则：
-     取 A 对应通道的 G 值（G 通道在旧方法里本来就没变过，作为“亮度锚点”最合适），
-     令新 R = G + bump、新 G = G（不变）、新 B = G − bump，bump 取一个很小的常数
-     （深色底盘/面板/分隔线取 5，浅色文字 ink/muted 取 3，因为浅色在同样的通道差值
-     下视觉上更容易被读出偏色，需要更保守）。这样每个通道相对 G 的偏移量很小
-     （深色 ±5、浅色 ±3，总跨度不超过 255 的 4%），三通道均值等于 G、与 A 原始均值
-     几乎相同（亮度层级保持一致），但 R 略高于 B，读出来是极轻微的暖调深灰/暖白，
-     不会像旧方法那样出现明显的橙褐色偏移。对照表（十进制，A→B）：
-       --bg         070f16 (7,15,22)     → G=15,bump5  → (20,15,10)  → 140f0a
-       --panel      0d1a24 (13,26,36)    → G=26,bump5  → (31,26,21)  → 1f1a15
-       --panel-2    12222e (18,34,46)    → G=34,bump5  → (39,34,29)  → 27221d
-       --panel-3    182f3d (24,47,61)    → G=47,bump5  → (52,47,42)  → 342f2a
-       --ink        eaf6fb (234,246,251) → G=246,bump3 → (249,246,243) → f9f6f3
-       --muted      87a3b8 (135,163,184) → G=163,bump3 → (166,163,160) → a6a3a0
-       --line       rgba(129,166,194,.22) → G=166,bump5 → rgba(171,166,161,.22)
-       --line-strong rgba(112,190,224,.5) → G=190,bump5 → rgba(195,190,185,.5)
-     --accent / --accent-2 本来就是“有意让 B 和 A 长得不一样”的地方，承载“成品油”
-     语义，不受这次“中性底盘”修正影响；但 --accent 单独做了一次二次校准（提亮，
-     见下方“强调色与三色语义的色相冲突”说明），--accent-2 沿用最早那次机械互换的
-     结果（暖橙 ff8c5a）未改动。
-
-   【跨 POC 命名契约——写给 poc/hunan-inspection-overview/styles/01-tokens.css，
-   那份文件的文件头也写了同一段话，两份必须保持同步】本文件与湖南省巡检站总览
-   （青蓝基调，与 inspection-3d-sandbox 直接同色，负责和它串成下钻链路）共用
-   同一份变量名单，两份文件的变量名必须逐条相同，只有取值不同：3D 层、图表层读
-   同名变量就能拿到各自 POC 的配色，代码零分叉。名单如下（谁新增变量，两份文件
-   必须同步加，不能只加一侧）：
-     --screen-design-width / --screen-design-height / --screen-scale /
-     --screen-offset-x / --screen-offset-y
-     --bg / --panel / --panel-2 / --panel-3 / --ink / --muted / --line / --line-strong
-     --accent / --accent-2
-     --status-danger / --status-warn / --status-ok
-     --shadow
-
-   【关于 --accent / --accent-2 这两个名字】母本 inspection-3d-sandbox 用的是
-   --cyan / --blue，字面写死了色相。本文件如果继续叫 "--cyan" 会自相矛盾——变量
-   名字面是青色，取值却是金色，读代码的人会被名字误导。所以两个姐妹 POC 都改用
-   色相中立的名字：--accent（主强调色/焦点色，对应母本 --cyan 的职责：激活态、
-   地图定位框选、kicker 文字、发光描边，这里取值是琥珀金）、--accent-2（次强调色，
-   对应母本 --blue，专给巡检轨迹/路线一类图形元素用，不参与三色语义判定，这里
-   取值是暖橙）。
-
-   【暖色派生方法——现行版本，见文件头“配色方法修正记录”】中性底盘（--bg/--panel/
-   --panel-2/--panel-3/--ink/--muted/--line/--line-strong）用“G 通道锚点 + 极小
-   bump”的方法算出，取值与推导过程见文件头对照表，不再赘述；--accent-2 沿用最早
-   那次机械互换的结果（暖橙 ff8c5a）未改动，因为这个变量本来就是有意让 B 和 A 长得
-   不一样的地方，问题从来不在这里。
-   唯一手动调整的例外是 02-shell.css 里 .primary-action 的渐变配色：机械互换会把
-   母本那对“确认色”（青绿 #1a9bc4/#2fbf95）翻成偏橄榄绿的暖色，视觉上不像“确认/
-   推进”，所以那两个字面色是设计师手选的暖色替代，具体说明写在 02-shell.css 对应
-   位置。
-
-   【强调色与三色语义的色相冲突——--accent 做了一次二次校准】机械互换算出的
-   --accent 原本是 #ecc638（琥珀金），HSL 约 H47.3° S82.6% L57.3%；--status-warn
-   固定是 #eeb44a，HSL 约 H38.8° S82.8% L61.2%——两者色相只差 8.5°、饱和度几乎
-   相同，在 .dot 这种 9px 状态点上实测肉眼基本分不清，会把“强调/选中态”和“需要
-   关注”两种不同语义读混。不能动 --status-warn（三色语义契约要求与青蓝版逐字节
-   相同），于是把 --accent 往“更亮更浅”调整而不是抠色相角度（小尺寸下明度差比
-   个位数的色相差更容易被识别）：改成 #f5da72，HSL 约 H47.6° S86.7° L70.4%——
-   色相基本没变，但明度比 warn 高出近 10 个百分点，饱和度相近，9px 圆点上也能
-   一眼分开，同时还留在“暖金”范围内，没有滑向纯柠檬黄那种容易被误读成警示色的
-   色调。这处改动波及本文件（--accent 变量本身 + 背景网格柔光斑的 rgba 手写副本）
-   以及 02-shell.css / 03-cards.css 里所有把 --accent 透明度派生值手写成具体数字
-   的地方，逐处都标了注释同步。
-
-   【背景基调提示——不是纯棕，仍要压住暗色大屏的明度层级】新方法下 --bg 是
-   #140f0a，三通道均值等于 A 原始 --bg 的 G 值（15），与母本 #070f16 的均值
-   （14.67）几乎相同，读出来仍是极暗的近黑色，只是带极轻微的暖调，不会让整屏
-   变成“亮色主题”，也不会破坏与巡检站总览并排展示时的明度层级一致性——这正是
-   业务方要求的“同为大屏，明度层级要和 A 一致”，同时截图里也看不出“整屏泛黄”。
-
-   【三色语义契约——与青蓝版保持完全一致，也是两个姐妹 POC 的唯一真源】
-   --status-danger / --status-warn / --status-ok 分别对应“异常 / 关注 / 正常”，
-   两个姐妹 POC 的取值必须逐字节相同，这里没有“基调不同”的豁免。以下三处都要同步：
-     1) 本文件（.dot / .badge / 各卡片状态色，见 02/03/04 三片 CSS）
-     2) 未来 map3d 层（如 engine.js 一类文件）的热点材质 emissive/发光色
-     3) 未来图表层（如 chartopts.js 一类文件）的 ECharts series 状态色
-   三处色值字面必须完全一致，否则“3D 高亮红了、面板圆点却还是绿的”这种割裂
-   会立刻在演示里露出来。 */
+   —— beng-demo 泵站总览统一采用企业蓝底盘。
+   本文件保留与总览组件既有变量名兼容的 --bg / --panel / --accent 链路，
+   额外提供 --screen-bg / --app-bg / --panel-bg / --map-bg 作为后续调色入口。
+   三色语义变量 --status-danger / --status-warn / --status-ok 不随主题改色。 */
 
 :root {
   /* 固定画布模式：页面内部始终按这组设计尺寸排版，外层只做等比缩放，与姐妹 POC
@@ -105,31 +15,35 @@
   --screen-offset-x: 0px;
   --screen-offset-y: 0px;
 
-  /* 基底色板：中性深色底盘，按文件头“G 通道锚点 + 极小 bump”方法算出，只带
-     极轻微暖味，不做完整 R/B 互换——两套 POC 并排时这一组变量应该几乎看不出
-     差别，差别集中在下面的 --accent / --accent-2。 */
-  --bg: #140f0a;
-  --panel: #1f1a15;
-  --panel-2: #27221d;
-  --panel-3: #342f2a;
-  --ink: #f9f6f3;
-  --muted: #a6a3a0;
-  --line: rgba(171, 166, 161, 0.22);
-  --line-strong: rgba(195, 190, 185, 0.5);
+  /* 企业蓝基底：深海军蓝底盘、蓝灰面板、青蓝描边。 */
+  --bg: #06111f;
+  --panel: #0d2235;
+  --panel-2: #102b42;
+  --panel-3: #173a56;
+  --ink: #edf7ff;
+  --muted: #91a8bd;
+  --line: rgba(118, 169, 213, 0.24);
+  --line-strong: rgba(56, 198, 236, 0.5);
 
-  /* 强调色：--accent 对应青蓝版 --accent（互换前 #38c6ec），机械互换的原始结果是
-     #ecc638（琥珀金），但实测发现 #ecc638 和下面的 --status-warn（#eeb44a）色相只
-     差 8.5°、饱和度几乎相同（HSL 分别是 H47.3° S82.6% L57.3% 与 H38.8° S82.8%
-     L61.2%），在 9px 状态点这种小尺寸上肉眼基本分不清——同屏出现时会把“强调/选中”
-     和“需要关注”这两个不同语义读混。修正：不动 --status-warn，把 --accent 往
-     “更亮更浅”的方向推（提升明度而不是纠结色相角度，小尺寸下明度差比 8°的色相差
-     更容易被识别），选定 #f5da72（H47.6° S86.7% L70.4%），明度比 warn 高出近 10
-     个百分点，饱和度相近，肉眼在 9px 圆点上也能一眼分开，同时仍在“暖金”范围内，
-     没有滑向像警示黄那样的纯柠檬黄。--accent-2 对应青蓝版 --accent-2（互换前
-     #5a8cff），互换后是暖橙 #ff8c5a，专用于巡检轨迹/路线一类图形元素，未发现
-     与三色语义混淆的问题，不做调整。 */
-  --accent: #f5da72;
-  --accent-2: #ff8c5a;
+  /* 强调色：--accent 用于焦点、描边和发光；--accent-2 用于路线、激活态和辅助光斑。 */
+  --accent: #38c6ec;
+  --accent-2: #2f8cff;
+
+  /* beng-demo 独立背景 token：保留原有 --bg / --panel 链路，同时把主背景、
+     通用面板和地图宿主背景抽成可调入口。 */
+  --screen-bg: var(--bg);
+  --app-bg:
+    linear-gradient(rgba(56, 198, 236, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 198, 236, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(56, 198, 236, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 198, 236, 0.1) 1px, transparent 1px),
+    radial-gradient(circle at 18% 0%, rgba(56, 198, 236, 0.16), transparent 36%),
+    radial-gradient(circle at 90% 94%, rgba(47, 140, 255, 0.14), transparent 42%),
+    var(--screen-bg);
+  --panel-bg: linear-gradient(180deg, rgba(16, 43, 66, 0.96), rgba(7, 18, 31, 0.96));
+  --panel-bg-strong: linear-gradient(180deg, rgba(19, 55, 82, 0.94), rgba(8, 24, 40, 0.96));
+  --surface-bg: rgba(15, 38, 58, 0.64);
+  --map-bg: linear-gradient(180deg, rgba(8, 24, 40, 0.72), rgba(4, 11, 20, 0.94));
 
   /* 三色语义（危险/关注/正常）——见文件头“三色语义契约”，两个姐妹 POC 禁止
      只改一侧，取值与青蓝版逐字节相同。 */
@@ -153,19 +67,8 @@ body {
   height: 100%;
   min-height: 100%;
   overflow: hidden;
-  /* 背景：双层坐标网格（23px 细网格 + 92px 粗网格，4:1）模拟省域大屏常见的地图
-     坐标刻度，叠两处柔光斑（左上琥珀金、右下暖橙），与青蓝版
-     hunan-inspection-overview 完全同构，纯 CSS 渐变实现，不引入任何外部图片/字体
-     资源。下面的 rgba 字面值是 --accent(245,218,114) / --accent-2(255,140,90) 的
-     手写副本，改了上面两个变量记得同步改这里。 */
-  background:
-    linear-gradient(rgba(245, 218, 114, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245, 218, 114, 0.05) 1px, transparent 1px),
-    linear-gradient(rgba(245, 218, 114, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245, 218, 114, 0.1) 1px, transparent 1px),
-    radial-gradient(circle at 18% 0%, rgba(245, 218, 114, 0.16), transparent 36%),
-    radial-gradient(circle at 90% 94%, rgba(255, 140, 90, 0.12), transparent 42%),
-    var(--bg);
+  /* 企业蓝网格背景：23px 细网格 + 92px 粗网格，叠加两处青蓝柔光。 */
+  background: var(--app-bg);
   background-size: 23px 23px, 23px 23px, 92px 92px, 92px 92px, auto, auto, auto;
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;

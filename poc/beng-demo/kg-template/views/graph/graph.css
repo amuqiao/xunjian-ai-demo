@@ -30,7 +30,7 @@
   display:flex;gap:30px;text-align:right
 }
 #view-graph .g-stat .g-k{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);text-transform:uppercase}
-#view-graph .g-stat .g-v{font-family:var(--mono);font-size:20px;font-weight:500;margin-top:5px;color:#D3DFFF}
+#view-graph .g-stat .g-v{font-family:var(--mono);font-size:20px;font-weight:500;margin-top:5px;color:#E8F4FF}
 
 /* 左下角图例避开 86px 竖栏 */
 #view-graph .g-legend{
@@ -39,54 +39,54 @@
 }
 #view-graph .g-legend .g-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);
   text-transform:uppercase;margin-bottom:4px}
-#view-graph .g-lg-item{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(198,212,255,.7);
+#view-graph .g-lg-item{display:flex;align-items:center;gap:10px;font-size:12px;color:rgba(232,244,255,.72);
   cursor:pointer;padding:3px 10px 3px 4px;border-radius:13px;transition:background .18s,color .18s,opacity .18s}
-#view-graph .g-lg-item:hover{background:rgba(120,160,255,.08);color:#fff}
+#view-graph .g-lg-item:hover{background:rgba(56,198,236,.1);color:#fff}
 #view-graph .g-lg-item.g-off{opacity:.28}
 #view-graph .g-lg-dot{width:12px;height:12px;border-radius:50%;flex:none}
 
 /* 同树视图：节点会飘到右下角压住提示，加一层向左淡出的底衬 */
 #view-graph .g-hint{position:absolute;right:36px;bottom:30px;text-align:right;
   padding:10px 14px 10px 26px;border-radius:10px;pointer-events:none;
-  background:linear-gradient(285deg, rgba(5,6,15,.9) 58%, rgba(5,6,15,0));
+  background:linear-gradient(285deg, rgba(6,17,31,.9) 58%, rgba(6,17,31,0));
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
-  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(150,175,235,.35);line-height:1.95}
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(118,169,213,.42);line-height:1.95}
 
 /* ── 详情面板 ─────────────────────────────────────── */
 #view-graph .g-panel{
   position:absolute;top:var(--topbar-h);right:0;bottom:0;width:var(--g-panel-w);z-index:4;
-  background:linear-gradient(180deg,rgba(11,16,40,.95),rgba(7,11,28,.97));
-  border-left:1px solid rgba(120,160,255,.16);
+  background:var(--panel-bg);
+  border-left:1px solid var(--hair);
   transform:translateX(100%);transition:transform .34s cubic-bezier(.22,.9,.3,1);
   display:flex;flex-direction:column}
 #view-graph .g-panel.g-open{transform:translateX(0)}
 
 #view-graph .g-p-head{padding:30px 26px 20px;border-bottom:1px solid var(--hair);position:relative}
 #view-graph .g-p-close{position:absolute;top:24px;right:22px;width:26px;height:26px;border-radius:50%;
-  border:1px solid rgba(120,160,255,.24);background:transparent;color:rgba(180,200,245,.68);
+  border:1px solid rgba(118,169,213,.24);background:transparent;color:rgba(190,218,245,.68);
   cursor:pointer;font-size:15px;line-height:1;transition:all .18s}
-#view-graph .g-p-close:hover{background:rgba(120,160,255,.13);color:#fff}
+#view-graph .g-p-close:hover{background:rgba(56,198,236,.13);color:#fff}
 #view-graph .g-p-type{font-family:var(--mono);font-size:9px;letter-spacing:.26em;text-transform:uppercase;margin-bottom:10px}
 #view-graph .g-p-name{font-size:21px;font-weight:600;letter-spacing:.05em;line-height:1.35}
 /* 归属路径：替代原稿那句"归属于「X」的文档条目" */
 #view-graph .g-p-path{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;line-height:1.7;
-  color:rgba(150,175,235,.62);margin-top:9px;word-break:break-all}
+  color:rgba(118,169,213,.68);margin-top:9px;word-break:break-all}
 #view-graph .g-p-desc{font-size:12.5px;line-height:1.75;color:rgba(178,196,240,.66);margin-top:13px}
 #view-graph .g-p-metrics{display:flex;gap:26px;margin-top:20px}
 #view-graph .g-p-metrics span{display:block}
 #view-graph .g-p-metrics .g-mk{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--dim)}
-#view-graph .g-p-metrics .g-mv{font-family:var(--mono);font-size:18px;color:#D3DFFF;margin-top:4px}
+#view-graph .g-p-metrics .g-mv{font-family:var(--mono);font-size:18px;color:#E8F4FF;margin-top:4px}
 
 #view-graph .g-p-body{flex:1;overflow-y:auto;padding:20px 26px 30px}
 #view-graph .g-p-body::-webkit-scrollbar{width:4px}
-#view-graph .g-p-body::-webkit-scrollbar-thumb{background:rgba(120,160,255,.22);border-radius:2px}
+#view-graph .g-p-body::-webkit-scrollbar-thumb{background:rgba(118,169,213,.24);border-radius:2px}
 #view-graph .g-rel-group{margin-bottom:20px}
 #view-graph .g-rel-title{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--dim);
   text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:9px}
 #view-graph .g-rel-title::after{content:"";flex:1;height:1px;background:var(--hair)}
 #view-graph .g-rel-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;
-  font-size:12.5px;color:rgba(198,212,255,.78);cursor:pointer;transition:background .16s,color .16s}
-#view-graph .g-rel-item:hover{background:rgba(120,160,255,.1);color:#fff}
+  font-size:12.5px;color:rgba(232,244,255,.78);cursor:pointer;transition:background .16s,color .16s}
+#view-graph .g-rel-item:hover{background:rgba(56,198,236,.1);color:#fff}
 #view-graph .g-rel-dot{width:8px;height:8px;border-radius:50%;flex:none}
 
 /* 面板底部的跨视图入口 */
@@ -94,10 +94,10 @@
 #view-graph .g-jump{
   width:100%;display:flex;align-items:center;justify-content:center;gap:9px;
   padding:11px 14px;border-radius:9px;
-  border:1px solid rgba(120,160,255,.28);background:rgba(76,125,255,.10);
+  border:1px solid var(--hair);background:var(--surface-bg);
   color:#D8E4FF;font-family:var(--sans);font-size:12.5px;letter-spacing:.06em;
   cursor:pointer;transition:background .18s,border-color .18s,color .18s}
-#view-graph .g-jump:hover{background:rgba(76,125,255,.2);border-color:rgba(140,180,255,.5);color:#fff}
+#view-graph .g-jump:hover{background:rgba(56,198,236,.18);border-color:rgba(56,198,236,.5);color:#fff}
 #view-graph .g-jump .g-arrow{font-family:var(--mono);font-size:13px;opacity:.7}
 
 @media (max-width:1000px){

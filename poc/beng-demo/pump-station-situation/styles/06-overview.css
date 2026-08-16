@@ -126,7 +126,7 @@
 
 .range-picker[open] summary {
   border-color: var(--cyan);
-  background: rgba(75, 179, 211, 0.12);
+  background: rgba(56, 198, 236, 0.12);
 }
 
 .range-picker-menu {
@@ -168,7 +168,7 @@
 
 .range-option.active {
   border-color: var(--cyan);
-  background: rgba(75, 179, 211, 0.16);
+  background: rgba(56, 198, 236, 0.16);
   color: #eafcff;
   font-weight: 700;
 }
@@ -291,7 +291,7 @@
 
 .overview-detail::-webkit-scrollbar-thumb {
   border-radius: 99px;
-  background: rgba(75, 179, 211, 0.35);
+  background: rgba(56, 198, 236, 0.35);
 }
 @media (max-width: 0px) and (max-width: 1180px) {
   .overview-shell {

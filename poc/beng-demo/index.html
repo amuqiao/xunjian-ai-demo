@@ -6,19 +6,28 @@
     <title>泵站演示大屏</title>
     <link rel="stylesheet" href="flow-nav/flow-nav.css">
     <style>
+      :root {
+        --beng-screen-bg: #06111f;
+        --beng-boot-bg:
+          radial-gradient(circle at 38% 35%, rgba(56, 198, 236, 0.18), transparent 34%),
+          radial-gradient(circle at 62% 64%, rgba(47, 140, 255, 0.14), transparent 38%),
+          #06111f;
+        --beng-boot-text: rgba(232, 244, 255, 0.88);
+      }
+
       html,
       body {
         width: 100%;
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background: #050b12;
+        background: var(--beng-screen-bg);
       }
 
       .demo-frame-stage {
         position: fixed;
         inset: 0;
-        background: #050b12;
+        background: var(--beng-screen-bg);
       }
 
       .demo-frame {
@@ -30,7 +39,7 @@
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        background: #050b12;
+        background: var(--beng-screen-bg);
       }
 
       .demo-frame.is-active {
@@ -44,10 +53,10 @@
         inset: 0;
         display: grid;
         place-items: center;
-        color: rgba(225, 245, 255, 0.86);
+        color: var(--beng-boot-text);
         font: 600 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
         letter-spacing: 0.12em;
-        background: radial-gradient(circle at center, rgba(30, 144, 190, 0.18), rgba(5, 11, 18, 0.96) 56%);
+        background: var(--beng-boot-bg);
         transition: opacity 0.24s ease, visibility 0.24s ease;
         pointer-events: none;
       }

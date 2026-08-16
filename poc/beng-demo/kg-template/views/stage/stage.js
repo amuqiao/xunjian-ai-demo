@@ -50,6 +50,14 @@
   var TAU = Math.PI * 2;
 
   function hex(h) { return new THREE.Color(h); }
+  function cssColor(name, fallback) {
+    var value = root ? getComputedStyle(root).getPropertyValue(name).trim() : '';
+    value = value || getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+    if (global.CSS && global.CSS.supports && !global.CSS.supports('color', value)) value = fallback;
+    var color = new THREE.Color();
+    color.setStyle(value);
+    return color;
+  }
 
   /* ── 闭包状态 ─────────────────────────────────── */
   var root, host, elFName, elFCode, elReadout, elLoading;
@@ -159,7 +167,8 @@
 
   function initThree() {
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05060F, 0.036);
+    var stageClear = cssColor('--kg-stage-clear', '#06111F');
+    scene.fog = new THREE.FogExp2(stageClear, 0.036);
 
     var w = root.clientWidth, h = root.clientHeight;
     camera = new THREE.PerspectiveCamera(38, w / h, 0.1, 120);
@@ -169,7 +178,7 @@
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(global.devicePixelRatio, 2));
-    renderer.setClearColor(0x05060F, 1);
+    renderer.setClearColor(stageClear, 1);
     host.appendChild(renderer.domElement);
 
     TEX_GLOW = radialTex();
@@ -187,26 +196,26 @@
     (function () {
       var c = cv(1024, 1024), g = c.getContext('2d');
       var grd = g.createRadialGradient(512, 512, 40, 512, 512, 512);
-      grd.addColorStop(0, 'rgba(28,42,92,1)');
-      grd.addColorStop(.42, 'rgba(15,22,54,1)');
-      grd.addColorStop(.86, 'rgba(9,13,34,1)');
-      grd.addColorStop(1, 'rgba(6,9,24,1)');
+      grd.addColorStop(0, 'rgba(22,50,82,1)');
+      grd.addColorStop(.42, 'rgba(12,30,50,1)');
+      grd.addColorStop(.86, 'rgba(7,20,36,1)');
+      grd.addColorStop(1, 'rgba(5,13,24,1)');
       g.fillStyle = grd; g.fillRect(0, 0, 1024, 1024);
 
       // 同心刻度环
-      g.strokeStyle = 'rgba(120,160,255,.10)';
+      g.strokeStyle = 'rgba(118,169,213,.10)';
       for (var i = 1; i <= 9; i++) { g.lineWidth = i % 3 === 0 ? 1.6 : 0.8; g.beginPath(); g.arc(512, 512, i * 51, 0, Math.PI * 2); g.stroke(); }
       // 径向分度线
       for (var j = 0; j < 96; j++) {
         var a = j / 96 * Math.PI * 2, long = j % 8 === 0;
-        g.strokeStyle = 'rgba(140,180,255,' + (long ? .30 : .10) + ')'; g.lineWidth = long ? 1.8 : 1;
+        g.strokeStyle = 'rgba(56,198,236,' + (long ? .30 : .10) + ')'; g.lineWidth = long ? 1.8 : 1;
         g.beginPath();
         g.moveTo(512 + Math.cos(a) * (long ? 405 : 452), 512 + Math.sin(a) * (long ? 405 : 452));
         g.lineTo(512 + Math.cos(a) * 500, 512 + Math.sin(a) * 500);
         g.stroke();
       }
       // 非对称弧段：同心圆本身是旋转对称的，转与不转看不出差别，靠这几段弧点破
-      [[190, 'rgba(120,200,255,.75)', 0.2, 1.5], [268, 'rgba(170,140,255,.6)', 2.6, 1.1], [372, 'rgba(90,170,255,.5)', 4.4, 2.0]]
+      [[190, 'rgba(56,198,236,.75)', 0.2, 1.5], [268, 'rgba(47,140,255,.62)', 2.6, 1.1], [372, 'rgba(110,168,255,.5)', 4.4, 2.0]]
         .forEach(function (s) {
           var rad = s[0], col = s[1], a0 = s[2], span = s[3];
           g.strokeStyle = col; g.lineWidth = 3.2; g.lineCap = 'round';
@@ -215,7 +224,7 @@
           g.shadowBlur = 0;
         });
       // 两颗环绕光点
-      [[308, 1.15, 'rgba(34,211,238,1)'], [228, 3.7, 'rgba(168,85,247,1)']].forEach(function (s) {
+      [[308, 1.15, 'rgba(56,198,236,1)'], [228, 3.7, 'rgba(47,140,255,1)']].forEach(function (s) {
         var rad = s[0], a = s[1], col = s[2];
         g.fillStyle = col; g.shadowColor = col; g.shadowBlur = 20;
         g.beginPath(); g.arc(512 + Math.cos(a) * rad, 512 + Math.sin(a) * rad, 6, 0, 7); g.fill();
@@ -236,20 +245,20 @@
       var W = 1024, H = 256, c = cv(W, H), g = c.getContext('2d');
       // 上亮下暗，模拟侧壁受光
       var grd = g.createLinearGradient(0, 0, 0, H);
-      grd.addColorStop(0, '#243662');
-      grd.addColorStop(.18, '#182549');
-      grd.addColorStop(.72, '#0B1130');
-      grd.addColorStop(1, '#060917');
+      grd.addColorStop(0, '#173A56');
+      grd.addColorStop(.18, '#102B42');
+      grd.addColorStop(.72, '#0B1C2D');
+      grd.addColorStop(1, '#06111F');
       g.fillStyle = grd; g.fillRect(0, 0, W, H);
       // 竖向凹槽
       var FLUTES = 96;
       for (var i = 0; i < FLUTES; i++) {
         var x = i * (W / FLUTES);
-        g.fillStyle = 'rgba(150,190,255,.16)'; g.fillRect(x, 0, 2.4, H);
+        g.fillStyle = 'rgba(118,169,213,.16)'; g.fillRect(x, 0, 2.4, H);
         g.fillStyle = 'rgba(0,0,0,.30)'; g.fillRect(x + 2.4, 0, 3.2, H);
       }
       // 顶部一道亮线，把桌面和侧壁分开
-      g.fillStyle = 'rgba(150,200,255,.55)'; g.fillRect(0, 0, W, 4);
+      g.fillStyle = 'rgba(56,198,236,.55)'; g.fillRect(0, 0, W, 4);
       var sideTex = tex(c);
       sideTex.wrapS = THREE.RepeatWrapping;
 
@@ -263,7 +272,7 @@
       // 底盖，避免从低角度看穿
       var cap = new THREE.Mesh(
         new THREE.CircleGeometry(R_DISC * 0.93, 96),
-        new THREE.MeshBasicMaterial({ color: 0x05070F, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: 0x06111F, side: THREE.DoubleSide })
       );
       cap.rotation.x = Math.PI / 2; cap.position.y = -DRUM_H;
       turntable.add(cap);
@@ -271,7 +280,7 @@
       // 底沿暗边
       var btm = new THREE.Mesh(
         new THREE.RingGeometry(R_DISC * 0.93 - 0.04, R_DISC * 0.93 + 0.01, 128),
-        new THREE.MeshBasicMaterial({ color: 0x3A6BC0, transparent: true, opacity: .35, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: 0x2F8CFF, transparent: true, opacity: .35, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
       );
       btm.rotation.x = -Math.PI / 2; btm.position.y = -DRUM_H + 0.005;
       turntable.add(btm);
@@ -280,21 +289,21 @@
          是"它在转"最硬的证据——比任何光效都可靠 */
       var plinth = new THREE.Mesh(
         new THREE.CylinderGeometry(R_DISC * 0.99, R_DISC * 1.06, 0.40, 96),
-        new THREE.MeshLambertMaterial({ color: 0x131C3C, emissive: 0x060A1A })
+        new THREE.MeshLambertMaterial({ color: 0x0D2235, emissive: 0x06111F })
       );
       plinth.position.y = -DRUM_H - 0.20;
       scene.add(plinth);                       // 加进 scene 而非 turntable：它不转
 
       var seam = new THREE.Mesh(
         new THREE.RingGeometry(R_DISC * 0.99, R_DISC * 1.07, 128),
-        new THREE.MeshBasicMaterial({ color: 0x5E8CFF, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: 0x56A4FF, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
       );
       seam.rotation.x = -Math.PI / 2; seam.position.y = -DRUM_H + 0.002;
       scene.add(seam);
 
       var rim = new THREE.Mesh(
         new THREE.RingGeometry(R_DISC - 0.035, R_DISC + 0.02, 160),
-        new THREE.MeshBasicMaterial({ color: 0x66A8FF, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: 0x38C6EC, transparent: true, opacity: .85, blending: THREE.AdditiveBlending, side: THREE.DoubleSide })
       );
       rim.rotation.x = -Math.PI / 2; rim.position.y = 0.005;
       turntable.add(rim);
@@ -314,10 +323,10 @@
         g.arc(S / 2, S / 2, S / 2, a1, a0, false);
         g.closePath();
         var grd = g.createRadialGradient(S / 2, S / 2, 30, S / 2, S / 2, S / 2);
-        grd.addColorStop(0, 'rgba(80,190,255,' + (alpha * 0.15) + ')');
-        grd.addColorStop(.55, 'rgba(110,160,255,' + (alpha * 0.62) + ')');
-        grd.addColorStop(.93, 'rgba(170,120,255,' + alpha + ')');
-        grd.addColorStop(1, 'rgba(170,120,255,0)');
+        grd.addColorStop(0, 'rgba(56,198,236,' + (alpha * 0.15) + ')');
+        grd.addColorStop(.55, 'rgba(143,191,255,' + (alpha * 0.62) + ')');
+        grd.addColorStop(.93, 'rgba(47,140,255,' + alpha + ')');
+        grd.addColorStop(1, 'rgba(47,140,255,0)');
         g.fillStyle = grd; g.fill();
       }
       sweepMesh = new THREE.Mesh(
@@ -336,7 +345,7 @@
         var a = i / 44 * Math.PI * 2, r = R_DISC - 0.55;
         var m = new THREE.Mesh(
           new THREE.PlaneGeometry(i % 4 === 0 ? 0.30 : 0.13, 0.05),
-          new THREE.MeshBasicMaterial({ color: i % 4 === 0 ? 0x9AC4FF : 0x4A6BB0, transparent: true, opacity: i % 4 === 0 ? .75 : .4, blending: THREE.AdditiveBlending, depthWrite: false })
+          new THREE.MeshBasicMaterial({ color: i % 4 === 0 ? 0x8FBFFF : 0x56A4FF, transparent: true, opacity: i % 4 === 0 ? .75 : .4, blending: THREE.AdditiveBlending, depthWrite: false })
         );
         m.position.set(Math.cos(a) * r, 0.03, Math.sin(a) * r);
         m.rotation.set(-Math.PI / 2, 0, -a);
@@ -349,7 +358,7 @@
     (function () {
       var floor = new THREE.Mesh(
         new THREE.CircleGeometry(15, 64),
-        new THREE.MeshBasicMaterial({ map: TEX_GLOW, color: 0x2B4FCC, transparent: true, opacity: .30, blending: THREE.AdditiveBlending, depthWrite: false })
+        new THREE.MeshBasicMaterial({ map: TEX_GLOW, color: 0x38C6EC, transparent: true, opacity: .30, blending: THREE.AdditiveBlending, depthWrite: false })
       );
       floor.rotation.x = -Math.PI / 2; floor.position.y = -DRUM_H - 0.62;
       scene.add(floor);
@@ -399,19 +408,19 @@
     // 外发光
     g.save();
     g.shadowColor = col; g.shadowBlur = hot ? 58 : 26;
-    g.fillStyle = 'rgba(10,15,38,.001)'; rr(g, x, y, w, h, r); g.fill();
+    g.fillStyle = 'rgba(8,24,40,.001)'; rr(g, x, y, w, h, r); g.fill();
     g.restore();
 
     // 卡面
     var bg = g.createLinearGradient(0, y, 0, y + h);
-    bg.addColorStop(0, hot ? 'rgba(30,44,96,.97)' : 'rgba(18,26,62,.94)');
-    bg.addColorStop(.55, hot ? 'rgba(16,24,60,.96)' : 'rgba(11,17,44,.93)');
-    bg.addColorStop(1, hot ? 'rgba(11,17,44,.97)' : 'rgba(8,12,32,.95)');
+    bg.addColorStop(0, hot ? 'rgba(22,50,82,.97)' : 'rgba(13,34,53,.94)');
+    bg.addColorStop(.55, hot ? 'rgba(10,31,52,.96)' : 'rgba(8,24,40,.93)');
+    bg.addColorStop(1, hot ? 'rgba(8,24,40,.97)' : 'rgba(6,17,31,.95)');
     rr(g, x, y, w, h, r); g.fillStyle = bg; g.fill();
 
     // 描边
     g.lineWidth = hot ? 3 : 1.6;
-    g.strokeStyle = hot ? col : 'rgba(120,155,255,.30)';
+    g.strokeStyle = hot ? col : 'rgba(118,169,213,.30)';
     rr(g, x, y, w, h, r); g.stroke();
 
     // 顶部色条
@@ -420,18 +429,18 @@
     bar.addColorStop(0, 'rgba(255,255,255,0)'); bar.addColorStop(.5, col); bar.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = bar; g.fillRect(x, y, w, hot ? 6 : 4);
     // 卡面细网格
-    g.strokeStyle = 'rgba(120,160,255,.055)'; g.lineWidth = 1;
+    g.strokeStyle = 'rgba(118,169,213,.055)'; g.lineWidth = 1;
     for (var i = 1; i < 9; i++) { g.beginPath(); g.moveTo(x, y + i * h / 9); g.lineTo(x + w, y + i * h / 9); g.stroke(); }
     g.restore();
 
     // 代号
     g.font = '500 20px "SF Mono",Menlo,monospace';
-    g.fillStyle = hot ? col : 'rgba(150,175,235,.55)';
+    g.fillStyle = hot ? col : 'rgba(118,169,213,.62)';
     g.textAlign = 'left'; g.fillText(cat.code, x + 30, y + 52);
 
     // 状态点
     g.beginPath(); g.arc(x + w - 34, y + 45, 5, 0, 7);
-    g.fillStyle = hot ? col : 'rgba(140,170,230,.42)'; g.fill();
+    g.fillStyle = hot ? col : 'rgba(56,198,236,.42)'; g.fill();
 
     // 图标
     var drawIcon = ICONS[cat.icon];
@@ -451,44 +460,44 @@
     // 中文名
     g.textAlign = 'center';
     g.font = '600 52px "PingFang SC","Microsoft YaHei",sans-serif';
-    g.fillStyle = hot ? '#FFFFFF' : '#D6E1FF';
+    g.fillStyle = hot ? '#FFFFFF' : '#E8F4FF';
     if (hot) { g.shadowColor = col; g.shadowBlur = 26; }
     g.fillText(cat.name, W / 2, y + 322);
     g.shadowBlur = 0;
 
     // 英文名
     g.font = '400 19px "SF Mono",Menlo,monospace';
-    g.fillStyle = 'rgba(150,175,235,.62)';
+    g.fillStyle = 'rgba(118,169,213,.68)';
     g.letterSpacing = '3px';
     g.fillText(cat.en, W / 2, y + 360);
 
     // 分隔线
     var ln = g.createLinearGradient(x + 60, 0, x + w - 60, 0);
     ln.addColorStop(0, 'rgba(255,255,255,0)');
-    ln.addColorStop(.5, hot ? col : 'rgba(120,155,255,.4)');
+    ln.addColorStop(.5, hot ? col : 'rgba(56,198,236,.4)');
     ln.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = ln; g.fillRect(x + 60, y + 394, w - 120, 1.4);
 
     // 指标
     g.font = '500 62px "SF Mono",Menlo,monospace';
-    g.fillStyle = hot ? '#FFFFFF' : '#C3D2FF';
+    g.fillStyle = hot ? '#FFFFFF' : '#BFE4FF';
     g.fillText(cat.count, W / 2, y + 486);
     g.font = '400 21px "PingFang SC",sans-serif';
-    g.fillStyle = 'rgba(150,175,235,.55)';
+    g.fillStyle = 'rgba(118,169,213,.62)';
     g.fillText(KG.derive.text.docUnit + ' · ' + cat.note, W / 2, y + 522);
 
     // 底部进度条：占总量的比例（countRaw 是派生层给的原始数值，不用再解析千分位）
     /* 分母不再写死：由派生层给出（默认取最大类目的文档量），
        于是进度条表达的是"该类目在全部类目中的相对体量"，换任何数据都成立 */
     var ratio = Math.min(1, cat.countRaw / KG.derive.progressBase());
-    g.fillStyle = 'rgba(120,155,255,.16)'; rr(g, x + 62, y + 560, w - 124, 5, 3); g.fill();
+    g.fillStyle = 'rgba(56,198,236,.14)'; rr(g, x + 62, y + 560, w - 124, 5, 3); g.fill();
     g.fillStyle = col; rr(g, x + 62, y + 560, (w - 124) * ratio, 5, 3); g.fill();
 
     // 底座
-    g.fillStyle = hot ? 'rgba(255,255,255,.12)' : 'rgba(120,155,255,.07)';
+    g.fillStyle = hot ? 'rgba(255,255,255,.12)' : 'rgba(56,198,236,.07)';
     rr(g, W / 2 - 96, y + h - 52, 192, 34, 8); g.fill();
     g.font = '400 16px "SF Mono",Menlo,monospace';
-    g.fillStyle = 'rgba(150,175,235,.5)';
+    g.fillStyle = 'rgba(118,169,213,.58)';
     g.fillText(KG.derive.ui.stage.cardFooter, W / 2, y + h - 30);
 
     return tex(c);
@@ -542,7 +551,7 @@
          文字亮度必须恒定，不能让灯光把它压暗 */
       var matFace = new THREE.MeshBasicMaterial({ map: texCold, transparent: true, opacity: 1 });
       // 侧边与倒角受光：明暗过渡全靠它
-      var matEdge = new THREE.MeshLambertMaterial({ color: 0x2C3D74, emissive: 0x0A1230 });
+      var matEdge = new THREE.MeshLambertMaterial({ color: 0x174A70, emissive: 0x0A2440 });
 
       var card = new THREE.Mesh(SLAB_GEO, [matFace, matEdge]);
       card.position.y = CARD_LIFT + CARD_H / 2 * Math.cos(CARD_TILT);
@@ -649,11 +658,11 @@
 
   /* ── 灯光：只影响侧边、倒角和底座，正面自发光不受影响 ── */
   function buildLights() {
-    scene.add(new THREE.HemisphereLight(0x4E6BC8, 0x05070F, 0.85));
-    var keyLight = new THREE.DirectionalLight(0xC9DBFF, 1.05);
+    scene.add(new THREE.HemisphereLight(0x56A4FF, 0x06111F, 0.85));
+    var keyLight = new THREE.DirectionalLight(0xE8F4FF, 1.05);
     keyLight.position.set(5, 10, 9);
     scene.add(keyLight);
-    var rimLight = new THREE.DirectionalLight(0x9B6BFF, 0.55);
+    var rimLight = new THREE.DirectionalLight(0x2F8CFF, 0.55);
     rimLight.position.set(-7, 3, -8);
     scene.add(rimLight);
   }
@@ -666,18 +675,18 @@
 
     coreCage = new THREE.Mesh(
       new THREE.IcosahedronGeometry(0.50, 1),
-      new THREE.MeshBasicMaterial({ color: 0x8FB6FF, wireframe: true, transparent: true, opacity: .5 })
+      new THREE.MeshBasicMaterial({ color: 0x8FBFFF, wireframe: true, transparent: true, opacity: .5 })
     );
     coreGroup.add(coreCage);
 
     coreInner = new THREE.Mesh(
       new THREE.IcosahedronGeometry(0.27, 1),
-      new THREE.MeshBasicMaterial({ color: 0xCFE0FF, transparent: true, opacity: .9 })
+      new THREE.MeshBasicMaterial({ color: 0xE8F4FF, transparent: true, opacity: .9 })
     );
     coreGroup.add(coreInner);
 
     coreHalo = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: TEX_GLOW, color: 0x6C8FFF, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false
+      map: TEX_GLOW, color: 0x38C6EC, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false
     }));
     coreHalo.scale.set(3.2, 3.2, 1);
     coreGroup.add(coreHalo);
@@ -685,7 +694,7 @@
     // 核心投在桌面的光池
     var p = new THREE.Mesh(
       new THREE.CircleGeometry(2.0, 48),
-      new THREE.MeshBasicMaterial({ map: TEX_GLOW, color: 0x5B82FF, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false })
+      new THREE.MeshBasicMaterial({ map: TEX_GLOW, color: 0x2F8CFF, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false })
     );
     p.rotation.x = -Math.PI / 2; p.position.y = 0.02;
     statics.add(p);
@@ -694,7 +703,7 @@
     var c = cv(512, 150), g = c.getContext('2d');
     g.textAlign = 'center';
     g.font = '600 46px "PingFang SC","Microsoft YaHei",sans-serif';
-    g.fillStyle = '#FFFFFF'; g.shadowColor = '#6C8FFF'; g.shadowBlur = 24;
+    g.fillStyle = '#FFFFFF'; g.shadowColor = '#38C6EC'; g.shadowBlur = 24;
     g.fillText(hub.name, 256, 56);
     g.shadowBlur = 0;
     g.font = '400 17px "SF Mono",Menlo,monospace';
@@ -715,7 +724,7 @@
     var COUNT = 1100;
     var pos = new Float32Array(COUNT * 3), colArr = new Float32Array(COUNT * 3);
     pVel = new Float32Array(COUNT);
-    var cA = hex('#4C7DFF'), cB = hex('#A855F7'), cC = hex('#22D3EE'), tmp = new THREE.Color();
+    var cA = hex('#38C6EC'), cB = hex('#2F8CFF'), cC = hex('#8FBFFF'), tmp = new THREE.Color();
     for (var i = 0; i < COUNT; i++) {
       var a = Math.random() * Math.PI * 2;
       var rad = 2 + Math.pow(Math.random(), .6) * 13;

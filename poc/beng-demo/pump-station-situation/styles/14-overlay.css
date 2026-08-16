@@ -43,7 +43,7 @@
   gap: 12px;
   overflow: auto;
   outline: none;
-  border-color: rgba(75, 179, 211, 0.42);
+  border-color: rgba(56, 198, 236, 0.42);
   background:
     linear-gradient(180deg, rgba(19, 34, 47, 0.98), rgba(9, 17, 24, 0.98)),
     var(--panel);
@@ -206,8 +206,8 @@
 
 .agent-dialog-question.active,
 .agent-dialog-question:hover {
-  border-color: rgba(75, 179, 211, 0.54);
-  background: rgba(75, 179, 211, 0.12);
+  border-color: rgba(56, 198, 236, 0.54);
+  background: rgba(56, 198, 236, 0.12);
 }
 
 .agent-dialog-answer {
@@ -218,7 +218,7 @@
   gap: 10px;
   align-content: start;
   overflow: auto;
-  border: 1px solid rgba(75, 179, 211, 0.28);
+  border: 1px solid rgba(56, 198, 236, 0.28);
   border-radius: 8px;
   background: rgba(2, 9, 14, 0.52);
 }
@@ -261,7 +261,7 @@
 
 .agent-dialog-hit.workcard,
 .agent-dialog-hit.current {
-  border-color: rgba(75, 179, 211, 0.44);
+  border-color: rgba(56, 198, 236, 0.44);
   color: var(--cyan);
 }
 

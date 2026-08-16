@@ -3,7 +3,7 @@
 .panel {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(22, 36, 49, 0.96), rgba(14, 23, 31, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
 }
 
@@ -19,14 +19,14 @@
 }
 
 .primary-action {
-  background: linear-gradient(135deg, #1b9dbe, #2fbf95);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-color: rgba(96, 220, 220, 0.72);
   color: #f8ffff;
   font-weight: 800;
 }
 
 .primary-action:disabled {
-  background: #25313b;
+  background: var(--panel-3);
   border-color: #3b4a56;
   color: #758797;
 }
@@ -111,7 +111,7 @@
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(22, 36, 49, 0.92), rgba(13, 24, 33, 0.96));
+  background: var(--panel-bg-strong);
   padding: 8px 10px;
   display: grid;
   align-content: center;
@@ -168,7 +168,7 @@
   border: 1px solid var(--line);
   border-left: 3px solid var(--line-strong);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(22, 36, 49, 0.96), rgba(14, 23, 31, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 12px 14px;
   display: grid;
@@ -250,7 +250,7 @@
 .card-chart {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(22, 36, 49, 0.9), rgba(13, 24, 33, 0.94));
+  background: var(--panel-bg-strong);
   box-shadow: var(--shadow);
   padding: 10px 12px 12px;
   display: grid;
@@ -291,7 +291,7 @@
   border: 1px solid var(--line);
   border-left: 2px solid var(--line);
   border-radius: 8px;
-  background: rgba(17, 27, 36, 0.6);
+  background: var(--surface-bg);
   padding: 9px 11px;
   display: grid;
   gap: 6px;
@@ -326,9 +326,9 @@
   min-height: 22px;
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgba(75, 179, 211, 0.32);
+  border: 1px solid rgba(56, 198, 236, 0.32);
   border-radius: 6px;
-  background: rgba(75, 179, 211, 0.08);
+  background: rgba(56, 198, 236, 0.08);
   color: var(--muted);
   padding: 2px 7px;
   font-size: 10px;
@@ -339,7 +339,7 @@
 .card-detail {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(22, 36, 49, 0.94), rgba(14, 23, 31, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
   padding: 14px;
   display: grid;
@@ -480,7 +480,7 @@
 
 .sl-item.active {
   border-color: var(--cyan);
-  background: rgba(75, 179, 211, 0.14);
+  background: var(--accent-soft);
 }
 
 .sl-item:hover {
@@ -587,7 +587,7 @@
 }
 
 .sl-table-row.active {
-  background: rgba(75, 179, 211, 0.14);
+  background: var(--accent-soft);
   box-shadow: inset 3px 0 0 var(--cyan);
 }
 

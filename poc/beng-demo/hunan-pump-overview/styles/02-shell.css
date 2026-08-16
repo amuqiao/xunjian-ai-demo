@@ -2,17 +2,10 @@
    panel / kicker / dot（三色语义点） / tool-btn 三件套 / muted / panel-title /
    bottombar（返回按钮 + 三级面包屑 + 操作栏）—— 全场景通用的“外壳级”基元。
 
-   本文件与青蓝版姐妹 POC hunan-inspection-overview 的同名文件结构、类名、注释
-   骨架逐条对应，仅把颜色部分换成暖琥珀基调：var(--cyan) 早已在两份 01-tokens.css
-   里统一改名成 var(--accent)，这里直接读同名变量即可零分叉；少数几处母本手写的
-   rgba(56,198,236,x) 字面值（--accent 的透明度派生，不是变量引用）换成
-   rgba(245,218,114,x)（--accent 暖琥珀版的透明度派生——注意不是简单的机械互换
-   结果，--accent 为了和 --status-warn 拉开辨识度做过二次校准提亮，取值推导见
-   01-tokens.css 文件头“强调色与三色语义的色相冲突”），逐处标了注释，改 --accent
-   记得同步改这里；另有几处中性色背景渐变的字面值，按 01-tokens.css 文件头现行的
-   “G 通道锚点 + 极小 bump”方法换算，不再是完整 R/B 互换，逐处也标了注释。
-
-   骨架结构最初移植自 poc/inspection-3d-sandbox/styles/02-shell.css：.app-shell
+   本文件与总览组件既有结构、类名和 DOM 契约保持一致，只把外壳高亮统一为
+   beng-demo 企业蓝 token。少量手写 rgba 是 --accent 的透明度副本，改 token 时
+   需要同步检查。 */
+/* 骨架结构最初移植自 poc/inspection-3d-sandbox/styles/02-shell.css：.app-shell
    的固定画布 + 三行网格、.panel/.kicker/.dot/三件套按钮/.muted/.panel-title 这些
    会被 scripts/ui/cards.js、selectlist.js、detailcard.js 直接复用的基元逐字保留。
    母本里专属于“站内巡检”的 .flow-rail / .flow-track（6 步巡检流程轨）在这份大屏
@@ -116,11 +109,9 @@
   border: 2px solid var(--accent);
   display: grid;
   place-items: center;
-  /* 字面值是 --accent(245,218,114) 的 14% 透明度副本，改 --accent 记得同步改这里
-     （对应青蓝版同位置的 rgba(56,198,236,0.14)；--accent 的暖琥珀取值不是简单
-     R/B 互换，见 01-tokens.css 文件头“强调色与三色语义的色相冲突”）。 */
-  background: rgba(245, 218, 114, 0.14);
-  color: #fff9e6;
+  /* --accent 的 14% 透明度副本，改 --accent 时同步检查。 */
+  background: rgba(56, 198, 236, 0.14);
+  color: #e8f8ff;
   font-size: 24px;
   font-weight: 800;
   font-family: Bahnschrift, "DIN Alternate", sans-serif;
@@ -197,15 +188,14 @@
 
 .topbar-title-main h1 {
   overflow: hidden;
-  color: #fff8e8;
+  color: #e8f8ff;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* 字面值是 --accent(245,218,114) 的 40% 透明度副本，用于标题字发光，改
-     --accent 记得同步改这里（对应青蓝版同位置的 rgba(56,198,236,0.4)）。 */
-  text-shadow: 0 0 16px rgba(245, 218, 114, 0.4);
+  /* --accent 的 40% 透明度副本，用于标题字发光。 */
+  text-shadow: 0 0 16px rgba(56, 198, 236, 0.4);
 }
 
 .topbar-title-rule {
@@ -223,7 +213,7 @@
 }
 
 .topbar-clock strong {
-  color: #fff8e8;
+  color: #e8f8ff;
   font-family: Bahnschrift, "DIN Alternate", sans-serif;
   font-size: 18px;
   font-weight: 700;
@@ -248,7 +238,7 @@
   /* 字面值按 01-tokens.css 文件头“G 通道锚点 + 极小 bump”方法，从青蓝版
      rgba(18,34,46,.96)/rgba(10,20,28,.96) 换算而来（对应 --panel-2 与 --bg 附近
      的中性深色，不是完整 R/B 互换）。 */
-  background: linear-gradient(180deg, rgba(39, 34, 29, 0.96), rgba(25, 20, 15, 0.96));
+  background: var(--panel-bg);
   box-shadow: var(--shadow);
 }
 
@@ -292,14 +282,9 @@
 }
 
 .primary-action {
-  /* 这一对颜色是设计师手选的暖色“确认/推进”配色，不是按 01-tokens.css 文件头
-     那套 R/B 通道互换机械算出来的：青蓝版母本的确认色是青绿渐变
-     #1a9bc4 → #2fbf95，机械互换会把它翻成偏橄榄绿的暖色，视觉上完全不像
-     “确认/推进”的正向色，所以这里改成琥珀到深橙的渐变，保持同等的视觉权重与
-     正向语义。 */
-  background: linear-gradient(135deg, #c97a1f, #e2b33e);
-  border-color: rgba(240, 190, 90, 0.72);
-  color: #fffaf0;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  border-color: rgba(56, 198, 236, 0.72);
+  color: #e8f8ff;
   font-weight: 800;
 }
 
@@ -307,9 +292,9 @@
   /* 三个字面色是中性禁用态色，按 01-tokens.css 文件头现行的“G 通道锚点 + 极小
      bump”方法（bump=5），从青蓝版 #232f39(35,47,57) / #3a4a56(58,74,86) /
      #758797(117,135,151) 换算而来，不再是完整 R/B 互换。 */
-  background: #342f2a;
-  border-color: #4f4a45;
-  color: #8c8782;
+  background: var(--panel-3);
+  border-color: rgba(118, 169, 213, 0.3);
+  color: rgba(237, 247, 255, 0.48);
 }
 
 .tool-btn:hover,

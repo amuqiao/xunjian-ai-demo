@@ -28,13 +28,13 @@
     },
 
     types: {
-      hub: { label: '知识中枢', color: '#8FB4FF' },
-      category: { label: '知识类目', color: '#FFC661' },
-      topic: { label: '主题', color: '#FF9A66' },
-      subtopic: { label: '子类', color: '#4FD6A9' },
-      doc: { label: '资料', color: '#5B9EFF' },
-      item: { label: '条目', color: '#A98CFF' },
-      entity: { label: '实体标签', color: '#22D3EE' }
+      hub: { label: '知识中枢', color: '#8FBFFF' },
+      category: { label: '知识类目', color: '#38C6EC' },
+      topic: { label: '主题', color: '#56A4FF' },
+      subtopic: { label: '子类', color: '#5EC8FF' },
+      doc: { label: '资料', color: '#2F8CFF' },
+      item: { label: '条目', color: '#7DBBFF' },
+      entity: { label: '实体标签', color: '#38C6EC' }
     },
 
     treeLevels: ['category', 'topic', 'subtopic', 'doc', 'item'],
@@ -50,7 +50,7 @@
     categories: [
       {
         id: 'c_gb', name: '国家标准', en: 'NATIONAL STANDARDS', code: 'PUMP-GB',
-        color: '#4C7DFF', icon: 'shield', note: '基础规范', docTotal: 13,
+        color: '#2F8CFF', icon: 'shield', note: '基础规范', docTotal: 13,
         desc: '覆盖爆炸性环境、机械设备安装、输油管道设计、工业管道施工、设备标识和设施维护等国家标准。',
         featured: ['d_gb_3836_13', 'd_gb_50253', 'd_gbt_35068'],
         children: [
@@ -85,7 +85,7 @@
       },
       {
         id: 'c_industry', name: '行业标准', en: 'INDUSTRY STANDARDS', code: 'PUMP-SY',
-        color: '#22D3EE', icon: 'chart', note: '安装运行', docTotal: 2,
+        color: '#38C6EC', icon: 'chart', note: '安装运行', docTotal: 2,
         desc: '沉淀输油泵组安装和成品油管道运行的行业标准，作为泵机组安装验收和运行复核依据。',
         featured: ['d_syt_0403', 'd_syt_6695'],
         children: [
@@ -103,7 +103,7 @@
       },
       {
         id: 'c_group', name: '集团制度', en: 'GROUP RULES', code: 'PUMP-GGW',
-        color: '#8B5CFF', icon: 'stack', note: '管理要求', docTotal: 7,
+        color: '#4B6FFF', icon: 'stack', note: '管理要求', docTotal: 7,
         desc: '覆盖资产完整性、生产运行、站场完整性、站内管道和泄漏管理等集团公司制度文件。',
         featured: ['d_qggw_03001_3', 'd_group_run_rule', 'd_group_leak_rule', 'd_qggw_03001_7'],
         children: [
@@ -126,7 +126,7 @@
       },
       {
         id: 'c_hunan', name: '湖南规程指引', en: 'HUNAN GUIDES', code: 'PUMP-HN',
-        color: '#4FD6A9', icon: 'doc', note: '现场执行', docTotal: 8,
+        color: '#5EC8FF', icon: 'doc', note: '现场执行', docTotal: 8,
         desc: '湖南公司维检修、作业计划、能量隔离、变更管理和泵操作维护规程，是站场执行层的主要依据。',
         featured: ['d_hn_maintenance_guide', 'd_hn_pump_turning', 'd_hn_feed_pump', 'd_hn_main_pump'],
         children: [
@@ -154,7 +154,7 @@
       },
       {
         id: 'c_ticket', name: '一票一卡', en: 'WORK TICKETS', code: 'PUMP-TICKET',
-        color: '#FF9A66', icon: 'cal', note: '可执行', docTotal: 9,
+        color: '#7DBBFF', icon: 'cal', note: '可执行', docTotal: 9,
         desc: '覆盖泵机组机械密封更换、4000小时维护、10年大修、泄漏报警检查、润滑油更换和就地启停切换操作票。',
         featured: ['d_k248_seal', 'd_k249_4000h', 'd_k250_overhaul', 'd_p202_start'],
         children: [
@@ -179,7 +179,7 @@
       },
       {
         id: 'c_fault', name: '故障案例', en: 'FAULT CASES', code: 'PUMP-CASE',
-        color: '#A855F7', icon: 'people', note: '诊断复用', docTotal: 4,
+        color: '#6EA8FF', icon: 'people', note: '诊断复用', docTotal: 4,
         desc: 'Excel 预留故障库类目；演示中补充 P-1 不对中、P-02 振动联锁、P-03 泄漏报警和启泵失败等案例。',
         featured: ['d_case_p1_alignment', 'd_case_p02_vibration', 'd_case_p03_leak'],
         children: [
