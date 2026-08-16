@@ -58,8 +58,8 @@
        换业务数据时单位往往要跟着变（巡检是"项"，制度是"条"），
        这些字以前散在 stage.js / tree.js 里，收到这里统一改。 */
     text: {
-      docUnit: '篇',          // 展台立牌大数字后面的单位
-      docUnitLong: '份文档',  // 树左栏统计用
+      docUnit: '份',          // 展台立牌大数字后面的单位
+      docUnitLong: '份资料',  // 树左栏统计用
       sampleLabel: '已建模',  // 样本数的说法
       truncatedHint: '演示上限'
     },
@@ -68,7 +68,7 @@
        这块是模板复用时最常改的配置：巡检数据可以把"文档"改成"巡检项"，
        泵数据可以把"实体标签"改成"故障模式"或"部件标签"。 */
     ui: {
-      pageTitleSuffix: '知识图谱模板',
+      pageTitleSuffix: '巡检知识图谱',
 
       views: [
         { key: 'stage', label: '展台',     en: 'STAGE', title: '3D 展台' },
@@ -78,15 +78,15 @@
 
       search: {
         title: '全局检索',
-        scope: '类目 / 文档 / 目录 / 实体标签',
-        placeholder: '搜索类目 / 文档 / 目录 / 实体标签',
-        suggestionsCategory: '试试这些 · 知识库类目',
-        suggestionsEntity: '试试这些 · 实体标签',
-        noMatch: '没有匹配「{query}」的类目、文档、目录或实体标签'
+        scope: '分支 / 资料 / 目录 / 巡检实体',
+        placeholder: '搜索巡检分支 / 资料 / 目录 / 实体',
+        suggestionsCategory: '试试这些 · 巡检知识分支',
+        suggestionsEntity: '试试这些 · 巡检实体',
+        noMatch: '没有匹配「{query}」的分支、资料、目录或实体'
       },
 
       stage: {
-        eyebrow: 'Knowledge Graph Exhibit',
+        eyebrow: 'Inspection Knowledge Graph',
         liveText: '索引同步中',
         loadingText: '初始化展台',
         focusLabel: 'Scanning',
@@ -95,15 +95,15 @@
 
       graph: {
         degreeLabel: '连接数',
-        totalLabel: '文档量',
+        totalLabel: '资料量',
         jumpToTree: '在主题树中查看'
       },
 
       tree: {
-        eyebrow: 'Document Topics',
-        title: '文档主题',
+        eyebrow: 'Inspection Topics',
+        title: '巡检主题',
         topicUnit: '个主题',
-        hintHtml: '悬停节点 — 高亮从根到它的整条路径<br>点击目录 — 折叠 / 展开该分支<br>点击文档 — 查看详情　滚轮 — 缩放　拖拽 — 平移',
+        hintHtml: '悬停节点 — 高亮从根到它的整条路径<br>点击目录 — 折叠 / 展开该分支<br>点击资料 — 查看详情　滚轮 — 缩放　拖拽 — 平移',
         jumpToGraph: '在关系图谱中查看'
       },
 
@@ -121,17 +121,17 @@
           { key: 'SAMPLES', value: 'sampleTotal' }
         ],
         stageQuestion: '有哪些知识库？',
-        stageDesc: '按类目陈列 {categories} 座知识库，一眼看清库存规模与更新态势，是总览入口。',
+        stageDesc: '按分支陈列 {categories} 座巡检知识库，一眼看清资料规模与更新态势，是总览入口。',
         graphQuestion: '知识之间怎么连？',
-        graphDesc: '把类目、代表文档与 {entities} 个实体标签放进同一张力导向网络，共 {edges} 条关系，回答横向关联。',
+        graphDesc: '把分支、代表资料与 {entities} 个巡检实体放进同一张力导向网络，共 {edges} 条关系，回答横向关联。',
         treeQuestion: '具体文档在哪？',
-        treeDesc: '沿类目逐层下钻到叶子文档，已建模样本 {samples} 篇，回答纵向定位。',
+        treeDesc: '沿分支逐层下钻到叶子资料，已建模样本 {samples} 份，回答纵向定位。',
         guideHtml: '换成自己的业务数据通常只需要改 <code>data/kg-data.js</code>；如果单位、视图名、搜索分组或提示文案也要变，再改 <code>data/kg-config.js</code>。三个视图由 <code>data/kg-derive.js</code> 投影出来，视图代码不读原始数据。<br>改完打开浏览器控制台执行 <code>KG.derive.validate()</code> 看体检结果：<code>errors</code> 必须为空，<code>warnings</code> 提示的是能跑但会缺内容的地方。'
       }
     },
 
     messages: {
-      stageNodeToCategory: '展台按知识库类目陈列，已定位到「{category}」',
+      stageNodeToCategory: '展台按巡检知识分支陈列，已定位到「{category}」',
       entityToStage: '「{node}」是横向标签，展台已转到关联最多的「{category}」',
       graphNonFeaturedLeaf: '图谱只展示各类目的代表文档，「{node}」未收录',
       graphBranchMissing: '图谱不展示目录层级，「{node}」没有对应节点',
@@ -140,10 +140,10 @@
     },
 
     searchGroups: [
-      { key: 'category', label: '知识库类目', types: ['category'] },
-      { key: 'doc',      label: '文档',       types: ['doc', 'item'] },
+      { key: 'category', label: '知识分支', types: ['category'] },
+      { key: 'doc',      label: '资料',     types: ['doc', 'item'] },
       { key: 'branch',   label: '目录',       types: ['topic', 'subtopic'] },
-      { key: 'entity',   label: '实体标签',   types: ['entity'] }
+      { key: 'entity',   label: '巡检实体', types: ['entity'] }
     ],
 
     /* ══ 四、展台立牌底部进度条 ══════════════════════════════
