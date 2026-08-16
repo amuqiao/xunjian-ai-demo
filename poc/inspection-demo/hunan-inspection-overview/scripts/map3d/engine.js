@@ -898,6 +898,7 @@
 
       if (!engine.host || !engine.host.isConnected) return;
       if (document.hidden) return;
+      if (!engine.shellActive) return;
       if (!engine.visible) return;
       if (engine.host.clientWidth === 0 || engine.host.clientHeight === 0) return;
 
@@ -1072,6 +1073,7 @@
       frames: 0,
       rafId: 0,
       visible: true,
+      shellActive: true,
       dirty: false,
       frameScheduled: false,
       lastRenderTime: 0,
@@ -1303,6 +1305,14 @@
     markDirty(engine);
   }
 
+  function setShellActive(active) {
+    if (typeof active !== "boolean") throw new Error("HunanMap3D.setShellActive 需要布尔值");
+    if (!engine) return;
+    var wasActive = engine.shellActive;
+    engine.shellActive = active;
+    if (active && !wasActive) markDirty(engine);
+  }
+
   function debugInfo() {
     if (!engine) throw new Error("HunanMap3D 尚未挂载，无法获取调试信息");
     var width = engine.host ? engine.host.clientWidth : 0;
@@ -1348,6 +1358,7 @@
     setActiveSite: setActiveSite,
     setZoneStatuses: setZoneStatuses,
     setPipelineVisible: setPipelineVisible,
+    setShellActive: setShellActive,
     zoom: zoom,
     resetView: resetView,
     debugInfo: debugInfo

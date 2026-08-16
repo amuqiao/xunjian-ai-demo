@@ -50,6 +50,12 @@
   assertGlobal("InspectorPickerScene", window.InspectorPickerScene);
   assertGlobal("IssueReportScene", window.IssueReportScene);
 
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "inspection-demo:visibility") return;
+    window.Map3D.setShellActive(!!data.active);
+  });
+
   var DATA = window.DemoData;
   var AppState = window.AppState;
   var C = window.Map3DContract;

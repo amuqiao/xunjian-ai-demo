@@ -43,6 +43,12 @@
   assertGlobal("Overlay", window.Overlay);
   assertGlobal("OverviewScene", window.OverviewScene);
 
+  window.addEventListener("message", function (event) {
+    var data = event.data;
+    if (!data || data.type !== "inspection-demo:visibility") return;
+    window.HunanMap3D.setShellActive(!!data.active);
+  });
+
   var Contract = window.HunanContract;
   var Sites = window.HunanSites;
   var Topology = window.HunanTopology;

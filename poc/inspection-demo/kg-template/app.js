@@ -84,6 +84,19 @@
 
   KG.bus.on('node:open', openNode);
 
+  function setExternalVisibility(active) {
+    var impl = KG.views.impl && KG.views.impl();
+    if (!impl) return;
+    if (active) impl.resume();
+    else impl.pause();
+  }
+
+  global.addEventListener('message', function (event) {
+    var data = event.data;
+    if (!data || data.type !== 'inspection-demo:visibility') return;
+    setExternalVisibility(!!data.active);
+  });
+
   function boot() {
     document.title = KG.derive.meta.title + ' · ' + KG.derive.ui.pageTitleSuffix;
 
