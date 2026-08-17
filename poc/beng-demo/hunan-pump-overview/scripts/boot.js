@@ -6,7 +6,7 @@
 // 机、render 管线、事件委托规则都一样），只有 selectZone 里读取的数据源方法名/
 // 场景标题跟随各自 POC 的数据层——两块大屏刻意互不耦合，各持完整副本。
 //
-// 状态：{ zoneId, siteId }，selectZone/selectSite 是唯二写入口。zoneId==null 代表
+// 状态：{ zoneId, siteId, dateRangeId, customRangeId, customRangeOpen }。zoneId==null 代表
 // 省域视图；siteId 只在某个作业区被选中时才有意义（省域视图下恒为 null）。不做
 // localStorage 持久化——这是单场景 demo，刷新页面回到省域视图是可接受的行为，
 // 加一套持久化只会增加复杂度而不增加叙事完整性。
@@ -49,6 +49,7 @@
 
   var root = document.getElementById("appRoot");
   if (!root) throw new Error("缺少挂载点 #appRoot，请检查 index.html");
+  var isStageBound = false;
 
   // ---- 启动期一次性断言：数据层的 id 空间 / 站点形状 / 作业区-市映射 ----
   Contract.assertData({
@@ -57,7 +58,13 @@
     sitesByZone: Sites.sitesByZone
   });
 
-  var state = { zoneId: null, siteId: null };
+  var state = {
+    zoneId: null,
+    siteId: null,
+    dateRangeId: "7d",
+    customRangeId: "pump-overhaul",
+    customRangeOpen: false
+  };
 
   // ---- 供 model-pipelines.js 消费的管道范围：只取"全部 nodeIds 都落在当前 POC
   // 站点范围内"的管道——A（全量）覆盖 24 条里 22 条非空 nodeIds 的管道；B（成品油
@@ -83,7 +90,7 @@
     window.HunanMap3D.detach();
 
     root.innerHTML = "";
-    root.appendChild(window.OverviewScene.renderTopbar());
+    root.appendChild(window.OverviewScene.renderTopbar(state));
     root.appendChild(renderStage());
     root.appendChild(window.OverviewScene.renderBottombar(state));
 
@@ -95,6 +102,12 @@
     window.Charts.flush();
 
     Contract.assertPinNamespace();
+  }
+
+  function renderTopbarOnly() {
+    var currentTopbar = root.querySelector(".topbar");
+    if (!currentTopbar) throw new Error("renderTopbarOnly 要求页面已存在 .topbar");
+    root.replaceChild(window.OverviewScene.renderTopbar(state), currentTopbar);
   }
 
   function renderStage() {
@@ -155,6 +168,7 @@
     if (zoneId != null && Contract.ZONE_IDS.indexOf(zoneId) < 0) {
       throw new Error("selectZone 收到非法 zoneId：" + zoneId);
     }
+    state.customRangeOpen = false;
     state.zoneId = zoneId;
     if (zoneId == null) {
       state.siteId = null;
@@ -175,7 +189,35 @@
     if (!found) {
       throw new Error("站点 " + siteId + " 不属于当前作业区 " + state.zoneId);
     }
+    state.customRangeOpen = false;
     state.siteId = siteId;
+    render();
+  }
+
+  function selectDateRange(rangeId) {
+    if (!window.OverviewScene.isDateRangeId(rangeId)) {
+      throw new Error("selectDateRange 收到非法范围：" + rangeId);
+    }
+    if (rangeId === "custom") {
+      throw new Error("自定义范围必须通过 selectCustomDateRange 应用");
+    }
+    state.dateRangeId = rangeId;
+    state.customRangeOpen = false;
+    render();
+  }
+
+  function toggleCustomDateRangeMenu() {
+    state.customRangeOpen = !state.customRangeOpen;
+    renderTopbarOnly();
+  }
+
+  function selectCustomDateRange(customRangeId) {
+    if (!window.OverviewScene.isCustomDateRangeId(customRangeId)) {
+      throw new Error("selectCustomDateRange 收到非法范围：" + customRangeId);
+    }
+    state.dateRangeId = "custom";
+    state.customRangeId = customRangeId;
+    state.customRangeOpen = false;
     render();
   }
 
@@ -183,8 +225,11 @@
   // 事件委托（bindStage）
   // ==========================================================================
 
-  function handleAction(action) {
-    if (action === "refresh") { render(); return; }
+  function handleAction(action, sourceEl) {
+    if (action === "refresh") { state.customRangeOpen = false; render(); return; }
+    if (action === "set-date-range") { selectDateRange(sourceEl.getAttribute("data-date-range")); return; }
+    if (action === "toggle-custom-date-menu") { toggleCustomDateRangeMenu(); return; }
+    if (action === "set-custom-date-range") { selectCustomDateRange(sourceEl.getAttribute("data-custom-range")); return; }
     if (action === "back-to-overview") { selectZone(null); return; }
     if (action === "map-zoom-in") { window.HunanMap3D.zoom(-140); return; }
     if (action === "map-zoom-out") { window.HunanMap3D.zoom(140); return; }
@@ -204,7 +249,7 @@
     var actionEl = target.closest("[data-action]");
     if (actionEl) {
       if (actionEl.hasAttribute("disabled")) return;
-      handleAction(actionEl.getAttribute("data-action"));
+      handleAction(actionEl.getAttribute("data-action"), actionEl);
       return;
     }
 
@@ -225,7 +270,9 @@
   }
 
   function bindStage() {
+    if (isStageBound) return;
     root.addEventListener("click", handleClick);
+    isStageBound = true;
   }
 
   window.addEventListener("message", function (event) {

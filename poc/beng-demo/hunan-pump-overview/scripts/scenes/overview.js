@@ -20,6 +20,17 @@
   var Sites = window.HunanSites;
   var Series = window.HunanSeries;
   var STATUS_LABEL = { ok: "正常", warn: "关注", danger: "异常" };
+  var DATE_RANGES = [
+    { id: "7d", label: "近7天", shortLabel: "近7日", days: 7 },
+    { id: "30d", label: "近30天", shortLabel: "近30日", days: 30 },
+    { id: "month", label: "本月", shortLabel: "本月", monthToDate: true },
+    { id: "custom", label: "自定义" },
+  ];
+  var CUSTOM_DATE_RANGES = [
+    { id: "pump-overhaul", label: "P-3泵大修窗口", start: "2026-07-28", end: "2026-08-04", shortLabel: "7/28-8/4" },
+    { id: "interlock-review", label: "联锁报警复核", start: "2026-08-01", end: "2026-08-17", shortLabel: "8/1-8/17" },
+    { id: "monthly-operation", label: "月度运行窗口", start: "2026-08-01", end: "2026-08-17", shortLabel: "8月运行" },
+  ];
 
   function assertLoaded() {
     if (!Contract) throw new Error("[OverviewScene] window.HunanContract 未加载");
@@ -31,9 +42,113 @@
   // 顶栏 / 底栏（DOM 契约见 styles/02-shell.css 文件头注释）
   // ---------------------------------------------------------------------
 
-  function renderTopbar() {
+  function pad2(n) {
+    return n < 10 ? "0" + n : String(n);
+  }
+
+  function formatDate(date) {
+    return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
+  }
+
+  function dateRangeById(rangeId) {
+    return DATE_RANGES.filter(function (range) { return range.id === rangeId; })[0];
+  }
+
+  function customDateRangeById(customRangeId) {
+    return CUSTOM_DATE_RANGES.filter(function (range) { return range.id === customRangeId; })[0];
+  }
+
+  function isDateRangeId(rangeId) {
+    return !!dateRangeById(rangeId);
+  }
+
+  function isCustomDateRangeId(customRangeId) {
+    return !!customDateRangeById(customRangeId);
+  }
+
+  function activeDateRange(state) {
+    if (!state || state.dateRangeId == null) return DATE_RANGES[0];
+    var range = dateRangeById(state.dateRangeId);
+    if (!range) throw new Error("非法统计时间范围：" + state.dateRangeId);
+    if (range.id === "custom") {
+      var customRange = customDateRangeById(state.customRangeId);
+      if (!customRange) throw new Error("非法自定义统计时间范围：" + state.customRangeId);
+      return {
+        id: range.id,
+        label: range.label,
+        customLabel: customRange.label,
+        shortLabel: customRange.shortLabel,
+        fixedText: customRange.start + " 至 " + customRange.end,
+      };
+    }
+    return range;
+  }
+
+  function dateRangeText(range, now) {
+    if (range.fixedText) return range.fixedText;
+    if (range.monthToDate) {
+      return formatDate(new Date(now.getFullYear(), now.getMonth(), 1)) + " 至 " + formatDate(now);
+    }
+    var start = new Date(now.getTime());
+    start.setDate(start.getDate() - range.days + 1);
+    return formatDate(start) + " 至 " + formatDate(now);
+  }
+
+  function renderDateRangePicker(state, now) {
+    var active = activeDateRange(state);
+    var isCustomOpen = !!(state && state.customRangeOpen);
+    return h("div", { class: "date-range-picker" + (isCustomOpen ? " is-custom-open" : ""), "aria-label": "统计时间范围" }, [
+      h("span", { class: "date-range-label", text: dateRangeText(active, now) }),
+      h("div", { class: "date-range-control" }, [
+        h("div", { class: "date-range-options", role: "group", "aria-label": "选择统计时间范围" }, DATE_RANGES.map(function (range) {
+          var isActive = range.id === active.id;
+          var isCustom = range.id === "custom";
+          var attrs = {
+            type: "button",
+            class: "date-range-btn" + (isActive ? " is-active" : "") + (isCustomOpen && isCustom ? " is-open" : ""),
+            "data-action": isCustom ? "toggle-custom-date-menu" : "set-date-range",
+            "aria-pressed": isActive ? "true" : "false",
+            text: range.label,
+          };
+          if (isCustom) {
+            attrs["aria-haspopup"] = "listbox";
+            attrs["aria-expanded"] = isCustomOpen ? "true" : "false";
+          } else {
+            attrs["data-date-range"] = range.id;
+          }
+          return h("button", attrs);
+        })),
+        isCustomOpen ? renderCustomDateRangeMenu(state) : null,
+      ]),
+    ]);
+  }
+
+  function renderCustomDateRangeMenu(state) {
+    return h("div", { class: "custom-date-menu", role: "listbox", "aria-label": "自定义统计范围" }, [
+      h("div", { class: "custom-date-menu-head" }, [
+        h("strong", { text: "自定义统计范围" }),
+        h("span", { text: "演示预设" }),
+      ]),
+      h("div", { class: "custom-date-menu-list" }, CUSTOM_DATE_RANGES.map(function (range) {
+        var isActive = state.customRangeId === range.id;
+        return h("button", {
+          type: "button",
+          class: "custom-date-option" + (isActive ? " is-active" : ""),
+          "data-action": "set-custom-date-range",
+          "data-custom-range": range.id,
+          role: "option",
+          "aria-selected": isActive ? "true" : "false",
+        }, [
+          h("span", { class: "custom-date-option-title", text: range.label }),
+          h("span", { class: "custom-date-option-range", text: range.start + " 至 " + range.end }),
+        ]);
+      })),
+    ]);
+  }
+
+  function renderTopbar(state) {
     var now = new Date();
-    var pad2 = function (n) { return n < 10 ? "0" + n : String(n); };
+    var range = activeDateRange(state);
     var weekday = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][now.getDay()];
     return h("header", { class: "topbar panel" }, [
       h("div", { class: "topbar-left" }, [
@@ -55,10 +170,11 @@
         h("span", { class: "topbar-wing right", "aria-hidden": "true" }),
       ]),
       h("div", { class: "topbar-right" }, [
+        renderDateRangePicker(state, now),
         h("button", { type: "button", class: "tool-btn", "data-action": "refresh", text: "刷新数据" }),
         h("div", { class: "topbar-clock" }, [
           h("strong", { text: pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds()) }),
-          h("small", { text: now.getFullYear() + "-" + pad2(now.getMonth() + 1) + "-" + pad2(now.getDate()) + " " + weekday }),
+          h("small", { text: formatDate(now) + " " + weekday + " · " + range.shortLabel }),
         ]),
       ]),
     ]);
@@ -84,12 +200,13 @@
   // 左栏：4 张卡（总体 KPI / 管线概览 / 作业区排名 / 沿线动态）
   // ---------------------------------------------------------------------
 
-  function renderKpiCard() {
+  function renderKpiCard(state) {
     var sp = Series.provinceSummary();
+    var range = activeDateRange(state);
     return h("div", { class: "ov-kpi-row" }, [
-      window.Cards.metric({ label: "站点总数", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok", note: "站场 " + sp.stationTotal + " · 阀室 " + sp.valveTotal }),
-      window.Cards.metric({ label: "管道总数", value: sp.pipelineTotal, unit: "条", status: "ok", note: "成品油管网" }),
-      window.Cards.metric({ label: "问题合计", value: sp.issueTotal, unit: "项", status: sp.issueTotal > 0 ? "warn" : "ok", note: "关注 + 异常" }),
+      window.Cards.metric({ label: "站点总数", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok", note: range.shortLabel + " · 站场 " + sp.stationTotal + " · 阀室 " + sp.valveTotal }),
+      window.Cards.metric({ label: "管道总数", value: sp.pipelineTotal, unit: "条", status: "ok", note: range.shortLabel + " · 成品油管网" }),
+      window.Cards.metric({ label: "问题合计", value: sp.issueTotal, unit: "项", status: sp.issueTotal > 0 ? "warn" : "ok", note: range.shortLabel + " · 关注 + 异常" }),
     ]);
   }
 
@@ -140,17 +257,18 @@
     ]);
   }
 
-  function renderTodayCard() {
-    return window.Cards.chart({ title: "沿线动态 · 压力剖面", chartId: "chart-pressure-profile" });
+  function renderTodayCard(state) {
+    var range = activeDateRange(state);
+    return window.Cards.chart({ title: "沿线动态 · " + range.shortLabel + "压力剖面", chartId: "chart-pressure-profile" });
   }
 
   function renderLeftColumn(state) {
     assertLoaded();
     return h("section", { class: "panel ov-left-col" }, [
-      renderKpiCard(),
+      renderKpiCard(state),
       renderPipelineOverviewCard(),
       renderZoneRankCard(state),
-      renderTodayCard(),
+      renderTodayCard(state),
     ]);
   }
 
@@ -320,10 +438,11 @@
 
   function renderRightColumn(state) {
     assertLoaded();
+    var range = activeDateRange(state);
     return h("div", { class: "ov-right-col" }, [
-      window.Cards.chart({ title: "作业区状态分布", chartId: "chart-zone-status-mix" }),
-      window.Cards.chart({ title: "各段日输量 · 万吨/日", chartId: "chart-throughput" }),
-      window.Cards.chart({ title: "泵站健康排名", chartId: "chart-pump-health" }),
+      window.Cards.chart({ title: "作业区状态分布 · " + range.shortLabel, chartId: "chart-zone-status-mix" }),
+      window.Cards.chart({ title: "各段日输量 · " + range.shortLabel + "均值", chartId: "chart-throughput" }),
+      window.Cards.chart({ title: "泵站健康排名 · " + range.shortLabel, chartId: "chart-pump-health" }),
       renderDrillSection(state),
     ]);
   }
@@ -347,5 +466,7 @@
     renderMapPanel: renderMapPanel,
     renderRightColumn: renderRightColumn,
     renderCharts: renderCharts,
+    isDateRangeId: isDateRangeId,
+    isCustomDateRangeId: isCustomDateRangeId,
   };
 })();
