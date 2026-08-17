@@ -1,0 +1,296 @@
+/*
+ * fx.css —— 氛围层（子任务 1-E 独占文件）
+ *
+ * 本文件是全站 @keyframes 的唯一真值源。禁止在任何其他 CSS 文件里再写
+ * @keyframes（例外仅 transition.css 的 tr* 前缀关键帧）——1-C（stage-ground.css）、
+ * 1-D（stage-objects.css）、chrome.css 等其余文件只允许通过 `animation:` 属性
+ * 引用这里定义好的名字。
+ *
+ * Fix-5：原「二、通用氛围工具类」一节（呼吸发光/扫描线/流光扫过/噪点纹理）
+ * 全项目零引用，已删除——`.graph-panel`/`.doc-card` 都是内部可滚动容器
+ * （overflow-y:auto），实测把这类 inset:0 的 ::after/::before 叠上去后，一旦
+ * 滚动内容，绝对定位的伪元素会跟着滚动条一起被卷走（这是「position:absolute
+ * 的containing block 若同时是 overflow:auto 容器，伪元素会随内容滚动」的
+ * 经典 CSS 陷阱，已用 Playwright 实测截图验证：滚动前后叠加层从贴合整个面板
+ * 变成完全滚出可视区），不满足"常驻氛围叠加层"的预期效果，属于"叠上去会
+ * 视觉变脏"的情形，故按任务说明选择直接删除而非改用。
+ *
+ * ============================================================
+ * ★★ 全文件最重要的约定：静态 3D 定位与 keyframes 的共存问题 ★★
+ * ============================================================
+ * 展台里的 3D 物件普遍带有"静态定位 transform"（形如
+ *   translate3d(x,y,z) rotateX(...) translate(-50%,-50%)
+ * ），这个 transform 有的写在物件自身的 CSS 规则里，有的来自
+ * `stage-scene.css` 提供的 `.o` / `.o.flat` / `.o.billboard` 工具类。
+ *
+ * CSS Animation 有一条不可绕开的规则：只要某个 @keyframes 里出现了某个属性
+ * （如 transform / filter / opacity），那么在动画运行期间，该属性的计算值
+ * *完全* 由 keyframes 决定，其余来源（包括那些工具类）的同名属性声明会被
+ * 整体忽略——不是"叠加"，是"替换"。所以：
+ *
+ *   1. 凡是需要旋转（必须动 transform）的元素，keyframes 里必须把它原本的
+ *      静态 transform 原样重写一遍，再追加旋转分量，否则动画一开始它就会
+ *      "瞬移"到该属性的默认值（等价于掉到世界原点/屏幕左上角）。
+ *   2. 凡是需要"叠加呼吸感"而动 filter 的元素，如果它自身还有静态的
+ *      filter:blur(...)，keyframes 里的 filter 也必须把这个 blur 一并带上，
+ *      否则动画期间这层虚化会整段消失。
+ *
+ * 但同一个 keyframes 名字（如 `spin` / `pulse` / `coneBreathe`）会被多个
+ * 静态姿态并不相同的宿主复用，没法把某一个宿主的具体数值写死在 keyframes
+ * 里。这里统一采用「CSS 自定义属性做静态基座 + var() 兜底」的写法：
+ *
+ *   @keyframes spin{
+ *     from{ transform: var(--spin-base, <默认基座表达式>) rotate(0deg); }
+ *     to  { transform: var(--spin-base, <默认基座表达式>) rotate(360deg); }
+ *   }
+ *
+ * - 默认情况下（宿主没有设置 --spin-base）落到兜底表达式，对应最常见的
+ *   `.o.flat` 定位模式：translate3d(x,y,z) translate(-50%,-50%)。
+ * - 少数宿主本身没有独立的 x/y/z 偏移（它们靠 `inset:0` 等方式填满一个
+ *   已经被父级定位好的盒子，自己不需要任何 translate），这类宿主需要显式
+ *   把 --spin-base 设成"空值"（`--spin-base: ;`，注意不是关键字 `none`——
+ *   `none` 是 transform 的互斥关键字，不能和 rotate() 拼在一起，会导致整条
+ *   声明失效；空值 token 流拼接后等价于"什么都不加"，是合法且被广泛使用
+ *   的 CSS 自定义属性技巧）。
+ *
+ * filter 用同样的技巧（--pulse-blur / --cone-blur），兜底为空，只有需要
+ * 保留静态 blur() 的宿主才显式覆盖。
+ *
+ * 本文件只负责定义 keyframes 本体和"给哪些选择器设置静态基座变量"，
+ * 绝不修改 1-C / 1-D 文件里任何一条规则。
+ */
+
+/* ============================================================
+ * 一、@keyframes 全集
+ * ========================================================== */
+
+/* ---- spin：世界空间里"维持静态定位 + 自转"的地面/立面圆环、虚线圈 ----
+ * 宿主：.ring--ticks / .ring--ticks-major / .holo-base（走兜底分支，
+ *       它们的定位完全来自 .o.flat 工具类：translate3d(x,y,z) translate(-50%,-50%)）
+ *       .table-runner-ring / .badge::before（走空值分支，它们靠 inset
+ *       撑满已经定位好的父盒子，自身不带独立偏移） */
+@keyframes spin{
+  from{
+    transform: var(--spin-base,
+      translate3d(calc(var(--x,0) * 1px), calc(var(--y,0) * 1px), calc(var(--z,0) * 1px))
+      translate(-50%,-50%)
+    ) rotate(0deg);
+  }
+  to{
+    transform: var(--spin-base,
+      translate3d(calc(var(--x,0) * 1px), calc(var(--y,0) * 1px), calc(var(--z,0) * 1px))
+      translate(-50%,-50%)
+    ) rotate(360deg);
+  }
+}
+
+/* 空值基座：这两个宿主没有独立 --x/--y/--z（本身是内嵌在已定位父盒子内、
+ * 靠 inset 撑满的子层/伪元素），只需要单纯的原地旋转。
+ * 注意：如果不显式覆盖，它们会继承父元素上真实存在的 --x/--y/--z
+ * （CSS 自定义属性默认可继承），落入上面的兜底分支，导致被重复叠加一次
+ * 定位偏移——这正是本任务说明里反复强调的"跳到原点/错位"陷阱的变体。 */
+.table-runner-ring,
+.badge::before{
+  --spin-base: ;
+}
+
+/* ---- orbitSpin：中心装置里倾斜的轨道环，需要完整重写自身姿态链路再追加自转 ----
+ * 宿主：.core-orbit / .core-orbit--b，两者的 --roll/--pitch/--z 都是自身
+ * CSS 规则直接声明的（非继承自父级），可以直接引用，无需 var() 兜底技巧。
+ *
+ * 2-C 修复：末尾原本还有一个 translate(-50%,-50%)，与宿主静态规则里
+ * （stage-objects.css .core-orbit）曾经的写法保持一致——但这个居中平移排在
+ * rotateZ(roll)/rotateX(pitch) 之后，会被这里动画着的 rotateZ(angle) 卷入自转，
+ * 导致整个环的屏幕中心画出一个大圆（已用 getBoundingClientRect 逐帧采样验证，
+ * 详见 stage-objects.css .core-orbit 规则上方的完整推导）。现在宿主已经改用
+ * left:-165px;top:-165px 的"先居中再旋转"写法（同 .table-wall i），居中完全
+ * 交给浏览器默认的 transform-origin:50% 50% 处理，因此这里的 keyframes 不再
+ * 需要、也不能再写 translate(-50%,-50%)——写了反而会重新引入同一个 bug。 */
+@keyframes orbitSpin{
+  from{
+    transform: translate3d(0,0,calc(var(--z,0) * 1px)) rotateX(var(--tilt-neg))
+               rotateZ(var(--roll,0deg)) rotateX(var(--pitch,0deg)) rotateZ(0deg);
+  }
+  to{
+    transform: translate3d(0,0,calc(var(--z,0) * 1px)) rotateX(var(--tilt-neg))
+               rotateZ(var(--roll,0deg)) rotateX(var(--pitch,0deg)) rotateZ(360deg);
+  }
+}
+
+/* ---- pulse：通用呼吸辉光，硬约束——只动 opacity / filter，绝不碰 transform ----
+ * 宿主：.core-column / .badge::after / .top-disc-underglow / .holo-base-glow，
+ * 它们自身都带着由各自 CSS 规则或 .o.billboard/.o.flat 工具类给出的静态 3D
+ * 定位 transform，本 keyframes 完全不声明 transform 属性，那份静态定位在
+ * 动画运行期间会保持原样不受影响。
+ *
+ * 部分宿主自身还叠了一层静态 filter:blur()，用 --pulse-blur 变量把它带进来，
+ * 未设置该变量的宿主（如 .badge::after，本身没有 filter）走空值兜底。 */
+@keyframes pulse{
+  0%, 100%{ opacity:.45; filter:var(--pulse-blur,) brightness(.9); }
+  50%{ opacity:1; filter:var(--pulse-blur,) brightness(1.25); }
+}
+.core-column{ --pulse-blur: blur(2px); }
+/*
+ * 2-C 性能优化：.holo-base-glow / .top-disc-underglow 原来分别带 blur(10px) /
+ * blur(14px)，且靠这里的变量在 pulse 动画期间逐帧重新代入 filter——意味着
+ * "呼吸"每一帧都要重新计算一次大面积高斯模糊（top-disc-underglow 单体面积
+ * 有 600×600），是展台掉帧的主要来源之一。已把这两处的静态模糊改为烘焙进
+ * stage-ground.css / stage-objects.css 对应元素的多色标 radial-gradient，
+ * 视觉上仍是柔和光晕，但 filter 链路只剩 brightness()。这两个宿主与
+ * .badge::after 一样，均已没有静态 filter，直接走 --pulse-blur 的空值兜底，
+ * 不再需要单独声明。
+ */
+
+/* ---- rayPulse：中心装置扇形光线的呼吸，节奏与 pulse 错开、幅度更大 ----
+ * 宿主：.core-rays i，静态姿态由自身 transform 属性直接声明（rotateX/rotateY/
+ * rotateZ 三段扇形展开角），同样不在 keyframes 里声明 transform，本身也没有
+ * 静态 filter，因此无需 var() 变量兜底，直接给出更大幅度的 opacity/brightness
+ * 摆动即可。 */
+@keyframes rayPulse{
+  0%, 100%{ opacity:.2; filter:brightness(.8); }
+  50%{ opacity:1; filter:brightness(1.5); }
+}
+
+/* ---- rise：中心装置上升粒子，宿主 .core-particles i 用 left/top 做散布定位，
+ * 自身没有需要保留的静态 transform，可以自由使用 transform:translateZ()+scale()。
+ * 必须用 translateZ（离地高度）而不是 translateY，否则上升方向会在 72° 倾斜的
+ * 世界坐标系里显得歪斜。 */
+@keyframes rise{
+  0%{ transform:translateZ(0) scale(.6); opacity:0; }
+  12%{ opacity:1; }
+  100%{ transform:translateZ(240px) scale(.2); opacity:0; }
+}
+
+/* ---- twinkle：星点闪烁，宿主 .bg-star span 是屏幕空间里用 left/top（内联样式）
+ * 定位的 span，没有 transform，保守起见仍然只动 opacity。 */
+@keyframes twinkle{
+  0%, 100%{ opacity:.25; }
+  50%{ opacity:1; }
+}
+
+/* ---- drift：背景斜向光带缓慢漂移，宿主 .bg-streak::before/::after 在屏幕空间，
+ * 自身静态 transform 是 rotate(-35deg)（决定 45° 光带的倾斜角），keyframes 里
+ * 必须把这个角度重写进去，再叠加水平方向的 translate（不用 translate3d——
+ * 屏幕空间元素没有 3D 上下文，没必要引入位移矩阵）。 */
+@keyframes drift{
+  from{ transform:rotate(-35deg) translate(-6%, 0); }
+  to{ transform:rotate(-35deg) translate(6%, 0); }
+}
+
+/* ---- scanShift：全息牌扫描线，宿主 .holo-plate::after 用 repeating-linear-gradient
+ * 模拟扫描纹理，一个周期正好是 4px（3px 透明 + 1px 亮线），只需要平移
+ * background-position-y 一个周期即可无缝循环，完全不涉及 transform。 */
+@keyframes scanShift{
+  from{ background-position-y:0; }
+  to{ background-position-y:4px; }
+}
+
+/* ---- coneBreathe：全息光锥呼吸，宿主 .holo-cone / .holo-cone--wide 都靠
+ * .o.billboard 工具类给出静态定位 transform，本 keyframes 不声明 transform。
+ * 两者的静态 opacity（1 / .4）与 filter:blur()（.6px / 5px）不同，用
+ * --cone-op / --cone-blur 变量承接，呼吸时用 calc() 按各自基准值缩放，
+ * 保证"宽层比窄层更淡更虚"的层次关系在动画过程中始终成立。 */
+@keyframes coneBreathe{
+  0%, 100%{ opacity:calc(var(--cone-op,1) * .8); filter:var(--cone-blur,) brightness(.9); }
+  50%{ opacity:var(--cone-op,1); filter:var(--cone-blur,) brightness(1.2); }
+}
+.holo-cone{ --cone-blur: blur(.6px); }
+.holo-cone--wide{ --cone-op:.4; --cone-blur: blur(5px); }
+
+/* ---- kgHexBreathe：左侧六边形晶体内核呼吸，宿主 .hex::after（chrome.css）----
+ * Fix-5：原来直接写在 chrome.css 里，违反本文件"唯一真值源"约定，现搬回本文件。
+ * .hex::after 自身没有静态 transform / filter，只在径向+线性渐变背景上叠加
+ * opacity 呼吸，不涉及本文件开头强调的"静态 3D 定位与 keyframes 共存"问题，
+ * 因此不需要任何 --xxx-base 变量兜底，直接写最简单的两帧 opacity 摆动即可。 */
+@keyframes kgHexBreathe{
+  0%,100%{ opacity:.72; }
+  50%{ opacity:1; }
+}
+
+/* ============================================================
+ * 二、中小视口稳定模式
+ * 13 英寸笔记本常见浏览器视口会把 1920x1080 舞台缩放到约 0.72~0.77。
+ * 此时透明度/滤镜/遮罩/粒子类常驻动画容易在 3D 投影后被分数像素重采样，
+ * 表现为整座展台持续闪烁。模板落地优先稳定：中小视口关闭常驻氛围动画，
+ * 保留静态 3D 构图、hover/focus 高亮与点击动线；大屏继续使用完整动效。
+ * ========================================================== */
+@media (max-width:1500px){
+  .ring--ticks,
+  .ring--ticks-major,
+  .table-runner-ring,
+  .holo-base,
+  .holo-base-glow,
+  .holo-cone,
+  .holo-cone--wide,
+  .holo-plate::after,
+  .badge::before,
+  .badge::after,
+  .core-column,
+  .core-orbit,
+  .core-orbit--b,
+  .core-particles i,
+  .core-rays i,
+  .top-disc-underglow,
+  .bg-star span,
+  .bg-streak::before,
+  .bg-streak::after,
+  .hex::after{
+    animation:none !important;
+  }
+}
+
+html.kg-stable-motion .ring--ticks,
+html.kg-stable-motion .ring--ticks-major,
+html.kg-stable-motion .table-runner-ring,
+html.kg-stable-motion .holo-base,
+html.kg-stable-motion .holo-base-glow,
+html.kg-stable-motion .holo-cone,
+html.kg-stable-motion .holo-cone--wide,
+html.kg-stable-motion .holo-plate::after,
+html.kg-stable-motion .badge::before,
+html.kg-stable-motion .badge::after,
+html.kg-stable-motion .core-column,
+html.kg-stable-motion .core-orbit,
+html.kg-stable-motion .core-orbit--b,
+html.kg-stable-motion .core-particles i,
+html.kg-stable-motion .core-rays i,
+html.kg-stable-motion .top-disc-underglow,
+html.kg-stable-motion .bg-star span,
+html.kg-stable-motion .bg-streak::before,
+html.kg-stable-motion .bg-streak::after,
+html.kg-stable-motion .hex::after{
+  animation:none !important;
+}
+
+/* ============================================================
+ * 三、无障碍降级：prefers-reduced-motion
+ * 直接关闭 animation 即可安全回退——所有动画宿主的"静止姿态"都完整保留在
+ * 它们各自的 CSS 规则 / .o 工具类里，关掉 animation 不会导致位置错乱。
+ * ========================================================== */
+@media (prefers-reduced-motion: reduce){
+  .ring--ticks,
+  .ring--ticks-major,
+  .table-runner-ring,
+  .holo-base,
+  .holo-base-glow,
+  .holo-cone,
+  .holo-cone--wide,
+  .holo-plate::after,
+  .badge::before,
+  .badge::after,
+  .core-column,
+  .core-orbit,
+  .core-orbit--b,
+  .core-particles i,
+  .core-rays i,
+  .top-disc-underglow,
+  .bg-star span,
+  .bg-streak::before,
+  .bg-streak::after,
+  /* Fix-5：补齐遗漏项——.hex::after（chrome.css 左侧六边形晶体内核）此前用的
+   * kgHexBreathe 关键帧一直没有出现在这份降级名单里，reduce 模式下三颗晶体
+   * 仍会持续呼吸闪烁。 */
+  .hex::after{
+    animation:none !important;
+  }
+}

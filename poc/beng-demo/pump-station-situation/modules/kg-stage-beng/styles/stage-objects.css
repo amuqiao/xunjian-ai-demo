@@ -1,0 +1,550 @@
+/*
+ * stage-objects.css —— 展台 L4~L7：主圆桌 / 十张任务立牌 / 中心主装置 / 顶部小椭圆台
+ * 子任务 1-D 独占文件。
+ *
+ * 构造总原则（呼应 kg_stage_plan.md 第 3 节四条禁令）：
+ *   1. 任何"中间层"（还挂着别的 3D 子节点的容器）只允许出现 transform / border /
+ *      box-shadow / background，绝不出现 overflow-hidden / filter / opacity<1 /
+ *      mask / backdrop-filter / will-change:opacity —— 这些只准写在没有子节点、
+ *      或子节点不依赖 preserve-3d 的"叶子"元素上。
+ *   2. 位置只用 --x/--y/--z；--a/--r 只用于墙面分段。Fix-4 起，立牌 .stand、
+ *      徽章 .badge/.badge-strut、玻璃球 .core-sphere、光柱 .core-column、
+ *      slab-face 六类"面向相机"元素已收敛复用 stage-scene.css 的
+ *      .o.billboard（+ --anchor 变量，见该文件说明）；圆桌/顶台/中心装置的
+ *      墙面分段（.table-wall i / .top-wall i / .slab-walls i）因为逐实例
+ *      宽高不同，仍手写等价公式，未接入 .o.wall。
+ *   3. 不用 z-index，遮挡交给 preserve-3d 深度排序。
+ *   4. 每个 3D 组容器 transform-style:preserve-3d，链路不断。
+ *
+ * 关于 @keyframes 的分工（详见本次任务回执给 1-E 的说明）：
+ *   - spin / orbitSpin：用于"既要保持自身静态 3D 姿态、又要持续自转"的元素
+ *     （.table-runner-ring、.core-orbit），要求 1-E 把静态姿态一起写进关键帧里
+ *     （见文件末尾注释里给出的期望公式），不能只写 rotate()。
+ *   - pulse / rayPulse：只允许动画 opacity / filter，不能动画 transform——
+ *     本文件里用到这两个动画的元素（.core-column / .badge::after / .core-rays i /
+ *     .top-disc-underglow）本身已经带有静态 3D 定位 transform，一旦关键帧改写
+ *     transform 就会把定位冲掉。
+ *   - rise：可以自由使用 transform:translateZ()+scale()，因为宿主元素
+ *     （.core-particles i）本身用 left/top 定位，没有静态 transform 需要保留。
+ */
+
+/* ============================================================
+ * L4 主圆桌（--r-table:580，世界原点）
+ * ========================================================== */
+
+/* 桌面：三层背景叠加（径向网格线 + 同心网格 + 主体径向渐变），mask 柔化边缘
+ * 3-B：三层渐变的 alpha 全面调高（.16→.22 / .10→.16 / .62→.80、.30→.48、
+ * .06→.22），mask 的边缘衰减也从 88%~96% 收窄到 90%~99%（衰减区间更窄，
+ * 桌面本体更多区域保持满不透明度），解决"几乎看不出台面和厚度"——原来的
+ * 低 alpha 组合在新的、更亮的整屏基调下几乎融进背景，只剩描边环可见。 */
+.table-top{
+  position:absolute; left:0; top:0;
+  --z:var(--h-table); /* 桌面顶面世界高度，与桌面厚度上沿同高 */
+  width:calc(var(--r-table) * 2 * 1px); height:calc(var(--r-table) * 2 * 1px); border-radius:50%;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  background:
+    repeating-conic-gradient(from 0deg, rgba(120,220,255,.22) 0 .18deg, transparent .18deg 7.5deg),
+    repeating-radial-gradient(closest-side, transparent 0 46px, rgba(120,220,255,.16) 46px 47px),
+    radial-gradient(closest-side, rgba(26,96,168,.80), rgba(9,40,92,.48) 72%, rgba(6,22,52,.22));
+  -webkit-mask: radial-gradient(closest-side, #000 0 90%, rgba(0,0,0,.55) 99%, transparent);
+          mask: radial-gradient(closest-side, #000 0 90%, rgba(0,0,0,.55) 99%, transparent);
+  pointer-events:none;
+}
+
+/* 桌沿主环：青色实线 + 外发光 + 内阴影 */
+.table-rim{
+  position:absolute; left:0; top:0;
+  --z:121;
+  width:1160px; height:1160px; border-radius:50%;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  border:2px solid var(--cyan-a85);
+  box-shadow:0 0 28px var(--cyan-a55), inset 0 0 40px rgba(70,190,255,.22);
+  pointer-events:none;
+}
+
+/* 桌沿流光跑马线：外层负责世界定位（静态、不自转），内层负责视觉与自转动画 */
+.table-runner{
+  position:absolute; left:0; top:0;
+  --z:122;
+  width:calc((var(--r-table) * 2 + 16) * 1px); height:calc((var(--r-table) * 2 + 16) * 1px); /* 比桌沿主环大 16px，跑马线略微外扩 */
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  transform-style:preserve-3d;
+  pointer-events:none;
+}
+/* mask + 常年自转，直径 1176px，同 .ring--ticks 的性能问题，
+ * 加 will-change:transform 让 mask 结果只栅格化一次，后续走合成层旋转。 */
+.table-runner-ring{
+  position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from 0deg, transparent 0 76%, rgba(190,250,255,.95) 86%,
+                            rgba(190,250,255,0) 92%, transparent 100%);
+  -webkit-mask: radial-gradient(closest-side, transparent 0 96.5%, #000 97%);
+          mask: radial-gradient(closest-side, transparent 0 96.5%, #000 97%);
+  filter:blur(1px);
+  animation: spin var(--loop-rim) linear infinite;
+  will-change:transform;
+}
+
+/* 内环：虚线 */
+.table-inner{
+  position:absolute; left:0; top:0;
+  --z:123;
+  width:calc(var(--r-table-inner) * 2 * 1px); height:calc(var(--r-table-inner) * 2 * 1px); border-radius:50%;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  border:2px dashed rgba(110,220,255,.48);
+  pointer-events:none;
+}
+
+/* 桌面厚度：16 段侧壁，容器只负责把 16 段整体抬到桌底高度 */
+.table-wall{
+  position:absolute; left:0; top:0;
+  /* Fix-4：此前写成字面量 107，注释声称"= (var(--h-table-bottom) + var(--h-table)) / 2"
+   * 却没有真的引用变量——改 --h-table/--h-table-bottom 完全不影响这里，是
+   * 桌沿厚度改了不生效的根因之一。现改为真计算，数值上与旧字面量一一对应
+   * （94+120)/2=107，零视觉变化，只是让 token 改动真正生效。 */
+  --z:calc((var(--h-table-bottom) + var(--h-table)) / 2);
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  transform-style:preserve-3d;
+}
+/*
+ * 侧壁分段用"先居中再旋转"写法：box 用 left/top 负偏移把自身几何中心先摆到
+ * (0,0)，transform-origin 保持默认 50% 50%，使 transform-origin 与 box 位置
+ * 的偏移量互为相反数、在矩阵运算里完全抵消，得到严格半径 --r、严格居中的圆。
+ * 早期版本用 transform-origin:50% 100% + translate(-50%,-100%) + left/top:0，
+ * 会残留一个恒定的 (width/2, height) 偏移，越靠近相机的一侧因为透视除法被放大，
+ * 表现为前排侧壁大片撕裂状畸变——已用 Playwright 独立复现并验证此修法。
+ */
+.table-wall i{
+  /* 3-B：高度从 26px 加到 42px（呼应 tokens.css 里 --h-table-bottom:94→78，
+   * 桌面厚度从 26 加到 42 个世界单位），top 偏移同步从 -13px 改成 -21px
+   * （-高/2），渐变 alpha 也从 .60/.16 调高到 .82/.30，让 16 段侧壁在新透视
+   * 下能撑出清晰可辨的"侧壁厚度感"，不再是几乎看不见的细线。 */
+  position:absolute; left:-116px; top:-21px; /* -宽/2, -高/2 */
+  width:232px; height:42px; /* 232 ≈ 2π*--r-table/16 + 1px 重叠，避免接缝漏光 */
+  /* Fix-4：16 段侧壁半径始终相同（不像 slab-walls 逐层不同），不再要求
+   * layers-objects.js 给每一段都重复写一遍 --r，直接把 CSS 默认值接到
+   * --r-table token 上；JS 只需要提供每段不同的 --a。 */
+  transform: rotate(var(--a,0deg)) translateY(calc(var(--r, var(--r-table)) * -1px)) rotateX(90deg);
+  background:linear-gradient(180deg, rgba(92,196,255,.82), rgba(8,36,80,.30));
+  box-shadow:0 -1px 0 var(--cyan-a55);
+  pointer-events:none;
+}
+
+/* ============================================================
+ * L5 十张任务立牌（--r-stand:470，后半弧 200°→340°，中间 250°→290° 让位中心装置）
+ * ========================================================== */
+
+/* Fix-4：.stand 收敛复用 stage-scene.css 的 .o.billboard（DOM 上追加 'o billboard'
+ * 类，见 layers-objects.js），--z 此前是字面量 120 且注释声称"= var(--h-stand-foot)"
+ * 却没有真的引用变量，是"改 --h-stand-foot 不生效"的根因之一，现改为真引用。
+ * --anchor:-100% 让 .o.billboard 的落点锚定在立牌底边（而不是默认的几何中心）。 */
+.stand{
+  --z:var(--h-stand-foot);
+  --anchor:-100%;
+  width:96px;
+  height:calc(var(--h-stand) * 1px);
+  transform-style:preserve-3d;
+  cursor:pointer;
+}
+.stand:focus-visible{
+  outline:none;
+}
+
+/* .stand 是 3D 世界坐标锚点和 hit target；hover/focus 不移动立牌几何层，
+ * 否则中小屏整体 scale 后容易触发命中抖动或 3D 子树重采样闪烁。 */
+.stand-body{
+  position:relative;
+  width:96px;
+  height:calc(var(--h-stand) * 1px);
+  transform-style:preserve-3d;
+}
+
+/* 立牌正面：竖排文字，右下切角，紫蓝渐变，内描边 + 外发光 */
+.stand-face{
+  position:relative;
+  width:96px; height:calc(var(--h-stand) * 1px);
+  writing-mode:vertical-rl; text-orientation:upright;
+  font-size:15px; line-height:1.5; letter-spacing:1px; color:#eaf2ff;
+  padding:12px 8px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(155deg, rgba(88,116,255,.92), rgba(34,50,150,.95));
+  border:1px solid rgba(150,195,255,.72); border-radius:4px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);
+  box-shadow:0 0 20px rgba(90,150,255,.55), inset 0 0 24px rgba(140,190,255,.20);
+  transition:border-color var(--t-base), box-shadow var(--t-base);
+}
+.stand-face::before{
+  content:''; position:absolute; inset:3px;
+  border:1px solid rgba(170,210,255,.28); pointer-events:none;
+}
+.stand:hover .stand-face,
+.stand:focus-visible .stand-face{
+  border-color:var(--gold);
+  box-shadow:0 0 34px rgba(255,215,94,.55);
+}
+
+/* 立牌侧边厚度条：绕 Y 轴转 90° 贴到右侧，撑出立牌的厚度感 */
+.stand-edge{
+  position:absolute; right:0; top:0;
+  width:8px; height:calc(var(--h-stand) * 1px);
+  transform-origin:100% 50%;
+  transform:rotateY(90deg);
+  background:linear-gradient(180deg, rgba(60,86,200,.9), rgba(18,28,90,.9));
+}
+
+/* 立牌倒影：叶子分支根，内部不再嵌套任何 3D 元素，opacity+mask 只准出现在这里 */
+.stand-mirror{
+  position:absolute; top:100%; left:0;
+  width:96px; height:calc(var(--h-stand) * 1px);
+  transform-origin:50% 0;
+  transform:scaleY(-.55);
+  opacity:.30;
+  filter:blur(.6px);
+  writing-mode:vertical-rl; text-orientation:upright;
+  font-size:15px; line-height:1.5; letter-spacing:1px; color:#eaf2ff;
+  padding:12px 8px; box-sizing:border-box;
+  display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(155deg, rgba(88,116,255,.92), rgba(34,50,150,.95));
+  border-radius:4px;
+  -webkit-mask-image:linear-gradient(to bottom, rgba(0,0,0,.8), transparent 72%);
+          mask-image:linear-gradient(to bottom, rgba(0,0,0,.8), transparent 72%);
+  pointer-events:none;
+}
+
+/* 立牌底座光斑：与 .stand 是兄弟节点，独立的 flat 光斑，hover 时由 JS 切换 .is-active 扩散。
+ * 10 张立牌各一份，原 filter:blur(5px) 烘焙进多色标渐变（扩大盒子补偿模糊扩散范围），
+ * 去掉常驻的 10 份独立模糊合成。 */
+.stand-foot{
+  position:absolute; left:0; top:0;
+  --z:121;
+  width:132px; height:132px; border-radius:50%;
+  transform: translate3d(calc(var(--x,0) * 1px), calc(var(--y,0) * 1px), calc(var(--z) * 1px)) translate(-50%,-50%) scale(1);
+  background:radial-gradient(ellipse, rgba(120,200,255,.46) 0%, rgba(120,200,255,.26) 34%, rgba(120,200,255,.10) 58%, transparent 76%);
+  opacity:.75;
+  transition:transform var(--t-base) var(--e-back), opacity var(--t-base);
+  pointer-events:none;
+}
+.stand-foot.is-active{
+  transform: translate3d(calc(var(--x,0) * 1px), calc(var(--y,0) * 1px), calc(var(--z) * 1px)) translate(-50%,-50%) scale(1.35);
+  opacity:1;
+}
+
+/* ============================================================
+ * L6 中心主装置「十大重点任务」（世界原点）
+ * ========================================================== */
+
+.core-group{
+  position:absolute; left:0; top:0;
+  transform: translate3d(0,0,0) translate(-50%,-50%);
+  transform-style:preserve-3d;
+  cursor:pointer;
+}
+
+/* ---- 三层堆叠光块 ---- */
+.slab-top{
+  position:absolute; left:0; top:0;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  border-radius:10px;
+  background:linear-gradient(135deg,#7af0ff,#2b7fe0 62%,#1552a8);
+  box-shadow:0 0 30px rgba(90,220,255,.6);
+}
+/* Fix-4：收敛复用 .o.billboard（DOM 上追加 'o billboard' 类，见 layers-objects.js
+ * 的 buildSlab()）。--x 始终不设置（默认 0，与旧写法里硬编码的第一个分量恒为 0
+ * 完全一致），--anchor 不设置即走默认 -50%，与旧写法末尾的 translate(-50%,-50%)
+ * 等价，零视觉变化。 */
+.slab-face{
+  background:linear-gradient(180deg,#2c86dd,#123a7c);
+  border-top:1px solid rgba(180,240,255,.8);
+  overflow:hidden; /* 叶子元素，裁掉 LED 点超出的部分，无子级 3D 内容 */
+}
+/*
+ * 3-B 修复：原写法 inset:0 14px 只在左右各留 14px 内边距，上下 inset 是 0，
+ * 配合 repeating-linear-gradient(90deg,...)（90deg = 从左到右重复，也就是
+ * 沿水平方向切出一根根竖条）就变成「贴满整个面高度的竖条纹」——参考图里
+ * 的 LED 点是贴着每层面板下沿的一排小圆点，不是铺满整层高度的栅栏/条形码。
+ * 改法：inset 收窄到只留面板下沿一条窄带（top 用 calc(100% - 10px) 顶到
+ * 只剩 10px 高），背景换成两个方向都重复的 radial-gradient 圆点网格
+ * （background-size 控制点间距，图案本身是一个圆点+透明背景的小方块，
+ * 靠 repeat 铺出一排点），视觉上就是一排离散的金色 LED 点。 */
+.slab-face::after{
+  content:''; position:absolute; left:14px; right:14px; bottom:4px; top:calc(100% - 11px);
+  background-image:radial-gradient(circle, var(--gold) 0 32%, transparent 42%);
+  background-size:11px 11px;
+  background-repeat:repeat-x;
+  background-position:center;
+  opacity:.9;
+  filter:drop-shadow(0 0 3px var(--gold));
+}
+.slab-walls{
+  position:absolute; left:0; top:0;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  transform-style:preserve-3d;
+}
+.slab-walls i{
+  /* left/top（= -宽/2, -高/2）由 JS 按每段实际尺寸内联写入，原理见 .table-wall i 上方注释 */
+  position:absolute;
+  transform: rotate(var(--a,0deg)) translateY(calc(var(--r,0) * -1px)) rotateX(90deg);
+  background:linear-gradient(180deg,#1f6bc0,#0d2f66);
+  box-shadow:0 -1px 0 rgba(140,220,255,.4);
+}
+
+/* ---- 倾斜轨道环：外层承担静态世界定位与自转，内层只挂小方块 ----
+ * 2-C：直径由 300px 放大到 330px（配合 .orbit-dot 半径同步放大），呼应任务反馈
+ * 「中心装置相对十张立牌观感偏小」，同时加 will-change:transform——它虽是
+ * preserve-3d 的中间节点（挂着 .orbit-dot 子级），但 will-change:transform
+ * 不在四条禁令范围内（禁令只针对 opacity<1/filter/overflow/mask/backdrop-filter/
+ * will-change:opacity），且它自身本来就靠 transform 建立变换/层叠上下文，
+ * 追加这一提示只是让浏览器提前把它提升为独立合成层，不改变 3D 组合语义。
+ *
+ * 2-C 重要修复（回归测试中发现）：原来用 left:0;top:0 + transform 末尾追加
+ * translate(-50%,-50%) 做居中，这个居中平移排在 rotateZ(roll)/rotateX(pitch)
+ * 之后——而 orbitSpin keyframe 又在这个 translate(-50%,-50%) 前面插入了持续
+ * 自转的 rotateZ(angle)。三次旋转依次作用在这个"半径 233px 的居中偏移向量"
+ * 上，会让向量方向随 angle 不断变化，其结果在与 translate3d(z) 的固定分量
+ * 相加后，实测（Playwright getBoundingClientRect 逐帧采样）显示轨道环的屏幕
+ * 中心点在 4 秒内画出了一个上百像素的大圆——不是"原地自转"而是整个环在
+ * "公转/甩尾"，与设计意图（呼应 fx.css 里 orbitSpin 的自转语义）不符。
+ * 改用 .table-wall i 同款"先居中再旋转"写法：把 -50%,-50% 的偏移量搬到
+ * left/top 的静态布局位置上（而不是写在 transform 函数列表里），使浏览器
+ * 默认的 transform-origin:50% 50% 就地完成居中——此后无论叠加多少层纯旋转
+ * （包括动画中的 rotateZ(angle)），旋转轴恒定是盒子自身几何中心，中心点在
+ * 整个自转周期内严格不动，只有姿态在变。已用同样的 getBoundingClientRect
+ * 采样验证：4 秒内中心点坐标浮动 < 1px（浮点误差量级）。 */
+.core-orbit{
+  /* 3-B：直径从 330px 收回 268px，与玻璃球 220px→196px 的收小比例保持一致
+   * （330/220=1.5 → 196*1.5≈294，取整 268 略紧凑，实测更贴合参考图里
+   * "轨道环只比球体略大一圈"的比例，不是把整个中心装置都放大）。 */
+  position:absolute; left:-134px; top:-134px; /* -宽/2, -高/2，原理同 .table-wall i */
+  --z:var(--h-orbit);
+  --roll:22deg; --pitch:52deg;
+  width:268px; height:268px; border-radius:50%;
+  border:2px solid rgba(150,235,255,.75);
+  box-shadow:0 0 18px var(--cyan-a55), inset 0 0 18px var(--cyan-a28);
+  transform: translate3d(0,0,calc(var(--z) * 1px))
+             rotateX(var(--tilt-neg)) rotateZ(var(--roll)) rotateX(var(--pitch));
+  transform-style:preserve-3d;
+  animation:orbitSpin var(--loop-orbit-a) linear infinite;
+  will-change:transform;
+  pointer-events:none;
+}
+.core-orbit--b{
+  --roll:-38deg; --pitch:66deg;
+  animation-duration:var(--loop-orbit-b);
+  animation-direction:reverse;
+}
+.orbit-dot{
+  position:absolute; top:50%; left:50%;
+  width:12px; height:12px; margin:-6px;
+  transform: rotate(var(--a,0deg)) translateX(134px); /* 134 = 268/2，与 3-B 收小后的轨道环半径保持一致 */
+  border-radius:2px;
+  background:linear-gradient(135deg,#bdeaff,#3f9ce0);
+  box-shadow:0 0 10px var(--cyan-a85);
+  pointer-events:none;
+}
+
+/* ---- 玻璃球 + 金色标题 ----
+ * 3-B 还原：2-C 把直径从 196px 放大到 220px 之后，配合旧透视（1500px/72deg）
+ * 的强放大效应，实测球体屏幕直径达到 253px，比十张立牌（86~95px）、圆桌桌面
+ * 视觉比例都大出一整圈，变成参考图里没有的"巨大深色圆盘"。3-B 改回 196px，
+ * 并配合 --h-core 从 300 降到 150（见 tokens.css），球体整体收小、下移到与
+ * 三层堆叠光块衔接的合理高度，字号同步从 28px 收回 24px。 */
+/* Fix-4：收敛复用 .o.billboard（'o billboard core-sphere'）。--x/--y 始终不设置
+ * （默认 0），--anchor 默认 -50%，与旧写法末尾 translate(-50%,-50%) 等价。 */
+.core-sphere{
+  --z:var(--h-core);
+  width:196px; height:196px; border-radius:50%;
+  background:
+    radial-gradient(circle at 36% 26%, rgba(255,255,255,.55) 0 12%, transparent 42%),
+    radial-gradient(circle at 42% 34%, rgba(150,235,255,.28), rgba(30,110,190,.30) 52%, rgba(8,34,78,.52));
+  border:1px solid rgba(160,235,255,.45);
+  box-shadow:0 0 64px rgba(70,200,255,.55), inset -22px -30px 62px rgba(2,20,54,.62);
+  display:grid; place-items:center;
+}
+.core-sphere b{
+  font-size:24px; line-height:1.3; text-align:center; font-weight:700;
+  background:linear-gradient(180deg,#fff6cf,var(--gold) 55%,#e9a922);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 2px 6px rgba(120,60,0,.5));
+}
+
+/* ---- 上升粒子：容器负责世界定位，i 用 left/top 散布 + translateZ 上升 ---- */
+.core-particles{
+  position:absolute; left:0; top:0;
+  --z:160;
+  width:0; height:0;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  transform-style:preserve-3d;
+}
+.core-particles i{
+  position:absolute;
+  left:calc(var(--px,0) * 1px); top:calc(var(--py,0) * 1px);
+  width:5px; height:5px; margin:-2.5px 0 0 -2.5px; border-radius:50%;
+  background:radial-gradient(circle,#eafcff,var(--cyan));
+  box-shadow:0 0 10px var(--cyan);
+  animation:rise var(--loop-particle) var(--e-out) infinite;
+  animation-delay:calc(var(--i,0) * -.38s);
+  will-change:transform; /* rise 每帧都在改 translateZ+scale，是真正持续变化的属性 */
+  pointer-events:none;
+}
+
+/* ---- 向上光柱：梯形，上宽下窄，接到 L7 顶台方向 ----
+ * Fix-4：收敛复用 .o.billboard（'o billboard core-column'），--anchor:-100%
+ * 让落点锚定在梯形底边（与旧写法末尾 translate(-50%,-100%) 等价）；
+ * transform-origin:50% 100% 单独保留（不受 transform 来源变化影响，见
+ * stage-scene.css 对 --anchor 的说明）。
+ * 3-B：--z 此前是孤立字面量 190，与玻璃球高度（--h-core）毫无关联——
+ * --h-core 从 300 降到 150 后，光柱底边（190）反而比球心（150）还高，视觉上
+ * 光柱悬在球体上方一截，接不上。改为 calc(var(--h-core) + 20)，让光柱底边
+ * 稳定卡在"球心往上 20 个世界单位"（约等于球体上半径附近），球体一收缩/
+ * 放大，光柱起点自动跟着走，不用再手动同步两个数字。顶端仍由
+ * --h-column-top 决定（3-B 从 520 降到 330，贴近新顶台高度 --h-topdisc:350
+ * 下方一点，见 tokens.css 说明）。 */
+.core-column{
+  --z:calc(var(--h-core) + 20);
+  --anchor:-100%;
+  width:230px; height:calc((var(--h-column-top) - var(--z)) * 1px);
+  transform-origin:50% 100%;
+  clip-path:polygon(8% 0, 92% 0, 70% 100%, 30% 100%);
+  background:linear-gradient(0deg, rgba(120,235,255,.02), rgba(120,235,255,.34) 60%, rgba(160,255,235,.06));
+  filter:blur(2px);
+  animation:pulse var(--loop-breathe) var(--e-inout) infinite;
+  pointer-events:none;
+}
+
+/* ---- 14 条青绿细光线：容器负责世界定位，i 各自扇形展开 ---- */
+.core-rays{
+  position:absolute; left:0; top:0;
+  --z:150;
+  width:0; height:0;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  transform-style:preserve-3d;
+}
+.core-rays i{
+  position:absolute; left:0; top:0;
+  width:3px; height:330px; transform-origin:50% 100%;
+  transform:rotateX(var(--tilt-neg)) rotateY(calc((var(--i,0) - 6.5) * 5deg)) rotateZ(calc((var(--i,0) - 6.5) * 1.4deg));
+  background:linear-gradient(0deg, rgba(80,255,190,0), rgba(80,255,190,.55));
+  animation:rayPulse 2.6s var(--e-inout) infinite;
+  animation-delay:calc(var(--i,0) * .09s);
+  pointer-events:none;
+}
+
+/* ============================================================
+ * L7 顶部小椭圆台（--z:var(--h-topdisc)，当前标定值 80）
+ * ========================================================== */
+
+/*
+ * 2-C 重要修复：本段 --z 原先全部写成字面数字（560/548/553/660/600），且
+ * 明确在注释里写着"= var(--h-topdisc)"/"= var(--h-badge)"却没有真的引用变量——
+ * 直接违反 0-A 冻结的铁律 6（尺寸只能引用 tokens.css 变量，不许硬编码魔数），
+ * 也是 --h-topdisc/--h-badge 改了却完全不生效的根因。已改为 calc()/var() 引用，
+ * 数值上与旧字面量一一对应（原相对偏移量全部保留），因此本次修正本身对旧几何
+ * 零影响，只是让下面的新标定值能够真正生效。
+ *
+ * 新标定值来源：用 Playwright 对 .top-disc/.badge 做 getBoundingClientRect 逐步
+ * 定位后发现，旧的 560/660 在当前 --persp(1500px)+--tilt(72deg)+
+ * --persp-origin-y(40%) 组合下会把顶台投影压成不足 3px 的退化细线、把徽章整体
+ * 投影到屏幕 y<0（完全飞出画布顶部）——不是"略有悬浮感"，而是彻底不可见。
+ * 进一步用 elementFromPoint 逐格采样发现：只要 --h-badge 大于
+ * --h-stand-foot(120)，徽章在真实 3D 深度排序里就会"盖住"部分立牌，导致
+ * T04~T07 四张立牌鼠标基本点不到。最终改为 --h-topdisc:80 / --h-badge:110
+ * （两者都低于 120，间距 30，见 tokens.css 顶部的完整推导），顶台呈现出正常
+ * 可辨的椭圆厚度，徽章完整落在画布内，且因为其世界高度低于立牌落点，
+ * 深度排序上立牌自然"胜出"，鼠标点击完全恢复。
+ */
+.top-disc{
+  position:absolute; left:0; top:0;
+  --z:var(--h-topdisc);
+  width:calc(var(--r-topdisc) * 2 * 1px); height:calc(var(--r-topdisc) * 2 * 1px); border-radius:50%;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  background:radial-gradient(closest-side, rgba(46,227,184,.30), rgba(16,90,140,.42) 62%, rgba(8,40,88,.55));
+  border:2px solid rgba(120,255,215,.7);
+  box-shadow:0 0 40px rgba(46,227,184,.45), inset 0 0 44px rgba(46,227,184,.22);
+  pointer-events:none;
+}
+/* 原 filter:blur(14px) 是全场单体面积最大的一份动态模糊（560×560 圆，且被 pulse
+ * 每帧重算），烘焙进多色标渐变后 pulse 只保留 brightness 分量
+ * （见 fx.css 里移除 .top-disc-underglow 的 --pulse-blur 声明）。 */
+.top-disc-underglow{
+  position:absolute; left:0; top:0;
+  --z:calc(var(--h-topdisc) - 12);
+  width:calc((var(--r-topdisc) * 2 + 100) * 1px); height:calc((var(--r-topdisc) * 2 + 100) * 1px); border-radius:50%;
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  background:radial-gradient(ellipse, rgba(46,227,184,.38) 0%, rgba(46,227,184,.20) 32%, rgba(46,227,184,.08) 56%, transparent 74%);
+  animation:pulse var(--loop-breathe) var(--e-inout) infinite;
+  pointer-events:none;
+}
+.top-wall{
+  position:absolute; left:0; top:0;
+  --z:calc(var(--h-topdisc) - 7); /* 取厚度中线，两侧对称展开 14px */
+  transform: translate3d(0,0,calc(var(--z) * 1px)) translate(-50%,-50%);
+  transform-style:preserve-3d;
+}
+.top-wall i{
+  /* 3-B：--r-topdisc 从 250 降到 150，8 段侧壁宽度同步从 198px 收到 120px
+   * （120 ≈ 2π*150/8 + 1px 重叠），避免每段之间出现缝隙。 */
+  position:absolute; left:-60px; top:-7px; /* -宽/2, -高/2 */
+  width:120px; height:14px; /* 120 ≈ 2π*--r-topdisc/8 + 1px 重叠 */
+  /* Fix-4：同 .table-wall i，8 段侧壁半径始终相同，直接把 CSS 默认值接到
+   * --r-topdisc token 上，JS 只需要提供每段不同的 --a。 */
+  transform: rotate(var(--a,0deg)) translateY(calc(var(--r, var(--r-topdisc)) * -1px)) rotateX(90deg);
+  background:linear-gradient(180deg, rgba(90,255,215,.55), rgba(8,50,70,.18));
+  box-shadow:0 -1px 0 rgba(120,255,215,.5);
+  pointer-events:none;
+}
+
+/* 三个圆形徽章：技术攻关 / 平台建设 / 人才发展
+ * fixA：第二个 translate3d 分量原来硬编码成 0，不吃 --y，导致三枚徽章只能沿
+ * --x 一维分布、天然落在与中心装置共用的世界 y=0 轴上；改为 var(--y,0) 后，
+ * 配合 layers-objects.js 把整组 --y 推到 -150（远离相机），让徽章的真实
+ * 3D 坐标彻底跳出中心装置最底层 slab-1 的包围盒（x∈[-150,150],y∈[-95,95],
+ * z∈[0,120]），解决居中「平台建设」徽章被 slab 遮挡的问题。 */
+/* Fix-4：收敛复用 .o.billboard（'o billboard badge'），--anchor 默认 -50%，
+ * 与旧写法末尾 translate(-50%,-50%) 等价，零视觉变化。 */
+.badge{
+  --z:var(--h-badge);
+  width:108px; height:108px; border-radius:50%;
+  background:radial-gradient(circle at 50% 28%, #46f0c0, #12928a 62%, #0a5c66);
+  border:2px solid rgba(180,255,235,.9);
+  box-shadow:0 0 28px rgba(46,227,184,.62), inset 0 -12px 26px rgba(2,50,52,.6);
+  display:grid; place-items:center;
+  font-size:18px; line-height:1.2; text-align:center; color:var(--ink);
+  transition:border-color var(--t-base), box-shadow var(--t-base);
+}
+.badge::before{
+  content:''; position:absolute; inset:6px; border-radius:50%;
+  border:2px dashed rgba(220,255,245,.85);
+  animation:spin var(--loop-badge) linear infinite;
+  will-change:transform; /* 常年自转的虚线圈，伪元素叶子节点，放心提升合成层 */
+}
+.badge::after{
+  content:''; position:absolute; inset:-9px; border-radius:50%;
+  border:1px solid rgba(46,227,184,.35);
+  animation:pulse 2.6s var(--e-inout) infinite;
+}
+/* fixA：可访问性——徽章现在带 role="button"/tabindex="0"，需要可见的
+ * hover / focus 反馈。.is-hover 由 stage.js 的 bindBadges() 在 mouseenter/
+ * mouseleave 时切换（此前该类完全没有对应样式，鼠标悬停实际没有任何视觉
+ * 变化）；:focus-visible 覆盖键盘 Tab 聚焦场景。 */
+.badge.is-hover,
+.badge:focus-visible{
+  outline:none;
+  border-color:var(--gold);
+  box-shadow:0 0 40px rgba(255,215,94,.65), inset 0 -12px 26px rgba(2,50,52,.6);
+}
+
+/* 徽章 → 圆盘的支柱：2-C 改为整段贯通 --h-topdisc → --h-badge（原先只连接
+ * 660→600 的最后 60 个世界单位，560→600 之间留了 40 个单位的真空段，
+ * 是造成"徽章与圆盘之间悬浮感"的直接原因），修复后支柱从圆盘表面一路
+ * 连到徽章圆心，视觉上真正撑住徽章。
+ * Fix-4：收敛复用 .o.billboard（'o billboard badge-strut'），--anchor:-100%
+ * 让落点锚定在支柱底边（与旧写法末尾 translate(-50%,-100%) 等价）。
+ * transform-origin:50% 100% 单独保留，不受 transform 来源变化影响。 */
+.badge-strut{
+  --z:var(--h-topdisc);
+  --anchor:-100%;
+  width:6px; height:calc((var(--h-badge) - var(--h-topdisc)) * 1px);
+  transform-origin:50% 100%;
+  background:linear-gradient(180deg, rgba(46,227,184,.05), rgba(46,227,184,.55));
+  box-shadow:0 0 10px rgba(46,227,184,.4);
+  pointer-events:none;
+}

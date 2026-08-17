@@ -1,0 +1,278 @@
+/*
+ * chrome.css —— 屏幕空间外壳：顶栏（时钟 / 切角导航 / 发光主标题）+ 左侧六边形晶体侧栏
+ * 只用 tokens.css 里已有的变量，不新增/硬编色值与时长；结构性尺寸（px）按视觉稿直接给值。
+ *
+ * 布局说明：
+ * .topbar / .hex-rail 的 position:relative + z-index:20 已由 base.css 建立，这里不重复设置、
+ * 也不改动。两者都是 #screen 下的普通块级元素，天然按文档流从上到下排列：
+ *   .topbar   —— 高度固定，横跨整个 #screen 宽度，贴在最顶部；
+ *   .hex-rail —— 紧随其后，宽度只有 136px，天然贴在左侧，不需要 position:absolute 就能
+ *                悬浮在 #pages（z-index:10）之上。
+ */
+
+/* ========== 一、顶栏容器：CSS Grid 八列布局 ========== */
+/*
+ * 列位次：
+ *   1 clock          2 nav-group--left   3 (空，弹性留白)
+ *   4 nav-sep(前)    5 topbar-title      6 nav-sep(后)
+ *   7 (空，弹性留白) 8 nav-group--right
+ * 两段弹性留白让标题组在视觉上居中，同时允许左右导航组宽度不等（2 按钮 vs 3 按钮）。
+ */
+.topbar{
+  position:relative;
+  /* Fix-5：接上 tokens.css 新增的 --h-topbar（真值 128，唯一真值源），
+   * 不再在这里裸写 128px——docs.css / graph.css 的顶部偏移量都要用同一个
+   * token 派生，避免以后改顶栏高度时要记得同步改三个文件。 */
+  height:calc(var(--h-topbar) * 1px);
+  padding:0 40px;
+  display:grid;
+  grid-template-columns:auto auto 1fr auto auto auto 1fr auto;
+  align-items:center;
+  column-gap:26px;
+  background:linear-gradient(180deg, rgba(6,20,48,.88) 0%, rgba(6,20,48,.5) 66%, transparent 100%);
+}
+/* 底部渐隐分割线 + 向下辉光 */
+.topbar::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--cyan-a55) 16%, var(--cyan-hi) 50%, var(--cyan-a55) 84%, transparent);
+  box-shadow:0 10px 22px -6px var(--cyan-a28);
+  pointer-events:none;
+}
+
+/* ========== 二、时钟：等宽数字，禁止抖动 ========== */
+.clock{
+  grid-column:1;
+  display:flex;
+  align-items:baseline;
+  gap:12px;
+  white-space:nowrap;
+}
+.clock-time{
+  /* 等宽数字是硬要求：font-variant-numeric:tabular-nums 保证每位数字等宽，秒数跳动不左右抖 */
+  font:600 42px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:1px;
+  color:var(--ink);
+  text-shadow:0 0 16px var(--cyan-a55), 0 2px 0 rgba(4,12,30,.85);
+}
+.clock-info{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:2px;
+  font-size:12px;
+  line-height:1.4;
+  letter-spacing:1px;
+  color:var(--ink-2);
+}
+
+/* ========== 三、导航按钮组 + 切角导航按钮 ========== */
+.nav-group{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.nav-group--left{ grid-column:2; }
+.nav-group--right{ grid-column:8; }
+
+.nav-btn{
+  --clip:polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+  position:relative;
+  clip-path:var(--clip);
+  padding:12px 26px;
+  /* 1px 青色描边直接用 border 实现：clip-path 会把 border 一并按多边形裁掉，
+     描边天然贴合切角轮廓。
+     踩坑记录：最初按「::before + margin:-1px + z-index:-1」的经典描边手法实现，
+     但 clip-path 会让 .nav-btn 自身成为新的层叠上下文，上下文根元素自身的背景恒居最底层，
+     导致 z-index:-1 的 ::before 反而盖在了按钮背景之上，整块按钮被描边色染白。
+     改用 border 后不再有该层叠顺序问题。 */
+  border:1px solid var(--cyan-a55);
+  font-size:16px;
+  letter-spacing:1px;
+  color:var(--ink-2);
+  background:linear-gradient(180deg, var(--bg-rim), var(--bg-mid));
+  transition:color var(--t-base) var(--e-out), transform var(--t-base) var(--e-out), filter var(--t-base) var(--e-out), border-color var(--t-base) var(--e-out);
+}
+.nav-btn:hover{
+  color:var(--ink);
+  border-color:var(--cyan-a85);
+  transform:translateY(-3px);
+  filter:drop-shadow(0 6px 14px var(--cyan-a28));
+}
+.nav-btn:focus-visible{
+  outline:2px solid var(--cyan-hi);
+  outline-offset:3px;
+}
+.nav-btn.is-active{
+  color:#fff;
+  border-color:var(--cyan-hi);
+  background:linear-gradient(180deg, var(--cyan-lo), var(--bg-rim));
+  box-shadow:0 0 20px var(--cyan-a28);
+}
+/* active 态右上角金色三角标（折角徽记） */
+.nav-btn.is-active::after{
+  content:'';
+  position:absolute; right:-1px; top:-1px;
+  width:0; height:0;
+  border-style:solid;
+  border-width:0 15px 15px 0;
+  border-color:transparent var(--gold) transparent transparent;
+  filter:drop-shadow(0 0 5px rgba(255,215,94,.75));
+}
+
+/* ========== 四、/// 斜杠分隔（标题左右各一组） ========== */
+.nav-group--left + .nav-sep{ grid-column:4; }
+.topbar-title + .nav-sep{ grid-column:6; }
+
+.nav-sep{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  height:26px;
+}
+.nav-sep i{
+  display:block;
+  width:8px;
+  height:22px;
+  background:linear-gradient(180deg, var(--cyan-hi), var(--cyan));
+  box-shadow:0 0 10px var(--cyan-a55);
+  transform:skewX(-22deg);
+}
+/* 中间一条略高，制造错落的科技感节奏，而非三条整齐排列 */
+.nav-sep i:nth-child(2){ height:26px; }
+.nav-sep i:nth-child(3){ opacity:.7; }
+
+/* ========== 五、发光主标题 + 对称装饰翼线 ========== */
+.topbar-title{
+  grid-column:5;
+  position:relative;
+  margin:0;
+  padding:0 30px;
+  font-size:44px;
+  font-weight:700;
+  letter-spacing:6px;
+  white-space:nowrap;
+  background:linear-gradient(180deg, #f2fbff, #8fdcff 52%, #2f8ede);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  filter:drop-shadow(0 0 20px rgba(95,216,255,.75)) drop-shadow(0 2px 0 rgba(10,40,90,.9));
+}
+/* 标题两侧对称的装饰翼线：向外展开的青色箭羽形，呼应参考图标题两侧的线条装饰 */
+.topbar-title::before,
+.topbar-title::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  margin-top:-7px;
+  width:30px;
+  height:14px;
+  background:linear-gradient(90deg, transparent, var(--cyan-a85) 70%, var(--cyan-hi));
+  clip-path:polygon(0 42%, 68% 42%, 100% 0, 100% 100%, 68% 58%, 0 58%);
+  filter:drop-shadow(0 0 6px var(--cyan-a55));
+}
+.topbar-title::before{ left:-38px; }
+.topbar-title::after{ right:-38px; transform:scaleX(-1); }
+
+/* ========== 六、左侧六边形晶体侧栏 ========== */
+.hex-rail{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  /* Fix-5：接上 tokens.css 新增的 --w-hexrail（真值 136，唯一真值源），理由同
+   * 上方 .topbar 的 --h-topbar。 */
+  width:calc(var(--w-hexrail) * 1px);
+  padding-top:64px;
+  gap:44px;
+}
+
+.hex{
+  /* 三层同用一个 --clip：::before 为外层描边环（84x84，完整可见), ::after 内缩 9px 叠在其上，
+     露出的 9px 边沿即为「青色渐变描边环」，::after 自身背景同时承担「晶体本体」与「内发光核心」
+     两层视觉（径向内发光 + 线性暗色本体叠加），以规避 index.html 冻结结构下 hex 按钮内含
+     文字标签、无法对整个按钮做 clip-path（否则标签会被六边形路径裁掉）的限制。 */
+  --clip:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  position:relative;
+  width:84px;
+  border:0;
+  padding:0;
+  background:none;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  color:var(--cyan-hi);
+  transition:transform var(--t-base) var(--e-back), filter var(--t-base) var(--e-out);
+}
+.hex:hover{
+  transform:translateY(-7px);
+  filter:drop-shadow(0 0 18px var(--cyan-a85));
+}
+.hex:focus-visible{
+  outline:2px solid var(--cyan-hi);
+  outline-offset:4px;
+}
+
+/* 外层：青色渐变描边环（84x84 满铺，比 ::after 大 18px，四周露出即描边宽度） */
+.hex::before{
+  content:'';
+  position:absolute;
+  top:0; left:50%;
+  transform:translateX(-50%);
+  width:84px; height:84px;
+  clip-path:var(--clip);
+  background:linear-gradient(160deg, var(--cyan-a85), rgba(20,70,140,.55));
+  box-shadow:0 0 20px var(--cyan-a28);
+}
+/* 内层：内缩 9px 的晶体本体 + 内发光核心（径向渐变叠加线性暗色底） */
+.hex::after{
+  content:'';
+  position:absolute;
+  top:9px; left:50%;
+  transform:translateX(-50%);
+  width:66px; height:66px;
+  clip-path:var(--clip);
+  background:
+    radial-gradient(circle at 50% 34%, var(--cyan-a28), transparent 70%),
+    linear-gradient(160deg, var(--bg-rim), var(--bg-void));
+  animation:kgHexBreathe var(--loop-breathe) var(--e-inout) infinite;
+}
+/* 三个晶体呼吸动画错开相位，避免整排同步闪烁 */
+.hex:nth-child(1)::after{ animation-delay:0s; }
+.hex:nth-child(2)::after{ animation-delay:calc(var(--loop-breathe) * -0.33); }
+.hex:nth-child(3)::after{ animation-delay:calc(var(--loop-breathe) * -0.66); }
+/* 悬停时内核发光增强，同时暂停呼吸避免和放大动效打架 */
+.hex:hover::after{
+  animation-play-state:paused;
+  background:
+    radial-gradient(circle at 50% 34%, var(--cyan-a55), transparent 74%),
+    linear-gradient(160deg, var(--bg-rim), var(--bg-void));
+}
+
+/* 图标：置于 84x84 顶层，z-index 高于 ::before/::after 避免被内核层压住 */
+.hex > svg{
+  position:relative;
+  z-index:2;
+  width:28px; height:28px;
+  margin-top:28px;
+  margin-bottom:14px;
+  color:var(--cyan-hi);
+  filter:drop-shadow(0 0 6px var(--cyan-a55));
+  pointer-events:none;
+}
+.hex-label{
+  position:relative;
+  z-index:2;
+  font-size:13px;
+  line-height:1.3;
+  letter-spacing:1px;
+  color:var(--ink-2);
+  white-space:nowrap;
+}
+
+/* ========== 七、晶体呼吸动效 ==========
+ * Fix-5：@keyframes kgHexBreathe 原来直接写在本文件里，违反了 fx.css 头部声明的
+ * 「全站 @keyframes 唯一真值源」约定（例外仅 transition.css 的 tr* 前缀）。
+ * 本文件不再定义 @keyframes，只保留 animation 简写引用，真正的关键帧定义已
+ * 搬到 fx.css（一、@keyframes 全集 一节，kgHexBreathe 只动 opacity，不涉及
+ * transform/filter，不需要 --spin-base 之类的静态基座兜底）。 */

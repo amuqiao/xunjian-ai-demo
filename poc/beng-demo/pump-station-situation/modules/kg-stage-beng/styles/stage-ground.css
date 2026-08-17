@@ -1,0 +1,384 @@
+/*
+ * stage-ground.css —— 展台 L0 背景 / L1 地面刻度环 / L2 七大技术领域球 / L3 三大业务全息投影
+ *
+ * L0 挂在 .stage-bg 下（屏幕空间，不在 .stage-world 内，可以自由用 filter/overflow）。
+ * L1–L3 挂在 .layer-ground 下（3D 世界空间），全部是 .o 的直接子元素（兄弟关系，
+ * 不额外套壳 div），因此天然满足"中间层节点不得 overflow/filter/opacity/mask"的铁律——
+ * 这些效果只出现在没有 3D 子元素的叶子节点上。
+ *
+ * @keyframes 统一归 fx.css（1-E）管理，本文件只引用名字：
+ *   spin / pulse / twinkle / drift / scanShift / coneBreathe
+ */
+
+/* ============================================================
+ * L0 背景（屏幕空间，.stage-bg 内，与 .stage-scene 是兄弟，不在 preserve-3d 链路里）
+ * ========================================================== */
+
+.stage-bg{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+
+.bg-gradient{
+  position:absolute;
+  inset:0;
+  background:radial-gradient(120% 90% at 50% 18%, var(--bg-rim) 0%, var(--bg-mid) 38%, var(--bg-void) 100%);
+}
+
+/* 世界地图底纹：内容来自 KG.assets.worldMapSvg（JS 注入），当前阶段可能为空串，
+ * 空就是空——不放兜底假图。容器本身即便空着也不影响其余背景层。 */
+.bg-city{
+  position:absolute;
+  inset:0;
+  opacity:.10;
+  filter:blur(1.5px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.bg-city svg{
+  width:100%;
+  height:100%;
+}
+
+/* 星空：Fix-4 改为调用 scripts/fx/particles.js 的 KG.particles.mount() 生成
+ * 70 个确定性种子的 <span>（seed 固定，见 layers-ground.js buildBackdrop()），
+ * 不再用 Math.random() 直接写坐标——此前每次刷新星点位置都会变，截图回归
+ * 没有稳定基线。particles.js 生成的也是裸 <span>，这里的选择器是标签选择器
+ * （不依赖 class），天然兼容。 */
+.bg-star{
+  position:absolute;
+  inset:0;
+}
+/*
+ * 星点泛光原先用 box-shadow(0 0 4px 1px) 实现，同屏常年做 opacity 动画，每个
+ * 独立的 box-shadow 都要单独走一次模糊合成；改成把泛光直接烘焙进
+ * radial-gradient 背景（视觉几乎等价——柔和光点，只是不再需要滤镜/阴影合成），
+ * 再配合 transform:scale() 放大渲染框以保留原来的光晕范围（scale 是纯合成层
+ * 变换，不参与 twinkle 的 opacity 动画，互不冲突）。
+ *
+ * Fix-4：此前 JS 生成 140 个 span、这里用 :nth-child(odd) 静态隐藏一半凑到
+ * 目标 60–80 区间——是"用两个错误抵消出一个凑合结果"的做法（JS 数量本身
+ * 就该改成 70，而不是生成 140 再砍半）。JS 侧已改为直接生成 70 个，这里的
+ * :nth-child(odd) 隐藏规则相应删除；size 也无法再由 JS 逐点随机（particles.js
+ * 只写 left/top + --i，不写宽高，且是确定性生成不依赖 Math.random()），改用
+ * :nth-child(even) 分两档固定尺寸模拟原来 1–2px 的随机大小观感，同样是
+ * 确定性的（只看 DOM 顺序，不依赖时间/随机数），不影响可复现性。
+ */
+.bg-star span{
+  position:absolute;
+  display:block;
+  width:1.6px; height:1.6px;
+  border-radius:50%;
+  background:radial-gradient(circle, #fff 0%, var(--cyan-hi) 30%, var(--cyan-a55) 60%, transparent 78%);
+  transform:scale(2.4);
+  animation-name:twinkle;
+  animation-timing-function:ease-in-out;
+  animation-iteration-count:infinite;
+}
+.bg-star span:nth-child(even){
+  width:1.1px; height:1.1px;
+}
+.bg-star span:nth-child(5n + 0){ animation-duration:3.2s; animation-delay:0s; }
+.bg-star span:nth-child(5n + 1){ animation-duration:4.4s; animation-delay:.6s; }
+.bg-star span:nth-child(5n + 2){ animation-duration:5.6s; animation-delay:1.2s; }
+.bg-star span:nth-child(5n + 3){ animation-duration:6.4s; animation-delay:1.8s; }
+.bg-star span:nth-child(5n + 4){ animation-duration:7.2s; animation-delay:2.4s; }
+
+/* 两条 45° 光带缓慢漂移，用 ::before/::after 而不是额外真实子节点 */
+.bg-streak{
+  position:absolute;
+  inset:0;
+}
+.bg-streak::before,
+.bg-streak::after{
+  content:'';
+  position:absolute;
+  left:-30%;
+  width:160%;
+  height:120px;
+  background:linear-gradient(90deg, transparent, var(--cyan-a12) 40%, var(--cyan-a28) 50%, var(--cyan-a12) 60%, transparent);
+  transform:rotate(-35deg);
+  filter:blur(30px);
+  animation-name:drift;
+  animation-timing-function:linear;
+  animation-iteration-count:infinite;
+}
+.bg-streak::before{
+  top:8%;
+  animation-duration:24s;
+}
+.bg-streak::after{
+  top:52%;
+  opacity:.7;
+  animation-duration:32s;
+  animation-delay:-9s;
+}
+
+/* 暗角：让画面四角自然收暗，聚焦视线到展台中心 */
+.bg-vignette{
+  position:absolute;
+  inset:0;
+  background:radial-gradient(closest-side, transparent 55%, rgba(0,4,16,.85));
+  mix-blend-mode:multiply;
+}
+
+/* ============================================================
+ * L1 地面刻度环（.o.flat，世界原点，--z 默认 0）
+ * 四个同心环，四种不同手法叠层次：细实线 / 密集短刻度自转 / 粗刻度反向自转 / 稀疏圆弧
+ * ========================================================== */
+
+.ring{
+  --z:var(--h-ground); /* Fix-4：显式接上 --h-ground token（值 0），此前完全
+                         * 靠 .o 基类 var(--z,0) 的兜底默认值，token 改了不生效 */
+  border-radius:50%;
+  pointer-events:none; /* 纯装饰叶子节点，固化命中穿透，不再依赖 JS 运行期绕过 */
+}
+
+.ring--hair{
+  width:calc(var(--r-tick-1) * 2 * 1px);
+  height:calc(var(--r-tick-1) * 2 * 1px);
+  border:1px solid var(--cyan-a28);
+}
+
+/*
+ * .ring--ticks / .ring--ticks-major 是全场性能开销最大的两个元素：直径分别
+ * 1540px / 1760px，用 mask 抠出圆环并叠 repeating-conic-gradient 做密集刻度，
+ * 同时被 spin 常年旋转。实测（Playwright headless=false + 逐项 A/B 关闭动画）
+ * 发现：若不加 will-change:transform，Chromium 无法把"已应用 mask 的大面积
+ * 旋转层"稳定提升为独立合成层，每帧都要在主线程重新栅格化整张 mask+conic-gradient，
+ * 是导致展台从 60fps 掉到 30~40fps 的头号原因；加上 will-change:transform 后，
+ * mask 结果只在首次栅格化一次、后续每帧只需 GPU 合成层的旋转变换，实测独立可把
+ * 展台稳定拉回 60fps 附近。只给这三个"每帧都在自转"的环加，其余静态环不加。
+ */
+.ring--ticks{
+  width:calc(var(--r-tick-2) * 2 * 1px);
+  height:calc(var(--r-tick-2) * 2 * 1px);
+  background:repeating-conic-gradient(from 0deg, var(--cyan-a55) 0 .35deg, transparent .35deg 4deg);
+  -webkit-mask:radial-gradient(closest-side, transparent 0 91%, #000 91.5%);
+          mask:radial-gradient(closest-side, transparent 0 91%, #000 91.5%);
+  animation:spin var(--loop-tick) linear infinite;
+  will-change:transform;
+}
+
+/* 3-B：这道环此前是全场视觉最抢眼的元素之一（缺陷⑥）——粗、亮、密的放射
+ * 状白线抢走了主体注意力，参考图里的地面刻度应该是"细、暗、密"的氛围层。
+ * 三处调整：① 颜色从 --cyan-a55(.60 不透明度) 换成更暗的自定义 rgba(.28)；
+ * ② 单段可见角度从 1.2deg 收到 .5deg（线更细）；③ mask 内边界从 91% 收到
+ * 94%（环本身更窄，径向长度更短，不再像一圈粗放射线杵在画面下半部）。 */
+.ring--ticks-major{
+  width:calc(var(--r-tick-3) * 2 * 1px);
+  height:calc(var(--r-tick-3) * 2 * 1px);
+  background:repeating-conic-gradient(from 0deg, rgba(95,216,255,.28) 0 .5deg, transparent .5deg 18deg);
+  -webkit-mask:radial-gradient(closest-side, transparent 0 94%, #000 94.5%);
+          mask:radial-gradient(closest-side, transparent 0 94%, #000 94.5%);
+  animation:spin var(--loop-tick) linear infinite reverse;
+  will-change:transform;
+}
+
+/* 3-B：同样调暗——alpha 从 .60/.28 降到 .22/.10，作为最外圈的稀疏弧线，
+ * 应该是比 .ring--ticks-major 更弱一档的氛围收边，不是第二道抢镜的亮环。 */
+.ring--arc{
+  width:calc(var(--r-tick-4) * 2 * 1px);
+  height:calc(var(--r-tick-4) * 2 * 1px);
+  background:conic-gradient(from 18deg,
+    rgba(95,216,255,.22) 0 42deg, transparent 42deg 120deg,
+    rgba(95,216,255,.10) 120deg 150deg, transparent 150deg 360deg);
+  -webkit-mask:radial-gradient(closest-side, transparent 0 93%, #000 93.5%);
+          mask:radial-gradient(closest-side, transparent 0 93%, #000 93.5%);
+}
+
+/* ============================================================
+ * L2 七大技术领域球（.o.billboard，环绕半径 --r-domain，离地高度 --h-domain-core）
+ * 每个领域是两个兄弟元素：球体（billboard）+ 地面投影（flat），不做父子嵌套。
+ * --x/--y 由 JS 按角度算出，--z 在此处直接绑定 token，JS 无需重复该常量。
+ * ========================================================== */
+
+/* 3-B：直径从 112px 收到 92px，配合 --r-domain 640→520 一起收紧七大技术
+ * 领域球的视觉体量——球更大 + 环更靠外是此前两个球被画布边缘切掉一半、
+ * 另两个球压在"三大业务"标题上的直接原因（缺陷⑤）。 */
+.domain-ball{
+  --z:var(--h-domain-core);
+  width:92px;
+  height:92px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255,255,255,.85) 0 6%, transparent 30%),
+    radial-gradient(circle at 38% 30%, #bdf0ff 0%, #45a8e8 34%, #1b5fa8 66%, #0a2b56 100%);
+  box-shadow:0 0 26px var(--cyan-a55), inset -14px -18px 34px rgba(3,16,40,.7);
+  border:1px solid rgba(180,235,255,.5);
+  display:grid;
+  place-items:center;
+  font-size:15px;
+  line-height:1.2;
+  text-align:center;
+  color:var(--ink);
+  cursor:pointer;
+  transition:box-shadow var(--t-base) var(--e-out), filter var(--t-base) var(--e-out);
+}
+/* 底部反光弧：装饰用 ::after，不影响 domain-ball 作为叶子节点的性质 */
+.domain-ball::after{
+  content:'';
+  position:absolute;
+  inset:auto 18% 8% 18%;
+  height:22%;
+  border-radius:50%;
+  background:radial-gradient(ellipse, rgba(120,220,255,.4), transparent 70%);
+  filter:blur(3px);
+}
+.domain-ball:hover,
+.domain-ball:focus-visible{
+  outline:none;
+  filter:brightness(1.15);
+  box-shadow:0 0 42px var(--cyan-a85), inset -14px -18px 34px rgba(3,16,40,.7);
+}
+
+/* 底部投影：原 filter:blur(6px) 静态模糊 7 份实例，改为把模糊烘焙进
+ * 多段 radial-gradient 色标（扩大盒子尺寸补偿模糊外扩的范围），视觉近似、
+ * 但去掉了滤镜合成开销。 */
+.domain-shadow{
+  --z:2;
+  width:132px;
+  height:132px;
+  border-radius:50%;
+  background:radial-gradient(ellipse, rgba(70,190,255,.34) 0%, rgba(70,190,255,.20) 40%, rgba(70,190,255,.08) 62%, transparent 78%);
+  pointer-events:none;
+}
+
+/* 远景青雾：单独一枚大椭圆盖住地面远端，让后排领域球随景深自然褪色。
+ * 遮挡本身仍由 preserve-3d 深度排序（被中心圆桌等物件挡住）负责，
+ * 这层雾只做"越远越淡"的大气透视感，不是拿 opacity 假装遮挡。
+ * 原 filter:blur(2px) 同样烘焙进渐变多色标，省掉一次全屏级大面积滤镜合成。 */
+.stage-fog{
+  --z:118;
+  width:1800px;
+  height:920px;
+  border-radius:50%;
+  background:radial-gradient(ellipse, rgba(60,190,255,.14) 0%, rgba(40,140,220,.10) 32%, rgba(4,16,40,.32) 68%, transparent 100%);
+  pointer-events:none;
+}
+
+/* ============================================================
+ * L3 三大业务全息投影（--x:-300/0/+300 左中右分布）
+ * 每组 5 个兄弟元素：光锥(窄+宽两层) + 地面光环(环+辉光两层) + 悬浮牌
+ * 三组共享 --y，各自只有 --x 不同，因此 --y 直接绑定在类选择器里，
+ * JS 只需要给每个元素传各自的 --x。
+ *
+ * 3-B：--y 从 340 改到 460——340 小于 --r-table(580)，整组光锥+地面光环
+ * 落在主圆桌footprint 内部，被桌面自身的纹理和 preserve-3d 深度顺序盖住
+ * 大半，只剩悬浮牌顶部一小截可见（缺陷④）。曾先试到 640（推出桌沿之外），
+ * 但那样悬浮牌会掉到「材料与装备」「输送与储存」等 L2 领域球的屏幕区域、
+ * 互相重叠（缺陷⑤连带回归）；改用 460——仍在 --r-table footprint 边缘
+ * 附近但已经明显跳出桌面主纹理区，配合下面渐变 alpha 一起调高，光锥/
+ * 地面光环足够醒目，且与领域球、金色标题都不再重叠（用 Playwright 逐一
+ * 核对 .holo-cone/.holo-base/.holo-plate 与全部 7 个 .domain-ball 的
+ * getBoundingClientRect 不相交）。 */
+.holo-cone{
+  --y:460;
+  --z:var(--h-biz-base);
+  width:190px;
+  /* Fix-4：接上零引用的 --h-biz-cone-top token（96），此前是字面量 92px。
+   * 语义上 --h-biz-cone-top 是光锥"宽口"所在的世界高度，--h-biz-base
+   * 是光锥"窄口"（贴地）所在的世界高度，两者之差就是光锥自身的高度，
+   * 96-4=92，数值上与旧字面量一一对应，零视觉变化。 */
+  height:calc((var(--h-biz-cone-top) - var(--h-biz-base)) * 1px);
+  transform-origin:50% 100%;
+  clip-path:polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+  /* 3-B：alpha 从 .46/.06 调高到 .68/.10，配合新位置（不再被桌面纹理盖住）
+   * 提升光锥与背景的对比度。 */
+  background:linear-gradient(180deg, rgba(96,208,255,.68), rgba(96,208,255,.10) 78%, transparent);
+  filter:blur(.6px);
+  animation:coneBreathe var(--loop-breathe) var(--e-inout) infinite;
+  pointer-events:none;
+}
+/* 光锥第二层：更宽更虚，叠出体积感（与 .holo-cone 是同位置的两枚兄弟元素） */
+.holo-cone--wide{
+  width:250px;
+  opacity:.55;
+  filter:blur(5px);
+}
+
+.holo-base{
+  --y:460;
+  --z:var(--h-biz-base);
+  width:170px;
+  height:170px;
+  border-radius:50%;
+  background:
+    repeating-conic-gradient(from 0deg, var(--cyan-a85) 0 .6deg, transparent .6deg 7deg),
+    radial-gradient(closest-side, rgba(60,180,255,.42), transparent 72%);
+  -webkit-mask:radial-gradient(closest-side, #000 0 52%, transparent 54%, #000 66%, transparent 82%);
+          mask:radial-gradient(closest-side, #000 0 52%, transparent 54%, #000 66%, transparent 82%);
+  animation:spin 24s linear infinite;
+  will-change:transform; /* 同 .ring--ticks，masked + 旋转，提前提升合成层避免每帧重新栅格化 */
+  pointer-events:none;
+}
+/* 原 filter:blur(10px) 烘焙进多色标渐变，pulse 呼吸动画只保留 brightness 分量
+ * （见 fx.css 里移除 .holo-base-glow 的 --pulse-blur 声明） */
+.holo-base-glow{
+  --y:460;
+  --z:3;
+  width:230px;
+  height:230px;
+  border-radius:50%;
+  background:radial-gradient(ellipse, rgba(60,180,255,.42) 0%, rgba(60,180,255,.24) 32%, rgba(60,180,255,.10) 56%, transparent 74%);
+  animation:pulse 2.8s var(--e-inout) infinite;
+  pointer-events:none;
+}
+
+.holo-plate{
+  --y:460;
+  --z:var(--h-biz-plate);
+  padding:10px 22px;
+  font-size:24px;
+  letter-spacing:2px;
+  color:var(--ink);
+  background:linear-gradient(180deg, rgba(30,110,200,.55), rgba(10,44,100,.35));
+  border:1px solid var(--cyan-a55);
+  border-radius:6px;
+  box-shadow:0 0 22px var(--cyan-a28), inset 0 0 20px rgba(90,200,255,.18);
+  clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  white-space:nowrap;
+  cursor:pointer;
+}
+/* 扫描线：装饰用 ::after，.holo-plate 没有 3D 子元素，仍是合法叶子 */
+.holo-plate::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(180deg, transparent 0 3px, rgba(140,235,255,.16) 3px 4px);
+  animation:scanShift var(--loop-scan) linear infinite;
+}
+.holo-plate:hover,
+.holo-plate:focus-visible{
+  outline:none;
+  border-color:var(--gold);
+  box-shadow:0 0 34px rgba(255,215,94,.55);
+}
+
+/* ============================================================
+ * 金色标题：「三大业务」「七大技术领域」，均为单实例，位置直接写死在类里
+ * ========================================================== */
+
+.stage-title{
+  font-size:32px;
+  font-weight:600;
+  letter-spacing:8px;
+  color:var(--gold);
+  text-shadow:0 0 18px rgba(255,215,94,.7);
+  white-space:nowrap;
+  pointer-events:none;
+}
+.stage-title--biz{
+  --y:520;
+  --z:20;
+}
+.stage-title--domain{
+  /* 与领域球同理，实测取值以完整落在 1920x1080 画布内为准，
+     而不是直接照抄 L2 计划文档里未经渲染验证的 --y:900 */
+  --y:650;
+  --z:6;
+}
