@@ -1,9 +1,268 @@
-/* 常规演示窗口直接铺满视口。这里只处理极窄窗口和打印场景。 */
+/* 常规演示窗口直接铺满视口。
+   13/14 寸笔记本的可用宽高通常卡在 1280~1440px / 720~900px 区间：
+   这里优先压缩外壳、表格列和详情侧栏，把空间还给时序/视觉证据。 */
 
-/* 窗口极窄时允许查看最小演示画布。 */
-@media (max-width: 900px), (max-height: 560px) {
+@media (max-width: 1440px) {
+  .app-shell {
+    grid-template-rows: 72px minmax(0, 1fr) 78px;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .topbar {
+    grid-template-columns: 280px minmax(0, 1fr) 280px;
+    padding: 0 14px;
+  }
+
+  .brand h1 { font-size: 17px; }
+  .scene-nav { gap: 6px; }
+  .scene-nav-btn { padding: 8px 12px; font-size: 13px; }
+  .flow-rail { padding: 8px 14px; }
+  .flow-step { padding: 5px 8px; column-gap: 6px; }
+
+  .scene-shell {
+    grid-template-rows: 48px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .scene-head h2 { font-size: 20px; }
+
+  .wb-layout {
+    grid-template-columns: minmax(460px, 38vw) minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .wb-records,
+  .wb-card { padding: 10px 12px; }
+
+  .wb-focus { grid-template-rows: 40px minmax(0, 1fr); gap: 10px; }
+  .wb-focus-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(320px, 0.95fr);
+    grid-template-rows: minmax(0, 1fr) minmax(168px, 180px);
+    grid-template-areas:
+      "trend vision ai"
+      "agent agent ai";
+    gap: 10px;
+  }
+
+  .wb-trend { grid-area: trend; }
+  .wb-vision { grid-area: vision; }
+  .wb-ai {
+    grid-area: ai;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+  .wb-agent { grid-area: agent; }
+  .wb-ai .ev-chain-wrap { min-height: 0; overflow: auto; }
+
+  .wb-summary {
+    gap: 10px;
+    padding: 0 12px;
+    min-width: 0;
+  }
+
+  .wb-summary span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ev-chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ev-chip { padding: 6px 8px; }
+  .ev-chip-detail { display: none; }
+
+  .dt-trend-grid { grid-template-columns: minmax(0, 1fr) minmax(320px, 360px); gap: 10px; }
+  .dt-vision-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 340px); gap: 10px; }
+  .dt-main,
+  .dt-vision-main,
+  .dt-params,
+  .dt-sub,
+  .dt-sample,
+  .dt-findings,
+  .dt-strip-panel { padding: 10px 12px; }
+  .dt-chart-sub { height: 80px; }
+  .dt-strip { gap: 6px; }
+  .dt-strip-item { grid-template-columns: 60px 1fr; padding: 6px 8px; }
+  .dt-strip-item img { width: 60px; height: 40px; }
+}
+
+@media (max-width: 1320px) {
+  .topbar { grid-template-columns: 240px minmax(0, 1fr) 240px; }
+  .brand small { display: none; }
+  .top-status #statusLine {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scene-nav-btn { padding: 7px 10px; font-size: 12.5px; }
+
+  .wb-layout {
+    grid-template-columns: minmax(420px, 35vw) minmax(0, 1fr);
+  }
+
+  .wb-focus-grid {
+    grid-template-rows: minmax(0, 1fr) minmax(190px, 230px);
+  }
+
+  .panel-title { margin-bottom: 8px; padding-bottom: 6px; }
+  .panel-title > span { font-size: 14px; }
+  .panel-title > small { font-size: 11px; }
+  .wb-ai-conclusion,
+  .wb-agent p { font-size: 12.5px; line-height: 1.55; }
+  .wb-agent-tags { gap: 5px; }
+  .wb-agent-tags span { padding: 2px 7px; font-size: 10.5px; }
+
+  .dt-trend-grid { grid-template-columns: minmax(0, 1fr) 300px; }
+  .dt-vision-grid { grid-template-columns: minmax(0, 1fr) 292px; }
+  .dt-param-list { grid-template-columns: 68px 1fr; font-size: 12px; }
+  .dt-table { font-size: 11.5px; }
+}
+
+@media (max-width: 1440px) and (max-height: 820px) {
+  .app-shell {
+    grid-template-rows: 64px minmax(0, 1fr) 62px;
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .scene-shell { grid-template-rows: 40px minmax(0, 1fr); gap: 8px; }
+  .scene-head h2 { font-size: 19px; }
+  .flow-rail { padding: 6px 12px; }
+  .flow-hint,
+  .flow-desc { display: none; }
+  .flow-step { grid-template-rows: auto; align-items: center; }
+  .flow-index { grid-row: 1; }
+
+  .wb-focus { grid-template-rows: 36px minmax(0, 1fr); gap: 8px; }
+  .wb-summary { font-size: 12px; }
+  .wb-focus-grid {
+    grid-template-rows: minmax(0, 1fr) minmax(172px, 212px);
+    gap: 8px;
+  }
+
+  .wb-records,
+  .wb-card { padding: 9px 10px; }
+  .ev-rule-card { padding: 7px 9px; }
+  .ev-rule-card p { line-height: 1.55; }
+  .wb-alert,
+  .wb-finding { margin: 4px 0; font-size: 11.5px; }
+  .wb-range-btn { padding: 5px 10px; font-size: 12px; }
+  .plain-button,
+  .primary-action { padding-top: 7px; padding-bottom: 7px; }
+
+  .dt-main,
+  .dt-vision-main,
+  .dt-params,
+  .dt-sub,
+  .dt-sample,
+  .dt-findings,
+  .dt-strip-panel { padding: 9px 10px; }
+  .dt-chart-sub { height: 68px; }
+  .dt-finding-list { font-size: 12px; line-height: 1.65; }
+  .dt-strip-item { min-height: 52px; }
+}
+
+@media (max-width: 1180px) {
+  html,
+  body { height: auto; min-height: 100%; overflow: auto; }
+
+  .app-shell {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: auto auto auto;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    gap: 10px;
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .brand,
+  .scene-nav,
+  .top-status { justify-content: center; text-align: center; }
+  .brand small { display: block; }
+  .scene-nav { flex-wrap: wrap; }
+  .stage { overflow: visible; }
+
+  .scene-shell {
+    height: auto;
+    min-height: 0;
+    grid-template-rows: auto auto;
+  }
+
+  .scene-head {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .scene-head > :last-child { flex: 0 0 auto; }
+
+  .wb-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wb-records {
+    min-height: 320px;
+  }
+
+  .wb-focus {
+    grid-template-rows: auto auto;
+  }
+
+  .wb-summary {
+    min-height: 42px;
+    flex-wrap: wrap;
+    align-content: center;
+  }
+
+  .wb-focus-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 34vh) minmax(260px, 34vh) auto auto;
+    grid-template-areas:
+      "trend"
+      "vision"
+      "ai"
+      "agent";
+  }
+
+  .wb-trend-chart,
+  .wb-frame-wrap { min-height: 220px; }
+  .ev-chain { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ev-chip-detail { display: block; }
+
+  .dt-trend-grid,
+  .dt-vision-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dt-main,
+  .dt-vision-main { min-height: 440px; }
+  .dt-chart { min-height: 320px; }
+  .dt-frame-btn { min-height: 360px; }
+  .dt-side,
+  .dt-vision-side {
+    grid-template-rows: auto auto auto;
+  }
+
+  .flow-track {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 高度极窄时允许纵向滚动查看最小演示画布；窄宽度交给上面的单列布局处理。 */
+@media (max-height: 560px) {
   body { overflow: auto; }
-  .app-shell { position: relative; width: 1280px; height: 720px; }
+  .app-shell { position: relative; height: auto; min-height: 720px; }
 }
 
 /* 打印时去掉背景光晕，避免大面积渐变在投影仪上偏色 */
