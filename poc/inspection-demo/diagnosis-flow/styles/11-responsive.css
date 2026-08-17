@@ -257,6 +257,70 @@
     grid-auto-columns: auto;
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .overlay-mask.wide .overlay-panel.ag-overlay {
+    width: min(96vw, 1280px);
+  }
+
+  .overlay-panel.ag-overlay .overlay-head {
+    padding: 12px 14px;
+  }
+
+  .overlay-panel.ag-overlay .overlay-body {
+    padding: 12px;
+  }
+
+  .ag-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 188px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .ag-side-title { letter-spacing: 0; }
+
+  .ag-question {
+    padding: 7px 9px;
+    font-size: 12px;
+  }
+
+  .overlay-panel.ag-overlay .ag-skill-picker {
+    padding: 8px 9px 9px;
+  }
+
+  .overlay-panel.ag-overlay .ag-skill-chip-list {
+    gap: 6px;
+  }
+
+  .overlay-panel.ag-overlay .ag-skill-chip {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  .overlay-panel.ag-overlay .ag-answer-card {
+    padding: 10px 11px;
+  }
+
+  .ag-input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ag-turn {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .inspection-flow-nav {
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 10px !important;
+    grid-auto-flow: column;
+    transform: translateX(-50%) !important;
+  }
+
+  .inspection-flow-nav a::after {
+    display: none;
+  }
 }
 
 /* 高度极窄时允许纵向滚动查看最小演示画布；窄宽度交给上面的单列布局处理。 */

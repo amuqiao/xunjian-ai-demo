@@ -655,6 +655,19 @@ window.DomainSchema = (function () {
           }
         });
 
+        if (Object.prototype.hasOwnProperty.call(question, "skillOptions")) {
+          if (!Array.isArray(question.skillOptions) || !question.skillOptions.length) {
+            fail(qlabel + ".skillOptions 必须是非空数组");
+          }
+          assertUniqueIds(question.skillOptions, "id", qlabel + ".skillOptions");
+          question.skillOptions.forEach(function (skill, k) {
+            var slabel = qlabel + ".skillOptions[" + k + "]";
+            ["label", "enhancedAnswer"].forEach(function (field) {
+              assertString(skill, field, slabel);
+            });
+          });
+        }
+
         if (Object.prototype.hasOwnProperty.call(question, "unlockedBy") && !UNLOCK_KEYS[question.unlockedBy]) {
           fail(qlabel + ".unlockedBy 不是合法取值（archived）：" + question.unlockedBy);
         }

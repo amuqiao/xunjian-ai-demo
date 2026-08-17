@@ -155,7 +155,7 @@
 
       // freeText 是自由输入框里那句话。存进 state 而不是只留在 DOM 里，是因为对话区
       // 会被定点刷新重建，不存的话用户打的字会凭空消失。
-      agent: { open: false, contextId: "", questionId: "", freeText: "", phase: "idle" },
+      agent: { open: false, contextId: "", questionId: "", skillId: "", freeText: "", phase: "idle" },
 
       review: {
         reviewerId: META.defaultReviewerId,
@@ -268,13 +268,20 @@
       var context = findById(contexts, contextId);
       if (has(context.questions, source.questionId)) questionId = source.questionId;
     }
+    var skillId = "";
+    if (contextId && questionId) {
+      var question = findById(findById(contexts, contextId).questions, questionId);
+      if (question && Array.isArray(question.skillOptions) && has(question.skillOptions, source.skillId)) {
+        skillId = source.skillId;
+      }
+    }
     var freeText = typeof source.freeText === "string" ? source.freeText : "";
     if (!contextId) open = false;
-    if (!open) { contextId = ""; questionId = ""; freeText = ""; }
+    if (!open) { contextId = ""; questionId = ""; skillId = ""; freeText = ""; }
     // thinking 是一个由定时器推进的中间态，刷新后定时器不在了，落盘会卡在"检索中…"
     // 永不结束。只保留两个稳定端点。
     var phase = (questionId || freeText) ? "answered" : "idle";
-    return { open: open, contextId: contextId, questionId: questionId, freeText: freeText, phase: phase };
+    return { open: open, contextId: contextId, questionId: questionId, skillId: skillId, freeText: freeText, phase: phase };
   }
 
   function cleanReview(raw) {

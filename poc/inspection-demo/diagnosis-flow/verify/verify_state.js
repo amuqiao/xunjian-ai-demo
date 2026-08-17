@@ -192,7 +192,7 @@ function loadWith(patch) {
       vision: { frameId: null, zoomOpen: false },
       knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
     },
-    agent: { open: false, contextId: "", questionId: "", phase: "idle" },
+    agent: { open: false, contextId: "", questionId: "", skillId: "", phase: "idle" },
     review: {
       reviewerId: "reviewer-a", vote: "", outcomeId: "", fields: {},
       note: "", executed: false, retestPassed: null
@@ -243,6 +243,16 @@ check("越界的 chunkIndex 被清掉（换数据集后正文变短就会出现�
 var agentMid = loadWith({ agent: { open: true, contextId: "workbench", questionId: "wb-q1", phase: "thinking" } });
 check("Agent 的 thinking 中间态不持久化（否则刷新后永远停在检索中）",
   agentMid.agent.phase === "answered");
+
+var agentSkill = loadWith({
+  agent: { open: true, contextId: "workbench", questionId: "wb-q1", skillId: "multi-evidence", phase: "answered" }
+});
+check("合法的 Agent Skill 选择可以持久化", agentSkill.agent.skillId === "multi-evidence");
+
+var agentSkillBad = loadWith({
+  agent: { open: true, contextId: "workbench", questionId: "wb-q1", skillId: "skill-x", phase: "answered" }
+});
+check("悬空的 Agent Skill 选择被清掉", agentSkillBad.agent.skillId === "");
 
 var agentBad = loadWith({ agent: { open: true, contextId: "nowhere", questionId: "x", phase: "answered" } });
 check("悬空的 Agent 上下文导致浮层关闭", agentBad.agent.open === false);

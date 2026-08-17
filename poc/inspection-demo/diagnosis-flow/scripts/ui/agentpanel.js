@@ -79,6 +79,56 @@
     ]);
   }
 
+  function questionSkillOptions(question) {
+    if (!Object.prototype.hasOwnProperty.call(question, "skillOptions")) return [];
+    if (!Array.isArray(question.skillOptions)) {
+      throw new Error("[AgentPanel] skillOptions 必须是数组：" + question.id);
+    }
+    return question.skillOptions;
+  }
+
+  function normalizeSkillOption(option, index, questionId) {
+    if (!option || typeof option.id !== "string" || typeof option.label !== "string" || typeof option.enhancedAnswer !== "string") {
+      throw new Error("[AgentPanel] 非法的 skillOptions[" + index + "]：" + questionId);
+    }
+    return option;
+  }
+
+  function activeSkillOption(question, skillId) {
+    if (!skillId) return null;
+    var options = questionSkillOptions(question);
+    for (var i = 0; i < options.length; i += 1) {
+      var option = normalizeSkillOption(options[i], i, question.id);
+      if (option.id === skillId) return option;
+    }
+    return null;
+  }
+
+  function renderSkillOptions(question, skillId) {
+    var options = questionSkillOptions(question);
+    if (!options.length) return null;
+
+    return h("div", { class: "ag-skill-picker", role: "group", "aria-label": "可选 Skill" }, [
+      h("strong", { class: "ag-skill-picker-title", text: "可选 Skill" }),
+      h("div", { class: "ag-skill-chip-list" }, options.map(function (item, index) {
+        var option = normalizeSkillOption(item, index, question.id);
+        var active = option.id === skillId;
+
+        return h("button", {
+          type: "button",
+          class: "ag-skill-chip" + (active ? " active" : ""),
+          "aria-pressed": active ? "true" : "false",
+          dataset: {
+            action: "select-agent-skill",
+            agentSkillId: option.id,
+            focusKey: "skill:" + option.id
+          },
+          text: option.label
+        });
+      }))
+    ]);
+  }
+
   // 对话区是浮层里唯一随状态变化的部分。它被包在 [data-agent-thread] 里，refreshAgent()
   // 只替换这一块——浮层外壳原地不动，淡入动画不会重播。
   function renderThread(context, state) {
@@ -100,6 +150,8 @@
 
     var askText = question ? question.question : (state.agent.freeText || "（自由输入）");
     var thinkingText = question ? question.thinkingText : "正在检索知识库…";
+    var skill = question ? activeSkillOption(question, state.agent.skillId) : null;
+    var answerText = question ? (skill ? skill.enhancedAnswer : question.answer) : context.fallbackAnswer;
 
     return h("div", { class: "ag-thread", "aria-live": "polite" }, [
       h("div", { class: "ag-turn ag-turn-user" }, [
@@ -114,7 +166,14 @@
             h("span", { text: thinkingText })
           ])
           : h("div", { class: "ag-answer" }, [
-            h("p", { text: question ? question.answer : context.fallbackAnswer }),
+            question ? renderSkillOptions(question, state.agent.skillId) : null,
+            h("div", { class: "ag-answer-card" + (skill ? " enhanced" : "") }, [
+              h("div", { class: "ag-answer-head" }, [
+                h("strong", { class: "ag-answer-title", text: skill ? "增强回答" : "基础回答" }),
+                skill ? h("span", { class: "ag-answer-skill", text: skill.label }) : null
+              ]),
+              h("p", { class: "ag-answer-text", text: answerText })
+            ]),
             question ? renderHits(question) : null
           ])
       ])
@@ -174,6 +233,8 @@
     var host = document.querySelector("[data-agent-thread]");
     if (!host) return;
     var context = contextById(state.agent.contextId);
+    var active = document.activeElement;
+    var focusKey = (active && active.dataset) ? active.dataset.focusKey : "";
 
     host.innerHTML = "";
     host.appendChild(renderThread(context, state));
@@ -183,6 +244,14 @@
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
+
+    var input = document.querySelector(".ag-input");
+    if (input && input.value !== state.agent.freeText) input.value = state.agent.freeText;
+
+    if (focusKey) {
+      var nextFocus = document.querySelector('[data-focus-key="' + focusKey + '"]');
+      if (nextFocus) nextFocus.focus();
+    }
   }
 
   window.AgentPanel = { render: render, visibleQuestions: visibleQuestions, contextById: contextById };

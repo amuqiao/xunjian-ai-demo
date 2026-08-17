@@ -270,6 +270,8 @@
     state.agent.open = false;
     state.agent.contextId = "";
     state.agent.questionId = "";
+    state.agent.skillId = "";
+    state.agent.freeText = "";
     state.agent.phase = "idle";
   }
 
@@ -290,6 +292,8 @@
     state.agent.open = true;
     state.agent.contextId = contextId;
     state.agent.questionId = "";
+    state.agent.skillId = "";
+    state.agent.freeText = "";
     state.agent.phase = "idle";
     AppState.markFlowStep("agent");
     commit();
@@ -313,6 +317,7 @@
       throw new Error("[boot] 未知 Agent 问题：" + questionId + "（上下文 " + context.id + "）");
     }
     state.agent.questionId = questionId;
+    state.agent.skillId = "";
     state.agent.freeText = "";
     state.agent.phase = "thinking";
     // persist:true —— 这是"定完就等它自己触发"的动画定时器。用渲染级定时器注册的话，
@@ -329,8 +334,26 @@
     var input = host ? host.querySelector(".ag-input") : null;
     state.agent.freeText = input ? input.value : "";
     state.agent.questionId = "";
+    state.agent.skillId = "";
     state.agent.phase = "thinking";
     askAgent();
+  }
+
+  function selectAgentSkill(element) {
+    var skillId = element.dataset.agentSkillId;
+    var context = agentContext(state.agent.contextId);
+    var question = context.questions.filter(function (item) {
+      return item.id === state.agent.questionId;
+    })[0];
+    if (!question) {
+      throw new Error("[boot] 未选中 Agent 问题，不能选择 Skill");
+    }
+    if (!Array.isArray(question.skillOptions) || !question.skillOptions.some(function (skill) { return skill.id === skillId; })) {
+      throw new Error("[boot] 未知 Agent Skill：" + skillId + "（问题 " + question.id + "）");
+    }
+    state.agent.skillId = state.agent.skillId === skillId ? "" : skillId;
+    state.agent.phase = "answered";
+    tick();
   }
 
   // ---------------------------------------------------------------- 知识库入库动画
@@ -609,6 +632,7 @@
 
     if (action === "open-agent") return openAgent(element);
     if (action === "select-agent-question") return selectAgentQuestion(element);
+    if (action === "select-agent-skill") return selectAgentSkill(element);
     if (action === "submit-agent-input") return submitAgentInput(element);
     if (action === "close-agent") {
       closeAgentState();

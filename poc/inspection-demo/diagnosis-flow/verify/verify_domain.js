@@ -453,6 +453,22 @@ expectReject("命中卡引用了无正文文档", function (w) {
 expectReject("unlockedBy 非法取值", function (w) {
   w.DOMAIN_AGENTQA.contexts[2].questions[1].unlockedBy = "someday";
 });
+expectReject("skillOptions 为空数组", function (w) {
+  w.DOMAIN_AGENTQA.contexts[0].questions[0].skillOptions = [];
+});
+expectReject("skillOptions 缺 id", function (w) {
+  delete w.DOMAIN_AGENTQA.contexts[0].questions[0].skillOptions[0].id;
+});
+expectReject("skillOptions id 重复", function (w) {
+  w.DOMAIN_AGENTQA.contexts[0].questions[0].skillOptions[1].id =
+    w.DOMAIN_AGENTQA.contexts[0].questions[0].skillOptions[0].id;
+});
+expectReject("skillOptions 缺 label", function (w) {
+  delete w.DOMAIN_AGENTQA.contexts[0].questions[0].skillOptions[0].label;
+});
+expectReject("skillOptions 缺 enhancedAnswer", function (w) {
+  delete w.DOMAIN_AGENTQA.contexts[0].questions[0].skillOptions[0].enhancedAnswer;
+});
 expectReject("上下文缺失一个", function (w) { w.DOMAIN_AGENTQA.contexts.pop(); });
 
 // 09-kb

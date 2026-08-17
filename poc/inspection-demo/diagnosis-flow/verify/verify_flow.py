@@ -162,8 +162,20 @@ def run(page):
     check("点问题后进入检索中动画", page.locator(".ag-thinking").count() == 1)
     page.wait_for_selector(".ag-answer", timeout=4000)
     check("动画结束后出现答案", page.locator(".ag-answer").count() == 1)
+    check("默认只显示基础回答，不自动增强",
+          page.locator(".ag-answer-card.enhanced").count() == 0 and "基础回答" in text_of(page, ".ag-answer-card"))
+    check("命中答案渲染可选 Skill 标签", page.locator(".ag-skill-chip").count() >= 1)
+    page.locator(".ag-skill-chip").first.click()
+    page.wait_for_selector(".ag-answer-card.enhanced", timeout=2000)
+    check("点击 Skill 后切换为增强回答",
+          page.locator(".ag-skill-chip.active").count() == 1 and "增强回答" in text_of(page, ".ag-answer-card"))
+    check("增强回答明显补充推理内容", "启用" in text_of(page, ".ag-answer-text"))
+    check("Skill 局部刷新后焦点仍留在当前 Skill 标签",
+          page.evaluate("() => document.activeElement && document.activeElement.dataset.focusKey") == "skill:multi-evidence")
+    page.locator(".ag-skill-chip.active").click()
+    check("再次点击已选 Skill 可回到基础回答", page.locator(".ag-answer-card.enhanced").count() == 0)
     check("命中态渲染出可点的命中卡", page.locator(".ag-hit").count() >= 1)
-    check("提问全程零次整屏渲染（每次整屏渲染 = 浮层重挂 = 闪一下）",
+    check("提问和 Skill 切换全程零次整屏渲染（每次整屏渲染 = 浮层重挂 = 闪一下）",
           render_count(page) == before)
     # 高度必须在"空态 / 检索中 / 答案"之间保持一致：内容一长浮层就跟着变高，
     # 在演示里表现为卡片上下弹一下。
@@ -181,6 +193,7 @@ def run(page):
     check("自由提问的原文回显在对话里", "占位自由提问" in text_of(page, ".ag-thread"))
     check("自由提问后输入框里的字没有丢",
           page.eval_on_selector(".ag-input", "el => el.value") == "占位自由提问")
+    check("自由提问不渲染 Skill 标签", page.locator(".ag-skill-chip").count() == 0)
 
     # 直接考一次 key 增量挂载：主动触发整屏渲染，浮层必须原地保留。
     # 这条要主动触发才有意义——动画路径根本不整屏渲染，只在动画后检查等于空转。
@@ -191,7 +204,13 @@ def run(page):
 
     page.locator(".ag-question.miss").first.click()
     page.wait_for_selector(".ag-miss", timeout=4000)
+    check("切回预设问题后自由输入框同步清空",
+          page.eval_on_selector(".ag-input", "el => el.value") == "")
     check("未命中态渲染出「知识库暂无直接依据」", page.locator(".ag-miss").count() == 1)
+    check("未命中态渲染知识边界 Skill 标签", "知识边界识别" in text_of(page, ".ag-skill-picker"))
+    page.locator(".ag-skill-chip").first.click()
+    page.wait_for_selector(".ag-answer-card.enhanced", timeout=2000)
+    check("未命中态点击 Skill 后增强边界说明", "知识边界识别" in text_of(page, ".ag-answer-card"))
     check("未命中态不渲染命中卡", page.locator(".ag-hit").count() == 0)
     page.screenshot(path=str(SHOTS / "05-agent-miss.png"))
     page.keyboard.press("Escape")
@@ -324,6 +343,13 @@ def run(page):
     page.click('[data-action="open-agent"][data-agent-context="knowledge"]')
     check("知识库 Agent 在归档后多出一条问题",
           page.locator(".ag-question").count() >= 3)
+    page.locator(".ag-question:not(.miss)").first.click()
+    page.wait_for_selector(".ag-answer", timeout=4000)
+    check("知识库 Agent 默认只显示基础回答", page.locator(".ag-answer-card.enhanced").count() == 0)
+    check("知识库 Agent 渲染可选 Skill 标签", page.locator(".ag-skill-chip").count() >= 1)
+    page.locator(".ag-skill-chip").first.click()
+    page.wait_for_selector(".ag-answer-card.enhanced", timeout=2000)
+    check("知识库 Agent 点击 Skill 后显示增强回答", page.locator(".ag-answer-card.enhanced").count() == 1)
     page.keyboard.press("Escape")
 
     # ---------------------------------------------------------------- 7. 二次命中
@@ -396,6 +422,27 @@ def main():
 
         try:
             run(page)
+            for width, height in [(1180, 800), (360, 800)]:
+                small = browser.new_page(viewport={"width": width, "height": height})
+                small.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
+                small.on("pageerror", lambda e: console_errors.append("pageerror: " + str(e)))
+                small.goto(INDEX.as_uri(), wait_until="domcontentloaded")
+                small.wait_for_selector(".wb-layout", timeout=8000)
+                small.click('[data-action="open-agent"][data-agent-context="workbench"]')
+                small.locator(".ag-question:not(.miss)").first.click()
+                small.wait_for_selector(".ag-answer", timeout=4000)
+                small.locator(".ag-skill-chip").first.click()
+                small.wait_for_selector(".ag-answer-card.enhanced", timeout=2000)
+                box = small.locator(".ag-overlay").bounding_box()
+                fits = bool(box) and box["x"] >= -1 and box["y"] >= -1 \
+                    and box["x"] + box["width"] <= width + 1 \
+                    and box["y"] + box["height"] <= height + 1
+                check("小屏 %dx%d 下 Agent Skill 浮层留在视口内" % (width, height), fits)
+                check("小屏 %dx%d 下 Skill 标签和增强回答可用" % (width, height),
+                      small.locator(".ag-skill-chip.active").count() == 1
+                      and small.locator(".ag-answer-card.enhanced").count() == 1)
+                small.screenshot(path=str(SHOTS / ("15-agent-skill-%dx%d.png" % (width, height))))
+                small.close()
         finally:
             browser.close()
 
