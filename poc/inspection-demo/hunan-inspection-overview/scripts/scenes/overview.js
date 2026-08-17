@@ -29,7 +29,12 @@
     { id: "7d", label: "近7天", shortLabel: "近7日", days: 7 },
     { id: "30d", label: "近30天", shortLabel: "近30日", days: 30 },
     { id: "month", label: "本月", shortLabel: "本月", monthToDate: true },
-    { id: "custom", label: "自定义", shortLabel: "7/28-8/4", pointCount: 8, fixedText: "2026-07-28 至 2026-08-04" },
+    { id: "custom", label: "自定义" },
+  ];
+  var CUSTOM_DATE_RANGES = [
+    { id: "xiangtan-review", label: "湘潭站问题复核", start: "2026-04-24", end: "2026-04-30", shortLabel: "4/24-4/30" },
+    { id: "risk-recheck", label: "重点隐患复查", start: "2026-07-28", end: "2026-08-04", shortLabel: "7/28-8/4" },
+    { id: "monthly-inspection", label: "月度巡检窗口", start: "2026-08-01", end: "2026-08-17", shortLabel: "8月巡检" },
   ];
 
   function assertLoaded() {
@@ -58,6 +63,13 @@
     throw new Error("未知日期范围：" + id);
   }
 
+  function customDateRangeById(id) {
+    for (var i = 0; i < CUSTOM_DATE_RANGES.length; i += 1) {
+      if (CUSTOM_DATE_RANGES[i].id === id) return CUSTOM_DATE_RANGES[i];
+    }
+    throw new Error("未知自定义日期范围：" + id);
+  }
+
   function isDateRangeId(id) {
     for (var i = 0; i < DATE_RANGES.length; i += 1) {
       if (DATE_RANGES[i].id === id) return true;
@@ -65,8 +77,28 @@
     return false;
   }
 
+  function isCustomDateRangeId(id) {
+    for (var i = 0; i < CUSTOM_DATE_RANGES.length; i += 1) {
+      if (CUSTOM_DATE_RANGES[i].id === id) return true;
+    }
+    return false;
+  }
+
   function activeDateRange(state) {
-    return dateRangeById(state && state.dateRangeId ? state.dateRangeId : "7d");
+    var range = dateRangeById(state && state.dateRangeId ? state.dateRangeId : "7d");
+    if (range.id === "custom") {
+      var customRange = customDateRangeById(state.customRangeId);
+      return {
+        id: range.id,
+        label: range.label,
+        customLabel: customRange.label,
+        shortLabel: customRange.shortLabel,
+        fixedText: customRange.start + " 至 " + customRange.end,
+        start: customRange.start,
+        end: customRange.end,
+      };
+    }
+    return range;
   }
 
   function dateRangeText(range, now) {
@@ -80,27 +112,78 @@
     return formatDate(start) + " 至 " + formatDate(now);
   }
 
+  function parseDateOnly(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error("日期必须使用 YYYY-MM-DD 格式：" + value);
+    var date = new Date(value + "T00:00:00");
+    if (Number.isNaN(date.getTime()) || formatDate(date) !== value) {
+      throw new Error("非法日期：" + value);
+    }
+    return date;
+  }
+
   function dateRangePointCount(range, now) {
     if (range.pointCount) return range.pointCount;
+    if (range.start && range.end) {
+      var start = parseDateOnly(range.start);
+      var end = parseDateOnly(range.end);
+      var count = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+      if (count < 1 || count > 31) throw new Error("自定义日期范围点数必须在 1 到 31 之间：" + count);
+      return count;
+    }
     if (range.monthToDate) return now.getDate();
     return range.days;
   }
 
   function renderDateRangePicker(state, now) {
     var active = activeDateRange(state);
-    return h("div", { class: "date-range-picker", "aria-label": "数据日期范围" }, [
-      h("span", { class: "date-range-label", text: "数据窗口" }),
-      h("div", { class: "date-range-options" }, DATE_RANGES.map(function (range) {
-        var isActive = range.id === active.id;
+    var isCustomOpen = !!(state && state.customRangeOpen);
+    return h("div", { class: "date-range-picker" + (isCustomOpen ? " is-custom-open" : ""), "aria-label": "数据日期范围" }, [
+      h("span", { class: "date-range-label", text: dateRangeText(active, now) }),
+      h("div", { class: "date-range-control" }, [
+        h("div", { class: "date-range-options" }, DATE_RANGES.map(function (range) {
+          var isActive = range.id === active.id;
+          var isCustom = range.id === "custom";
+          var attrs = {
+            type: "button",
+            class: "date-range-btn" + (isActive ? " is-active" : "") + (isCustomOpen && isCustom ? " is-open" : ""),
+            "data-action": isCustom ? "toggle-custom-date-menu" : "set-date-range",
+            "aria-pressed": isActive ? "true" : "false",
+            title: isCustom ? "自定义统计范围" : range.label + " · " + dateRangeText(range, now),
+            text: range.label,
+          };
+          if (isCustom) {
+            attrs["aria-haspopup"] = "listbox";
+            attrs["aria-expanded"] = isCustomOpen ? "true" : "false";
+          } else {
+            attrs["data-date-range"] = range.id;
+          }
+          return h("button", attrs);
+        })),
+        isCustomOpen ? renderCustomDateRangeMenu(state) : null,
+      ]),
+    ]);
+  }
+
+  function renderCustomDateRangeMenu(state) {
+    var isCustomActive = state.dateRangeId === "custom";
+    return h("div", { class: "custom-date-menu", role: "listbox", "aria-label": "自定义统计范围" }, [
+      h("div", { class: "custom-date-menu-head" }, [
+        h("strong", { text: "自定义统计范围" }),
+        h("span", { text: "巡检预设" }),
+      ]),
+      h("div", { class: "custom-date-menu-list" }, CUSTOM_DATE_RANGES.map(function (range) {
+        var isActive = isCustomActive && state.customRangeId === range.id;
         return h("button", {
           type: "button",
-          class: "date-range-btn" + (isActive ? " is-active" : ""),
-          "data-action": "set-date-range",
-          "data-date-range": range.id,
-          "aria-pressed": isActive ? "true" : "false",
-          title: range.label + " · " + dateRangeText(range, now),
-          text: range.label,
-        });
+          class: "custom-date-option" + (isActive ? " is-active" : ""),
+          "data-action": "set-custom-date-range",
+          "data-custom-range": range.id,
+          role: "option",
+          "aria-selected": isActive ? "true" : "false",
+        }, [
+          h("span", { class: "custom-date-option-title", text: range.label }),
+          h("span", { class: "custom-date-option-range", text: range.start + " 至 " + range.end }),
+        ]);
       })),
     ]);
   }
@@ -461,5 +544,6 @@
     renderRightColumn: renderRightColumn,
     renderCharts: renderCharts,
     isDateRangeId: isDateRangeId,
+    isCustomDateRangeId: isCustomDateRangeId,
   };
 })();

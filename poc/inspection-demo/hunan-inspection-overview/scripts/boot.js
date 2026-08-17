@@ -55,6 +55,7 @@
 
   var root = document.getElementById("appRoot");
   if (!root) throw new Error("缺少挂载点 #appRoot，请检查 index.html");
+  var isStageBound = false;
 
   // ---- 启动期一次性断言：数据层的 id 空间 / 站点形状 / 作业区-市映射 ----
   Contract.assertData({
@@ -63,7 +64,13 @@
     sitesByZone: Sites.sitesByZone
   });
 
-  var state = { zoneId: null, siteId: null, dateRangeId: "7d" };
+  var state = {
+    zoneId: null,
+    siteId: null,
+    dateRangeId: "7d",
+    customRangeId: "risk-recheck",
+    customRangeOpen: false
+  };
 
   // ---- 供 model-pipelines.js 消费的管道范围：只取"全部 nodeIds 都落在当前 POC
   // 站点范围内"的管道——A（全量）覆盖 24 条里 22 条非空 nodeIds 的管道；B（成品油
@@ -101,6 +108,12 @@
     window.Charts.flush();
 
     Contract.assertPinNamespace();
+  }
+
+  function renderTopbarOnly() {
+    var currentTopbar = root.querySelector(".topbar");
+    if (!currentTopbar) throw new Error("renderTopbarOnly 要求页面已存在 .topbar");
+    root.replaceChild(window.OverviewScene.renderTopbar(state), currentTopbar);
   }
 
   function renderStage() {
@@ -161,6 +174,7 @@
     if (zoneId != null && Contract.ZONE_IDS.indexOf(zoneId) < 0) {
       throw new Error("selectZone 收到非法 zoneId：" + zoneId);
     }
+    state.customRangeOpen = false;
     state.zoneId = zoneId;
     if (zoneId == null) {
       state.siteId = null;
@@ -181,6 +195,7 @@
     if (!found) {
       throw new Error("站点 " + siteId + " 不属于当前作业区 " + state.zoneId);
     }
+    state.customRangeOpen = false;
     state.siteId = siteId;
     render();
   }
@@ -189,7 +204,26 @@
     if (!window.OverviewScene.isDateRangeId(rangeId)) {
       throw new Error("selectDateRange 收到非法范围：" + rangeId);
     }
+    if (rangeId === "custom") {
+      throw new Error("自定义范围必须通过 selectCustomDateRange 应用");
+    }
     state.dateRangeId = rangeId;
+    state.customRangeOpen = false;
+    render();
+  }
+
+  function toggleCustomDateRangeMenu() {
+    state.customRangeOpen = !state.customRangeOpen;
+    renderTopbarOnly();
+  }
+
+  function selectCustomDateRange(customRangeId) {
+    if (!window.OverviewScene.isCustomDateRangeId(customRangeId)) {
+      throw new Error("selectCustomDateRange 收到非法范围：" + customRangeId);
+    }
+    state.dateRangeId = "custom";
+    state.customRangeId = customRangeId;
+    state.customRangeOpen = false;
     render();
   }
 
@@ -198,11 +232,13 @@
   // ==========================================================================
 
   function handleAction(action, sourceEl) {
-    if (action === "refresh") { render(); return; }
+    if (action === "refresh") { state.customRangeOpen = false; render(); return; }
     if (action === "set-date-range") {
       selectDateRange(sourceEl.getAttribute("data-date-range"));
       return;
     }
+    if (action === "toggle-custom-date-menu") { toggleCustomDateRangeMenu(); return; }
+    if (action === "set-custom-date-range") { selectCustomDateRange(sourceEl.getAttribute("data-custom-range")); return; }
     if (action === "back-to-overview") { selectZone(null); return; }
     if (action === "map-zoom-in") { window.HunanMap3D.zoom(-140); return; }
     if (action === "map-zoom-out") { window.HunanMap3D.zoom(140); return; }
@@ -243,7 +279,9 @@
   }
 
   function bindStage() {
+    if (isStageBound) return;
     root.addEventListener("click", handleClick);
+    isStageBound = true;
   }
 
   render();
