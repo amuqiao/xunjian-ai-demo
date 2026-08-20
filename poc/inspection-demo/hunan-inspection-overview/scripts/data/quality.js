@@ -10,16 +10,12 @@
 
   // currentRisk 表示当前仍处于 P1 的风险项；p1Issues 表示累计发现问题中的 P1 项。
   var ZONE_METRICS = [
-    { zoneId: "yueyang", planned: 80, completed: 76, issues: 4, currentRisk: 1, p1Issues: 2, duration: 1, interval: 1, offWindow: 0, aiAlerts: 1 },
-    { zoneId: "changsha", planned: 72, completed: 71, issues: 1, currentRisk: 0, p1Issues: 0, duration: 0, interval: 1, offWindow: 0, aiAlerts: 0 },
-    { zoneId: "xianglou", planned: 68, completed: 66, issues: 2, currentRisk: 0, p1Issues: 0, duration: 1, interval: 1, offWindow: 0, aiAlerts: 0 },
-    { zoneId: "zhuzhou", planned: 65, completed: 63, issues: 3, currentRisk: 0, p1Issues: 1, duration: 1, interval: 1, offWindow: 1, aiAlerts: 1 },
-    { zoneId: "hengyang", planned: 70, completed: 67, issues: 2, currentRisk: 0, p1Issues: 0, duration: 0, interval: 1, offWindow: 0, aiAlerts: 1 },
-    { zoneId: "yongchen", planned: 62, completed: 60, issues: 2, currentRisk: 0, p1Issues: 0, duration: 1, interval: 1, offWindow: 0, aiAlerts: 0 },
-    { zoneId: "xiangbei", planned: 58, completed: 57, issues: 0, currentRisk: 0, p1Issues: 0, duration: 0, interval: 0, offWindow: 0, aiAlerts: 0 },
-    { zoneId: "xiangzhong", planned: 60, completed: 59, issues: 1, currentRisk: 0, p1Issues: 0, duration: 0, interval: 1, offWindow: 0, aiAlerts: 0 },
-    { zoneId: "chenzhou", planned: 50, completed: 49, issues: 2, currentRisk: 0, p1Issues: 0, duration: 1, interval: 0, offWindow: 1, aiAlerts: 1 },
-    { zoneId: "xiangxi", planned: 40, completed: 37, issues: 1, currentRisk: 0, p1Issues: 0, duration: 0, interval: 0, offWindow: 0, aiAlerts: 0 }
+    { zoneId: "yueyang", planned: 36, completed: 34, issues: 5, currentRisk: 1, p1Issues: 2, duration: 2, interval: 1, offWindow: 1, aiAlerts: 2 },
+    { zoneId: "changsha", planned: 28, completed: 27, issues: 1, currentRisk: 0, p1Issues: 0, duration: 0, interval: 1, offWindow: 0, aiAlerts: 1 },
+    { zoneId: "hengyang", planned: 27, completed: 26, issues: 2, currentRisk: 0, p1Issues: 0, duration: 1, interval: 1, offWindow: 0, aiAlerts: 1 },
+    { zoneId: "yongchen", planned: 20, completed: 19, issues: 2, currentRisk: 0, p1Issues: 0, duration: 1, interval: 1, offWindow: 0, aiAlerts: 1 },
+    { zoneId: "xianglou", planned: 18, completed: 17, issues: 1, currentRisk: 0, p1Issues: 0, duration: 1, interval: 0, offWindow: 0, aiAlerts: 0 },
+    { zoneId: "zhuzhou", planned: 12, completed: 11, issues: 2, currentRisk: 1, p1Issues: 1, duration: 1, interval: 0, offWindow: 1, aiAlerts: 1 }
   ];
 
   function assertCoverage() {

@@ -32,21 +32,20 @@
 //
 // 明确改写/扩展的地方（都是"渲染对象从固定 12/6 元素变成三级钻取"这个本质差异带来的）：
 //   - 契约命名空间：window.Map3DContract -> window.HunanContract，AREA_IDS 的一维遍历
-//     -> ZONE_IDS（10 作业区）+ 站点 id（数量随数据变化，不是硬编码常量）的两套遍历，
+//     -> ZONE_IDS（6 作业区）+ 站点 id（数量随数据变化，不是硬编码常量）的两套遍历，
 //     具体在哪个层级遍历哪一套见下文"三级 LOD"。
 //   - PRESETS：源引擎的 overview/area 两档 -> province/zone/site 三档省域机位，键名
 //     与 HunanContract.LOD_LEVELS 的取值完全一致（这不是巧合，是刻意让 applyPreset()
 //     的参数直接就是 level 字符串，不需要额外的 level->preset 名称映射表）。未知
 //     level/preset 键仍然抛错，不做任何容错兼容。
 //   - 三级 LOD 与热点/标签的遍历对象：
-//       province 级：3D 热点仅显示 10 个作业区热点（Contract.ZONE_IDS 全集），站点热点
-//         整体隐藏；DOM 标签同样只有 10 个作业区标签（HunanContract.assertLabelKeys 在
-//         这一级要求键集合等于 ZONE_IDS 全集）。
-//       zone/site 级：3D 热点隐藏全部作业区热点，只显示 engine.siteZoneMap[siteId] ===
-//         activeZoneId 的站点热点；DOM 标签由 core/ui 层按同一 level 预先渲染好（引擎
-//         只负责投影已存在的标签，不自己决定"这一级该显示哪些标签"这件事——那是
-//         core/ui 的职责边界），引擎侧只对 HunanContract.assertLabelKeys 的分级校验
-//         负责（zone/site 级不要求键集合等于任何全集，只要求键合法且不重复）。
+//       首页总览不显示 3D 热点球、引线或站点柱体；province 级只显示 6 个 DOM 作业区
+//         标签（HunanContract.assertLabelKeys 在这一级要求键集合等于 ZONE_IDS 全集）。
+//       zone/site 级同样不显示 3D 热点，站点信息由右侧清单承载；DOM 标签由 core/ui 层
+//         按同一 level 预先渲染好（引擎只负责投影已存在的标签，不自己决定"这一级该
+//         显示哪些标签"这件事——那是 core/ui 的职责边界），引擎侧只对
+//         HunanContract.assertLabelKeys 的分级校验负责（zone/site 级不要求键集合等于
+//         任何全集，只要求键合法且不重复）。
 //     3D 热点的"创建"仍然只做一次（构造时把 Contract.ZONE_IDS ∪ data.sites 的全部
 //     id 一次性建成一个常驻对象池），不是每次切换 level 都重新 new 一批 Object3D
 //     再销毁旧的——这是刻意的：本项目和源引擎一样没有 dispose 路径（详见文件尾
@@ -599,22 +598,15 @@
     throw new Error("[HunanMap3D] 找不到 id 对应的热点: " + id);
   }
 
-  // 每个 level 只让"当前相关"的热点池条目可见，其余条目留在场景里但 .visible=false
-  // ——不销毁、不重建（本引擎和源引擎一样没有 dispose 路径）。
-  //   province：作业区热点全显，站点热点全隐。
-  //   zone/site：作业区热点全隐，站点热点只显示所属作业区 === activeZoneId 的那些。
+  // 首页总览不再显示 3D 热点球/引线/站点点位，只保留 DOM 标签里的名称与数量。
+  // 热点池仍保留在内存中：锚点、状态与 debug 结构继续完整，后续若做详情页可以
+  // 复用；但本页面视觉上不再渲染这些树状元素。
   function refreshHotspotVisibility(engine) {
-    var showZones = engine.level === "province";
     engine.zoneHotspots.list.forEach(function (hs) {
-      hs.group.visible = showZones;
+      hs.group.visible = false;
     });
     engine.siteHotspots.list.forEach(function (hs) {
-      hs.group.visible = !showZones && engine.siteZoneMap[hs.id] === engine.activeZoneId;
-      // 站点热点整体缩小：HOTSPOT 那套尺寸（coreRadius 4.2 / glowRadius 6.6 /
-      // ringOuter 15）是按**省域机位**给 10 个作业区热点定的。下钻后相机拉到 radius
-      // 几百，而一个作业区里可能有几十个站点（岳阳 36 个）——照省域尺寸画就是几十个
-      // 大光球糊成一片白，画面完全不可读（已实测）。这里按比例缩到 0.28，让站点热点
-      // 在近距离读起来是"一串点位"而不是"一团光"。
+      hs.group.visible = false;
       hs.group.scale.setScalar(SITE_HOTSPOT_SCALE);
     });
     markDirty(engine);
@@ -775,7 +767,7 @@
 
   // 标签投影 + 全量两两去碰撞。与源引擎的关键差异：源引擎遍历的是硬编码的
   // Contract.AREA_IDS 全集（12 个），本引擎遍历 Object.keys(engine.labelEls)——
-  // DOM 里到底有哪些标签由 core/ui 层按当前 level 预先渲染好（province 级 10 个
+  // DOM 里到底有哪些标签由 core/ui 层按当前 level 预先渲染好（province 级 6 个
   // 作业区标签，zone/site 级若干站点标签），引擎不重新决定"这一级该显示哪些标签"，
   // 只负责把已经存在的标签投影到屏幕、彼此去碰撞。
   //
@@ -1338,6 +1330,8 @@
       introCruiseActive: engine.orbit.isIntroCruiseActive(),
       activeZoneId: engine.activeZoneId,
       activeSiteId: engine.activeSiteId,
+      pipelineVisible: engine.pipelineGroup.visible,
+      pipelineChildren: engine.pipelineGroup.children.length,
       zonePins: zonePins,
       sitePins: sitePins,
       hiddenBehindCamera: hiddenBehindCamera,

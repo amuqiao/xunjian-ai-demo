@@ -23,7 +23,6 @@
   assertGlobal("echarts", window.echarts);
   assertGlobal("HunanContract", window.HunanContract);
   assertGlobal("HunanGeo", window.HunanGeo);
-  assertGlobal("HunanTopology", window.HunanTopology);
   assertGlobal("HunanSites", window.HunanSites);
   assertGlobal("HunanSeries", window.HunanSeries);
   assertGlobal("HunanModelMap", window.HunanModelMap);
@@ -51,7 +50,6 @@
 
   var Contract = window.HunanContract;
   var Sites = window.HunanSites;
-  var Topology = window.HunanTopology;
 
   var root = document.getElementById("appRoot");
   if (!root) throw new Error("缺少挂载点 #appRoot，请检查 index.html");
@@ -71,19 +69,6 @@
     customRangeId: "risk-recheck",
     customRangeOpen: false
   };
-
-  // ---- 供 model-pipelines.js 消费的管道范围：只取"全部 nodeIds 都落在当前 POC
-  // 站点范围内"的管道——A（全量）覆盖 24 条里 22 条非空 nodeIds 的管道；B（成品油
-  // 44 站点）只剩 3 条油管道。用"每个 nodeId 是否在当前 sites 集合里"现场判断，
-  // 不按 kind 硬编码范围，这样两个 POC 共享同一段逻辑也天然各自算出正确的子集。----
-  function pipelinesInScope() {
-    var siteIds = {};
-    Sites.sites().forEach(function (s) { siteIds[s.id] = true; });
-    return Topology.pipelines.filter(function (p) {
-      if (!Array.isArray(p.nodeIds) || p.nodeIds.length < 2) return false;
-      return p.nodeIds.every(function (id) { return siteIds[id] === true; });
-    });
-  }
 
   // ==========================================================================
   // render 管线
@@ -143,12 +128,6 @@
     if (!root.contains(host)) throw new Error("mountMap3D 必须在 3D 宿主 append 到页面之后调用");
 
     var level = state.zoneId == null ? "province" : "zone";
-    // 管道只在省域态显示，下钻到作业区后强制隐藏——不是外观偏好，是渲染预算的硬
-    // 约束：实测点开站点最多的作业区（岳阳，36 站）时 renderCalls 已经到 192
-    // （engine.js 的热点池按可见热点数 × 固定开销，站点越多开销越高，这部分不能
-    // 从本项目这边省），22 条管道的 Tube 网格再叠上去会到 214，直接击穿 <200
-    // 护栏。省域态只需 84（10 个作业区热点的固定开销 + 全部管道），余量充足。
-    var showPipelines = level === "province" && state.showPipelines === true;
     window.HunanMap3D.mount(host, {
       level: level,
       activeZoneId: state.zoneId,
@@ -156,8 +135,8 @@
       zoneStatuses: Sites.zoneStatuses(),
       geo: window.HunanGeo,
       sites: Sites.sites(),
-      pipelines: pipelinesInScope(),
-      showPipelines: showPipelines
+      pipelines: [],
+      showPipelines: false
     });
   }
 
@@ -243,11 +222,6 @@
     if (action === "map-zoom-in") { window.HunanMap3D.zoom(-140); return; }
     if (action === "map-zoom-out") { window.HunanMap3D.zoom(140); return; }
     if (action === "reset-view") { window.HunanMap3D.resetView(); return; }
-    if (action === "toggle-pipelines") {
-      state.showPipelines = !state.showPipelines;
-      render();
-      return;
-    }
     throw new Error("未知的 data-action：" + action);
   }
 

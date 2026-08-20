@@ -64,11 +64,9 @@
   // 唯一的用途是把 topology.js 的 zones[].rgb 图例色转成各作业区的挤出块颜色，
   // 现在 14 市统一用 MAP_COLOR，不再读 window.HunanTopology。
 
-  // 每个市染"该市境内站点最多的作业区"的颜色（众数）。当前数据口径下某个市可能
-  // 一个站点都没有（比如泵站总览只覆盖成品油沿线 8 个市，另外 6 个市没有任何站点）
-  // ——这不是错误，是数据口径本身的收窄。这种情况下退回业务地理归属：按
-  // Contract.ZONE_IDS 的固定顺序取第一个在 zoneDistrictMap 里认领了该市的作业区，
-  // 保证 14 市在任何数据口径下都有确定、可解释的着色，不出现无色孤岛。
+  // 每个市归入"该市境内站点最多的作业区"（众数）。新版站点台账只覆盖 6 个作业区，
+  // 其余市只作为底图存在，不进入作业区统计口径；这种情况下返回 null，后续统一放进
+  // neutral 底图网格，不参与高亮与标签。
   function computeDistrictZoneId(Contract, sites, zoneDistrictMap) {
     var counts = {};
     sites.forEach(function (site) {
@@ -100,9 +98,6 @@
         }
         return false;
       });
-      if (!claimant) {
-        throw new Error("[HunanModelMap] 市 " + adcode + " 未被任何作业区认领（zoneDistrictMap 覆盖不全），无法着色");
-      }
       result[adcode] = claimant;
     });
     return result;
@@ -121,7 +116,7 @@
     });
   }
 
-  // 按"该市染色所归属的作业区"把 14 市合并成最多 10 个 Mesh（同一作业区名下的
+  // 按"该市染色所归属的作业区"把 14 市合并成业务作业区 Mesh（同一作业区名下的
   // 多个市合到一次 ExtrudeGeometry 调用里，一次 draw call）——不是按市各开一个
   // Mesh。这不只是省 draw call 的顺手优化：引擎的 setActiveZoneHighlight 靠
   // zoneMeshes[zoneId] 这个网格列表做选中态提亮，如果 14 市各自独立成网格、
@@ -144,8 +139,11 @@
     Contract.ZONE_IDS.forEach(function (zoneId) {
       adcodesByZone[zoneId] = [];
     });
+    var neutralAdcodes = [];
     Contract.DISTRICT_ADCODES.forEach(function (adcode) {
-      adcodesByZone[districtZoneId[adcode]].push(adcode);
+      var zoneId = districtZoneId[adcode];
+      if (zoneId == null) neutralAdcodes.push(adcode);
+      else adcodesByZone[zoneId].push(adcode);
     });
 
     var districtMeshes = {};
@@ -181,6 +179,30 @@
         districtMeshes[adcode] = [mesh];
       });
     });
+
+    if (neutralAdcodes.length > 0) {
+      var neutralShapes = [];
+      neutralAdcodes.forEach(function (adcode) {
+        var district = byAdcode[adcode];
+        if (!district) throw new Error("[HunanModelMap] geo.districts 缺少 " + adcode);
+        neutralShapes = neutralShapes.concat(buildDistrictShapes(THREE, district));
+      });
+      var neutralGeometry = new THREE.ExtrudeGeometry(neutralShapes, { depth: DISTRICT_HEIGHT, bevelEnabled: false });
+      neutralGeometry.rotateX(-Math.PI / 2);
+      applyFaceColors(THREE, neutralGeometry);
+
+      var neutralMaterial = materials.makeDistrict();
+      neutralMaterial.emissiveIntensity = 0.02;
+      var neutralMesh = new THREE.Mesh(neutralGeometry, neutralMaterial);
+      neutralMesh.name = "hunan-neutral-districts";
+      neutralMesh.receiveShadow = true;
+      neutralMesh.castShadow = false;
+      group.add(neutralMesh);
+
+      neutralAdcodes.forEach(function (adcode) {
+        districtMeshes[adcode] = [neutralMesh];
+      });
+    }
 
     return { districtMeshes: districtMeshes, zoneMeshes: zoneMeshes };
   }

@@ -7,10 +7,10 @@
 // （除本段 POC 名称注释）——两块大屏刻意互不耦合，各持完整契约副本，运行时零共享，
 // 不要把两者合并成一份"共享契约模块"再互相 import，那会重新引入耦合。
 //
-// 这里定义的 14 市 id、10 作业区 id、站点形状枚举、DOM 命名常量是本 POC 唯一真源，
+// 这里定义的 14 市 id、6 作业区 id、站点形状枚举、DOM 命名常量是本 POC 唯一真源，
 // 以下几处必须与 DISTRICT_ADCODES / ZONE_IDS 完全一致（含顺序）：
 //   scripts/data/*.js 的地图几何键集合（14 市，按 adcode 升序）
-//   scripts/data/*.js 的作业区统计口径键集合（10 作业区）与 zoneDistrictMap
+//   scripts/data/*.js 的作业区统计口径键集合（6 作业区）与 zoneDistrictMap
 //   scripts/map3d/model-*.js 的区域网格键、着色映射
 //   scripts/map3d/engine.js 的热点创建顺序（setActiveZone / setStatuses / syncLabels）
 //   DOM 内 .hunan-labels 容器下的 [data-hunan-zone] / [data-hunan-site] 标签
@@ -46,31 +46,21 @@
     "433100": "湘西土家族苗族自治州"
   };
 
-  // ---- 作业区：10 个，顺序即真源 ----
-  // 注意：作业区与地级市是**多对多**，不是一对一。
-  //   - 一个作业区可以跨市：「湘娄」=湘潭+娄底、「永郴」=永州+郴州、「湘北/湘中/湘西」同理。
-  //   - 一个市也可以承载多个作业区的站点：郴州市境内既有「永郴作业区」的成品油站场
-  //     （长郴管道的郴州站），也有独立的「郴州作业区」的气管道站场。
-  // 设计阶段曾假设"一个市恰好归一个作业区"，实测数据后证明与现实矛盾，已放宽——
-  // 详见 assertZoneDistrictMap 里的完整论证。
-  // 这份 id 列表只声明"有哪 10 个作业区"；"每个作业区涉及哪些 adcode"是业务事实，
-  // 由数据层通过 zoneDistrictMap 提供，契约只校验形状与"14 市全覆盖"。
+  // ---- 作业区：6 个，顺序即真源 ----
+  // 新首页以 assets/.data/站点数据/湖南公司管道基础资料_20260820102547.xlsx 为真源。
+  // 该表只覆盖 6 个作业区，旧拓扑里的湘北/湘中/郴州/湘西不再进入首页统计口径。
+  // zoneDistrictMap 只表达这 6 个作业区用于地图定位的市域锚点，不再要求覆盖 14 市。
   var ZONE_IDS = [
-    "yueyang", "changsha", "xianglou", "zhuzhou", "hengyang",
-    "yongchen", "xiangbei", "xiangzhong", "chenzhou", "xiangxi"
+    "yueyang", "changsha", "hengyang", "yongchen", "xianglou", "zhuzhou"
   ];
 
   var ZONE_NAMES = {
     yueyang: "岳阳作业区",
     changsha: "长沙作业区",
-    xianglou: "湘娄作业区",
-    zhuzhou: "株洲作业区",
     hengyang: "衡阳作业区",
     yongchen: "永郴作业区",
-    xiangbei: "湘北作业区",
-    xiangzhong: "湘中作业区",
-    chenzhou: "郴州作业区",
-    xiangxi: "湘西作业区"
+    xianglou: "湘娄作业区",
+    zhuzhou: "株洲作业区"
   };
 
   // ---- 枚举 ----
@@ -137,13 +127,8 @@
   // 校验数据层提供的「作业区 → adcode 列表」映射：
   //   ① 键集合与顺序必须等于 ZONE_IDS；
   //   ② 所有出现的 adcode 必须 ∈ DISTRICT_ADCODES；
-  //   ③ 14 个 adcode 必须被**至少一个**作业区覆盖（允许一个市被多个作业区认领，
-  //      理由见函数体内那段论证——作业区与市是多对多）。
-  //
-  // 防的是什么：没被任何作业区认领的市，在地图上会是一块无色孤岛，且不会计入任何
-  // 作业区的统计口径——全省合计因此少掉一块，而这不会让 JS 报错，因为遍历一份
-  // "作业区→adcode 数组"的映射本身永远合法，问题只在覆盖关系上，JS 引擎不知道
-  // 这是业务错误。
+  //   ③ 允许 14 市里存在未被 6 个作业区认领的市。那些市只作为底图显示，不计入
+  //      首页区域统计，也不参与作业区高亮。
   function assertZoneDistrictMap(map) {
     if (!map) {
       throw new Error("[HunanContract] assertZoneDistrictMap 缺少 map 参数，请传入数据层的作业区→adcode 映射");
@@ -170,29 +155,7 @@
       });
     });
 
-    // 这里**刻意不校验"一个 adcode 只能被一个作业区认领"**。
-    //
-    // 设计阶段曾要求过那条排他约束，实测数据后证明它与现实矛盾，已于 2026-08-13 放宽：
-    //   - 作业区是**业务管理单元**，本就可以跨市。源表图例里的「湘娄作业区」= 湘潭+娄底、
-    //     「永郴作业区」= 永州+郴州，而「郴州作业区」又独立存在——按排他约束，郴州市
-    //     只能归其中一个，另一个的站点就会被判成"不在自己辖区内"。
-    //   - 实证：成品油长郴管道上的 `郴州站` 在源表里 zoneId 是 yongchen（永郴作业区），
-    //     但它物理位置在郴州市（431000）。硬套排他约束时，要么它的坐标错、要么它的
-    //     作业区错，二者必有一个是我们编的。
-    //
-    // 正确模型是把两者解耦：**市 = 地理（地图多边形的载体）；作业区 = 业务分组（统计与
-    // 排名的载体）**，两者多对多。地图上某个市该染哪个作业区的颜色，由数据层按"该市境内
-    // 站点最多的作业区"决定（是众数而非排他归属），并在 UI 上标明这一点。
-    //
-    // 仍然保留的约束是下面这条"14 市必须全被覆盖"——没人认领的市在地图上会是无色孤岛，
-    // 那确实是数据错误而不是业务现实。
-    var uncovered = DISTRICT_ADCODES.filter(function (adcode) { return !owner[adcode]; });
-    if (uncovered.length > 0) {
-      throw new Error(
-        "[HunanContract] 以下 adcode 未被任何作业区认领：" +
-        uncovered.map(function (adcode) { return adcode + "(" + DISTRICT_NAMES[adcode] + ")"; }).join(", ")
-      );
-    }
+    // owner 只用于上方合法性校验。未被认领的市是新版台账口径之外的底图，不是错误。
   }
 
   // 单个站点对象的字段级校验。
@@ -393,7 +356,7 @@
   // 有一级、"键集必须等于全集"就够用；本项目是三级钻取，同一条断言不能不分级地套
   // 用到全部三级上。
   //
-  // level === "province" 时键集必须等于 ZONE_IDS（省域态只显 10 个作业区标签）；
+  // level === "province" 时键集必须等于 ZONE_IDS（省域态只显全部业务作业区标签）；
   // level === "zone" 或 "site" 时只校验"每个键都是合法 id 且无重复"，不要求全集
   // （下钻态刻意只显部分标签——比如钻到某个作业区后，只显示这个作业区内的站点标签，
   // 其余作业区/站点的标签本该消失）。

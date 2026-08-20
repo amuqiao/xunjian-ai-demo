@@ -18,7 +18,7 @@
    assertPinNamespace / assertLabelKeys 三条断言在检查什么。
 
    硬性契约（与 poc/inspection-3d-sandbox/styles/05-map3d.css 的同类约定一致，数值
-   按本项目 10 个作业区标签的实际情况重新核定）：
+   按本项目作业区标签的实际情况重新核定）：
    1) .hunan-map 必须 position:relative + overflow:hidden + min-height:0——canvas
       与 .hunan-labels/.ov-zoom 两层覆盖物全部靠它做定位基准。
    2) .hunan-canvas 必须 position:absolute; inset:0; display:block; width:100%;
@@ -30,10 +30,10 @@
       引擎每帧写内联 transform: translate3d(...) 做投影跟随，写了也没用，还会让
       标签在真正应该定住的时候看起来在拖尾。可以放心 transition 颜色类属性。
    5) 标签盒要紧凑：engine.js 的 sweepLabels 用 offsetWidth/offsetHeight 现测按钮
-      盒子尺寸算 minDy/minDx。10 个作业区标签要在标准画布高度内排开，参考实测
+      盒子尺寸算 minDy/minDx。作业区标签要在标准画布高度内排开，参考实测
       52×35.64px 的盒子对应 minDy≈43.6px 才够——本文件的 [data-hunan-zone] 按钮
       因此做成两行紧凑排布（区域名 + 站点数），不做成多行或加大内边距。
-      **改动盒子尺寸之前，必须先跑 verify 的标签重叠扫描确认 10 个标签互不重叠。**
+      **改动盒子尺寸之前，必须先跑 verify 的标签重叠扫描确认标签互不重叠。**
    6) 三色状态：[data-hunan-zone].ok|.warn|.danger 复用 01-tokens.css 的
       --status-ok/--status-warn/--status-danger，不新起色板。 */
 
@@ -133,6 +133,30 @@
     box-shadow 160ms ease;
 }
 
+[data-hunan-zone]::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--status-ok);
+  box-shadow: 0 0 8px rgba(48, 198, 157, 0.45);
+}
+
+[data-hunan-zone]::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--status-ok);
+  box-shadow: 0 0 8px rgba(48, 198, 157, 0.65);
+}
+
 [data-hunan-zone]:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
@@ -167,8 +191,15 @@
 }
 
 [data-hunan-zone].warn {
-  border-color: rgba(238, 180, 74, 0.6);
-  box-shadow: 0 0 0 1px rgba(238, 180, 74, 0.2), 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-color: rgba(238, 180, 74, 0.85);
+  background: rgba(49, 37, 16, 0.88);
+  box-shadow: 0 0 0 1px rgba(238, 180, 74, 0.36), 0 0 18px rgba(238, 180, 74, 0.2), 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+[data-hunan-zone].warn::before,
+[data-hunan-zone].warn::after {
+  background: var(--status-warn);
+  box-shadow: 0 0 10px rgba(238, 180, 74, 0.75);
 }
 
 [data-hunan-zone].warn .zone-pin-count {
@@ -176,8 +207,15 @@
 }
 
 [data-hunan-zone].danger {
-  border-color: rgba(255, 98, 92, 0.65);
-  box-shadow: 0 0 0 1px rgba(255, 98, 92, 0.24), 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 98, 92, 0.95);
+  background: rgba(55, 17, 20, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 98, 92, 0.42), 0 0 22px rgba(255, 98, 92, 0.26), 0 2px 8px rgba(0, 0, 0, 0.58);
+}
+
+[data-hunan-zone].danger::before,
+[data-hunan-zone].danger::after {
+  background: var(--status-danger);
+  box-shadow: 0 0 12px rgba(255, 98, 92, 0.85);
 }
 
 [data-hunan-zone].danger .zone-pin-count {
@@ -194,6 +232,20 @@
 [data-hunan-zone].active .zone-pin-name,
 [data-hunan-zone][data-active-zone-label] .zone-pin-name {
   color: #eafcff;
+}
+
+[data-hunan-zone].warn.active,
+[data-hunan-zone].warn[data-active-zone-label] {
+  border-color: rgba(238, 180, 74, 0.95);
+  background: rgba(49, 37, 16, 0.9);
+  box-shadow: 0 0 0 2px rgba(238, 180, 74, 0.36), 0 0 20px rgba(238, 180, 74, 0.24), 0 2px 10px rgba(0, 0, 0, 0.58);
+}
+
+[data-hunan-zone].danger.active,
+[data-hunan-zone].danger[data-active-zone-label] {
+  border-color: rgba(255, 98, 92, 0.98);
+  background: rgba(55, 17, 20, 0.92);
+  box-shadow: 0 0 0 2px rgba(255, 98, 92, 0.42), 0 0 24px rgba(255, 98, 92, 0.3), 0 2px 10px rgba(0, 0, 0, 0.6);
 }
 
 /* ---------- 缩放控制：右下角竖排 + / - / ⟲ ---------- */
@@ -236,7 +288,7 @@
   font-size: 15px;
 }
 
-/* 「返回全省」与「管道开关」并入右下角这一组视口操作按钮。
+/* 「返回全省」并入右下角这一组视口操作按钮。
    之前返回入口在 3D 面板左上角、重置视角在这一组、底栏又各有一份同名按钮——
    同一批操作散在三处、互相重复。合并成一组后，视口相关的操作只需要在一个地方找。
    ov-zoom-back 只在下钻态由 scenes/overview.js 渲染出来，全省态整组少一个按钮。 */
@@ -244,8 +296,4 @@
   color: var(--accent);
   font-size: 17px;
   line-height: 1;
-}
-
-.ov-zoom-pipe {
-  font-size: 15px;
 }

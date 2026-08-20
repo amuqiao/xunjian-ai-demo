@@ -1,14 +1,14 @@
 // 唯一场景：window.OverviewScene（L6 场景层，早于 boot.js，晚于 core/* 与 ui/*）。
 //
-// 【POC：hunan-inspection-overview（巡检站总览，全量 217 站点）】
+// 【POC：hunan-inspection-overview（巡检站总览，6 作业区站点台账）】
 // 本文件与 poc/hunan-pump-overview/scripts/scenes/overview.js 是姐妹文件但内容不同：
-// 布局骨架/交互模式完全一致（两级钻取：省域 → 作业区），但左栏第 4 卡、右栏第 2/3
-// 张图表用各自 POC 独有的 HunanSeries 方法（本文件用 inspectionCoverageTrend /
-// issueByDiscipline / zoneCoverageRows，姐妹文件换成 pipelineProfile /
+// 布局骨架/交互模式完全一致（两级钻取：省域 → 作业区），但左栏第 2/4 卡、右栏第 2/3
+// 张图表用各自 POC 独有的 HunanSeries 方法（本文件用 siteKindMix /
+// inspectionCoverageTrend / qualityExceptionMix / zoneCoverageRows，姐妹文件换成 pipelineProfile /
 // throughputRows / pumpHealthRank），标题文案也各自贴合"巡检"与"泵站"两种业务语义。
 //
 // 钻取只做两级（任务要求，不做第三级）：
-//   省域（zoneId == null）：3D 显示 10 个作业区标签 + 热点，右栏是全省态势提示。
+//   省域（zoneId == null）：3D 显示 6 个作业区标签 + 热点，右栏是全省态势提示。
 //   作业区（zoneId 非空）：3D 相机推进到该作业区（zoneAnchors），站点级不推相机、
 //     不显示逐站 3D 标签（HunanContract.assertLabelKeys 在 zone 级本就不要求全集，
 //     允许空标签集），改由右栏"站点清单"表格 + 站点详情卡承载——这是刻意的简化，
@@ -239,21 +239,22 @@
   }
 
   // ---------------------------------------------------------------------
-  // 左栏：4 张卡（总体 KPI / 管线概览 / 作业区排名 / 今日动态）
+  // 左栏：5 张卡（总体 KPI / 质量指标 / 站点台账 / 作业区排名 / 今日动态）
   // ---------------------------------------------------------------------
 
   function renderKpiCard(state) {
     var sp = Series.provinceSummary();
+    var q = Quality.current(state.zoneId);
     var range = activeDateRange(state);
     return h("div", { class: "ov-kpi-row" }, [
-      window.Cards.metric({ label: "站点总数", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok", note: "站场 " + sp.stationTotal + " · 阀室 " + sp.valveTotal }),
-      window.Cards.metric({ label: "管道总数", value: sp.pipelineTotal, unit: "条", status: "ok", note: sp.zoneTotal + " 作业区 · " + sp.districtTotal + " 市" }),
-      window.Cards.metric({ label: "问题合计", value: sp.issueTotal, unit: "项", status: sp.issueTotal > 0 ? "warn" : "ok", note: range.shortLabel + " · 关注 + 异常" }),
+      window.Cards.metric({ label: "巡检完成率", value: q.completionRate.toFixed(1), unit: "%", status: q.completionRate < 95 ? "warn" : "ok", note: q.completed + "/" + q.planned + " · " + range.shortLabel }),
+      window.Cards.metric({ label: "站点台账", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok", note: sp.zoneTotal + " 作业区 · 站场 " + sp.stationTotal + " · 阀室 " + sp.valveTotal }),
+      window.Cards.metric({ label: "行为异常", value: q.duration + q.interval + q.offWindow, unit: "次", status: q.duration + q.interval + q.offWindow > 0 ? "warn" : "ok", note: "AI 提醒 " + q.aiAlerts + " 条" }),
     ]);
   }
 
-  function renderPipelineOverviewCard() {
-    return window.Cards.chart({ title: "管线概览 · 站点构成", chartId: "chart-site-kind-mix" });
+  function renderLedgerOverviewCard() {
+    return window.Cards.chart({ title: "站点台账 · 站场/阀室构成", chartId: "chart-site-kind-mix" });
   }
 
   function renderZoneRankCard(state) {
@@ -296,7 +297,7 @@
       h("div", { class: "ov-rank-card-body" }, [
         window.SelectList.render({
           name: "zone-rank", variant: "table", activeId: activeId,
-          ariaLabel: "10 个作业区排名", columns: columns, items: items,
+          ariaLabel: Contract.ZONE_IDS.length + " 个作业区排名", columns: columns, items: items,
         }),
       ]),
     ]);
@@ -311,7 +312,8 @@
     assertLoaded();
     return h("section", { class: "panel ov-left-col" }, [
       renderKpiCard(state),
-      renderPipelineOverviewCard(),
+      renderQualityCard(state),
+      renderLedgerOverviewCard(),
       renderZoneRankCard(state),
       renderTodayCard(state),
     ]);
@@ -323,11 +325,11 @@
 
   function renderMapPanel(state) {
     var zoneStatuses = Sites.zoneStatuses();
-    // 标签 LOD：省域态显示全部 10 个作业区标签；**下钻态只显示当前作业区那一个**。
+    // 标签 LOD：省域态显示全部 6 个作业区标签；**下钻态只显示当前作业区那一个**。
     //
     // 为什么必须过滤而不是全渲染：engine.js 的 syncLabels 末尾会把每个标签
     // clamp 进视口（`p.x = clamp(p.x, halfWidth, width - halfWidth)`），所以画外的
-    // 作业区标签不会消失，而是被**钉在屏幕四边**。下钻到岳阳时，另外 9 个作业区
+    // 作业区标签不会消失，而是被**钉在屏幕四边**。下钻到岳阳时，其他作业区
     // 全在画外，结果就是四条边上贴满了与当前视图无关的标签。
     // 契约的 assertLabelKeys 对此是放行的——它在 zone/site 级只要求"键合法不重复"、
     // 不要求全集，正是为了让这层过滤成立。
@@ -347,7 +349,7 @@
     return h("section", { class: "panel ov-map-panel" }, [
       h("div", { class: "ov-map-head" }, [
         h("div", {}, [
-          h("p", { class: "kicker", text: "3D 大屏 · 省域总览" }),
+          h("p", { class: "kicker", text: "区域质量热区 · 省域总览" }),
           h("h3", { text: state.zoneId == null ? "湖南省全域" : Contract.ZONE_NAMES[state.zoneId] }),
         ]),
         h("div", { class: "ov-legend" }, [
@@ -358,10 +360,10 @@
       ]),
       h("div", { class: "hunan-map", "data-hunan-host": "1" }, [
         h("div", { class: "hunan-labels" }, zoneLabels),
-        // 视口操作**唯一**的一组：返回 / 放大 / 缩小 / 重置视角 / 管道开关。
+        // 视口操作**唯一**的一组：返回 / 放大 / 缩小 / 重置视角。
         // 全部图标按钮都带 title，悬停可见中文说明——图标本身不承担全部语义。
         // 「返回全省」只在下钻态出现（全省态没有可返回的上一层，不渲染、也不做成
-        // disabled 占位），所以这一组在两种状态下分别是 4 个和 5 个按钮。
+        // disabled 占位），所以这一组在两种状态下分别是 3 个和 4 个按钮。
         h("div", { class: "ov-zoom" }, [
           state.zoneId == null ? null : h("button", {
             type: "button", class: "ov-zoom-btn ov-zoom-back", "data-action": "back-to-overview",
@@ -370,7 +372,6 @@
           h("button", { type: "button", class: "ov-zoom-btn", "data-action": "map-zoom-in", "aria-label": "放大", title: "放大", text: "+" }),
           h("button", { type: "button", class: "ov-zoom-btn", "data-action": "map-zoom-out", "aria-label": "缩小", title: "缩小", text: "−" }),
           h("button", { type: "button", class: "ov-zoom-btn ov-zoom-reset", "data-action": "reset-view", "aria-label": "重置视角", title: "重置视角", text: "⟲" }),
-          h("button", { type: "button", class: "ov-zoom-btn ov-zoom-pipe", "data-action": "toggle-pipelines", "aria-label": "管道显示/隐藏", title: "管道显示/隐藏", text: "⤳" }),
         ]),
       ]),
     ]);
@@ -384,11 +385,11 @@
     var sp = Series.provinceSummary();
     return window.DetailCard.render({
       kicker: "全省态势 · 巡检站总览",
-      title: "湖南省 14 市 · 10 作业区",
+      title: "湖南省 6 作业区 · 141 个站场/阀室",
       badge: { status: sp.issueTotal > 0 ? "warn" : "ok", text: sp.issueTotal > 0 ? "发现问题" : "全部正常" },
       metrics: [
+        { label: "作业区", value: sp.zoneTotal, unit: "个" },
         { label: "站点总数", value: sp.stationTotal + sp.valveTotal, unit: "个" },
-        { label: "管道总数", value: sp.pipelineTotal, unit: "条" },
         { label: "问题合计", value: sp.issueTotal, unit: "项" },
       ],
       conclusion: "点击左侧作业区排名或地图上的作业区标签，下钻查看该区站点清单与详情。",
@@ -444,9 +445,7 @@
   }
 
   function renderSiteDetail(site) {
-    var conclusion = site.coordSource === "approx"
-      ? site.name + " 位置为按市域插值的示意坐标，非实测。"
-      : site.name + " 位置取自《长郴管道走向全图》实测坐标。";
+    var conclusion = site.name + " 使用作业区级示意坐标，仅用于首页区域态势。";
     return window.DetailCard.render({
       kicker: "站点详情 · " + site.districtName,
       title: site.name,
@@ -454,8 +453,8 @@
       badge: { status: site.status, text: siteStatusBadgeText(site.status) },
       metrics: [
         { label: "类型", value: site.kind === "station" ? "站场" : "阀室" },
-        { label: "管道", value: site.pipelineId },
-        { label: "坐标来源", value: site.coordSource === "approx" ? "示意" : "实测" },
+        { label: "介质", value: site.medium },
+        { label: "类别", value: site.category },
       ],
       conclusion: conclusion,
       tags: [site.districtName, Contract.ZONE_NAMES[site.zoneId]],
@@ -515,7 +514,7 @@
     assertLoaded();
     return h("div", { class: "ov-right-col" }, [
       window.Cards.chart({ title: "作业区状态分布" , chartId: "chart-zone-status-mix" }),
-      window.Cards.chart({ title: "专业问题占比 · 输气 vs 输油", chartId: "chart-issue-discipline" }),
+      window.Cards.chart({ title: "质量异常构成", chartId: "chart-quality-exception" }),
       window.Cards.chart({ title: "作业区巡检覆盖率", chartId: "chart-zone-coverage" }),
       renderDrillSection(state),
     ]);
@@ -532,7 +531,7 @@
       pointCount: dateRangePointCount(range, new Date()),
     }));
     window.Charts.draw("chart-zone-status-mix", window.ChartOptions.zoneStatusMix());
-    window.Charts.draw("chart-issue-discipline", window.ChartOptions.issueByDiscipline());
+    window.Charts.draw("chart-quality-exception", window.ChartOptions.qualityExceptionMix());
     window.Charts.draw("chart-zone-coverage", window.ChartOptions.zoneCoverageRows());
   }
 

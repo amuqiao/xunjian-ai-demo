@@ -3,7 +3,7 @@
    的第一/第三行，不在本文件范围内——本文件只管 .stage 内部那一层，三列一行：
 
      div.overview-scene
-       section.panel.ov-left-col      grid-area: left（固定 320px，纵向 4 卡）
+       section.panel.ov-left-col      grid-area: left（固定 320px，纵向 5 块）
        section.panel.ov-map-panel     grid-area: map（05-hunan3d.css 已冻结其
                                        内部结构，本文件只负责给它分配网格格子）
        div.ov-right-col               grid-area: right（固定 380px，可纵向滚动）
@@ -21,6 +21,7 @@
   grid-template-columns: 320px minmax(0, 1fr) 380px;
   grid-template-areas: "left map right";
   gap: 10px;
+  overflow: hidden;
 }
 
 .ov-left-col {
@@ -29,12 +30,14 @@
   min-height: 0;
   padding: 14px;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 190px minmax(0, 1fr) 180px;
   gap: 10px;
+  overflow: hidden;
 }
 
 .ov-map-panel {
   grid-area: map;
+  overflow: hidden;
 }
 
 .ov-right-col {
@@ -42,9 +45,23 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  grid-template-rows: repeat(3, 176px) minmax(0, 1fr);
   gap: 10px;
   overflow-y: auto;
+}
+
+.ov-left-col .card-chart,
+.ov-right-col .card-chart {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.ov-left-col .card-chart-body,
+.ov-right-col .card-chart-body {
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* 左栏第 1 卡：总体 KPI —— 3 个 Cards.metric 横向等分排布，卡片本身不用
@@ -95,7 +112,7 @@
    min-height，仅在 .ov-right-col 范围内生效，不影响左栏/其它场景的卡片。 */
 
 .ov-right-col .card-chart-body {
-  min-height: 148px;
+  min-height: 0;
 }
 
 /* 右栏下钻区域：省域态显示一张 DetailCard 提示；下钻到作业区后替换成

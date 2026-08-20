@@ -5,7 +5,7 @@
 // 【POC：hunan-inspection-overview（巡检站总览）】
 // 本文件与 poc/hunan-pump-overview/scripts/core/chartopts.js 是姐妹文件但内容不同：
 // 两份文件都实现 zoneStatusMix/siteKindMix（两块屏"共有"的方法），但各自独有的第三
-// 个构造器不同——本文件是 issueByDiscipline/zoneCoverageRows 二选一（对应巡检语义），
+// 个构造器不同——本文件是 qualityExceptionMix/zoneCoverageRows 二选一（对应巡检语义），
 // 姐妹文件换成 pumpHealthRank/throughputRows（对应成品油泵站语义）。不写死任何色值：
 // 颜色全部现读 getComputedStyle(document.documentElement)，两块屏各自的青蓝/暖琥珀
 // 基调因此自动生效，不在本文件里另写一套色板（这是任务硬约束）。不引入 ECharts 地图
@@ -55,7 +55,7 @@
     return window.HunanSeries;
   }
 
-  // ---------- zoneStatusMix()：10 作业区状态堆叠柱（ok/warn/danger 三色堆叠） ----------
+  // ---------- zoneStatusMix()：6 作业区状态堆叠柱（ok/warn/danger 三色堆叠） ----------
   function zoneStatusMix() {
     var theme = requireTheme();
     var rows = requireSeries("zoneStatusMix()").zoneStatusMix();
@@ -115,20 +115,29 @@
     };
   }
 
-  // ---------- issueByDiscipline()：gas/oil 两条管路的问题占比（横向柱状图） ----------
-  function issueByDiscipline() {
+  // ---------- qualityExceptionMix()：巡检质量异常构成（横向柱状图） ----------
+  function qualityExceptionMix() {
     var theme = requireTheme();
-    var rows = requireSeries("issueByDiscipline()").issueByDiscipline();
-    if (!rows.length) throw new Error("[ChartOptions] issueByDiscipline() 需要至少一项");
+    if (!window.HunanInspectionQuality || typeof window.HunanInspectionQuality.province !== "function") {
+      throw new Error("[ChartOptions] qualityExceptionMix() 需要 window.HunanInspectionQuality.province()");
+    }
+    var q = window.HunanInspectionQuality.province();
+    var rows = [
+      { label: "时长异常", value: q.duration },
+      { label: "间隔异常", value: q.interval },
+      { label: "时段异常", value: q.offWindow },
+      { label: "AI 提醒", value: q.aiAlerts },
+      { label: "当前 P1", value: q.currentRisk },
+    ];
 
     return {
-      grid: { left: 96, right: 44, top: 8, bottom: 8 },
+      grid: { left: 78, right: 32, top: 8, bottom: 8 },
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
         formatter: function (params) {
           var row = rows[params[0].dataIndex];
-          return row.label + "：" + row.issueCount + " / " + row.total + " 项异常或关注";
+          return row.label + "：" + row.value + " 次/条";
         }
       },
       xAxis: {
@@ -138,7 +147,7 @@
       },
       yAxis: {
         type: "category",
-        data: rows.map(function (row) { return row.discipline === "gas" ? "输气专业" : "输油专业"; }),
+        data: rows.map(function (row) { return row.label; }),
         axisLabel: { color: theme.ink, fontSize: 11 },
         axisLine: { lineStyle: { color: theme.lineStrong } }
       },
@@ -146,7 +155,9 @@
         type: "bar",
         barWidth: 16,
         data: rows.map(function (row, index) {
-          return { value: row.issueCount, itemStyle: { color: index === 0 ? theme.accent2 : theme.accent } };
+          var color = index >= 3 ? theme.warn : theme.accent;
+          if (row.label === "当前 P1") color = theme.danger;
+          return { value: row.value, itemStyle: { color: color } };
         })
       }]
     };
@@ -236,7 +247,7 @@
   window.ChartOptions = {
     zoneStatusMix: zoneStatusMix,
     siteKindMix: siteKindMix,
-    issueByDiscipline: issueByDiscipline,
+    qualityExceptionMix: qualityExceptionMix,
     zoneCoverageRows: zoneCoverageRows,
     inspectionCoverageTrend: inspectionCoverageTrend
   };

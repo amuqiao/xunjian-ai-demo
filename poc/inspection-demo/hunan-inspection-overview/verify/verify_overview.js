@@ -1,8 +1,8 @@
 // 验收脚本：以 file:// 打开 index.html（不带 --allow-file-access-from-files，模拟真实
 // 双击），断言 pageerror 为空 / 单例 WebGL 上下文 / [data-hunan-host] 恰好 1 个 /
-// .hunan-labels 内 10 个作业区标签且顺序 === ZONE_IDS / assertPinNamespace 通过 /
-// 10 个标签两两不重叠 / 渲染预算 renderCalls<200 且 triangles<260000 / 点击作业区后
-// activeZoneId 跟随且右栏联动 / 点击「返回全省」后回到 null。
+// .hunan-labels 内作业区标签数与顺序 === ZONE_IDS / assertPinNamespace 通过 /
+// 作业区标签两两不重叠 / 首页无管道显示开关 / 渲染预算 renderCalls<200 且
+// triangles<260000 / 点击作业区后 activeZoneId 跟随且右栏联动 / 点击「返回全省」后回到 null。
 //
 // 运行前提：本机需要能 require('playwright') 并已下载 Chromium。
 // 用法：node verify/verify_overview.js
@@ -100,6 +100,8 @@ async function main() {
 
   const hostCount = await page.evaluate(() => document.querySelectorAll('[data-hunan-host]').length);
   assert(hostCount === 1, '[data-hunan-host] 恰好 1 个（实际 ' + hostCount + '）');
+  const flowNavCount = await page.evaluate(() => document.querySelectorAll('.inspection-flow-nav').length);
+  assert(flowNavCount === 0, '首页不渲染外部流程导航浮层（实际 ' + flowNavCount + ' 个）');
 
   const zoneOrderCheck = await page.evaluate(() => {
     var ids = Array.prototype.map.call(
@@ -108,7 +110,10 @@ async function main() {
     );
     return { ids: ids, expected: window.HunanContract.ZONE_IDS };
   });
-  assert(zoneOrderCheck.ids.length === 10, '.hunan-labels 内 [data-hunan-zone] 恰好 10 个（实际 ' + zoneOrderCheck.ids.length + '）');
+  assert(
+    zoneOrderCheck.ids.length === zoneOrderCheck.expected.length,
+    '.hunan-labels 内 [data-hunan-zone] 恰好 ' + zoneOrderCheck.expected.length + ' 个（实际 ' + zoneOrderCheck.ids.length + '）'
+  );
   assert(
     JSON.stringify(zoneOrderCheck.ids) === JSON.stringify(zoneOrderCheck.expected),
     '.hunan-labels 内标签顺序 === ZONE_IDS（实际 [' + zoneOrderCheck.ids.join(',') + ']，期望 [' + zoneOrderCheck.expected.join(',') + ']）'
@@ -132,7 +137,14 @@ async function main() {
       if (rectsOverlap(rects[i], rects[j])) overlapPairs.push(rects[i].id + ' × ' + rects[j].id);
     }
   }
-  assert(overlapPairs.length === 0, '10 个作业区标签两两不重叠（实际重叠对：' + overlapPairs.join(', ') + ')');
+  assert(overlapPairs.length === 0, zoneOrderCheck.expected.length + ' 个作业区标签两两不重叠（实际重叠对：' + overlapPairs.join(', ') + ')');
+
+  const pipelineToggleCount = await page.evaluate(() => document.querySelectorAll('[data-action="toggle-pipelines"]').length);
+  assert(pipelineToggleCount === 0, '首页 3D 地图不渲染管道显示开关（实际 ' + pipelineToggleCount + ' 个）');
+  assert(info0.pipelineVisible === false, '首页 3D 管道组不可见（实际 ' + info0.pipelineVisible + '）');
+  assert(info0.pipelineChildren === 0, '首页 3D 管道组为空（实际 ' + info0.pipelineChildren + ' 个子对象）');
+  assert(info0.zonePins === 0, '省域态不渲染 3D 作业区热点，只保留名称和数量标签（实际 ' + info0.zonePins + ' 个）');
+  assert(info0.sitePins === 0, '省域态不渲染 3D 站点热点（实际 ' + info0.sitePins + ' 个）');
 
   assert(info0.renderCalls < 200, '省域态 renderCalls < 200（实际 ' + info0.renderCalls + '）');
   assert(info0.triangles < 260000, '省域态 triangles < 260000（实际 ' + info0.triangles + '）');
@@ -158,6 +170,8 @@ async function main() {
   const infoZone = await waitIdle(page, 15000);
 
   assert(infoZone.activeZoneId === worstZone, '点击作业区 ' + worstZone + ' 后 activeZoneId 跟随（实际 ' + infoZone.activeZoneId + '）');
+  assert(infoZone.zonePins === 0, '下钻态不渲染 3D 作业区热点（实际 ' + infoZone.zonePins + ' 个）');
+  assert(infoZone.sitePins === 0, '下钻态不渲染 3D 站点热点，只保留清单与区域态势（实际 ' + infoZone.sitePins + ' 个）');
   assert(infoZone.renderCalls < 200, '下钻态（' + worstZone + '，最坏路径）renderCalls < 200（实际 ' + infoZone.renderCalls + '）');
   assert(infoZone.triangles < 260000, '下钻态 triangles < 260000（实际 ' + infoZone.triangles + '）');
 

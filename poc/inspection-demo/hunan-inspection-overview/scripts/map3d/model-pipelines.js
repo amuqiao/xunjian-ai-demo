@@ -116,7 +116,8 @@
     });
 
     var sitesBuilt = Sites.build(THREE, materials.sites, data.sites, mapBuilt.topY);
-    group.add(sitesBuilt.group);
+    // 首页总览只保留区域名称和数量，站点位置由右侧清单承载；光柱继续用于计算
+    // siteAnchors/siteMeshes 形状，但不挂到场景里，避免 3D 地图出现树状点位。
 
     var pipelinesBuilt = build(THREE, materials.pipelines, data.pipelines, siteById, mapBuilt.topY + 1.2);
     group.add(pipelinesBuilt.group);
