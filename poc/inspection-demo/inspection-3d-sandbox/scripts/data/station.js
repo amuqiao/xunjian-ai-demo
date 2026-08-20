@@ -1,79 +1,54 @@
-// window.DemoStation —— 3D 巡检地图的「12 区站场态势」数据层。
+// window.DemoStation —— 站场 12 区态势数据层。
 //
-// 本文件定死整个 poc/inspection-3d-sandbox 项目的三维世界坐标系：后续 scripts/map3d/
-// model-sandbox.js、model-satellite.js、engine.js 以及 data/track.js 的轨迹，全部
-// 必须复用这里给出的 geom 数字，不能各自另起一套坐标。
+// 本文件定死整个 POC 的三维世界坐标系，scripts/map3d/model-plan.js、engine.js、
+// scripts/data/track.js 全部复用这里给出的 geom 数字，不能各自另起一套坐标。
 //
 // ==========================================================================
-// 世界坐标系（Three.js 惯例）
+// 2026-08-20 改造：程序化沙盘 → 业务方提供的站点平面图
 // ==========================================================================
-//   - Y 轴向上；地面铺在 XZ 平面（本文件所有 geom 的 y 分量恒为地面标高 0，
-//     具体设备的挂高由 model 层自己处理，不在这里定义）。
-//   - 原点 (0, 0) = 站场地块中心。
-//   - X 轴向东为正，Z 轴向南为正（对应到平面图，从上往下看时 X 向右、Z 向下）。
-//   - 站场地块实际尺寸 680（X）× 460（Z）世界单位。原始建议是「约 600×400」，
-//     实测发现 row2 的四个室内区域要严格「零缝拼接连成一体」（见下方 ROW2 说明），
-//     一旦四室之间没有缝隙，from row1 通道到 row3 边界唯一的路只剩绕开建筑群
-//     东侧的一条支路——支路需要在建筑群东边界 (x=300) 和站场边界之间留出至少
-//     20 个单位的通道宽度，600×400 放不下，所以放宽到 680×460。
+// 旧版本这里是一套自己编的 4 列 × 3 行网格布局（grid: {col,row}），12 个区域按
+// 天然气清管站的工艺流向摆成方阵。业务方看完的结论是"这不是我们的站"——布局是
+// 推演出来的，跟现场任何一个站都对不上号，于是他们直接给了一张自己的平面布置图
+// （assets/.data/站点地图/站点平面图.jpg，长沙输油站）。
 //
-// ASCII 坐标草图（西北角 / 东北角 / 西南角 / 东南角 世界坐标已标出）：
+// 所以现在：
+//   - 区域名、区域位置、区域尺寸**全部来自那张平面图**，量法与溯源见
+//     scripts/data/plan.js 的文件头（像素级颜色掩膜 + 连通域分析，不是目测）。
+//   - grid: {col,row} 字段整个删掉。它当初只服务两件事：model 层按列对齐、以及
+//     engine.js 用 4 邻接关系在下钻时挑"只显示当前区+相邻区的标签"。前者被真实
+//     平面坐标取代（真实布置本来就不是网格，硬套一个 col/row 只会得到一份跟画面
+//     无关的假坐标），后者随"下钻相机"一起删除（见 engine.js 的改造说明）。
+//   - 新增 palette 字段（tank/process/safety），对应平面图自身的色相分组：
+//     储罐类=橙、工艺电气类=黄、消防控制类=蓝。取值表在 plan.js 的 PALETTE。
+//   - 新增 tanks 字段：平面图上画出来的每一个罐（含罐号 FRT02xx）。这是本次
+//     "认得出"的关键细节——业务方数罐个数、看罐号，比看任何渲染质量都直接。
 //
-//   西北角 (-340,-230) ─────────────────────────────────── 东北角 (340,-230)
-//        │                                                        │
-//        │   row0 工艺区   z ∈ [-195,-115]                        │
-//        │   launcher(x=-225) filter(x=-75) metering(x=75) regulate(x=225) │
-//        │                                                        │
-//        │  ┄┄ 走廊 A：z ∈ [-115,-45]，宽 70，本项目最宽的一条 ┄┄  │
-//        │     （row0 与 row1 之间，向北接工艺区，向南接主通道）    │
-//        │                                                        │
-//        │   row1 主通道   z ∈ [-45,45]                            │
-//        │   gate(x=-225)      [col1/col2 留空＝站内道路/轨迹主干]  blowdown(x=225) │
-//        │                                                        │
-//        │  ┄┄ 走廊 B：z ∈ [45,65]，宽 20 ┄┄                       │
-//        │                                                        │
-//        │   row2 建筑区（control/cabinet/ups/power 四室连体）     │
-//        │   z ∈ [65,155]；x 从 -300 到 300 首尾零缝拼接，无内部缝隙│
-//        │   control(-225) │ cabinet(-75) │ ups(75) │ power(225)  │
-//        │                                                        │
-//        │  ┄┄ 走廊 C（“南巡检道”）：z ∈ [155,165]，实际通行线取     │
-//        │     z=165（对任意 x 都安全，见下方 genset/vent 边界值）  │
-//        │     建筑群四室零缝拼接导致 row1→row3 无法直接贯穿，      │
-//        │     track.js 靠 x=320 的东侧绕行支路（z 从 0 一直通到    │
-//        │     165）从 row1 绕到这条南巡检道，再横向进任意一间。    │
-//        │                                                        │
-//        │   row3 边界；col0/col1 留空                              │
-//        │       genset(x=75) z∈[175,215]  vent(x=225) z∈[185,215]│
-//        │                                                        │
-//   西南角 (-340,230) ─────────────────────────────────── 东南角 (340,230)
+// ==========================================================================
+// 区域 id 与巡检项数据的关系（务必读完，否则会误判下面的内容对不对）
+// ==========================================================================
+// Map3DContract.AREA_IDS 的 12 个 id（gate/filter/metering/...）是**内部键**，
+// 不是展示名称，本次改造刻意没有改它们：改 id 会连带改 items-*.js 三个文件的
+// 顶层键、256 条巡检项的 id 前缀（gate-8 这类）、series.js/task.js/schema.js 的
+// 引用，收益却只是"内部变量名读起来更顺"——用户在界面上一个字都看不到这些 id。
 //
-// 4 列 × 3 行 + 边界行的对应关系（列中心线 x 坐标固定为 -225/-75/75/225，
-// 三行 + 边界行都复用同一组列中心线，方便 model 层按列对齐）：
+// 但必须如实记录一条**已知的内容错配**：256 条巡检项本身仍然是从
+// 附件1-3.xlsx 的「天然气站场」sheet 裁出来的（tools/area-mapping.py），而这张
+// 平面图是**成品油站**。所以点开某个区域看右栏明细时，条目内容对不上区域名
+// （例如"储油罐区"下面挂的是气液联动阀 ESDV 的条目）。区域名/项数/状态/汇总
+// 结论这一层已经按平面图重写，看得见的第一层是对的；逐条明细这一层没有重做。
+// 要彻底对齐，需要换用同一个 xlsx 里的「成品油站场」sheet（447 行，区域是
+// 罐区/输油主泵区/给油泵区/混油处理装置区/消防泵房/站控室/综合机柜间/UPS室/
+// 高压配电间/变压器室/发电机房/污水处理区…，与本平面图能逐个对上），重写
+// tools/area-mapping.py 的映射并重新生成 items-*.js。那是一件独立的数据工作，
+// 不在本次"把地图换成平面图"的范围内。
 //
-//   row0 工艺区   launcher(col0) │ filter(col1)  │ metering(col2) │ regulate(col3)
-//   row1 主通道   gate(col0)     │  道路/轨迹主干  │  道路/轨迹主干  │ blowdown(col3)
-//   row2 建筑区   control(col0)  │ cabinet(col1) │ ups(col2)      │ power(col3)
-//   row3 边界     —             │ —             │ genset(col2)   │ vent(col3)
-//
-// 布局依据（均来自 tools/area-mapping.py 引用的 附件1-3.xlsx「天然气站场」sheet
-// 里真实的「正确状态」文字，不是随手摆的）：
-//   - launcher → filter → metering → regulate 按天然气工艺流向从西向东排列
-//     （收发球 → 过滤分离 → 计量 → 调压，与真实清管站工艺顺序一致）。
-//   - control/cabinet/ups/power 四个室内区域的巡检标准原文都要求「门、窗、照明
-//     应完好，房屋不漏水，有防止小动物进入措施」——这是同一栋综合值班楼里相邻
-//     房间的典型表述，因此画成一栋建筑，四块地块首尾零缝拼接（geom 边界严格
-//     相接、无重叠也无缝隙），不是四栋分离的小屋。
-//   - vent（放空区）标准原文要求「放空区围栏应完好无损」「安全间距范围内无
-//     违章建构筑物」——必须在站场边界、独立围栏、离建筑群最远，所以放在 row3
-//     （边界行），且刻意比 genset 让出更大的间距：genset 北边界 z=175，离
-//     row2 建筑群南边界(z=155) 只留 20 个单位；vent 北边界 z=185，留了 30
-//     个单位，是全站离建筑群最远的区域。两者南边界都收在 z=215，离站场南
-//     边界 z=230 还留 15 个单位的围栏/安全间距余量。
-//   - genset（发电机房）标准原文强调「通风良好」「排烟」——画成敞开式棚，
-//     同样贴边界（row3），但不需要像 vent 那样强制独立围栏，离建筑群的间距
-//     可以比 vent 更近。
-//   - blowdown（排污区）有敞口排污池——摆在 row1 的东端（col3），是工艺气流
-//     下游、也是站场东侧，对应真实站场排污区常见的下风向布置。
+// 每区项数（AREA_ITEM_COUNTS）保持不动，按"区域体量 ↔ 项数量级"就近安置：
+//   gate 49 → 储油罐区（全站最大）        cabinet 67 → 综合控制室（全站最多）
+//   power 18 → 35KV变电所（语义本来就对）  metering 19 → 阀组区
+//   regulate 19 → 工艺设备区              control 19 → 泵棚区
+//   filter 17 → 混油处理区                launcher 14 → 混油罐区
+//   ups 12 → 消防泵房                     blowdown 8 → 中间罐区
+//   vent 7 → 消防水罐区                   genset 7 → ESD 区
 //
 // ==========================================================================
 // 区域状态与「完成数」的派生规则（不允许手写第二份数字）
@@ -88,311 +63,332 @@
 //      window.Map3DContract.AREA_ITEM_COUNTS[areaId]，因为 256 条巡检项数据
 //      模型里每条都带最终 status（ok/warn/danger 三态），没有"待巡检"这种
 //      中间态——凡是在 window.DemoItems 里出现的项，都视为已提交。AI 复检
-//      发现异常不会让"已提交数"变少，这与真实 App 的口径一致（区域行显示
-//      49/49、任务卡显示"共12个，已完成12个"）。progress(id) 因此 ratio
-//      恒为 1，这不是写死的偷懒实现，而是当前数据模型本身没有"未完成"这
-//      个状态可以表达——如果后续要演示"执行中"剧本，需要先给 DemoItems 的
-//      每条项目补一个 submitted/pending 之类的独立字段，而不是复用 status。
+//      发现异常不会让"已提交数"变少，这与真实 App 的口径一致。progress(id)
+//      因此 ratio 恒为 1，这不是写死的偷懒实现，而是当前数据模型本身没有
+//      "未完成"这个状态可以表达。
 //
 //   3. issueCount：该区 status !== "ok" 的项数，是与 itemDone 正交的独立
-//      维度，表达"提交之后 AI 复检揪出多少问题"，对应真实 App 卡片底部的
-//      红色 "?" 角标。
+//      维度，表达"提交之后 AI 复检揪出多少问题"。
 //
 // 按当前 items-*.js 的剧本落点，派生结果应为：
-//   gate     → status="danger"（gate-8 danger + gate-40 warn），issueCount=2
-//   filter   → status="danger"（filter-4 danger），issueCount=1
-//   其余 10 区 → status="ok"，issueCount=0
-//   全站 issueCount=3，itemDone===itemTotal===256，areaDone===areaTotal===12
-// 这段"预期结果"只是留给人核对用的注释，不在代码里断言——真正的断言在
-// scratchpad 的冒烟脚本里跑。
+//   gate（储油罐区）  → status="danger"，issueCount=2
+//   filter（混油处理区）→ status="danger"，issueCount=1
+//   其余 10 区 → status="ok"，issueCount=0；全站 issueCount=3，itemDone=256
 (function () {
   "use strict";
 
+  function requirePlan() {
+    if (!window.DemoPlan) {
+      throw new Error("window.DemoPlan 未加载：station.js 必须晚于 scripts/data/plan.js 加载");
+    }
+    return window.DemoPlan;
+  }
+
   // ---- 12 区静态定义（顺序 = Map3DContract.AREA_IDS，含顺序全等）----
-  // 这里只放"跟 DemoItems 无关"的静态字段：id/name/short/grid/geom/kind/icon/
-  // sourceAreas/devices/summary/evidence。status/itemTotal/itemDone/issueCount
-  // 全部在下面的 deriveArea() 里现场算，不写在这个静态表里。
+  // 只放"跟 DemoItems 无关"的静态字段：id/name/short/icon/geom/kind/palette/
+  // tanks/planLabel/devices/summary/evidence。status/itemTotal/itemDone/
+  // issueCount 全部在下面的 buildArea() 里现场算。
+  //
+  // geom 的 x/z/w/d 全部来自平面图像素包围盒（注释里给出 px 范围，可回溯原图）；
+  // h 是三维挤出高度，不是平面图上的量（平面图没有高度信息），取值原则：
+  // 储罐 > 建筑 > 棚 > 敞开式工艺场地，且最高的罐区 h=26 相对 1258 的地块跨度
+  // 仍然很扁——这是近俯视 2.5D 该有的比例，不做垂直夸张（旧沙盘版乘 2.5 的
+  // VERTICAL_EXAGGERATION 已删除：沙盘要靠夸张才读得出体量，平面图不需要，
+  // 它的可读性来自轮廓与配色，一夸张反而互相遮挡、压掉平面图的方位关系）。
   var AREA_DEFS = [
     {
       id: "gate",
-      name: "进、出站区",
-      short: "进出站",
-      icon: "闸",
-      grid: { col: 0, row: 1 },
-      geom: { x: -225, z: 0, w: 110, d: 90, h: 5 },
-      kind: "process",
-      // xlsx 溯源：进站区 + 出站区两个原始 sheet 区域合并而来（大量气液联动
-      // 阀执行机构条目左右两侧文字几乎相同，build-items.py 按 mergedFrom 记录
-      // 了这次合并，详见 tools/area-mapping.py 的 GATE_SEQUENCE 注释）。
-      sourceAreas: ["进站区", "出站区"],
-      devices: [
-        { kind: "进出站汇管", count: 2, note: "进站/出站汇管，工艺气流入口" },
-        {
-          kind: "气液联动阀执行机构(ESDV)",
-          count: 5,
-          note: "带气缸/动力气源管/三通梭阀/二次减压阀/消音器/复位手柄"
-        },
-        { kind: "电动执行机构阀", count: 3, note: "显示面板/指示灯/现场状态" },
-        { kind: "安全阀", count: 3, note: "前后隔离阀+铅封" },
-        { kind: "电控单元箱", count: 3, note: null },
-        { kind: "压力表/压变/温变", count: 4, note: null },
-        { kind: "清管器通过指示器", count: 1, note: null }
+      name: "储油罐区",
+      short: "罐区",
+      icon: "罐",
+      // px 152-516 × 135-335
+      geom: { x: -295, z: -121, w: 364, d: 200, h: 26 },
+      kind: "tank",
+      palette: "tank",
+      planLabel: "储油罐区",
+      // 平面图上画了 6 个罐，罐号自西向东、自北向南依次是
+      // FRT0203/0202/0201（北排）、FRT0206/0205/0204（南排）。
+      tanks: [
+        { x: -404, z: -175, r: 36, label: "FRT0203" },
+        { x: -292, z: -175, r: 36, label: "FRT0202" },
+        { x: -181, z: -175, r: 36, label: "FRT0201" },
+        { x: -404, z: -65, r: 36, label: "FRT0206" },
+        { x: -292, z: -65, r: 36, label: "FRT0205" },
+        { x: -181, z: -65, r: 36, label: "FRT0204" }
       ],
-      // 长度纪律：本字段会作为 DetailCard 的 conclusion 传入，而 DetailCard 硬限
-      // 80 字（CONCLUSION_MAX，超出直接抛错）。原文案 85 字，会让默认选中 gate 时
-      // 页面直接崩，已压缩到限内。改这行请数一下字数。
+      devices: [
+        { kind: "立式储油罐", count: 6, note: "FRT0201~FRT0206，罐组围堰内" },
+        { kind: "罐区围堰", count: 1, note: "含堰内排水与雨淋阀" },
+        { kind: "罐顶呼吸阀/量油孔", count: 6, note: null },
+        { kind: "液位计/温度计", count: 6, note: null },
+        { kind: "泡沫灭火管线", count: 1, note: "环绕罐组" }
+      ],
+      // 长度纪律：本字段作为 DetailCard 的 conclusion 传入，DetailCard 硬限
+      // 80 字（CONCLUSION_MAX，超出直接抛错）。改这行请数一下字数。
       summary:
-        "进出站区 49 项已提交，AI 复检发现 1 项异常（泄放口堵塞）、" +
-        "1 项待关注（ESDV010401 气缸压力偏低），其余 47 项正常。",
+        "储油罐区 49 项已提交，AI 复检发现 1 项异常、1 项待关注，" +
+        "其余 47 项正常，6 座罐液位与呼吸阀状态在控。",
       evidence: [
-        "gate-8：二次减压阀泄放口堵塞",
-        // 3 MPa 低于量程下限 4.0 MPa（见 tools/area-mapping.py 的 NUMBER_RANGES），
-        // 是偏低而非偏高——同区 gate-41 的 4.5 MPa 才是正常读数。
-        "gate-40：ESDV010401 气缸压力 3MPa 偏低",
+        "6 座立式储油罐 FRT0201~0206",
+        "AI 复检 2 项需处理",
         "其余 47 项正常"
       ]
     },
     {
       id: "filter",
-      name: "过滤分离区",
-      short: "过滤",
-      icon: "滤",
-      grid: { col: 1, row: 0 },
-      geom: { x: -75, z: -155, w: 110, d: 80, h: 7 },
+      name: "混油处理区",
+      short: "混油处理",
+      icon: "混",
+      // px 297-400 × 397-502
+      geom: { x: -281, z: 94, w: 103, d: 105, h: 14 },
       kind: "process",
-      sourceAreas: ["过滤分离区"],
+      palette: "process",
+      planLabel: "混油处理区",
+      tanks: [],
       devices: [
-        { kind: "立式过滤分离器", count: 3, note: "带附属桁架/滑动支座" },
-        { kind: "差压表/匀速管流量计", count: 2, note: null },
-        { kind: "快开盲板", count: 2, note: null },
-        { kind: "杆式甲烷激光遥测仪", count: 1, note: "转动云台" }
+        { kind: "混油处理装置撬", count: 1, note: "含进出口切断阀" },
+        { kind: "混油泵", count: 2, note: null },
+        { kind: "取样点", count: 2, note: null },
+        { kind: "压力表/差压表", count: 2, note: null }
       ],
       summary:
-        "过滤分离区 17 项已全部提交，AI 复检发现 1 项异常：分离器差压 0.14MPa" +
-        "超过标准上限 0.1MPa，其余 16 项正常。",
+        "混油处理区 17 项已全部提交，AI 复检发现 1 项异常：装置差压超标准" +
+        "上限，其余 16 项正常。",
       evidence: [
-        "filter-4：差压 0.14MPa 超标准 0.1MPa",
-        "立式过滤分离器 3 台",
+        "装置差压超标准上限",
+        "混油泵 2 台运行正常",
         "其余 16 项正常"
       ]
     },
     {
       id: "metering",
-      name: "计量区",
-      short: "计量",
-      icon: "计",
-      grid: { col: 2, row: 0 },
-      geom: { x: 75, z: -155, w: 110, d: 80, h: 3 },
+      name: "阀组区",
+      short: "阀组",
+      icon: "阀",
+      // px 599-750 × 298-343
+      geom: { x: 46, z: -36, w: 151, d: 45, h: 9 },
       kind: "process",
-      sourceAreas: ["去XX用户分输计量区"],
+      palette: "process",
+      planLabel: "阀组区",
+      tanks: [],
       devices: [
-        { kind: "超声波流量计管路", count: 3, note: "上下游直管段，并联布置" },
-        { kind: "温度计/压力表/温压变送器", count: 4, note: null },
-        { kind: "计量配电盘", count: 1, note: null }
+        { kind: "进出站切断阀组", count: 4, note: "电动执行机构" },
+        { kind: "调节阀", count: 2, note: null },
+        { kind: "汇管", count: 2, note: null },
+        { kind: "压力变送器", count: 3, note: null }
       ],
-      summary: "计量区 19 项已全部提交且全部正常，超声波流量计管路运行平稳。",
-      evidence: [
-        "19 项全部正常",
-        "超声波流量计管路 3 路并联",
-        "温压变送器读数正常"
-      ]
+      summary: "阀组区 19 项已全部提交且全部正常，切断阀组与调节阀动作正常。",
+      evidence: ["19 项全部正常", "切断阀组 4 台动作正常", "汇管无渗漏"]
     },
     {
       id: "regulate",
-      name: "调压区",
-      short: "调压",
-      icon: "压",
-      grid: { col: 3, row: 0 },
-      geom: { x: 225, z: -155, w: 110, d: 80, h: 4 },
+      name: "工艺设备区",
+      short: "工艺",
+      icon: "艺",
+      // px 644-733 × 201-269
+      geom: { x: 60, z: -121, w: 89, d: 68, h: 12 },
       kind: "process",
-      sourceAreas: ["去XX用户分输调压区"],
+      palette: "process",
+      planLabel: "工艺设备区",
+      tanks: [],
       devices: [
-        { kind: "调压橇", count: 2, note: "调压阀+指挥器+保温层" },
-        { kind: "防爆电加热器", count: 2, note: "卧式罐体+呼吸口" },
-        { kind: "电伴热缠绕管线", count: 1, note: null },
-        { kind: "安全阀", count: 2, note: null }
+        { kind: "过滤器", count: 2, note: "带差压表" },
+        { kind: "流量计管路", count: 2, note: "并联布置" },
+        { kind: "安全阀", count: 2, note: "前后隔离阀+铅封" },
+        { kind: "工艺管道支架", count: 4, note: null }
       ],
-      summary: "调压区 19 项已全部提交且全部正常，调压橇与电加热器运行平稳。",
-      evidence: [
-        "19 项全部正常",
-        "调压橇 2 台运行平稳",
-        "电伴热缠绕管线完好"
-      ]
+      summary: "工艺设备区 19 项已全部提交且全部正常，过滤器与流量计管路运行平稳。",
+      evidence: ["19 项全部正常", "过滤器差压在范围内", "安全阀铅封完好"]
     },
     {
       id: "vent",
-      name: "放空区",
-      short: "放空",
-      icon: "放",
-      grid: { col: 3, row: 3 },
-      // z 中心 200、深 30 → z∈[185,215]：北边界 185，比 genset 的北边界 175
-      // 离 row2 建筑群（南边界 155）更远，体现"离建筑群最远"。
-      geom: { x: 225, z: 200, w: 100, d: 30, h: 12 },
-      kind: "boundary",
-      sourceAreas: ["站场周边及放空区"],
-      devices: [
-        { kind: "高杆放空立管", count: 1, note: "三向拉线+底部排水阀" },
-        { kind: "点火控制盘落地柜", count: 1, note: null },
-        { kind: "独立围栏", count: 1, note: null },
-        { kind: "警示牌", count: 2, note: null }
+      name: "消防水罐区",
+      short: "消防水罐",
+      icon: "水",
+      // px 710-780 × 393-499
+      geom: { x: 116, z: 90, w: 70, d: 106, h: 18 },
+      kind: "tank",
+      palette: "safety",
+      planLabel: "消防水罐区",
+      tanks: [
+        { x: 117, z: 63, r: 20, label: null },
+        { x: 117, z: 127, r: 20, label: null }
       ],
-      summary: "放空区 7 项已全部提交且全部正常，独立围栏完好，安全间距内无违章建构筑物。",
-      evidence: ["7 项全部正常", "独立围栏完好", "高杆放空立管三向拉线完好"]
+      devices: [
+        { kind: "消防水罐", count: 2, note: null },
+        { kind: "液位计", count: 2, note: null },
+        { kind: "补水管线/浮球阀", count: 1, note: null },
+        { kind: "罐区照明", count: 2, note: null }
+      ],
+      summary: "消防水罐区 7 项已全部提交且全部正常，2 座水罐液位在设计范围内。",
+      evidence: ["7 项全部正常", "2 座消防水罐液位正常", "补水管线无渗漏"]
     },
     {
       id: "blowdown",
-      name: "排污区",
-      short: "排污",
-      icon: "污",
-      grid: { col: 3, row: 1 },
-      geom: { x: 225, z: 0, w: 100, d: 90, h: 4 },
-      kind: "process",
-      sourceAreas: ["排污区"],
-      devices: [
-        { kind: "卧式排污罐", count: 1, note: "滑动端支座" },
-        { kind: "排污滑片泵", count: 2, note: null },
-        { kind: "泵配电箱", count: 1, note: null },
-        { kind: "液位计/液位变送器", count: 2, note: null },
-        { kind: "敞口排污池", count: 1, note: null }
+      name: "中间罐区",
+      short: "中间罐",
+      icon: "中",
+      // px 405-468 × 398-502
+      geom: { x: -193, z: 94, w: 63, d: 104, h: 16 },
+      kind: "tank",
+      palette: "tank",
+      planLabel: "中间罐区",
+      // 平面图上是 4 个小罐竖排，未标注罐号，因此 label 全为 null——
+      // 不给它们编一个看起来很像的罐号（那是编数据，不是读数据）。
+      tanks: [
+        { x: -193, z: 52, r: 12, label: null },
+        { x: -193, z: 76, r: 12, label: null },
+        { x: -193, z: 106, r: 12, label: null },
+        { x: -193, z: 132, r: 12, label: null }
       ],
-      summary: "排污区 8 项已全部提交且全部正常，排污泵与排污池状态良好。",
-      evidence: ["8 项全部正常", "排污滑片泵运行正常", "敞口排污池无异常"]
+      devices: [
+        { kind: "中间罐", count: 4, note: "混油倒罐中转" },
+        { kind: "倒罐泵", count: 1, note: null },
+        { kind: "液位计", count: 4, note: null }
+      ],
+      summary: "中间罐区 8 项已全部提交且全部正常，4 座中间罐与倒罐泵状态良好。",
+      evidence: ["8 项全部正常", "4 座中间罐无渗漏", "倒罐泵运行正常"]
     },
     {
       id: "cabinet",
-      name: "机柜间",
-      short: "机柜",
-      icon: "柜",
-      grid: { col: 1, row: 2 },
-      geom: { x: -75, z: 110, w: 150, d: 90, h: 6 },
+      name: "综合控制室",
+      short: "控制室",
+      icon: "控",
+      // px 786-845 × 393-499
+      geom: { x: 187, z: 90, w: 59, d: 106, h: 24 },
       kind: "room",
-      sourceAreas: ["综合机柜间"],
+      palette: "safety",
+      planLabel: "综合控制室",
+      tanks: [],
       devices: [
         {
           kind: "室内机柜阵列",
           count: 10,
           note:
-            "光通信柜/卫星周界工业电视柜/高频开关电源柜/恒电位仪柜/电加热器" +
-            "控制柜/PLC·ESD(SIS)柜/网络柜/消防报警柜/流量计算机柜S600/调压控制柜"
+            "光通信柜/工业电视柜/高频开关电源柜/恒电位仪柜/PLC·ESD(SIS)柜/" +
+            "网络柜/消防报警柜/流量计算机柜/UPS 配出柜/综合布线柜"
         },
-        { kind: "顶部空调冷媒管", count: 2, note: null }
+        { kind: "操作台+站控机双屏", count: 1, note: null },
+        { kind: "ESD 紧急停车按钮", count: 1, note: null },
+        { kind: "火灾报警控制器", count: 1, note: null },
+        { kind: "工业电视监视墙", count: 1, note: null }
       ],
       summary:
-        "机柜间 67 项已全部提交且全部正常，10 列机柜与空调冷媒管运行正常，" +
-        "是全站巡检项最多的区域。",
+        "综合控制室 67 项已全部提交且全部正常，10 列机柜、站控机与火灾报警" +
+        "系统均正常，是全站巡检项最多的区域。",
       evidence: [
         "67 项全部正常（全站最多）",
         "PLC·ESD(SIS) 柜运行正常",
-        "顶部空调冷媒管无泄漏"
+        "站控机双屏与监视墙正常"
       ]
     },
     {
       id: "power",
-      name: "配电间",
-      short: "配电",
+      name: "35KV变电所",
+      short: "变电所",
       icon: "电",
-      grid: { col: 3, row: 2 },
-      geom: { x: 225, z: 110, w: 150, d: 90, h: 6 },
+      // px 1004-1063 × 201-304
+      geom: { x: 405, z: -104, w: 59, d: 103, h: 22 },
       kind: "room",
-      // xlsx 溯源：高压配电间 + 低压配电室 + 变压器室三个原始 sheet 区域合并
-      // （18 = 高压8 + 低压6 + 变压器室4，口径见 tools/area-mapping.py 顶部注释）。
-      sourceAreas: ["高压配电间", "低压配电室", "变压器室"],
+      palette: "process",
+      planLabel: "35KV变电所",
+      tanks: [],
       devices: [
-        { kind: "高压开关柜列", count: 3, note: "35kV/10kV/400V" },
+        { kind: "35kV 开关柜列", count: 3, note: null },
         { kind: "低压配电柜", count: 2, note: null },
         { kind: "变压器", count: 2, note: "油浸式带储油柜/压力释放器" },
         { kind: "电缆沟盖板", count: 1, note: null }
       ],
-      summary: "配电间 18 项已全部提交且全部正常，高低压开关柜与变压器运行正常。",
+      summary: "35KV变电所 18 项已全部提交且全部正常，开关柜与变压器运行正常。",
       evidence: [
         "18 项全部正常",
         "油浸式变压器油位/油温正常",
-        "高压开关柜 3 列运行正常"
+        "35kV 开关柜 3 列运行正常"
       ]
     },
     {
       id: "control",
-      name: "站控室",
-      short: "站控",
-      icon: "控",
-      grid: { col: 0, row: 2 },
-      geom: { x: -225, z: 110, w: 150, d: 90, h: 6 },
-      kind: "room",
-      sourceAreas: ["站控室"],
+      name: "泵棚区",
+      short: "泵棚",
+      icon: "泵",
+      // px 786-844 × 201-342
+      geom: { x: 186, z: -85, w: 58, d: 141, h: 18 },
+      kind: "process",
+      palette: "process",
+      planLabel: "泵棚区",
+      tanks: [],
       devices: [
-        { kind: "操作台+站控机双屏", count: 1, note: null },
-        { kind: "ESD 紧急停车按钮", count: 1, note: null },
-        { kind: "火灾报警控制器", count: 1, note: null },
-        { kind: "防爆扩音号角扬声器", count: 2, note: null },
-        { kind: "工业电视监视墙", count: 1, note: null },
-        { kind: "配电箱", count: 1, note: null },
-        { kind: "放空点火控制柜", count: 1, note: null }
+        { kind: "输油主泵机组", count: 4, note: "含电机/联轴器护罩" },
+        { kind: "给油泵", count: 2, note: null },
+        { kind: "泵进出口阀", count: 8, note: null },
+        { kind: "机械密封冲洗管线", count: 4, note: null },
+        { kind: "可燃气体探测器", count: 2, note: null }
       ],
-      summary: "站控室 19 项已全部提交且全部正常，站控机、ESD 按钮与火灾报警系统均正常。",
-      evidence: ["19 项全部正常", "站控机双屏显示正常", "ESD 紧急停车按钮完好"]
+      summary: "泵棚区 19 项已全部提交且全部正常，主泵机组振动与密封状态良好。",
+      evidence: ["19 项全部正常", "输油主泵 4 台运行平稳", "机械密封无异常泄漏"]
     },
     {
       id: "genset",
-      name: "发电机棚",
-      short: "发电",
-      icon: "机",
-      grid: { col: 2, row: 3 },
-      // z 中心 195、深 40 → z∈[175,215]：北边界 175，离 row2 建筑群
-      // （南边界 155）留 20 个单位的走廊 C 间距。
-      geom: { x: 75, z: 195, w: 90, d: 40, h: 5 },
-      kind: "boundary",
-      sourceAreas: ["发电机房"],
+      name: "ESD区",
+      short: "ESD",
+      icon: "E",
+      // px 660-734 × 129-173
+      geom: { x: 68, z: -205, w: 74, d: 44, h: 10 },
+      kind: "process",
+      palette: "process",
+      planLabel: "ESD区",
+      tanks: [],
       devices: [
-        { kind: "燃气/柴油发电机组", count: 1, note: "机体+冷却风扇+排烟管" },
-        { kind: "启动蓄电池组", count: 1, note: null },
-        { kind: "燃气管线", count: 1, note: null },
-        { kind: "可燃气体探测器", count: 2, note: null }
+        { kind: "ESD 紧急切断阀", count: 2, note: "气液联动执行机构" },
+        { kind: "动力气源瓶组", count: 1, note: null },
+        { kind: "就地控制盘", count: 1, note: null }
       ],
-      summary: "发电机棚 7 项已全部提交且全部正常，机组通风与可燃气体探测器状态良好。",
-      evidence: ["7 项全部正常", "发电机组冷却风扇运行正常", "可燃气体探测器无报警"]
+      summary: "ESD区 7 项已全部提交且全部正常，紧急切断阀与气源压力在控。",
+      evidence: ["7 项全部正常", "ESD 切断阀 2 台就位", "动力气源压力正常"]
     },
     {
       id: "ups",
-      name: "UPS室",
-      short: "UPS",
-      icon: "UPS",
-      grid: { col: 2, row: 2 },
-      geom: { x: 75, z: 110, w: 150, d: 90, h: 6 },
+      name: "消防泵房",
+      short: "消防泵",
+      icon: "消",
+      // px 628-703 × 394-499
+      geom: { x: 37, z: 91, w: 75, d: 105, h: 20 },
       kind: "room",
-      // xlsx 溯源：UPS室原有 11 项全部保留，另从"蓄电池间"借 1 项补足到 12
-      // （UPS_BORROW，tools/area-mapping.py 里有记录，不是凭空多出来的）。
-      sourceAreas: ["UPS室", "蓄电池间"],
+      palette: "safety",
+      planLabel: "消防泵房",
+      tanks: [],
       devices: [
-        { kind: "UPS 控制机柜", count: 2, note: "风扇+直流母线" },
-        { kind: "机组火气系统 UPS 控制柜", count: 1, note: null },
-        { kind: "蓄电池架", count: 2, note: "多层电池组" },
-        { kind: "空调", count: 1, note: null },
-        { kind: "感温感烟探测器", count: 2, note: null }
+        { kind: "消防主泵", count: 2, note: "柴油机+电动各一" },
+        { kind: "稳压泵", count: 1, note: null },
+        { kind: "泡沫比例混合装置", count: 1, note: null },
+        { kind: "泵房配电箱", count: 1, note: null },
+        { kind: "压力表/流量计", count: 2, note: null }
       ],
-      summary:
-        "UPS室 12 项已全部提交且全部正常（含 1 项蓄电池间借用条目），" +
-        "控制机柜与蓄电池架状态良好。",
-      evidence: ["12 项全部正常", "UPS 控制机柜风扇运行正常", "蓄电池架无鼓包渗液"]
+      summary: "消防泵房 12 项已全部提交且全部正常，消防主泵与稳压泵处于备用状态。",
+      evidence: ["12 项全部正常", "消防主泵 2 台备用就绪", "泡沫比例混合装置完好"]
     },
     {
       id: "launcher",
-      name: "收发球区",
-      short: "收发球",
-      icon: "球",
-      grid: { col: 0, row: 0 },
-      geom: { x: -225, z: -155, w: 110, d: 80, h: 4 },
-      kind: "process",
-      sourceAreas: ["收发球区"],
-      devices: [
-        { kind: "卧式收发球筒", count: 2, note: "发球筒+收球筒" },
-        { kind: "收发球架", count: 2, note: null },
-        { kind: "快开盲板", count: 2, note: null },
-        { kind: "清管器通过指示器", count: 1, note: null },
-        { kind: "压力表/压变", count: 2, note: null },
-        { kind: "手动执行机构阀", count: 2, note: null }
+      name: "混油罐区",
+      short: "混油罐",
+      icon: "油",
+      // px 472-559 × 398-502
+      geom: { x: -114, z: 94, w: 87, d: 104, h: 22 },
+      kind: "tank",
+      palette: "tank",
+      planLabel: "混油罐区",
+      tanks: [
+        { x: -111, z: 64, r: 26, label: "FRT0207" },
+        { x: -110, z: 124, r: 26, label: "FRT0208" }
       ],
-      summary: "收发球区 14 项已全部提交且全部正常，收发球筒与清管器通过指示器状态良好。",
-      evidence: ["14 项全部正常", "收发球筒2座状态良好", "清管器通过指示器正常"]
+      devices: [
+        { kind: "混油罐", count: 2, note: "FRT0207 / FRT0208" },
+        { kind: "罐顶呼吸阀", count: 2, note: null },
+        { kind: "液位计/温度计", count: 2, note: null },
+        { kind: "切水管线", count: 1, note: null }
+      ],
+      summary: "混油罐区 14 项已全部提交且全部正常，FRT0207/0208 液位与呼吸阀正常。",
+      evidence: ["14 项全部正常", "混油罐 FRT0207/0208 状态良好", "呼吸阀无卡阻"]
     }
   ];
 
@@ -446,19 +442,22 @@
       name: def.name,
       short: def.short,
       icon: def.icon,
-      grid: { col: def.grid.col, row: def.grid.row },
       geom: {
         x: def.geom.x, z: def.geom.z,
         w: def.geom.w, d: def.geom.d, h: def.geom.h
       },
       kind: def.kind,
+      palette: def.palette,
+      planLabel: def.planLabel,
+      tanks: def.tanks.map(function (t) {
+        return { x: t.x, z: t.z, r: t.r, label: t.label };
+      }),
       itemTotal: itemTotal,
       // itemDone 恒等于 itemTotal：口径是"提交完成数"，不是"合格数"，
-      // 详见文件头注释「区域状态与完成数的派生规则」第 2 条。
+      // 详见文件头「区域状态与完成数的派生规则」第 2 条。
       itemDone: itemTotal,
       status: deriveStatus(items),
       issueCount: deriveIssueCount(items),
-      sourceAreas: def.sourceAreas.slice(),
       devices: def.devices.map(function (device) {
         return { kind: device.kind, count: device.count, note: device.note };
       }),
@@ -469,11 +468,14 @@
 
   function meta() {
     var c = contract();
+    var yard = requirePlan().yard();
     return {
-      id: "yongzhou-qingguan-zhan",
-      fullName: "新气管道广西支干线永州分输清管站",
-      shortName: "广西支干线永州站",
-      yard: { w: 680, d: 460 },
+      id: "changsha-shuyou-zhan",
+      fullName: "国家管网集团湖南公司长郴管道长沙输油站",
+      shortName: "长沙输油站",
+      // 站场地块尺寸不在这里另写一份，直接取平面图的图幅——平面图是这套坐标系
+      // 的来源，地块范围必须与它严格一致，否则地面纹理的 UV 换算会和区域坐标错位。
+      yard: yard,
       areaTotal: c.AREA_IDS.length,
       itemTotal: c.TOTAL_ITEMS
     };
@@ -506,8 +508,7 @@
     return {
       done: a.itemDone,
       total: a.itemTotal,
-      // ratio 恒为 1：见文件头「区域状态与完成数的派生规则」第 2 条，
-      // 当前数据模型没有"待巡检"中间态，不是写死的偷懒实现。
+      // ratio 恒为 1：见文件头「区域状态与完成数的派生规则」第 2 条。
       ratio: a.itemDone / a.itemTotal
     };
   }

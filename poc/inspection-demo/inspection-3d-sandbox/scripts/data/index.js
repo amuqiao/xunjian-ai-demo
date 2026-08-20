@@ -68,13 +68,12 @@
     items: items,
     item: item,
 
-    // ---- 任务卡 / 问题列表 / 问题上报单（scripts/data/task.js） ----
+    // ---- 任务卡 / 问题列表（scripts/data/task.js） ----
     task: Task.task,
     taskMeta: Task.meta,
     tabs: Task.tabs,
     filters: Task.filters,
     issues: Task.issues,
-    issueDraft: Task.issueDraft,
     otherTasks: Task.otherTasks,
     inspectorCandidates: Task.inspectorCandidates,
     addInspector: Task.addInspector,

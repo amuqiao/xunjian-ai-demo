@@ -24,6 +24,12 @@
   var Contract = window.Map3DContract;
 
   // ---- 6 步流程轨（页脚 .flow-rail） ----
+  //
+  // 2026-08-20 换掉了其中一步：删除 "report"（问题上报），新增 "track"（巡检轨迹）
+  // 并把它排在"站场全景"之后。这不是为了凑够 6 步——是本次改造的叙事重心变了：
+  // 演示要讲的是"巡检员沿着平面图上的消防通道走了一圈，走到哪、用了多久"，
+  // 问题上报那一步（连同它的弹层、上报单模板、ActionBar 按钮）整套移出范围。
+  // 轨迹本来只是 ActionBar 上一个开关，现在它是叙事主线里的一步。
   var STEPS = [
     {
       key: "open-task",
@@ -35,31 +41,31 @@
       key: "overview",
       index: 2,
       label: "站场全景",
-      hint: "查看站场全局态势与各区状态徽标。"
+      hint: "对照站点平面图查看全局态势与各区状态徽标。"
+    },
+    {
+      key: "track",
+      index: 3,
+      label: "巡检轨迹",
+      hint: "沿平面图消防通道回放巡检人走位与逐区停留时长。"
     },
     {
       key: "drilldown",
-      index: 3,
-      label: "区域下钻",
-      hint: "点击热点进入单个区域，查看该区巡检项清单。"
+      index: 4,
+      label: "区域详情",
+      hint: "点击地图热点或左栏列表选中区域，查看该区巡检项清单。"
     },
     {
       key: "checklist",
-      index: 4,
+      index: 5,
       label: "逐项核对",
       hint: "逐条核对巡检标准与现场读数是否一致。"
     },
     {
       key: "findings",
-      index: 5,
+      index: 6,
       label: "发现问题",
       hint: "AI 复检标记出异常与需关注的巡检项。"
-    },
-    {
-      key: "report",
-      index: 6,
-      label: "问题上报",
-      hint: "汇总异常项，生成本轮巡检问题上报单。"
     }
   ];
   var PHASE_KEYS = STEPS.map(function (step) { return step.key; });
@@ -149,14 +155,14 @@
         return "任务已加载：本轮巡检覆盖 12 个区域、共 " + counts.total + " 项巡检点位。";
       case "overview":
         return "本轮 12 个区域已全部提交，AI 复检发现 " + nonOk + " 处需要关注。";
+      case "track":
+        return "巡检轨迹已展开：巡检人沿消防通道走完 12 个区域，全程 63 分钟。";
       case "drilldown":
-        return "已进入区域下钻视图，可逐区查看巡检项与现场读数。";
+        return "已选中区域，可查看该区巡检项与现场读数。";
       case "checklist":
         return "正在逐项核对巡检标准与现场读数，请重点关注异常与待关注项。";
       case "findings":
         return "AI 复检共标记 " + counts.danger + " 处异常、" + counts.warn + " 处待关注，已加入问题清单。";
-      case "report":
-        return "已生成本轮问题上报单，共 " + nonOk + " 条待处理，请分派责任单位跟进。";
       default:
         throw new Error("[DemoFlow] statusLine 缺少 phase=" + phase + " 对应的文案");
     }

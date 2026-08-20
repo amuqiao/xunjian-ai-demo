@@ -1,9 +1,16 @@
 // 验收脚本：以 file:// 打开 index.html（不带 --allow-file-access-from-files，模拟真实
 // 双击），断言 pageerror 为空 / 单例 WebGL 上下文 / 12 个区域热点顺序与命名空间 /
 // 多缩放档位+多拖拽姿态下标签互不重叠 / 渲染预算 / 按需渲染 idle 收敛 / 「返回全站」
-// 「重置视角」两个新入口的出现条件与快路径（不整页重渲染）/ 左栏第 0 层「全站视图」行 /
-// 下钻态右栏联动。体裁对齐 poc/inspection-3d-aerial/verify/verify_map3d.js（母本），本 POC
-// 之前没有可重跑的验收脚本，这是补上的缺口。
+// 「重置视角」两个入口的出现条件与快路径（不整页重渲染）/ 左栏第 0 层「全站视图」行 /
+// 选中区域后的右栏联动 / 「添加人员」弹层。
+//
+// 2026-08-20 随"沙盘 → 站点平面图 2.5D"改造同步更新的三类断言：
+//   1. 新增「平面图保真」组：站场地块尺寸必须等于 plan.js 的图幅、相机方位角必须
+//      锁在正南（theta ≈ π/2）附近。后者是整个改造的核心不变量——平面图一旦被转
+//      歪，业务方就认不出自己的站了，而这种偏差不会报错、只会"看起来有点怪"。
+//   2. 新增「选中区域不移动相机」断言（替换原来的"下钻态可见标签数 < 12"）：
+//      area 预设已删除，选中区域只改高亮，镜头必须一动不动。
+//   3. 删除「问题上报」弹层的两条断言：该弹层已随需求收窄移出本 POC。
 //
 // 运行前提：本机需要能 require('playwright') 并已下载 Chromium（`npx playwright install
 // chromium`）。CI/沙盒环境如果全局 node_modules 不在标准查找路径下，把下面 require 的
@@ -116,6 +123,36 @@ async function checkLabelOverlap(page) {
 
   const debugInfo0 = await page.evaluate(() => window.Map3D.debugInfo());
   assert('contextCreated === 1', debugInfo0.contextCreated === 1, debugInfo0);
+
+  // ---- 平面图保真：地块尺寸 = 平面图图幅，相机方位锁在正南 ----
+  //
+  // 这两条是本次改造的核心不变量，而且都属于"错了不会报错、只会看起来有点怪"的
+  // 那一类，必须钉在脚本里：
+  //   - 地块尺寸与 plan.js 的图幅不一致 → 底图纹理的 UV 换算与区域坐标错位，画面上
+  //     表现为"色块比底图上的分区框偏了一点"。
+  //   - 相机方位角偏离正南 → 屏幕上的"上"不再是北，平面图被转了个角度，这正是业务方
+  //     一开始否掉旧沙盘版的原因。允许 azimuthClamp(0.10) 的入场巡航摆幅，再给
+  //     0.02 的阻尼收敛余量。
+  //
+  // ⚠️ 位置要紧：这两条必须放在下面那串缩放/拖拽场景**之前**。用户手动拖拽是允许把
+  // 镜头转到任意角度的（createOrbit 不限制 theta），拖过之后再断言"朝正南"测的就不是
+  // 设计机位而是拖拽残留姿态——第一版误把它放在拖拽之后，虽然侥幸通过（|Δ|=0.10 刚好
+  // 卡在阈值内），但那条绿灯什么也没证明。这里真正要钉住的是"入场巡航自己不会把
+  // 平面图转歪"，所以取巡航刚结束、任何交互之前的姿态。
+  const yardMatch = await page.evaluate(() => {
+    const a = window.DemoStation.meta().yard;
+    const b = window.DemoPlan.yard();
+    return { yard: a, planYard: b, equal: a.w === b.w && a.d === b.d };
+  });
+  assert('站场地块尺寸 === plan.js 的平面图图幅', yardMatch.equal === true, yardMatch);
+
+  const thetaInfo = await page.evaluate(() => ({
+    theta: window.Map3D.debugInfo().orbit.theta,
+    south: Math.PI / 2
+  }));
+  assert('入场巡航结束后相机方位角仍锁在正南（|theta − π/2| ≤ 0.12）',
+    Math.abs(thetaInfo.theta - thetaInfo.south) <= 0.12, thetaInfo);
+
 
   const hostCount = await page.locator('[data-map3d-host]').count();
   assert('[data-map3d-host] 恰好 1 个', hostCount === 1, { hostCount });
@@ -233,36 +270,45 @@ async function checkLabelOverlap(page) {
   const overviewRowDisplay = await overviewRow.evaluate((el) => getComputedStyle(el).display);
   assert('左栏第 0 层「全站视图」行可见（display !== "none"）', overviewRowDisplay !== 'none', { overviewRowDisplay });
 
-  // ---- 下钻到 cabinet：右栏联动 + 「返回全站」按钮出现 + 可见标签数收窄 ----
+  // ---- 选中 cabinet：右栏联动 + 「返回全站」按钮出现 + 相机一动不动 ----
+  const cameraBeforeSelect = (await page.evaluate(() => window.Map3D.debugInfo())).cameraPosition;
+
   await page.click('[data-select="area"][data-select-id="cabinet"]');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(900);
 
   const debugInfoCabinet = await page.evaluate(() => window.Map3D.debugInfo());
-  assert('下钻 cabinet 后 activeAreaId === "cabinet"', debugInfoCabinet.activeAreaId === 'cabinet', debugInfoCabinet);
+  assert('选中 cabinet 后 activeAreaId === "cabinet"', debugInfoCabinet.activeAreaId === 'cabinet', debugInfoCabinet);
 
   const itemRowCount = await page.locator('.item-row').count();
-  assert('下钻 cabinet 后右栏 .item-row 恰好 67 行', itemRowCount === 67, { itemRowCount });
+  assert('选中 cabinet 后右栏 .item-row 恰好 67 行', itemRowCount === 67, { itemRowCount });
 
   const activeAreaLabelText = await page.locator('[data-active-area-label]').textContent();
-  assert('[data-active-area-label] 文本为「机柜间」', activeAreaLabelText === '机柜间', { activeAreaLabelText });
+  assert('[data-active-area-label] 文本为「综合控制室」', activeAreaLabelText === '综合控制室', { activeAreaLabelText });
 
-  const visiblePinCountCabinet = await page.locator('.map3d-labels [data-map3d-area]').evaluateAll(
-    (els) => els.filter((el) => el.style.opacity !== '0').length
+  // 相机不动：area 预设已删除，选中区域只改 3D 高亮与 DOM 标签 active 态。
+  // 用相机世界坐标比对（而不是 preset 名）——preset 名不变很容易靠"没写切换代码"
+  // 蒙对，位置不变才真的证明没人偷偷 retarget。
+  const cameraAfterSelect = debugInfoCabinet.cameraPosition;
+  const cameraMoved = ['x', 'y', 'z'].some(
+    (k) => Math.abs(cameraBeforeSelect[k] - cameraAfterSelect[k]) > 0.5
   );
-  assert('下钻态可见标签数 < 12（只显示当前区+相邻区）', visiblePinCountCabinet < 12, { visiblePinCountCabinet });
+  assert('选中区域不移动相机（无下钻机位）', cameraMoved === false, { cameraBeforeSelect, cameraAfterSelect });
+
+  assert('选中区域后 12 个标签仍然全部可见（不再按邻接关系收窄）',
+    debugInfoCabinet.hiddenBehindCamera === 0, { hiddenBehindCamera: debugInfoCabinet.hiddenBehindCamera });
 
   const backCountDrilldown = await page.locator('.map-zoom-back').count();
-  assert('下钻态出现 .map-zoom-back 按钮', backCountDrilldown === 1, { backCountDrilldown });
+  assert('选中区域后出现 .map-zoom-back 按钮', backCountDrilldown === 1, { backCountDrilldown });
 
   const backButtonVisible = await page.locator('.map-zoom-back').isVisible();
   assert('.map-zoom-back 按钮可点（可见且可交互）', backButtonVisible === true, { backButtonVisible });
 
-  await page.screenshot({ path: path.join(SHOT_DIR, '02-drilldown-with-back-button.png') });
+  await page.screenshot({ path: path.join(SHOT_DIR, '02-area-selected-with-back-button.png') });
 
   // ---- 重置视角：resetViewCount 递增，且不触发整页重渲染（Charts.debugInfo().drawCalls
   // 在点击前后不变，证明走的是不重挂 DOM 的快路径） ----
   // 先故意把镜头拖拽/缩放歪，制造一个"确实需要复位"的姿态，再验证点击后真的转回去。
-  // 重新量一次宿主包围盒（而不是复用全景态时算的 cx/cy）：下钻态下 .map-zoom-back 是新出现的
+  // 重新量一次宿主包围盒（而不是复用全景态时算的 cx/cy）：选中态下 .map-zoom-back 是新出现的
   // 覆盖层，虽然不改变宿主本身尺寸，但这里不假设"两次一定完全一样"，现场量更可靠。
   const mapBoxCabinet = await page.locator('[data-map3d-host]').boundingBox();
   const cx2 = mapBoxCabinet.x + mapBoxCabinet.width / 2;
@@ -368,30 +414,55 @@ async function checkLabelOverlap(page) {
 
   await page.screenshot({ path: path.join(SHOT_DIR, '06-inspector-picker-reopened.png') });
 
-  // 页面同时挂了 3 个 .overlay-layer（选择区域/添加人员/问题上报），此刻只有「添加人员」
-  // 那个带 .open——用 .overlay-layer.open 限定作用域，避免 [data-action="close-overlay"]
-  // 在 3 个弹层头部都存在导致的选择器歧义（并且未打开的弹层 pointer-events:none，直接点
-  // 未限定作用域的选择器有概率点到 DOM 顺序更靠前但并未打开的那个）。
+  // 现在页面只挂 1 个 .overlay-layer（「添加人员」），但仍然用 .overlay-layer.open
+  // 限定作用域：这条纪律防的是"页面里同时存在多个弹层外壳时，未限定作用域的
+  // [data-action="close-overlay"] 会点到 DOM 顺序更靠前、但并未打开的那个"。
+  // 弹层数从 3 减到 1 只是让这个歧义暂时不会发生，不是让这条纪律失效。
   await page.click('.overlay-layer.open [data-action="close-overlay"]');
   await page.waitForTimeout(300);
 
-  // ---- 「问题上报」弹层：foot 恰好 2 个按钮，顺序为「取消」「提交上报单」，点击
-  // 「取消」后弹层关闭 ----
-  await page.click('[data-action="open-issue-report"]');
+  // ---- 巡检轨迹开关：ActionBar 的「轨迹」按钮 + 页脚流程轨高亮 ----
+  //
+  // 这里原先是「问题上报」弹层的两条断言（foot 恰好「取消」「提交上报单」两个按钮、
+  // 点取消后关闭）。该弹层已随需求收窄删除，换成本次改造真正的重点：轨迹。
+  //
+  // 断言三件事：state.showTrack 翻转、页脚流程轨高亮跳到「巡检轨迹」那一步、
+  // 以及关掉之后能退回「站场全景」。第二条是新增 phase() 派生器的实际验收点——
+  // 旧版本顶栏旁白/操作栏状态语/流程轨高亮各算一份，加一步就会各说各话。
+  await page.click('[data-select="area"][data-select-id="__none__"]');
   await page.waitForTimeout(400);
 
-  const issueFormFootTexts = await page.locator('.issue-form-overlay .overlay-foot button').allTextContents();
-  assert('问题上报弹层 foot 恰好 2 个按钮，顺序为「取消」「提交上报单」', JSON.stringify(issueFormFootTexts) === JSON.stringify(['取消', '提交上报单']), issueFormFootTexts);
+  const showTrackBefore = await page.evaluate(() => window.AppState.value.showTrack);
 
-  await page.screenshot({ path: path.join(SHOT_DIR, '07-issue-report-with-cancel.png') });
+  await page.click('[data-action="toggle-track"]');
+  await page.waitForTimeout(3200); // 覆盖 model-track.js 的 FLOW_DURATION_MS=2400 有限时长播放
 
-  // 点 foot 里的「取消」按钮本身（不是头部的通用关闭按钮），同样用 .overlay-layer.open
-  // 限定作用域，理由同上一处。
-  await page.click('.overlay-layer.open .issue-form-overlay .overlay-foot [data-action="close-overlay"]');
-  await page.waitForTimeout(400);
+  const showTrackAfter = await page.evaluate(() => window.AppState.value.showTrack);
+  assert('点击「轨迹」后 state.showTrack 翻转', showTrackAfter === !showTrackBefore, { showTrackBefore, showTrackAfter });
 
-  const overlayKindAfterCancel = await page.evaluate(() => window.AppState.value.overlay.kind);
-  assert('点击「取消」后问题上报弹层关闭（overlay.kind === null）', overlayKindAfterCancel === null, { overlayKindAfterCancel });
+  const phaseAfterTrack = await page.evaluate(() => window.AppState.phase());
+  assert('展开轨迹后 AppState.phase() === "track"', phaseAfterTrack === 'track', { phaseAfterTrack });
+
+  const activeStepAfterTrack = await page.locator('.flow-step.active strong').textContent();
+  assert('页脚流程轨高亮跳到「巡检轨迹」', activeStepAfterTrack === '巡检轨迹', { activeStepAfterTrack });
+
+  await page.screenshot({ path: path.join(SHOT_DIR, '07-track-visible.png') });
+
+  await page.click('[data-action="toggle-track"]');
+  await page.waitForTimeout(500);
+
+  const phaseAfterHide = await page.evaluate(() => window.AppState.phase());
+  assert('收起轨迹后 AppState.phase() 退回 "overview"', phaseAfterHide === 'overview', { phaseAfterHide });
+
+  // 轨迹播放是有限时长动画（播完自停），收起之后必须能重新收敛到 idle——
+  // 这条防的是"为了让光带一直流动而把渲染循环钉住不停"这类回退。
+  const idleAfterTrackStart = Date.now();
+  let idleAfterTrack = false;
+  while (Date.now() - idleAfterTrackStart < 6000) {
+    if ((await page.evaluate(() => window.Map3D.debugInfo())).idle === true) { idleAfterTrack = true; break; }
+    await page.waitForTimeout(100);
+  }
+  assert('轨迹播放结束后仍能收敛到 idle === true', idleAfterTrack, { waitedMs: Date.now() - idleAfterTrackStart });
 
   const failed = report.assertions.filter((a) => !a.pass);
   await browser.close();

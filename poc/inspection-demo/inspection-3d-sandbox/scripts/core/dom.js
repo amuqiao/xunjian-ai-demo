@@ -76,7 +76,7 @@
     ]);
   }
 
-  // 站场地图版的“宿主 + 12 区域热点标签”骨架，改写自本项目旧版 scripts/dom.js 的
+  // 站点平面图版的“宿主 + 12 区域热点标签”骨架，改写自本项目旧版 scripts/dom.js 的
   // renderPumpTrain（泵机组 6 部位版）：泵机组的“部位”换成站场的“区域”，6 个部位换成
   // Map3DContract.AREA_IDS 的 12 个区域，命名空间从 Pump3DContract 换成 Map3DContract。
   //
@@ -84,7 +84,7 @@
   // 是合法 areaId，非法直接抛错，不做兜底纠正。
   //
   // 本函数原先还收一个 mode 参数（sandbox / satellite 双模式）。双模式已拆成两个独立
-  // POC，本 POC 只有沙盘一种表达，所以 mode 参数与 MODE_ATTR 一并移除——见
+  // POC，本 POC 只有一种表达，所以 mode 参数与 MODE_ATTR 一并移除——见
   // scripts/map3d/contract.js 里关于拆分理由的注释。
   function renderStationMap(activeAreaId) {
     var DATA = window.DemoStation;
@@ -125,8 +125,11 @@
     return h("section", { class: "panel station-map-panel" }, [
       h("div", { class: "station-map-head" }, [
         h("div", {}, [
-          h("p", { class: "kicker", text: "站场巡检地图 / 区域态势" }),
-          h("h3", { text: "广西支干线永州站 · 12 个巡检区域" }),
+          h("p", { class: "kicker", text: "站点平面图 / 区域态势" }),
+          // 站名不再写死：改地图/换站只改 station.js 的 meta()，这里自动跟着变
+          // （旧版本这行是字面量 "广西支干线永州站 · 12 个巡检区域"，换站时最容易漏改
+          // 的就是它——它在画面正中间，写错了一眼就能被业务方看到）。
+          h("h3", { text: DATA.meta().shortName + " · " + C.AREA_IDS.length + " 个巡检区域" }),
         ]),
         h("div", { class: "map-legend" }, [
           legendDot("danger", "异常"),
@@ -148,6 +151,10 @@
           h("span", { class: "map-legend-item" }, [
             h("i", { class: "map-legend-walker", "aria-hidden": "true" }),
             h("span", { text: "巡检人" }),
+          ]),
+          h("span", { class: "map-legend-item" }, [
+            h("i", { class: "map-legend-arrow", "aria-hidden": "true" }),
+            h("span", { text: "消防通道" }),
           ]),
         ]),
       ]),

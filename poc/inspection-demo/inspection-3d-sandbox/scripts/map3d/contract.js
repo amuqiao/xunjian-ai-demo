@@ -4,7 +4,7 @@
 // 这里定义的 12 个区域 id 顺序、区域项数、DOM 命名常量是全仓库唯一真源，以下几处
 // 必须与 AREA_IDS / AREA_ITEM_COUNTS 完全一致（含顺序）：
 //   scripts/data/station.js 的区域数据键集合与顺序，items-*.js 的每区项数
-//   scripts/map3d/model-sandbox.js 的区域网格键
+//   scripts/map3d/model-plan.js 的 areaMeshes / anchors 键集合
 //   scripts/map3d/engine.js 的热点创建顺序（setActiveArea / setStatuses / syncLabels）
 //   DOM 内 .map3d-labels 容器下 12 个 [data-map3d-area] 热点
 //

@@ -15,22 +15,26 @@
 //
 // 明确丢弃/改写的 4 处泵专属硬编码：
 //   - 一维 PART_IDS 遍历 -> Map3DContract.AREA_IDS（12 个区域）
-//   - 闭合两键 PRESETS（dashboard/station）-> 站场两档机位（overview/area），
-//     未知键仍然抛错
+//   - 闭合两键 PRESETS（dashboard/station）-> 单键 PRESETS.plan（见下方 PRESETS
+//     的长注释：为什么只留一档机位），未知键仍然抛错
 //   - 热点引线硬编码的泵轴中心线 y=4.6 -> 指回 model 给的 anchors（区块顶面中心）
-//   - getObjectByName("pump3d-grid") 的强制要求 -> 整段删除（沙盘网格已烘进
-//     model-sandbox.js 的地面纹理，不再需要一个独立的 GridHelper 对象）
+//   - getObjectByName("pump3d-grid") 的强制要求 -> 整段删除（底图网格/地坪已烘进
+//     model-plan.js 的地面纹理，不再需要一个独立的 GridHelper 对象）
 //
-// 额外的、pump3d 没有的必要扩展（因为"泵的 6 个部位坐标固定不变" vs "12 个区域
-// 分布在 680x460 的站场各处，选中哪个区域相机就要飞到哪里"这个本质差异）：
-//   - PRESETS.area 没有固定 target——它必须随当前选中的区域变化。createOrbit()
-//     新增 retarget(target)（只改 target*Target，不碰 theta/phi/radius/fov，也不
-//     触发入场巡航）：在同一个 preset 内切换选中区域时只做平滑的镜头平移，不重放
-//     "进入巡航"这个只该在 overview<->area 切换那一刻出现的强调动作。
-//   - createOrbit() 的初始 target 支持从调用方传入的 initialTarget 覆盖（而不是
-//     只能取 PRESETS 表里的静态字面量）：首次挂载如果 activeAreaId 已经非空（比如
-//     持久化状态记得用户上次停在某个区域），相机要直接落在那个区域上，而不是先
-//     出现在 PRESETS.area 的占位默认位置再纠正。
+// ==========================================================================
+// 2026-08-20：从"沙盘 + 双档机位"改成"平面图 + 单档近俯视机位"
+// ==========================================================================
+// 业务方否掉了自编布局的三维沙盘，改用他们自己的站点平面图（详见
+// scripts/data/plan.js 与 scripts/map3d/model-plan.js 的文件头）。对本文件的影响
+// 集中在"相机不再飞"这一件事上，被删掉的三块彼此关联，删一块必须删三块：
+//   1. PRESETS.area（下钻机位）
+//   2. createOrbit().retarget() —— 只服务于"area 档内换区域时平移镜头"
+//   3. computeAdjacency() / visibleLabelIds() —— 只服务于"下钻后隐藏非邻接区标签"，
+//      且依赖 station.js 已被删除的 grid.col/grid.row 字段
+// 每处删除点都留了说明注释，不是静默消失。
+//
+// createOrbit() 的 initialTarget 参数保留（当前调用方一律传 null）：它是"首次挂载
+// 就落在指定 target、不要先出现在默认位置再纠正"这个能力，与机位档数无关。
 (function () {
   "use strict";
 
@@ -45,72 +49,84 @@
     // 主光从东北高处打下（迎着大多数建筑的北墙/入口面），暖辅光从西侧补，
     // 青色轮廓光留在北侧勾边——与 pump3d 的"布光方位必须跟着 PRESETS 的实际机位算"
     // 是同一条纪律，只是这里的机位换成了站场俯视角。
-    key: { color: 0xffffff, intensity: 3.1, position: [220, 340, -140], shadowMapSize: 2048, shadowBias: -0.0006, shadowCamSize: 420 },
-    rimAmber: { color: 0xf0c887, intensity: 1.1, position: [-260, 120, -80] },
-    rimCyan: { color: 0x4bb3d3, intensity: 1.0, position: [0, 160, 260] },
+    // 布光方位必须跟着 PRESETS 的实际机位算。本版相机固定落在**正南方**
+    // （theta = π/2，见下方 PRESETS 的说明），所以主光从东南高处打下——迎着相机
+    // 能看到的那几面墙，而不是照亮相机看不见的北立面。三盏灯的坐标都按新地块
+    // 尺度（1258 × 713，旧沙盘是 680 × 460）等比拉开，否则光源会落进站场内部，
+    // 阴影方向在画面两端相反。
+    key: { color: 0xffffff, intensity: 3.1, position: [420, 760, 520], shadowMapSize: 2048, shadowBias: -0.0006, shadowCamSize: 780 },
+    rimAmber: { color: 0xf0c887, intensity: 1.1, position: [-520, 240, 160] },
+    rimCyan: { color: 0x4bb3d3, intensity: 1.0, position: [0, 320, -520] },
     envGradient: { top: "#2e4d5e", mid: "#16232c", bottom: "#0a1218", width: 32, height: 16 },
     toneMappingExposure: 1.22
   };
 
-  // 站场两档机位：overview（12 区全景）/ area（单区下钻）。overview 的 phi 取
-  // 较小值（更接近俯视）——沙盘横跨 680(X)x460(Z)，斜视角越大，Z 方向在屏幕上
-  // 被压缩得越厉害（12 个标签要在屏幕上散成 4 列 x 3~4 行，见 model-sandbox.js
-  // AREA_DEFS 的 grid 字段），必须压低 phi 换取更多纵向像素跨度，这条在
-  // verify 的标签重叠扫描里实测过。area 的 phi 更大、更贴近水平视角，因为下钻后
-  // 只关心一个区域内部的设备造型，不需要保留全站的俯视纵深。
-  // area 没有固定 target——由 mount()/setActiveArea() 现场算出当前选中区域的
-  // 几何中心并通过 createOrbit().retarget() 或 applyPreset() 的 targetOverride
-  // 参数注入，这里的 target 字面量只在"引擎刚创建、还没有 mount 过"这个瞬间当占位。
+  // ==========================================================================
+  // 机位：只有一档
+  // ==========================================================================
+  // 旧版本有两档（overview 全景 / area 单区下钻），下钻会把相机拉近、抬高 phi 到
+  // 接近水平，好让人看清单个区域内部的设备造型。本次改造把 area 那一档整个删掉，
+  // 理由不是"简化"，而是它与新的表达方式直接冲突：
+  //
+  //   1. 业务需求已明确收窄到"平面图 + 巡检员 + 轨迹"，不要下钻摄像机视角。
+  //   2. 更根本的是，平面图的全部价值在于**方位关系**——罐区在西北、控制室在东南、
+  //      消防通道往哪个方向疏散。相机一旦贴近并抬到接近水平，这些关系立刻读不出来，
+  //      画面退化成"几个不知道在哪的色块"。平面图不是用来贴脸看的。
+  //   3. 平面图 2.5D 的体块本来就没有内部细节（见 model-plan.js 的"刻意不做的事"），
+  //      拉近了也没有新信息可看。
+  //
+  // 保留 PRESETS 这层结构（而不是把参数摊平成裸常量）是因为 createOrbit /
+  // applyPreset / resetView 三处都按 preset 名取参数；单档也走同一条路，将来若真
+  // 要加第二档机位不必重构调用链。
+  var PRESET_NAME = "plan";
+
   var PRESETS = {
-    overview: { radius: 640, min: 460, max: 900, theta: -1.15, phi: 0.52, target: [0, 6, 15], fov: 40, azimuthClamp: null },
-    // area 的 azimuthClamp 必须是一个较小的有限值（而不是像 overview 那样 null）：
-    // 入场巡航会让 thetaTarget 持续累加 INTRO_CRUISE_DURATION_MS(6.5s) * 0.00016 rad/ms
-    // ≈ 1.04 rad（约 60°）——overview 允许这样"转半圈看全局"，但 area 是"对准一个
-    // 具体区域看细节"，放任它转 60° 会让下钻动作结束时相机停在一个完全没设计过、
-    // 经常很难看的角度（这正是本地实测撞见的问题：cabinet 建筑的北墙玻璃窗带被
-    // 转到接近贴着镜头的角度，几乎糊满整个画面）。夹到 ±0.3 rad（≈17°）的小幅
-    // 摇摆，观感上仍有"入场时轻轻转一下"的巡航感，但转完落点始终贴近设计好的
-    // theta，不会转出一个意外的难看构图。
-    // phi 比 overview 大得多（更接近水平视角）：区域内的建筑/设备普遍只有
-    // 4~7 个世界单位高（很矮的单层建筑/棚），在 overview 那种接近俯视的角度下
-    // 高度差会被压缩到几乎看不出来，下钻后必须换成更贴近水平的视角，才能让
-    // 墙面/罐体的竖直造型读出来，而不是看起来像一块贴地的发光色块。
-    // phi 取一个介于"能看清楚区域内设备体块转折"和"能保留足够俯视纵深"之间的
-    // 折中值——12 个区域里大多数是只有 4~7 个世界单位高的单层建筑/敞棚（真实
-    // 巡检标准原文对应的就是矮小的阀室/机柜间/发电机棚，不是高层建筑），在
-    // 680x460 的站场尺度下，任何视角都不可能把这类矮建筑拍出"landmark 大楼"
-    // 那种体量感——这是被摄对象本身的真实比例，不是渲染缺陷。这里选的角度
-    // 已经能看到墙面/屋顶的明暗转折与设备阴影，同时仍保留判断"我在看哪个区域、
-    // 周围还有哪些区域"所需的俯视纵深。
-    // 2026-08-13 视觉打磨：下钻机位整体抬高、拉远一档，同时不能矫枉过正——
-    // 旧值 radius:200/phi:1.15 贴得太近太低，近距离几乎只看到区块地坪的边缘
-    // （一块"平板"），看不出建筑体量、也几乎看不到相邻区域。第一次尝试把 phi
-    // 直接降到 0.92（更接近 overview 那种俯视），实测反而更差：control/cabinet/
-    // ups/power 四室新增的北墙"裙墙+窗洞+檐墙"三段拼接（见 model-sandbox.js
-    // buildRoomShell）依赖一个足够贴近水平的视线才能透过窗洞看到内部机柜——
-    // phi 一旦降到接近俯视，摄像机主要看到的是屋顶而不是窗洞里的机柜排，
-    // 且区域内新增的设备体块因为拉得更远反而显得更小、更不显眼。最终定案是
-    // phi:1.05（比旧值 1.15 略降一点、比 0.92 明显更贴近水平，仍留在 PHI_MAX=1.42
-    // 的安全范围内）+ radius:230（比旧值 200 拉远一档但不到 260 那么远，
-    // min/max 同步从 130/320 放宽到 160/380），既能透过窗洞看清室内机柜排，
-    // 又比旧机位能多带出一圈相邻区域/道路的纵深。
-    area: { radius: 230, min: 160, max: 380, theta: -1.15, phi: 1.05, target: [0, 5, 0], fov: 38, azimuthClamp: 0.3 }
+    plan: {
+      // radius 1020：地图面板在 2471×1289 的固定设计画布下实测宽高比 2.04
+      // （1531 × 750），所以约束不在横向而在纵向——横向按 fov=38°、aspect=2.04
+      // 反算只需 895，纵向要装下 713 深的地块（相机 70° 俯角下纵向视野被压缩）
+      // 需要约 990；实测 1020 时地块南边缘（3000m³ 应急池那一侧）还是被裁掉一条，
+      // 定为 1130。
+      // 第一版按 aspect≈1.55 估的 1270 太远了，画面里平面图只占面板中间约六成宽、
+      // 两侧全是空绿地——这类"看起来只是有点小"的偏差最容易将就过去，所以这里
+      // 把实测的面板尺寸写进注释，下次改 06-map-scene.css 的列宽时能对上账。
+      // min/max 是手动缩放范围：700 大约是"看清一个功能分区"的尺度，1800 是拉远
+      // 看全站周边。
+      radius: 1130, min: 760, max: 1900,
+      // theta = π/2：相机落在目标的**正南方**（position.z = target.z + r·sinφ）。
+      // 这一条是本次改造里最不能动的参数——只有正南机位才能让屏幕上的"上"恰好
+      // 是北、"右"恰好是东，与业务方手里那张平面图逐一对应。任何其他 theta 都会
+      // 把平面图转一个角度，而"转了角度的平面图"正是业务方一开始否掉旧版的原因。
+      theta: Math.PI / 2,
+      // phi = 0.34（约 70° 俯角）：够俯视以保住方位关系与消防通道箭头的朝向可读，
+      // 又留了 20° 的斜角让挤出体块的侧面可见——这就是"2.5D"的那个 0.5。
+      // 纯正俯视（phi→0）会让所有体块塌成平面图本身，白做三维；phi 超过 0.6 之后
+      // 罐区那排 6 个罐开始互相遮挡，北侧的罐挡住南侧的罐。
+      phi: 0.34,
+      target: [0, 0, 10], fov: 38,
+      // azimuthClamp 从旧 overview 的 null（无限制）改成 0.10（约 6°）。
+      // null 意味着入场巡航会让 theta 累加约 1.04 rad（60°）后**停在那里不回正**，
+      // 平面图就被转歪 60° 了。夹到 ±6° 仍有"入场时轻轻摆一下"的观感，但落点始终
+      // 贴着正南机位。
+      azimuthClamp: 0.10
+    }
   };
 
+  // 热点尺寸全部按新地块尺度放大约 2 倍（地块从 680 宽变成 1258 宽，相机也相应
+  // 拉远，沿用旧尺寸的话 12 个状态球会缩成几乎看不见的小点）。
   var HOTSPOT = {
-    coreRadius: 3.4,
+    coreRadius: 7,
     coreSegments: [16, 12],
-    glowRadius: 5.4,
+    glowRadius: 11,
     glowOpacity: 0.18,
     hoverGlowBoost: 0.15,
-    ringInner: 10.5,
-    ringOuter: 12.5,
+    ringInner: 20,
+    ringOuter: 24,
     ringSegments: 32,
     leadOpacity: 0.5,
     // 热点悬浮在区块顶面中心正上方 hoverHeight 处，引线从悬浮位置垂直落回
-    // model 给的 anchors（区块顶面中心）——这就是文件头"4 处改写"里提到的
-    // "热点引线硬编码的泵轴中心线 -> 指回 anchors"具体落地的地方。
-    hoverHeight: 30,
+    // model 给的 anchors（区块顶面中心）。
+    hoverHeight: 52,
     colors: { ok: "#30c69d", warn: "#eeb44a", danger: "#ff625c" },
     pulse: {
       ok: { scale: 1, opacity: 0.25 },
@@ -147,7 +163,7 @@
   }
 
   function requireModel() {
-    if (!window.Map3DModel) throw new Error("Map3DModel 未加载，请检查 scripts/map3d/model-sandbox.js");
+    if (!window.Map3DModel) throw new Error("Map3DModel 未加载，请检查 scripts/map3d/model-plan.js");
     return window.Map3DModel;
   }
 
@@ -223,8 +239,7 @@
     return texture;
   }
 
-  // ==== 段 2：createOrbit —— 主体逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js，见文件头关于
-  // retarget()/initialTarget 两处必要扩展的说明 ====
+  // ==== 段 2：createOrbit —— 主体逐字抄自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js ====
   function createOrbit(camera, canvas, preset, notifyDirty, initialTarget) {
     var theta = preset.theta;
     var thetaTarget = preset.theta;
@@ -354,16 +369,9 @@
       }
     }
 
-    // 新增：在同一个 preset 内平滑地把镜头 target 移到别处（不改 theta/phi/radius/
-    // fov，也绝不触发入场巡航）。用于"area"预设内切换选中区域——只重新对准，
-    // 不重放"进入巡航"那个只该在 overview<->area 切换那一刻出现的强调动作。
-    function retarget(target) {
-      targetXTarget = target.x;
-      targetYTarget = target.y;
-      targetZTarget = target.z;
-      notifyDirty();
-    }
-
+    // 这里原先有一个 retarget(target)：在 area 预设内切换选中区域时平滑重新对准
+    // 镜头。随 area 预设一起删除（本版只有一档固定机位，选中区域不再移动相机），
+    // 全量 grep 确认无调用方。
     // 新增：供地图缩放按钮调用，复用与 onWheel 完全相同的换算公式，只是把
     // deltaY 换成调用方给的等效步长，语义与滚轮缩放保持一致（正数放大 delta 越大
     // 缩得越远，这里约定 step 正数=缩小、负数=放大，与 onWheel 的 deltaY 语义相同）。
@@ -446,7 +454,6 @@
 
     return {
       applyPreset: applyPreset,
-      retarget: retarget,
       zoomBy: zoomBy,
       update: update,
       setHost: function (nextHost) { host = nextHost; },
@@ -623,7 +630,7 @@
       applyHotspotStatic(engine, id);
     });
     // 每次区域状态刷新时同步重建 250 个巡检点位的 3 组 InstancedMesh——见
-    // model-sandbox.js 文件头"状态变更退化成换组"的说明：这是把"item 级状态可能
+    // model-plan.js 文件头"状态变更退化成换组"的说明：这是把"item 级状态可能
     // 已经被别处（ItemList 的 +/- 交互）改动"这件事同步进 3D 场景的唯一入口。
     engine.model.refreshItemPins();
     markDirty(engine);
@@ -697,71 +704,34 @@
     for (i = 0; i < n; i++) points[i].y += shift;
   }
 
-  // 区域相邻关系：从 window.DemoStation.areas() 的 grid.col/grid.row 现场算出
-  // 4 方向相邻（上下左右，不含对角线），不额外维护一份写死的邻接表——12 区的
-  // 网格位置本来就定义在 station.js 里，这里只是复用它做一次派生，station.js
-  // 若调整某个区域的 grid 坐标，邻接关系自动跟着变。只计算一次并缓存：12 区的
-  // grid 坐标在运行期不会变化。
-  var adjacencyCache = null;
-  function computeAdjacency() {
-    if (adjacencyCache) return adjacencyCache;
-    var areas = window.DemoStation.areas();
-    var byColRow = {};
-    areas.forEach(function (a) { byColRow[a.grid.col + ":" + a.grid.row] = a.id; });
-    var adjacency = {};
-    areas.forEach(function (a) {
-      var col = a.grid.col;
-      var row = a.grid.row;
-      var neighborKeys = [[col - 1, row], [col + 1, row], [col, row - 1], [col, row + 1]];
-      adjacency[a.id] = neighborKeys
-        .map(function (cr) { return byColRow[cr[0] + ":" + cr[1]]; })
-        .filter(function (id) { return id != null; });
-    });
-    adjacencyCache = adjacency;
-    return adjacency;
-  }
-
-  // 下钻到某个区域（area 预设）时，只显示当前区 + 相邻区的标签，其余区域收敛为
-  // 纯 3D 点位（热点球体/光环仍然渲染，只是不再叠加 DOM 标签）——这是应对"12 个
-  // 标签在近距离取景下必然大量拥挤"的根本手段，比单纯依赖 sweepLabels/
-  // fitLabelsVertically 的去碰撞算法更有效：那套算法只保证"在给定的可用空间里
-  // 尽量不重叠"，当同屏需要安放的标签数量本来就超出可用竖直空间时（近距离
-  // 取景下 8-10 个区域的标签会挤进屏幕上很小一块区域），它会退化成"压缩间距、
-  // 允许残留重叠"而不是凭空生出更多空间。返回 null 表示"全部显示"（overview
-  // 预设，或尚未聚焦任何区域）。
-  function visibleLabelIds(engine) {
-    if (engine.preset !== "area" || !engine.activeAreaId) return null;
-    var adjacency = computeAdjacency();
-    var set = {};
-    set[engine.activeAreaId] = true;
-    (adjacency[engine.activeAreaId] || []).forEach(function (id) { set[id] = true; });
-    return set;
-  }
+  // 这里原先有 computeAdjacency() + visibleLabelIds()：下钻到某个区域时，只显示
+  // 当前区 + 4 邻接区的标签，其余区域收敛为纯 3D 点位——那是应对"近距离取景下
+  // 12 个标签必然大量拥挤"的手段。邻接关系从 station.js 每个区域的 grid.col/grid.row
+  // 派生。
+  //
+  // 两者随 area 预设一起删除，原因是双向的：
+  //   - 下钻机位没了，就不存在"近距离取景"这种拥挤场景。固定的近俯视全景机位下，
+  //     12 个标签散布在 1258 × 713 的地块上，sweepLabels/fitLabelsVertically 那套
+  //     去碰撞算法本来就够用。
+  //   - grid.col/grid.row 这两个字段也一起没了：区域坐标现在来自真实平面图，真实
+  //     布置不是网格，硬给每个区域编一个 col/row 只会得到一份跟画面无关的假坐标。
 
   // 12 个区域标签的投影 + 全量两两去碰撞。
   //
-  // scratchVector.z > 1 这条分支在 pump3d 上是死代码（radiusMin=20 远大于半展
-  // 12.8，锚点在任何 preset 下都不可能跑到相机背后）；在这份 680x460 的地图上是
-  // 活代码路径——接近正俯视（overview 的 phi=0.52，比较陡）+ 位于地图边缘的区域
-  // （比如 vent/launcher 这类贴边界的区域）叠加入场巡航的大幅度旋转时，锚点确实
-  // 可能短暂转到相机背后；area 预设下更是常态（下钻到 control/genset 时实测有
-  // 5 个非相邻区域的锚点会转到相机背后）。这里按活路径保留处理（隐藏该标签），
-  // 已用 Playwright 实测验证（见任务报告）。
+  // scratchVector.z > 1（锚点转到了相机背后 → 隐藏该标签）这条分支在本版是不是
+  // 死代码：入场巡航现在被 azimuthClamp 夹到 ±6°，相机始终在正南附近、地块又完整
+  // 落在视锥内，理论上不会有锚点跑到相机背后。但它保留着——用户可以手动拖拽相机
+  // （createOrbit 的 pointermove 没有 phi/theta 之外的限制），拖到极端角度时这条
+  // 路径就是活的，删掉会换来一批贴在屏幕边缘乱跳的标签。
   function syncLabels(engine) {
     var Contract = requireContract();
     var width = engine.host.clientWidth;
     var height = engine.host.clientHeight;
     var points = [];
-    var visible = visibleLabelIds(engine);
 
     Contract.AREA_IDS.forEach(function (id) {
       var el = engine.labelEls[id];
       if (!el) throw new Error("缺少热点标签元素: " + id);
-      if (visible && !visible[id]) {
-        el.style.opacity = "0";
-        el.style.pointerEvents = "none";
-        return;
-      }
       var anchor = engine.anchors[id];
       engine.scratchVector.set(anchor.x, anchor.y + HOTSPOT.hoverHeight, anchor.z).project(engine.camera);
       if (engine.scratchVector.z > 1) {
@@ -899,17 +869,9 @@
     markDirty(engine);
   }
 
-  // 供 mount() 计算某个 preset 应该对准的 target。overview 用 PRESETS.overview 的
-  // 静态字面量（null 覆盖即可），area 现场从 window.DemoStation.area(areaId).geom
-  // 算出该区域的几何中心（不是悬浮的热点锚点——相机应该对准区域本身，不是对准
-  // 飘在半空的状态指示球）。
-  function computeTarget(presetName, areaId) {
-    if (presetName === "overview") return null;
-    var area = window.DemoStation.area(areaId);
-    var g = area.geom;
-    return { x: g.x, y: Math.min(10, g.h * 0.6 + 2), z: g.z };
-  }
-
+  // 这里原先有 computeTarget(presetName, areaId)：area 预设下现场算出选中区域的
+  // 几何中心，供相机对准。随 area 预设一起删除——本版只有一档机位，target 恒为
+  // PRESETS.plan.target（平面图中心），不随选中区域变化。
   function createEngine(presetName, initialTarget, track) {
     if (!PRESETS[presetName]) throw new Error("未知的 3D 视角预设：" + presetName);
     if (!track) throw new Error("createEngine 缺少 track 参数（应来自 Map3D.mount 的 options.track）");
@@ -954,7 +916,7 @@
     key.shadow.camera.top = LIGHTING.key.shadowCamSize;
     key.shadow.camera.bottom = -LIGHTING.key.shadowCamSize;
     key.shadow.camera.near = 10;
-    key.shadow.camera.far = 1400;
+    key.shadow.camera.far = 2800;
     scene.add(key);
 
     var rimCyan = new THREE.DirectionalLight(LIGHTING.rimCyan.color, LIGHTING.rimCyan.intensity);
@@ -1089,9 +1051,7 @@
       throw new Error("Map3D.mount 收到非法 options.activeAreaId：" + options.activeAreaId);
     }
 
-    var presetName = options.activeAreaId == null ? "overview" : "area";
-    var target = computeTarget(presetName, options.activeAreaId);
-    var instance = ensureEngine(presetName, target, options.track);
+    var instance = ensureEngine(PRESET_NAME, null, options.track);
 
     host.insertBefore(instance.canvas, host.firstChild);
     instance.host = host;
@@ -1106,14 +1066,9 @@
     instance.intersectionObserver.disconnect();
     instance.intersectionObserver.observe(host);
 
-    if (instance.preset !== presetName) {
-      // preset 名称真的变了（overview<->area）：完整过渡 + 重放入场巡航。
-      applyPresetToEngine(instance, presetName, true, target);
-    } else if (presetName === "area" && instance.activeAreaId !== options.activeAreaId) {
-      // 仍在 area 档，只是换了一个区域：只平滑重新对准，不重放巡航。
-      instance.orbit.retarget(target);
-    }
-
+    // 这里原先有一段"preset 变了就完整过渡+重放巡航、否则只 retarget"的分支。
+    // 单档机位之后，mount() 不再碰相机：选中区域只改 3D 高亮与 DOM 标签的 active
+    // 态，镜头一动不动——这正是"不要下钻摄像机视角"这条需求在代码里的落点。
     setActiveAreaHighlight(instance, options.activeAreaId || null);
     instance.activeItemId = options.activeItemId || null;
     setStatuses(instance, options.statuses);
@@ -1147,7 +1102,7 @@
   function setActiveItem(itemId) {
     if (!engine) throw new Error("Map3D 尚未挂载，无法 setActiveItem");
     // 本 POC 的 256 个巡检点位是 InstancedMesh（不是独立可拾取对象，见
-    // model-sandbox.js 文件头"250 个巡检点位必须用 InstancedMesh"的性能论证），
+    // model-plan.js 文件头"256 个巡检点位：按状态分 3 组的 InstancedMesh"的性能论证），
     // 因此没有为"选中某一条具体巡检项"设计单独的 3D 高亮——这里只记录状态供
     // debugInfo() 读取，3D 层面的强调始终停留在"区域"这一级颗粒度
     // （setActiveArea 的选中高亮）。这是一个刻意的范围收窄，不是遗漏。
@@ -1180,22 +1135,15 @@
     engine.orbit.zoomBy(step);
   }
 
-  // 供 boot.js 的 "reset-view" action 调用：把当前 preset（overview 或 area）的初始
+  // 供 boot.js 的 "reset-view" action 调用：把 PRESETS.plan 的初始
   // theta/phi/radius/target 带动画地重新施加一次，等价于"回到这个机位刚进来时的姿态"。
   //
-  // 必须与 mount() 里那条"同 preset 不重放动画"的短路逻辑区分开——见本文件 mount()
-  // 内部这段：`if (instance.preset !== presetName) { 完整过渡+巡航 } else if (仍在 area
-  // 档只是换了区域) { 只 retarget，不重放巡航 }`。那条短路保护的是"用户在同一预设内选中
-  // 另一个区域时，相机只应该平滑重新对准，不应该被硬拽回巡航起点"这条体验——它只出现在
-  // mount() 内部的判断分支里，且这里不修改那条短路本身。resetView() 完全不经过 mount()，
-  // 是用户显式点击「重置视角」按钮触发的一次直接调用，天然绕开了那条判断：不管当前
-  // 是否仍处于同一个 preset、不管用户之前把镜头拖拽/缩放成什么姿态，都直接调
-  // applyPresetToEngine() 走一次完整的、带动画的过渡（animated=true）真正复位——这正是
-  // "重置视角"这个动作被显式要求时应有的行为，与"选区域时不要动镜头"是两件不同的事。
+  // 单档机位之后 mount() 已经完全不碰相机，所以这里也不再需要跟 mount() 里那条
+  // "同 preset 不重放动画"的短路逻辑较劲（那条分支连同 area 预设一起删了）。
+  // resetView 现在的职责很直接：用户把镜头拖歪/缩过了，一键带动画复位到设计机位。
   function resetView() {
     if (!engine) throw new Error("Map3D 尚未挂载，无法 resetView");
-    var target = computeTarget(engine.preset, engine.activeAreaId);
-    applyPresetToEngine(engine, engine.preset, true, target);
+    applyPresetToEngine(engine, PRESET_NAME, true, null);
     engine.resetViewCount += 1;
     markDirty(engine);
   }

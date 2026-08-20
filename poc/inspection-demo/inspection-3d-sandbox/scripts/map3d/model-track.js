@@ -44,6 +44,22 @@
   var FLOW_DURATION_MS = 2400;
   var FLOW_CYCLES = 6;
 
+  // ---- 尺度常量（2026-08-20 随底图从沙盘换成站点平面图一起放大）----
+  // 旧值是 TUBE_RADIUS=0.42 / STRIPE_PERIOD=24 / 标记 scale 7~8，那是给 680×460 的
+  // 沙盘地块定的。平面图地块 1258×713、相机也相应拉远，沿用旧值实测的结果是：
+  // 轨迹变成一根几乎看不见的发丝，起点/终点/巡检人三个标记缩成三个像素点——而
+  // 本次改造的需求恰恰是"只需要关注巡检员、轨迹"，这条最该被看见的东西反而最不
+  // 显眼。这里按地块跨度等比放大约 9 倍（不是 1.85 倍：旧值本身就偏细，沙盘那版
+  // 靠深色底衬着才勉强读得出来）。
+  // 半径 3.2 而不是 4：4 实测把沿途几处消防通道箭头压住了一半。轨迹要显眼，但它
+  // 走的就是那几条通道，不该把通道本身的方向标识盖掉。
+  var TUBE_RADIUS = 3.2;
+  var STRIPE_PERIOD = 64;
+  var MARKER_SCALE_ENDPOINT = 44;
+  var MARKER_SCALE_WALKER = 52;
+  // 标记贴图悬在轨迹上方的高度，避免半个圆片埋进管体。
+  var MARKER_LIFT = 9;
+
   function toVector3(THREE, p) {
     return new THREE.Vector3(p[0], p[1], p[2]);
   }
@@ -101,7 +117,7 @@
     var texture = buildBadgeTexture(THREE, options);
     var material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true });
     var sprite = new THREE.Sprite(material);
-    sprite.position.set(point[0], point[1] + 1.4, point[2]);
+    sprite.position.set(point[0], point[1] + MARKER_LIFT, point[2]);
     sprite.scale.set(scale, scale, 1);
     return sprite;
   }
@@ -125,9 +141,9 @@
     var points = track.points.map(function (p) { return toVector3(THREE, p); });
     var curve = new THREE.CatmullRomCurve3(points);
     var tubeSegments = Math.max(64, points.length * 4);
-    var tubeGeometry = new THREE.TubeGeometry(curve, tubeSegments, 0.42, 8, false);
+    var tubeGeometry = new THREE.TubeGeometry(curve, tubeSegments, TUBE_RADIUS, 8, false);
     var curveLength = curve.getLength();
-    var repeatX = Math.max(1, Math.round(curveLength / 24));
+    var repeatX = Math.max(1, Math.round(curveLength / STRIPE_PERIOD));
     var flowTexture = buildFlowTexture(THREE, repeatX);
     var tubeMaterial = new THREE.MeshBasicMaterial({
       map: flowTexture,
@@ -141,9 +157,9 @@
     tube.receiveShadow = false;
     group.add(tube);
 
-    group.add(buildMarker(THREE, track.start, { fill: "#30c69d", stroke: "rgba(234,246,251,0.9)", glyph: "▶" }, 7));
-    group.add(buildMarker(THREE, track.end, { fill: "#ff625c", stroke: "rgba(234,246,251,0.9)", glyph: "■" }, 7));
-    group.add(buildMarker(THREE, track.walker.point, { fill: "#38c6ec", stroke: "rgba(234,246,251,0.95)", glyph: "●" }, 8));
+    group.add(buildMarker(THREE, track.start, { fill: "#30c69d", stroke: "rgba(234,246,251,0.9)", glyph: "▶" }, MARKER_SCALE_ENDPOINT));
+    group.add(buildMarker(THREE, track.end, { fill: "#ff625c", stroke: "rgba(234,246,251,0.9)", glyph: "■" }, MARKER_SCALE_ENDPOINT));
+    group.add(buildMarker(THREE, track.walker.point, { fill: "#38c6ec", stroke: "rgba(234,246,251,0.95)", glyph: "●" }, MARKER_SCALE_WALKER));
 
     var playing = false;
     var playStartTime = 0;

@@ -38,35 +38,12 @@
    另起字面量类名）：
 
    选择区域（Overlay.render 的 body，标题"选择区域"）：
-     div.area-picker
-       div.area-picker-search
-         span.area-picker-search-icon
-         input.area-picker-search-input[type=search]
-       div.area-picker-station                       —— 站场父行（如"广西支干线永州站"）
-         span.area-picker-station-name + span.area-picker-station-count
-       ul.area-picker-areas[role=list]                —— 12 个区域子行
-         li > button.area-picker-row[.active][data-area-id]
-                span.area-picker-row-name
-                span.area-picker-row-count             —— 如 "49/49"
-                span.area-picker-row-check              —— 当前选中区域的绿勾，
-                                                            仅 .active 时可见
-                span.area-picker-row-arrow              —— "›"
+     （2026-08-20：这里原先还列着 div.area-picker（切换区域弹层：搜索框 + 站场父行
+       + 12 个区域子行）与 div.issue-form（问题上报单：4 步流程条 + 13 个字段的两列
+       网格）两套类名契约，连同它们的全部规则一起删除——对应的
+       scripts/scenes/areapicker.js / issuereport.js 已从本 POC 移除。现在只剩
+       「添加人员」一种弹层。）
 
-   问题上报（Overlay.render 的 body，标题"问题上报"，IMS 事件中心风格）：
-     div.issue-form
-       ol.issue-form-steps[role=list]                 —— 4 步流程条
-         li.issue-form-step[.done][.active]
-           span.issue-form-step-idx
-           span.issue-form-step-title
-       div.issue-form-grid                             —— 13 个字段，两列网格
-         div.issue-form-field[.wide]?                  —— .wide 跨两列，给长文本
-                                                            字段（如问题描述）用
-           label.issue-form-label
-           input.issue-form-control 或
-           select.issue-form-control 或
-           textarea.issue-form-control
-
-   添加人员（Overlay.render 的 body，标题"添加人员"）：
      div.inspector-picker
        p.inspector-picker-hint
        ul.inspector-picker-list[role=list]
@@ -76,7 +53,7 @@
                 | span.inspector-picker-row-arrow          —— 仅可选行显示，"›"
 
    这三个浮层通过 Overlay.render() 的 panelClass 字段分别传入
-   "area-picker-overlay" / "issue-form-overlay" / "inspector-picker-overlay"，让
+   "inspector-picker-overlay"，让
    <aside> 额外带上这个类，本文件据此把默认的右侧抽屉皮肤覆盖成居中弹窗（选择区域/
    问题上报/添加人员都是需要专注操作的表单/列表，居中弹窗比贴边抽屉更合适，这与
    参考项目对 kb-doc-overlay / kb-ingest-overlay 的处理是同一种取舍）。 */
@@ -176,8 +153,6 @@
 
 /* ---------- 居中弹窗皮肤：选择区域 / 问题上报共用的定位覆盖 ---------- */
 
-.overlay-panel.area-picker-overlay,
-.overlay-panel.issue-form-overlay,
 .overlay-panel.inspector-picker-overlay {
   top: 70px;
   left: 50%;
@@ -188,20 +163,8 @@
   transform: translate(-50%, 24px) scale(0.98);
 }
 
-.overlay-layer.open .overlay-panel.area-picker-overlay,
-.overlay-layer.open .overlay-panel.issue-form-overlay,
 .overlay-layer.open .overlay-panel.inspector-picker-overlay {
   transform: translate(-50%, 0) scale(1);
-}
-
-.overlay-panel.area-picker-overlay {
-  width: min(640px, calc(var(--screen-design-width) - 120px));
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-}
-
-.overlay-panel.issue-form-overlay {
-  width: min(960px, calc(var(--screen-design-width) - 120px));
 }
 
 .overlay-panel.inspector-picker-overlay {
@@ -210,267 +173,9 @@
   overflow: hidden;
 }
 
-.area-picker-overlay .overlay-body,
-.issue-form-overlay .overlay-body,
 .inspector-picker-overlay .overlay-body {
   min-height: 0;
   overflow: auto;
-}
-
-/* ---------- 「选择区域」内容钩子 ---------- */
-
-.area-picker {
-  display: grid;
-  gap: 10px;
-  min-height: 0;
-}
-
-.area-picker-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.area-picker-search-icon {
-  position: absolute;
-  left: 10px;
-  color: var(--muted);
-  font-size: 13px;
-  pointer-events: none;
-}
-
-.area-picker-search-input {
-  width: 100%;
-  height: 36px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ink);
-  padding: 0 12px 0 30px;
-  font-size: 12px;
-}
-
-.area-picker-search-input:focus {
-  outline: none;
-  border-color: var(--cyan);
-}
-
-.area-picker-station {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line-strong);
-  padding: 10px 12px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.area-picker-station-name {
-  color: #dff5fb;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.area-picker-areas {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  min-height: 0;
-  max-height: 380px;
-  overflow-y: auto;
-}
-
-.area-picker-areas::-webkit-scrollbar {
-  width: 5px;
-}
-
-.area-picker-areas::-webkit-scrollbar-thumb {
-  border-radius: 99px;
-  background: rgba(56, 198, 236, 0.35);
-}
-
-.area-picker-row {
-  width: 100%;
-  min-height: 44px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  border-left: 2px solid transparent;
-  background: transparent;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  text-align: left;
-}
-
-.area-picker-row:hover {
-  background: rgba(56, 198, 236, 0.08);
-}
-
-.area-picker-row.active {
-  border-left-color: var(--cyan);
-  background: rgba(56, 198, 236, 0.1);
-}
-
-.area-picker-row:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: -2px;
-}
-
-.area-picker-row-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.area-picker-row-count {
-  flex: 0 0 auto;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.area-picker-row-check {
-  flex: 0 0 auto;
-  width: 14px;
-  color: var(--status-ok);
-  font-size: 13px;
-  opacity: 0;
-}
-
-.area-picker-row.active .area-picker-row-check {
-  opacity: 1;
-}
-
-.area-picker-row-arrow {
-  flex: 0 0 auto;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* ---------- 「问题上报」内容钩子 ---------- */
-
-.issue-form {
-  display: grid;
-  gap: 16px;
-  min-height: 0;
-}
-
-/* 4 步流程条：与 02-shell.css 的 .flow-track 是同一种视觉语言（编号圆 + 标题），
-   但那份组件按本项目"6 步流程轨"的真实步数写死了 repeat(6,...)，不是可复用的
-   任意步数组件——这里的表单流程是 4 步，独立成自己的类名和 repeat(4,...)，
-   不去借用/改造 .flow-track，避免两处不同步数的流程条共享一份网格定义。 */
-.issue-form-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.issue-form-step {
-  min-height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-}
-
-.issue-form-step-idx {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #dff8ff;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.issue-form-step-title {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.issue-form-step.done {
-  border-color: rgba(48, 198, 157, 0.42);
-  background: rgba(48, 198, 157, 0.08);
-}
-
-.issue-form-step.done .issue-form-step-idx {
-  border-color: var(--status-ok);
-  color: var(--status-ok);
-}
-
-.issue-form-step.active {
-  border-color: var(--cyan);
-  background: rgba(56, 198, 236, 0.14);
-}
-
-.issue-form-step.active .issue-form-step-idx {
-  border-color: var(--cyan);
-  background: var(--cyan);
-  color: #06222c;
-}
-
-.issue-form-step.active .issue-form-step-title {
-  color: #eafcff;
-}
-
-/* 13 个字段两列网格：长文本字段（问题描述一类）用 .wide 跨两列。 */
-.issue-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
-}
-
-.issue-form-field {
-  min-width: 0;
-  display: grid;
-  gap: 5px;
-}
-
-.issue-form-field.wide {
-  grid-column: 1 / -1;
-}
-
-.issue-form-label {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.issue-form-control {
-  min-height: 36px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--ink);
-  padding: 0 10px;
-  font-size: 12px;
-  font-family: inherit;
-}
-
-.issue-form-control:focus {
-  outline: none;
-  border-color: var(--cyan);
-}
-
-textarea.issue-form-control {
-  min-height: 76px;
-  padding: 8px 10px;
-  resize: vertical;
 }
 
 /* ---------- 「添加人员」内容钩子 ---------- */

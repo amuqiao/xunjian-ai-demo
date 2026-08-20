@@ -14,15 +14,13 @@
 //   showTrack      巡检轨迹光带是否可见。ActionBar 的"轨迹"按钮切它；从 false
 //                  切到 true 的那一刻，scripts/map3d/model-track.js 会额外播放一段
 //                  有限时长的流动动画（见该文件顶部注释），不是永久滚动。
-//   overlay        当前打开的弹层：{ kind: null|"area-picker"|"issue-report"|
-//                  "inspector-picker", areaId, itemId, query }。kind 决定
-//                  scenes/areapicker.js / scenes/issuereport.js /
-//                  scenes/inspectorpicker.js 谁可见；areaId/itemId 是"问题上报"单
-//                  要用到的目标（选择哪个区域/哪一条巡检项来生成上报单），
-//                  "inspector-picker" 不需要 areaId/itemId（候选名单现场从
-//                  window.DemoData.inspectorCandidates() 取，不依赖 focus/pick）；
-//                  query 是"选择区域"弹层搜索框的当前输入（自由文本，不做字典
-//                  校验，只在 kind==="area-picker" 时有意义）。
+//   overlay        当前打开的弹层：{ kind: null|"inspector-picker" }。
+//                  2026-08-20 之前还有 "area-picker"（切换区域）与 "issue-report"
+//                  （问题上报）两种，随对应的 scenes/*.js 一起删除，因此
+//                  areaId/itemId/query 三个字段也一并删掉——它们只服务那两种弹层
+//                  （areaId/itemId 是上报单的目标，query 是切换区域弹层的搜索输入），
+//                  "inspector-picker" 的候选名单现场从
+//                  window.DemoData.inspectorCandidates() 取，不依赖 focus/pick。
 //   flowVisited    页脚 6 步流程轨里已经"走到过"的步骤 key 集合，用于渲染
 //                  .flow-step.done。
 (function () {
@@ -38,14 +36,14 @@
   // 现场最不容易翻车的处理方式，与参考项目 v4->v5 换 key 的理由一致。
   var STORAGE_KEY = "xj-sandbox-v1-state";
 
-  var OVERLAY_KINDS = ["area-picker", "issue-report", "inspector-picker"];
+  var OVERLAY_KINDS = ["inspector-picker"];
 
   function defaultState() {
     return {
       focus: { areaId: null },
       pick: { itemId: null },
       showTrack: false,
-      overlay: { kind: null, areaId: null, itemId: null, query: "" },
+      overlay: { kind: null },
       flowVisited: ["open-task"]
     };
   }
@@ -88,21 +86,14 @@
     return { itemId: belongs ? itemId : null };
   }
 
+  // 弹层清洗：现在只剩「添加人员」一种，它不带任何参数，所以这个函数退化成
+  // "kind 合法就保留、否则关闭"。旧版本这里有一大段逻辑，专门校验问题上报单的
+  // areaId/itemId 是否仍然指向一条真实存在的异常巡检项（缺一个就退回关闭，而不是
+  // 渲染一张打不开的表单）——随 issue-report 弹层一起删除。
   function cleanOverlay(rawOverlay) {
     var source = (rawOverlay && typeof rawOverlay === "object") ? rawOverlay : {};
     var kind = OVERLAY_KINDS.indexOf(source.kind) >= 0 ? source.kind : null;
-    var query = kind === "area-picker" && typeof source.query === "string" ? source.query : "";
-    if (kind !== "issue-report") return { kind: kind, areaId: null, itemId: null, query: query };
-    var areaId = typeof source.areaId === "string" && DATA.areaIds().indexOf(source.areaId) >= 0 ? source.areaId : null;
-    var itemId = null;
-    if (areaId != null && typeof source.itemId === "string") {
-      var belongs = DATA.items(areaId).some(function (it) { return it.id === source.itemId; });
-      if (belongs) itemId = source.itemId;
-    }
-    // 问题上报单必须有明确的目标（区域 + 巡检项），缺一个就等于这条持久化的
-    // "打开状态"已经失效，退回关闭而不是渲染一张打不开的表单。
-    if (areaId == null || itemId == null) return { kind: null, areaId: null, itemId: null, query: "" };
-    return { kind: "issue-report", areaId: areaId, itemId: itemId, query: "" };
+    return { kind: kind };
   }
 
   function normalizeState(candidate) {
@@ -156,12 +147,32 @@
     return DATA.item(state.focus.areaId, state.pick.itemId);
   }
 
+  // 当前叙事阶段：把 state 映射成 DemoFlow 的某个 step.key。
+  //
+  // 为什么放在这一层：顶栏旁白（boot.js 的 renderHeader）、地图操作栏的状态语
+  // （scenes/map.js 的 renderMapPanel）、页脚流程轨的高亮位置（boot.js 的
+  // computeActiveFlowIndex）三处都需要"现在算第几步"这个答案，而它们分处 L6/L7
+  // 两层、彼此不得互相引用。以前三处各写一份 `focus.areaId == null ? "overview" :
+  // "drilldown"` 之类的表达式，新增 "track" 这一步之后就会立刻分裂成三种口径
+  // （旁白说"轨迹已展开"、流程轨却高亮在"站场全景"）。这里收成一处。
+  //
+  // 判定顺序即优先级：选中了具体巡检项 > 选中了区域 > 展开了轨迹 > 全景。
+  function phase() {
+    if (state.focus.areaId != null) {
+      if (state.pick.itemId == null) return "drilldown";
+      return DATA.item(state.focus.areaId, state.pick.itemId).status !== "ok"
+        ? "findings" : "checklist";
+    }
+    return state.showTrack ? "track" : "overview";
+  }
+
   window.AppState = {
     value: state,
     STORAGE_KEY: STORAGE_KEY,
     save: saveState,
     reset: resetState,
     markFlowStep: markFlowStep,
+    phase: phase,
     selectedArea: selectedArea,
     selectedItem: selectedItem
   };

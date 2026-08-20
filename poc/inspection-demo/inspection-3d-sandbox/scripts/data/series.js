@@ -29,29 +29,25 @@
   var Contract = window.Map3DContract;
 
   // ---- 12 区中文名 ----
-  // 权威来源：tools/area-mapping.py 的 AREA_DEFS[<areaId>].cn（build-items.py 生成
-  // items-*.js 时用的同一份区域裁剪映射表）。这里手工抄一份是因为 items-*.js 的每条
-  // 巡检项只带 areaKey（如 "gate"），不带中文区域名，中文名在 DemoItems 里派生不出来。
-  // 若 AREA_IDS 改动而这里没跟着改，下面的 assertIdSet 会在加载期立刻抛错，不会静默
-  // 显示 undefined。
-  var AREA_NAMES = {
-    gate: "进、出站区",
-    filter: "过滤分离区",
-    metering: "计量区",
-    regulate: "调压区",
-    vent: "放空区",
-    blowdown: "排污区",
-    cabinet: "机柜间",
-    power: "配电间",
-    control: "站控室",
-    genset: "发电机棚",
-    ups: "UPS室",
-    launcher: "收发球区"
-  };
-  Contract.assertIdSet("DemoSeries.AREA_NAMES", AREA_NAMES);
+  // 2026-08-20：这里原先手抄了一份 { gate: "进、出站区", ... } 的中文名表，注释里
+  // 写明"权威来源是 tools/area-mapping.py 的 AREA_DEFS[<areaId>].cn，手抄是因为
+  // items-*.js 的每条巡检项只带 areaKey、派生不出中文名"。
+  //
+  // 换成平面图分区之后，12 个区域全部改名（进、出站区 → 储油罐区，机柜间 →
+  // 综合控制室……），这份手抄表立刻变成第二份真源：改了 station.js 而漏改这里，
+  // 图表 X 轴会显示一套名字、左栏列表显示另一套，两边都"看起来正常"。所以直接
+  // 改成从 window.DemoStation 现场读——station.js 是区域展示名的唯一真源，
+  // 而且它在 index.html 的加载顺序里就排在本文件之前（items-* → station →
+  // series），拿得到。
+  function requireStation() {
+    if (!window.DemoStation) {
+      throw new Error("series.js 必须在 station.js 之后加载：window.DemoStation 不存在");
+    }
+    return window.DemoStation;
+  }
 
   function areaName(areaId) {
-    return AREA_NAMES[areaId];
+    return requireStation().area(areaId).name;
   }
 
   function areaItems(areaId) {

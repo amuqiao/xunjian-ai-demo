@@ -17,6 +17,21 @@
 
   var DATA = window.DemoData;
 
+  // 区域类型 → 右栏标签文案。旧版本这里是一串三元表达式
+  // （room ? "室内区" : boundary ? "边界区" : "工艺区"），最后那个分支是兜底——
+  // 换成平面图分区之后新增了 "tank"（罐区），走兜底会把 4 个罐区标成"工艺区"，
+  // 而且不会报错。改成查表 + 查不到直接抛错。
+  var KIND_LABEL = { tank: "罐区", room: "室内区", process: "工艺区" };
+
+  function kindLabel(kind) {
+    if (!Object.prototype.hasOwnProperty.call(KIND_LABEL, kind)) {
+      throw new Error(
+        "[MapScene] 未知的区域 kind：" + kind + "，应 ∈ [" + Object.keys(KIND_LABEL).join(", ") + "]"
+      );
+    }
+    return KIND_LABEL[kind];
+  }
+
   function assertLoaded() {
     if (!DATA) throw new Error("[MapScene] window.DemoData 未加载");
   }
@@ -122,8 +137,10 @@
   function renderMapPanel(state) {
     var mapPanel = window.renderStationMap(state.focus.areaId);
     var host = mapPanel.querySelector(".station-map");
-    var phase = state.focus.areaId == null ? "overview" : "drilldown";
-    host.appendChild(window.ActionBar.render({ state: DATA.statusLine(phase) }));
+    // 状态语的阶段判定统一走 AppState.phase()，不在这里再写一份
+    // `focus.areaId == null ? "overview" : "drilldown"`——见 core/state.js 里
+    // phase() 的注释（三处各写一份必然分裂）。
+    host.appendChild(window.ActionBar.render({ state: DATA.statusLine(window.AppState.phase()) }));
     return mapPanel;
   }
 
@@ -139,8 +156,21 @@
     return items.filter(function (it) { return it.inputType === "number"; }).length;
   }
 
+  // 全景态右栏：全站态势 + 本轮巡检轨迹概览。
+  // 轨迹信息（起点/终点/停留最久的区域/总时长）放在这里，是因为本次演示的重心就是
+  // "巡检员沿平面图走了一圈"——全景态右栏原先只有一句"请选择一个区域"，把这块最该
+  // 被看到的信息留在了 ActionBar 的一个开关里。
   function renderOverviewHint() {
     var sp = DATA.stationProgress();
+    var track = DATA.track();
+    var waypoints = track.waypoints;
+    var first = waypoints[0];
+    var last = waypoints[waypoints.length - 1];
+    // 停留最久的区域：相邻 waypoint 的 atMinute 差值即该区停留分钟数（第一个区从 0 起算）。
+    var longest = waypoints.reduce(function (best, wp, i) {
+      var minutes = wp.atMinute - (i === 0 ? 0 : waypoints[i - 1].atMinute);
+      return best == null || minutes > best.minutes ? { areaId: wp.areaId, minutes: minutes } : best;
+    }, null);
     return h("article", { class: "card-detail" }, [
       h("div", { class: "detail-head" }, [
         h("div", {}, [
@@ -151,7 +181,20 @@
       ]),
       h("p", {
         class: "detail-conclusion",
-        text: "共 " + sp.itemTotal + " 项已全部提交，AI 复检发现 " + sp.issueCount + " 处需要关注。请在左侧列表或地图热点上选择一个区域查看详情。",
+        text: "共 " + sp.itemTotal + " 项已全部提交，AI 复检发现 " + sp.issueCount +
+          " 处需要关注。点击地图热点或左侧列表查看单区详情。",
+      }),
+      window.Cards.evidence({
+        status: sp.issueCount > 0 ? "danger" : "ok",
+        conclusion: "本轮巡检轨迹：" + track.waypoints.length + " 个区域 · 全程 " +
+          track.durationMin + " 分钟，沿站内消防通道单向绕行。",
+        // Cards.evidence 的 tags 硬限 3 个（超出直接抛错），所以这里只放三条最能
+        // 说明"这一趟是怎么走的"：起点、终点、停留最久的区域。
+        tags: [
+          "起点 " + DATA.area(first.areaId).name,
+          "终点 " + DATA.area(last.areaId).name,
+          "停留最久 " + DATA.area(longest.areaId).name + " " + longest.minutes + " 分钟",
+        ],
       }),
     ]);
   }
@@ -181,7 +224,7 @@
         ],
         conclusion: area.summary,
         tags: [
-          area.kind === "room" ? "室内区" : area.kind === "boundary" ? "边界区" : "工艺区",
+          kindLabel(area.kind),
           "专业覆盖 " + uniqueDisciplines(items).length + " 类",
           "数值型 " + numberCount(items) + " 项",
         ],
@@ -198,10 +241,10 @@
             }),
           },
         ],
-        actions: [
-          { action: "open-issue-report", text: "问题上报", primary: true },
-          { action: "open-area-picker", text: "切换区域" },
-        ],
+        // actions 留空数组：原先这里有「问题上报」（primary）与「切换区域」两个按钮，
+        // 两者对应的弹层已删除。不改成别的按钮凑数——右栏详情卡本身就没有需要在这里
+        // 触发的动作了，返回全景走地图右下角的「‹」，选别的区域走左栏列表。
+        actions: [],
       });
     }
 
@@ -210,7 +253,7 @@
       h("div", { class: "panel item-list-panel" }, [
         h("div", { class: "item-list-head" }, [
           h("p", { class: "kicker", text: "巡检项 / 标准与实测" }),
-          h("h3", { text: areaId == null ? "未选择区域" : DATA.area(areaId).name + " · " + DATA.area(areaId).itemTotal + " 项" }),
+          h("h3", { text: areaId == null ? "未选择区域（全景态）" : DATA.area(areaId).name + " · " + DATA.area(areaId).itemTotal + " 项" }),
         ]),
         window.ItemList.render({
           items: items,

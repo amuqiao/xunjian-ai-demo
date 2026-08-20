@@ -1,15 +1,86 @@
-# 站场 3D 巡检地图（沙盘视图）POC
+# 站场巡检地图（站点平面图 2.5D）
 
-程序化三维工程沙盘：广西支干线永州分输清管站，12 个巡检区域、256 条真实巡检项、一条 47 点巡检轨迹。纯前端、零构建、零 npm，双击 `index.html` 即可在浏览器里打开并交互。
+按业务方提供的**站点平面图**（长沙输油站）1:1 矢量重绘的 2.5D 站场巡检地图：12 个巡检区域、256 条真实巡检项、一条 46 点巡检轨迹、23 段消防通道疏散方向标识。纯前端、零构建、零 npm，双击 `index.html` 即可在浏览器里打开并交互。
 
 ## 怎么打开
 
 直接双击 `index.html`（或用浏览器 `file://` 方式打开），**不需要**启动本地服务器、不需要 `npm install`、不需要任何构建步骤。页面加载完成后：
 
-- 左栏点击任意区域名 / 3D 地图上点击任意热点标签，都会下钻进入该区域的详情与巡检项列表（两个入口互相联动）。
+- 左栏点击任意区域名 / 地图上点击任意热点标签，都会选中该区域并在右栏展开详情与巡检项列表（两个入口互相联动）。**选中区域不会移动相机**——见下方"为什么只有一档机位"。
 - 右栏巡检项列表点击某一行可选中；布尔型巡检项可点开关切换，数值型巡检项可点 `+`/`−` 步进（只改读数，不改状态判定，见下方"已知边界"）。
-- 底部悬浮操作栏：`轨迹`按钮切换巡检路线光带的显示/隐藏（每次从隐藏切到显示都会播放一段约 2.4 秒的有限时长流动动画）；`切换区域`/`问题上报`打开对应弹层；`+`/`−`缩放 3D 视角。
+- 底部悬浮操作栏：`轨迹`按钮切换巡检路线光带的显示/隐藏（每次从隐藏切到显示都会播放一段约 2.4 秒的有限时长流动动画）；`添加人员`打开候选名单弹层；`刷新`重渲染。
+- 地图右下角：`‹` 返回全站（仅选中某区域时出现）、`+`/`−` 缩放、`⟲` 重置视角。
 - 页脚 6 步流程轨可点击跳转到对应的叙事阶段。
+
+## 2026-08-20：从「程序化三维沙盘」改成「站点平面图 2.5D」
+
+这是本目录最近一次结构性改造，改动范围很大，先说清缘由。
+
+**旧版本**是一套自己推演出来的三维工程沙盘：12 个区域按天然气清管站的工艺流向摆成 4 列 × 3 行的网格，每个区域都有手写的设备造型（中空房间带窗洞玻璃、立式过滤分离器、高杆放空火炬、调压橇、收发球筒……），垂直方向乘 2.5 倍夸张系数才读得出体量。
+
+**业务方的反馈是"不要这种 3D 站点地图"，并给出了自己的站点平面图**（`assets/.data/站点地图/站点平面图.jpg`）。关键在于：问题不是造型不够精细，恰恰相反——**那些精细造型服务的是一个不存在的站**。布局对不上、区域名对不上，做得越细越像"某个别人家的站"。
+
+所以这次不是给沙盘调参，是换掉它：
+
+| | 旧版（沙盘） | 现版（平面图 2.5D） |
+|---|---|---|
+| 布局来源 | 自编 4×3 网格 | 业务方平面图，像素级量出坐标 |
+| 站场 | 广西支干线永州分输清管站（天然气） | 长沙输油站（成品油） |
+| 地块尺度 | 680 × 460 世界单位 | 1258 × 713（= 平面图图幅，1 单位 = 1 像素） |
+| 区域造型 | 每区一套手写设备造型（约 700 行） | 统一挤出色块 + 平面图上真实画出的罐 |
+| 垂直夸张 | ×2.5（不夸张读不出体量） | 无（可读性来自轮廓与配色） |
+| 配色 | 深蓝工程沙盘 | 平面图自身的色相（罐橙 / 工艺黄 / 消防蓝 / 站外绿） |
+| 消防通道 | 无此概念 | 22 段疏散方向箭头 + 10 条通道中心线 + 指北针 |
+| 相机 | 两档（全景 / 单区下钻） | 一档固定近俯视，正南机位 |
+
+**刻意不做的事**：不为每个区域重新雕设备造型。这次的诉求是"认得出这是我们的站"，而认站靠的是布局、分区名、罐个数和罐号——不是靠能不能看见过滤器上的差压表。把 700 行造型换成统一色块不是偷懒，是把复杂度花在了业务方真正在看的地方（平面图保真度）。真要回到"看单台设备"这条路，正确做法是给某个区域做单独的下钻场景，而不是把 12 个区的设备全塞进一张全站图里。
+
+### 坐标是量出来的，不是画出来的
+
+`scripts/data/plan.js` 里的每个数字都能回溯到原图的某个像素范围。提取方式不是目测：用 PIL + `scipy.ndimage` 按平面图自身的调色板做颜色掩膜 + 连通域分析，逐个色块取包围盒；22 个红色消防通道箭头的**朝向**也是算出来的（比较箭头包围盒两端的笔画厚度，厚的那一端是箭头头部）。
+
+换算关系全项目只有一处（`DemoPlan.fromPixel`）：`world_x = px_x - 629`、`world_z = px_y - 356`，即 **1 世界单位 = 原图 1 像素**，原点在平面图正中心。代价是世界单位不等于米——平面图没给比例尺，所以这里不假装知道米数。
+
+自动提取会给出"形状上说得通、语义上完全不对"的结果，实测踩到两次，都记在 `plan.js` 的注释里：
+
+- px 1175 处那个"朝东的红色扁箭头"其实是**指北针**（红色八角星罗盘），已剔除并改由 `NORTH_MARK` 表达。
+- 东侧变电所院区第一版取的是连通域给出的一小块内部灰色（院内道路白线切出来的碎块），结果 35KV 变电所的黄色块有一半落在自己的"围栏"外面。
+
+### 为什么只有一档机位
+
+`scripts/map3d/engine.js` 的 `PRESETS` 只剩 `plan` 一档（`theta = π/2`、`phi = 0.34`、`radius = 1130`），旧的 `area` 下钻档整个删掉。理由不是"简化"：
+
+1. 业务需求已明确收窄到"平面图 + 巡检员 + 轨迹"，不要下钻摄像机视角。
+2. 更根本的是，平面图的全部价值在于**方位关系**——罐区在西北、控制室在东南、消防通道往哪个方向疏散。相机一旦贴近并抬到接近水平，这些关系立刻读不出来。`theta = π/2`（正南机位）是唯一能让屏幕上的"上"恰好是北、"右"恰好是东的方位角，这一条不可调整；入场巡航的摆幅也因此被 `azimuthClamp` 夹到约 ±6°（旧版是无限制，巡航会把平面图转歪约 60° 后停在那里）。
+3. 平面图 2.5D 的体块本来就没有内部细节，拉近了也没有新信息可看。
+
+`phi = 0.34`（约 70° 俯角）就是"2.5D"里的那个 0.5：够俯视以保住方位关系与箭头朝向可读，又留了 20° 斜角让挤出体块的侧面可见。纯正俯视会让体块塌成平面图本身（白做三维）；`phi` 超过 0.6 之后罐区那排 6 个罐开始互相遮挡。
+
+删除 `area` 预设连带删掉了三块彼此关联的代码（每处都留了说明注释，不是静默消失）：`createOrbit().retarget()`、`computeTarget()`、`computeAdjacency()/visibleLabelIds()`，以及 `station.js` 的 `grid.col/grid.row` 字段。
+
+### 同期移出范围的功能
+
+按"只关注巡检员与轨迹"的需求收窄，以下三套整体移除，不留 disabled 占位按钮：
+
+- **切换区域**弹层（`scripts/scenes/areapicker.js`）
+- **问题上报**弹层（`scripts/scenes/issuereport.js`）+ `DemoTask.issueDraft()` 上报单模板 + `styles/11-overlay.css` 里对应的两套类名契约
+- 流程轨的 **"问题上报"** 步骤 —— 换成新的 **"巡检轨迹"** 步骤（排在"站场全景"之后）
+
+要恢复其中任何一套，都需要按 `scenes/*.js` → `boot.js` 的 `handleAction`/`openFlowStep` → `ui/actionbar.js` 的 `DEFAULT_ACTIONS` → `data/flow.js` 的 `STEPS` 四处一起加回来，它们是一整套，不是单点功能。
+
+### ⚠️ 已知的内容错配（如实记录，不是漏做）
+
+**256 条巡检项的逐条内容仍然是天然气站的**，而这张平面图是成品油站。
+
+区域名、每区项数、状态、汇总结论这一层已经按平面图重写（看得见的第一层是对的），但点开某个区域看右栏明细时，条目内容对不上区域名——例如"储油罐区"下面挂的是气液联动阀 ESDV 的条目。原因是 `items-*.js` 由 `tools/area-mapping.py` 从 `附件1-3.湖南公司油气站场、阀室通用巡检标准.xlsx` 的**「天然气站场」sheet** 裁出来的。
+
+要彻底对齐：同一个 xlsx 里有**「成品油站场」sheet**（447 行，区域是 罐区 / 输油主泵区 / 给油泵区 / 混油处理装置区 / 消防泵房 / 站控室 / 综合机柜间 / UPS室 / 高压配电间 / 变压器室 / 发电机房 / 污水处理区 / 站场周边 / 消防设施 / 变频器间……，与本平面图能逐个对上），需要重写 `tools/area-mapping.py` 的映射并重新生成 `items-*.js`。那是一件独立的数据工作，不在本次"把地图换成平面图"的范围内。
+
+`Map3DContract.AREA_IDS` 的 12 个内部键（`gate`/`filter`/`metering`/…）刻意没有改：改 id 会连带改三个 `items-*.js` 的顶层键、256 条巡检项的 id 前缀（`gate-8` 这类）、以及 `series.js`/`task.js`/`schema.js` 的引用，收益却只是"内部变量名读起来更顺"——用户在界面上一个字都看不到这些 id。每区项数按"区域体量 ↔ 项数量级"就近安置，对应关系记在 `scripts/data/station.js` 的文件头。
+
+### 目录名没有跟着改
+
+目录仍叫 `inspection-3d-sandbox`（"沙盘"），这已经是个名不副实的名字。**刻意没有改名**：目录名被 `poc/inspection-demo/index.html` 的 iframe 路由表、`poc/inspection-demo/flow-nav/flow-nav.js` 的两处路径判定引用，改名要同步改这三处外部引用，而它带来的收益纯粹是"名字读起来顺"。等哪次需要动那两个文件时一并改，不为一个名字单独发一次改动。
 
 ## 文件结构
 
@@ -19,64 +90,74 @@ vendor/                        本地 three.min.js（r160 UMD）、echarts.min.j
 scripts/
   map3d/
     contract.js                L1 契约：12 区 id 顺序、DOM 命名空间、断言（全仓库唯一真源）
-    model-shared.js            L3 共享程序化贴图/材质工具（沙盘地面、状态材质等）
-    model-sandbox.js           L3 程序化三维沙盘模型（12 区设备造型 + 250 点位 InstancedMesh）
+    model-shared.js            L3 共享程序化贴图/材质工具（平面图底图、箭头、斜纹、状态材质等）
+    model-plan.js              L3 站点平面图 2.5D 模型（12 区挤出块 + 14 个罐 + 景物 +
+                               22 个消防通道箭头 + 256 点位 InstancedMesh）
     model-track.js             L3 巡检轨迹模型（TubeGeometry 流动光带 + 起点/终点/巡检人 Sprite）
     engine.js                  L3 3D 引擎（WebGL 生命周期/相机轨道/标签投影/按需渲染，从
                                /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 抄写改造）
   data/
-    items-entry.js / items-process.js / items-room.js   256 条真实巡检项（tools/build-items.py 生成，不要手改）
-    station.js                 12 区站场态势数据 + 世界坐标系定义（全仓库坐标真源）
+    plan.js                    站点平面图底图几何真源（地坪/围栏/通道/箭头/景物/指北针/调色板）
+    items-entry.js / items-process.js / items-room.js   256 条巡检项（tools/build-items.py 生成，不要手改）
+    station.js                 12 区站场态势数据 + 世界坐标系定义（区域坐标真源）
     series.js                  图表聚合数据源 + 63 分钟耗时分配算法（唯一实现）
-    track.js                   巡检轨迹折线/waypoint（atMinute 从 series.js 派生，不再各算一遍）
-    task.js                    任务卡 / 问题列表 / 问题上报单模板
+    track.js                   巡检轨迹折线/waypoint（46 点，走在 plan.js 的消防通道上）
+    task.js                    任务卡 / 问题列表
     flow.js                    流程步骤 + 状态文案唯一真源
     schema.js                  逐条巡检项字段级校验（seq 连续性、inputType、量程等）
-    index.js                   window.DemoData 门面，收拢以上六个数据模块
+    index.js                   window.DemoData 门面，收拢以上数据模块
   core/
-    screen-scale.js            固定画布等比缩放
+    screen-scale.js            固定画布等比缩放（设计画布 2471 × 1289）
     dom.js                     h()/append()/renderStationMap() 等基础 DOM 工具
     charts.js                  ECharts 持久化槽位注册表
     timers.js                  场景级定时器生命周期管理
-    chartopts.js                纯函数 ECharts option 构造器
-    state.js                   window.AppState：focus/pick/showTrack/overlay/flowVisited
+    chartopts.js               纯函数 ECharts option 构造器
+    state.js                   window.AppState：focus/pick/showTrack/overlay/flowVisited + phase() 派生器
   ui/                          cards.js / selectlist.js / detailcard.js / itemlist.js / actionbar.js / overlay.js
   scenes/
-    map.js                     唯一场景：任务卡、左栏区域列表、3D 面板、右栏详情+列表、底部图表行
-    areapicker.js               「选择区域」弹层
-    inspectorpicker.js           「添加人员」弹层（候选名单来自 DemoTask.inspectorCandidates()）
-    issuereport.js               「问题上报」弹层（IMS 事件中心字段，foot 有「取消」「提交上报单」两个按钮）
-  boot.js                       引导层：render 管线 + 事件委托 + 状态写入口
+    map.js                     唯一场景：任务卡、左栏区域列表、地图面板、右栏详情+列表、底部图表行
+    inspectorpicker.js         「添加人员」弹层（候选名单来自 DemoTask.inspectorCandidates()）
+  boot.js                      引导层：render 管线 + 事件委托 + 状态写入口
 styles/
   01-tokens.css ... 11-overlay.css   见各文件头注释的类名契约
 tools/
   build-items.py / area-mapping.py   从 xlsx 生成 items-*.js 的离线脚本（不在浏览器运行时执行）
+verify/
+  verify_map3d.js              Playwright 验收脚本
 ```
 
 ## 边界与设计取舍
 
-- **本 POC 只有沙盘一种视觉表达**，没有"沙盘 / 卫星"双模式切换（`Map3DContract` 里没有 `MODES`/`assertModeSwitch`，故意不加）。引擎因此保持"终生单例、单模型、无 dispose"的形态——与 `poc/pump-demo` 已验证过的模式一致。
-- **250 个巡检点位是 InstancedMesh**，按状态分 3 组，不是可单独点击的对象；点击选中一条具体巡检项目前只更新右栏 UI 和 `debugInfo().activeItemId`，不驱动额外的 3D 高亮（见 `scripts/map3d/engine.js` 的 `setActiveItem` 注释）。
+- **业务方那张 JPG 不是被贴上来的，是被量出坐标重绘的。** `file://` 下任何本地图片一旦 `drawImage` 进 canvas 就会污染该 canvas，而 three.js r160 会把污染纹理抛出的 `SecurityError` 吞掉、只 `console.error` 一行然后继续执行——结果纹理渲染成纯黑，`getError()` 也不报错码。这是本项目最痛恨的一类静默失效，`Map3DContract.assertTextureUntainted` 就是把它翻译成一次带栈的快速失败。何况即便能贴，贴图也没法按区域高亮、放大就糊、区域坐标与图上像素的对应关系只能靠肉眼对齐。
+- **本 POC 只有一种视觉表达**，没有"沙盘 / 卫星 / 平面图"模式切换（`Map3DContract` 里没有 `MODES`/`assertModeSwitch`，故意不加）。引擎因此保持"终生单例、单模型、无 dispose"的形态。
+- **256 个巡检点位是 InstancedMesh**，按状态分 3 组，不是可单独点击的对象；点击选中一条具体巡检项只更新右栏 UI 和 `debugInfo().activeItemId`，不驱动额外的 3D 高亮。
 - **数值型巡检项的 `+`/`−`** 只改 `value`，不重新计算 `status`：数据模型没有给出"读数变化 → 状态判定"的公式，不擅自发明一套阈值逻辑。
-- **区域下钻（`area` 预设）只显示当前区 + 相邻区域的标签**，其余 9-10 个区域收敛为纯 3D 点位（热点球体/光环仍渲染，只是不再叠加 DOM 标签）——这是应对"12 个标签在近距离取景下必然拥挤"的根本手段，比单纯依赖去碰撞算法更有效。相邻关系从 `station.js` 的 `grid.col/grid.row` 现场算出 4 方向邻接，不再手写第二份邻接表。
-- **「添加人员」的候选名单不新编姓名**：候选池只从 `scripts/data/task.js` 已有的两处真实姓名字段（主任务卡巡检人"唐爱纯"、郴州输油站任务卡巡检人"王泽宇,周理斌"）现场收集去重，得到 3 个真实姓名。选中一位后追加进当前任务的 `inspector` 字段（逗号分隔，与真实 App 多人巡检显示格式一致），**只改内存对象，不写 `localStorage`**——刷新页面即还原成"唐爱纯"一人的初始演示数据，与巡检项读数改动同一条纪律。
+- **应急池与停车场是平涂进底图纹理的，不建三维实体**（`plan.js` 的 `flat: true`）。这不是性能优化：它们的名字必须写在自己的色块上，而如果色块是立在地面上的三维盒子、名字又烘在底图纹理里，盒子会正好把名字盖住——第一版实测就是这样，画面上只看到一块蓝色和一块灰色，一个字都没有。
+- **同一区域内的罐必须等径**（`model-plan.js` 的 `buildTanks` 会对不等径直接抛错）：同区罐体用一个 InstancedMesh 绘制。平面图上同区的罐本来就是等径的，出现不等径说明 `station.js` 的 `tanks` 数据抄错了。
+- **「添加人员」的候选名单不新编姓名**：候选池只从 `scripts/data/task.js` 已有的两处真实姓名字段（主任务卡巡检人"唐爱纯"、郴州输油站任务卡巡检人"王泽宇,周理斌"）现场收集去重，得到 3 个真实姓名。选中一位后追加进当前任务的 `inspector` 字段（逗号分隔），**只改内存对象，不写 `localStorage`**——刷新页面即还原。
 
-## 与 `poc/inspection-3d-aerial` 的关系
+## 实测渲染预算
 
-两个刻意互不耦合的独立 POC：本目录做「程序化工程沙盘」视觉表达，`poc/inspection-3d-aerial` 做「俯视/卫星」视觉表达。两者共享同一份真实巡检标准来源（`附件1-3.湖南公司油气站场、阀室通用巡检标准.xlsx`），但巡检项数据由 `tools/build-items.py` **各自独立生成一份副本**（两个目录各有一份 `items-entry.js`/`items-process.js`/`items-room.js`），运行时零共享、零 import，改一个不会影响另一个。`scripts/map3d/contract.js` 顶部注释记录了这次拆分的历史与理由（2026-08-13，原设计过双模式，后来发现双模式会要求一条真正的 dispose 路径，与"终生单例"的既有形态冲突，拆分成本更低）。
+在 2471 × 1289 设计画布下（地图面板实测 1531 × 750）：
+
+| 指标 | 实测 | 护栏 |
+|---|---|---|
+| `contextCreated` | 1 | 必须恒为 1 |
+| `renderCalls`（全景态） | 171 | < 200 |
+| `renderCalls`（选中区域） | 175 | < 200 |
+| `triangles` | 32,982 | < 260,000 |
+| `geometries` / `textures` | 97 / 13 | 多次 detach/mount 不增长 |
+| 交互结束后 | `idle === true` | 必须能收敛 |
+
+## 与 `dfaft/` 下两个前身 POC 的关系
+
+`dfaft/inspection-3d-sandbox`（低斜角三维工程沙盘）与 `dfaft/inspection-3d-aerial`（俯视/卫星质感）是本目录的两个前身探索，各自持有完整独立的代码副本，运行时零共享。本目录是从前者演化来的，`scripts/map3d/contract.js` 顶部注释记录了当初"双模式拆成两个独立 POC"的历史与理由（2026-08-13）。三者共享同一份真实巡检标准来源（`附件1-3.湖南公司油气站场、阀室通用巡检标准.xlsx`），但巡检项数据各有一份独立副本。
 
 ## 已清理的旧文件（历史记录）
 
-以下文件是更早期迭代留下的残留，`index.html` 早已不再引用它们，现已从本目录删除：
+以下文件已从本目录删除：
 
-- `scripts/app.js`
-- `scripts/data.js`
-- `scripts/dom.js`
-- `styles/card.css`
-- `styles/pump3d.css`
-
-`scripts/pump3d/`（`contract.js`/`engine.js`/`model.js`）也已于 2026-08-13 删除：新
-`scripts/map3d/engine.js` 抄写改造完成后不再需要在本目录里保留一份对照副本。权威原件
-仍在 `/Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/` 下（`contract.js` /
-`engine.js` / `model.js` / `README.md`），本目录代码注释里所有"逐字抄自 pump3d/xxx.js"
-一类的引用都已改成指向这个绝对路径，不再指向本目录内早已不存在的相对路径。
+- 更早期迭代的残留：`scripts/app.js`、`scripts/data.js`、`scripts/dom.js`、`styles/card.css`、`styles/pump3d.css`
+- `scripts/pump3d/`（2026-08-13）：`scripts/map3d/engine.js` 抄写改造完成后不再需要对照副本。权威原件仍在 `/Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/` 下
+- `scripts/map3d/model-sandbox.js`（2026-08-20）：被 `model-plan.js` 取代，理由见上方改造说明
+- `scripts/scenes/areapicker.js`、`scripts/scenes/issuereport.js`（2026-08-20）：随需求收窄移出范围

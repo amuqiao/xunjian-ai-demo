@@ -1,4 +1,4 @@
-// 站场 3D 巡检地图——共享程序化贴图/材质工具（L2，早于 model-sandbox.js / model-satellite.js / engine.js）。
+// 站场巡检地图——共享程序化贴图/材质工具（L3，早于 model-plan.js / engine.js）。
 //
 // ==== 为什么本文件不允许出现 TextureLoader / drawImage(外部图片) ====
 // 页面跑在 file:// 下，origin 是 null。已实测三条路：
@@ -11,46 +11,40 @@
 //      WebGL getError() 也不报错码。这是本项目最痛恨的一类静默失效：画面是错的，但没有任何
 //      机制会告诉你哪里错了。
 //   3) data: URI 不受此限（实测全通），但只适合小体量素材，不适合大面积地面纹理。
-// 结论：本文件所有纹理必须是程序化生成的 CanvasTexture，不许出现 TextureLoader，不许对任何
-// 外部图片调用 drawImage。每个纹理工厂在返回前都会调用 window.Map3DContract.assertTextureUntainted，
-// 对同一块 canvas 做一次 getImageData(0,0,1,1)——如果画布已被污染，浏览器会在这一行原生抛出
+//
+// **这条约束对本次改造尤其要命**：业务方给的是一张 JPG 平面图，最省事的做法就是把它
+// 当贴图铺在地面上。这条路走不通（file:// 污染 → 静默全黑），而且即便能走通也不该走：
+// 贴图没法按区域高亮、放大就糊、区域坐标与图上像素的对应关系只能靠肉眼对齐。所以本
+// 项目的做法是**把平面图矢量化重绘**——用 scripts/data/plan.js 里量出来的坐标，纯 canvas
+// 形状 API 重画一遍。代价是要量坐标，收益是每个色块都成了可编程对象。
+//
+// 每个纹理工厂在返回前都会调用 window.Map3DContract.assertTextureUntainted，对同一块
+// canvas 做一次 getImageData(0,0,1,1)——如果画布已被污染，浏览器会在这一行原生抛出
 // SecurityError，把 three.js 会悄悄吞掉的错误在构建期一次性翻译成一次带调用栈的快速失败。
 // 不要在这个断言外面包 try/catch——这是 fail-fast，不是 fallback。
 //
 // ==== 已实测的性能数字（决定了下面的分层策略）====
-//   尺寸       形状绘制(arc/fillRect/lineTo/渐变)   逐像素颗粒(getImageData/putImageData)   上传    显存(含mip)
-//   512²       1.1ms                                61.4ms                                    1.0ms   ~1.3MB
-//   1024²      0.7ms                                65.3ms                                    0.4ms   ~5.3MB
-//   2048²      1.7ms                                161ms                                     0.4ms   ~21.3MB
-// 逐像素颗粒（对整块画布做一次 getImageData/putImageData）占了总成本的 98%，形状绘制几乎免费。
-// 因此本文件的分层规则：
-//   - 宏观层固定 1024²，只用 canvas 2D 形状 API（arc/fillRect/lineTo/渐变），不逐像素操作；
-//   - 逐像素噪声只在 512² 生成一次，然后用 drawImage 把这块 512 瓦片按 16×16 网格「烘」进宏观层
-//     （实测 256 次 drawImage 只要 1-2ms，比在 1024²/2048² 上直接跑一次 getImageData/putImageData
-//     便宜一到两个数量级）。
+//   尺寸       形状绘制(arc/fillRect/lineTo/渐变)   逐像素颗粒(getImageData/putImageData)
+//   512²       1.1ms                                61.4ms
+//   1024²      0.7ms                                65.3ms
+//   2048²      1.7ms                                161ms
+// 逐像素颗粒占总成本的 98%，形状绘制几乎免费。buildPlanGround 全程只用形状 + fillText，
+// 没有任何逐像素操作，所以可以放心用 2048 宽的大画布换清晰度。
 //
 // ==== THREE 注入风格 ====
-// 与 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 保持一致：
 // THREE 通过函数参数传入，本文件顶层不读取 window.THREE。
 //
 // ==== 代码风格约束 ====
 // 纯 ES5 IIFE + 挂 window.Map3DShared。不用 ESM / const / let / 箭头函数 / 模板字符串 / class。
 //
 // ==== 错误处理约束 ====
-// 不写 fallback / silent catch / 默认值吞错 / 降级。参数类型非法或缺失必须直接 throw，
-// 不允许静默跳过或补一个凑合的默认值把错误盖住。下面出现的 "options.xxx || 默认值" 只用于
-// 纯装饰性的调参项（颜色、数量、尺寸这类没有"对错"、只有"好看不好看"的旋钮），
-// 凡是关系到坐标系换算是否成立的参数（stationWidth / stationDepth / anisotropy 等）
+// 不写 fallback / silent catch / 默认值吞错 / 降级。参数类型非法或缺失必须直接 throw。
+// 下面出现的 "options.xxx || 默认值" 只用于纯装饰性调参项（颜色、字号这类没有"对错"、
+// 只有"好看不好看"的旋钮）；凡是关系到坐标系换算是否成立的参数（yard / anisotropy）
 // 一律用 requirePositiveNumber 强制校验，非法立即抛错。
 (function () {
   "use strict";
 
-  // ---------------------------------------------------------------------
-  // 通用小工具
-  // ---------------------------------------------------------------------
-
-  // 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的
-  // createCanvas，原样保留（本来就是通用工具，无需泛化）。
   function createCanvas(width, height) {
     var canvas = document.createElement("canvas");
     canvas.width = width;
@@ -74,12 +68,9 @@
     return value;
   }
 
-  // 可选的装饰性图层（道路/围墙/罐体基础）允许调用方不传；但一旦传了，类型必须合法——
-  // 这不是"允许出错"，而是"允许没有这层数据"，两者不同：没传是合法状态，传了却传错类型要报错。
-  function requireArrayIfPresent(value, name) {
-    if (value === undefined || value === null) return [];
+  function requireArray(value, name) {
     if (!Array.isArray(value)) {
-      throw new Error("[Map3DShared] " + name + " 若提供必须是数组，实际为 " + typeof value);
+      throw new Error("[Map3DShared] " + name + " 必须是数组，实际为 " + typeof value);
     }
     return value;
   }
@@ -95,22 +86,8 @@
   }
 
   // ---------------------------------------------------------------------
-  // 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的纹理
-  // 工具（泛化：把泵专用的硬编码尺寸/颜色/密度提成参数，核心算法与绘制顺序原样
-  // 保留，不做"顺手改进"）
+  // 铭牌纹理（罐号 FRT02xx 用）
   // ---------------------------------------------------------------------
-  //
-  // buildPerforatedTexture（联轴器护罩穿孔钢网）/ buildGrilleTexture（电机风罩通风
-  // 格栅）/ buildGroundFadeTexture（泵地面圆盘径向渐变）三个函数已于 2026-08-13
-  // 删除：本 POC（沙盘）与 poc/inspection-3d-aerial 里都是 0 引用的死代码，全量 grep
-  // 排除本文件自身内部调用后确认过。三者原文仍在权威原件
-  // /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 里，如果未来
-  // 真的需要"穿孔钢网"/"通风格栅"/"地面径向渐变淡出"这类纹理，应从那份原件重新摘取，
-  // 不要凭这条注释臆测参数细节。
-
-  // 摘自 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 的 buildNameplateTexture，原用途是电机铭牌（写死 "P-1" /
-  // "250kW" / "2980 r/min" 三行文字）。
-  // 泛化：文字内容改成 text 参数（{ title, lines }），背景/字色/字号/画布尺寸改成 options 参数。
   function buildNameplateTexture(THREE, text, options) {
     requireTHREE(THREE, "buildNameplateTexture");
     if (!text || typeof text.title !== "string") {
@@ -140,6 +117,7 @@
     ctx.strokeRect(4, 4, width - 8, height - 8);
     ctx.fillStyle = ink;
     ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
     ctx.font = titleFont;
     ctx.fillText(text.title, width / 2, titleY);
     ctx.font = lineFont;
@@ -153,253 +131,254 @@
   }
 
   // ---------------------------------------------------------------------
-  // 世界坐标 -> 纹理像素坐标的换算器（卫星/沙盘地面共用）
+  // 平面图底图纹理
   // ---------------------------------------------------------------------
 
-  // 约定：世界坐标原点在站场中心，X ∈ [-stationWidth/2, stationWidth/2]，
-  // Z ∈ [-stationDepth/2, stationDepth/2]；纹理像素坐标原点在左上角，X 向右、Y 向下。
-  function createProjector(stationWidth, stationDepth, size) {
-    requirePositiveNumber(stationWidth, "options.stationWidth");
-    requirePositiveNumber(stationDepth, "options.stationDepth");
-    requirePositiveNumber(size, "size");
-    var scaleX = size / stationWidth;
-    var scaleZ = size / stationDepth;
-    var scaleAvg = (scaleX + scaleZ) / 2;
+  // 世界坐标 → 纹理像素坐标。与旧版 createProjector 的区别：横纵各自独立的缩放
+  // （旧版只收一个正方形 size）。平面图图幅 1258×713 的长宽比是 1.76，硬塞进正方形
+  // 纹理会让横向分辨率白白浪费一半、纵向又不够——底图是本次改造里唯一一张大纹理，
+  // 分辨率必须花在该花的方向上。
+  function createPlanProjector(yardW, yardD, texW, texH) {
+    requirePositiveNumber(yardW, "yard.w");
+    requirePositiveNumber(yardD, "yard.d");
+    var sx = texW / yardW;
+    var sz = texH / yardD;
     return {
+      // 世界 (x,z) → 纹理 (px,py)。世界原点在图幅中心，纹理原点在左上角。
       point: function (x, z) {
-        return {
-          x: (x + stationWidth / 2) * scaleX,
-          y: (z + stationDepth / 2) * scaleZ
-        };
+        return { x: (x + yardW / 2) * sx, y: (z + yardD / 2) * sz };
       },
-      lengthX: function (w) { return w * scaleX; },
-      lengthZ: function (d) { return d * scaleZ; },
-      lengthAvg: function (r) { return r * scaleAvg; }
+      lenX: function (w) { return w * sx; },
+      lenZ: function (d) { return d * sz; },
+      // 各向同性的长度（线宽/箭头这类不该被拉伸的量），取两个方向的平均。
+      len: function (v) { return v * (sx + sz) / 2; }
     };
   }
 
-  // ---------------------------------------------------------------------
-  // 人工构筑物图层：道路 / 围墙 / 硬化地坪 / 罐体基础环
-  // 卫星与沙盘两种地面共用这一套绘制逻辑，只是调色板（palette）不同——
-  // "直线 + 圆"才读作人造环境，这一层是俯视图里性价比最高的一层。
-  // ---------------------------------------------------------------------
+  function fillRectWorld(ctx, pj, rect, color) {
+    var c = pj.point(rect.x, rect.z);
+    var w = pj.lenX(rect.w);
+    var d = pj.lenZ(rect.d);
+    ctx.fillStyle = color;
+    ctx.fillRect(c.x - w / 2, c.y - d / 2, w, d);
+  }
 
-  function strokePath(ctx, points) {
+  function strokeRectWorld(ctx, pj, rect, color, lineWidth) {
+    var c = pj.point(rect.x, rect.z);
+    var w = pj.lenX(rect.w);
+    var d = pj.lenZ(rect.d);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.strokeRect(c.x - w / 2, c.y - d / 2, w, d);
+  }
+
+  // 消防通道：宽描边（路基）叠一道更窄更亮的描边（路面中线），比单色实线更像
+  // 铺过的车道，也让"这里是能走人的路"在近俯视下一眼读得出来。
+  function paintLanes(ctx, pj, lanes, palette) {
+    ctx.lineCap = "butt";
+    ctx.lineJoin = "round";
+    lanes.forEach(function (lane, i) {
+      requirePositiveNumber(lane.width, "lanes[" + i + "].width");
+      var a = pj.point(lane.from.x, lane.from.z);
+      var b = pj.point(lane.to.x, lane.to.z);
+      var wpx = pj.len(lane.width);
+      ctx.strokeStyle = palette.lane;
+      ctx.lineWidth = wpx;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.strokeStyle = palette.laneEdge;
+      ctx.lineWidth = Math.max(1, wpx * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    });
+  }
+
+  // 平涂型景物（plan.js 里 flat:true 的那些，当前是 3000m³ 应急池与停车场）的色块。
+  // 它们不建三维实体，只在底图上留一块颜色 —— 理由见 plan.js 的 SCENERY 注释
+  // （三维盒子会把烘在底图里的名字盖住）。
+  var SCENERY_FILL = { basin: "basin", pad: "pavedEdge" };
+
+  function paintFlatScenery(ctx, pj, scenery, palette) {
+    scenery.forEach(function (item) {
+      if (item.flat !== true) return;
+      var key = SCENERY_FILL[item.kind];
+      if (!key) {
+        throw new Error(
+          "[Map3DShared] 景物 \"" + item.name + "\" 标了 flat:true 但 kind=" + item.kind +
+          " 没有对应的底图填充色，请在 SCENERY_FILL 里补一条"
+        );
+      }
+      fillRectWorld(ctx, pj, item, palette[key]);
+      strokeRectWorld(ctx, pj, item, palette.pavedEdge, Math.max(1.5, pj.len(3)));
+    });
+  }
+
+  // 非巡检景物的名字（3000m³ 应急池 / 停车场 / 长沙站大门）。
+  // 这些名字**必须烘进底图**，不能像 12 个巡检区域那样交给 DOM 热点标签：热点标签
+  // 是可点击的交互元素，而这些东西不可点击、没有状态、没有巡检项，给它们发一个
+  // 假热点会让"标签=可下钻的巡检区域"这条读法失效。烘进底图既保住了平面图上原本
+  // 就有的文字标注，又不掺进交互层。
+  //
+  // 只画 plan.js 里 label:true 的那几个：门卫房那三间在原图上的标注字号极小，
+  // 2.5D 视角下叠出来是一团糊字。
+  function paintSceneryLabels(ctx, pj, scenery, palette) {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    scenery.forEach(function (item) {
+      if (item.label !== true) return;
+      var c = pj.point(item.x, item.z);
+      var size = Math.max(13, Math.round(pj.len(Math.min(item.w, item.d)) * 0.34));
+      if (size > 30) size = 30;
+      // 三维实体型景物（门）的名字往南挪出色块，免得压在斜条纹上读不清；
+      // 平涂型（应急池/停车场）居中即可。
+      var dy = item.flat === true ? 0 : pj.lenZ(item.d) * 0.5 + size * 0.9;
+      ctx.font = "600 " + size + "px sans-serif";
+      // 深色描边打底再填浅色：这些文字要压在灰/蓝/斜纹三种底色上，单靠填充色
+      // 必有一种读不清。
+      ctx.lineWidth = Math.max(2, size * 0.22);
+      ctx.strokeStyle = "rgba(6,12,18,0.9)";
+      ctx.strokeText(item.name, c.x, c.y + dy);
+      ctx.fillStyle = palette.fence;
+      ctx.fillText(item.name, c.x, c.y + dy);
+    });
+  }
+
+  // 指北针：圆环 + 指北三角 + "N"。原图那个红色八角星罗盘的功能等价物，画在同一
+  // 个位置（plan.js 的 NORTH_MARK）。用红色是照原图，不代表任何状态语义。
+  function paintNorthMark(ctx, pj, mark, palette) {
+    var c = pj.point(mark.x, mark.z);
+    var r = pj.len(mark.r);
+    ctx.strokeStyle = palette.arrow;
+    ctx.lineWidth = Math.max(2, r * 0.12);
     ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    var i;
-    for (i = 1; i < points.length; i += 1) {
-      ctx.lineTo(points[i].x, points[i].y);
-    }
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
     ctx.stroke();
-  }
-
-  // areas: [{x,z,w,d}]，世界坐标下的矩形中心 + 宽/深，画成硬化地坪块。
-  function paintAreaPads(ctx, projector, areas, palette) {
-    areas.forEach(function (area, i) {
-      if (
-        typeof area.x !== "number" || typeof area.z !== "number" ||
-        typeof area.w !== "number" || typeof area.d !== "number"
-      ) {
-        throw new Error("[Map3DShared] options.areas[" + i + "] 缺少 x/z/w/d 数值字段");
-      }
-      var center = projector.point(area.x, area.z);
-      var halfW = projector.lengthX(area.w) / 2;
-      var halfD = projector.lengthZ(area.d) / 2;
-      ctx.fillStyle = palette.areaFill;
-      ctx.fillRect(center.x - halfW, center.y - halfD, halfW * 2, halfD * 2);
-      ctx.strokeStyle = palette.areaStroke;
-      ctx.lineWidth = palette.areaStrokeWidth;
-      ctx.strokeRect(center.x - halfW, center.y - halfD, halfW * 2, halfD * 2);
-    });
-  }
-
-  // roads: [{points:[{x,z},...], width}]，宽 lineTo 描边（roadOuter）叠加一道更窄更浅的
-  // 描边（roadInner），模拟"路基 + 路面"两层，比单一实色线更像人工铺筑的道路。
-  function paintRoads(ctx, projector, roads, palette) {
-    roads.forEach(function (road, i) {
-      if (!Array.isArray(road.points) || road.points.length < 2) {
-        throw new Error("[Map3DShared] options.roads[" + i + "] 需要至少 2 个 points");
-      }
-      requirePositiveNumber(road.width, "options.roads[" + i + "].width");
-      var pixelPoints = road.points.map(function (p) { return projector.point(p.x, p.z); });
-      var widthPx = projector.lengthAvg(road.width);
-
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-
-      ctx.strokeStyle = palette.roadOuter;
-      ctx.lineWidth = widthPx;
-      strokePath(ctx, pixelPoints);
-
-      ctx.strokeStyle = palette.roadInner;
-      ctx.lineWidth = widthPx * 0.55;
-      strokePath(ctx, pixelPoints);
-    });
-  }
-
-  // perimeter: [{x,z}, ...] 闭合多边形点列，画站场周界围墙线。未提供或点数不足 3 时跳过——
-  // 这是"没有围墙数据"的合法状态，不是吞错。
-  function paintPerimeter(ctx, projector, perimeter, palette) {
-    if (!perimeter || perimeter.length < 3) return;
-    var pixelPoints = perimeter.map(function (p) { return projector.point(p.x, p.z); });
-    ctx.strokeStyle = palette.perimeter;
-    ctx.lineWidth = palette.perimeterWidth;
+    // 指北三角（屏幕/纹理坐标里"上"就是 -z，即北）
+    ctx.fillStyle = palette.arrow;
     ctx.beginPath();
-    ctx.moveTo(pixelPoints[0].x, pixelPoints[0].y);
-    var i;
-    for (i = 1; i < pixelPoints.length; i += 1) {
-      ctx.lineTo(pixelPoints[i].x, pixelPoints[i].y);
-    }
+    ctx.moveTo(c.x, c.y - r * 0.78);
+    ctx.lineTo(c.x - r * 0.3, c.y + r * 0.12);
+    ctx.lineTo(c.x + r * 0.3, c.y + r * 0.12);
     ctx.closePath();
-    ctx.stroke();
+    ctx.fill();
+    ctx.fillStyle = palette.fence;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 " + Math.max(11, Math.round(r * 0.62)) + "px sans-serif";
+    ctx.fillText("N", c.x, c.y + r * 0.52);
   }
 
-  // tankRings: [{x,z,r}]，储罐环形基础，画成描边圆。
-  function paintTankRings(ctx, projector, tankRings, palette) {
-    tankRings.forEach(function (ring, i) {
-      if (typeof ring.x !== "number" || typeof ring.z !== "number" || typeof ring.r !== "number") {
-        throw new Error("[Map3DShared] options.tankRings[" + i + "] 缺少 x/z/r 数值字段");
-      }
-      var center = projector.point(ring.x, ring.z);
-      var radiusPx = projector.lengthAvg(ring.r);
-      ctx.strokeStyle = palette.tankRing;
-      ctx.lineWidth = palette.tankRingWidth;
-      ctx.beginPath();
-      ctx.arc(center.x, center.y, radiusPx, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-  }
-
-  function paintConstructedLayer(ctx, projector, options, palette) {
-    var areas = requireArrayIfPresent(options.areas, "options.areas");
-    var roads = requireArrayIfPresent(options.roads, "options.roads");
-    var tankRings = requireArrayIfPresent(options.tankRings, "options.tankRings");
-    paintAreaPads(ctx, projector, areas, palette);
-    paintRoads(ctx, projector, roads, palette);
-    paintPerimeter(ctx, projector, options.perimeter, palette);
-    paintTankRings(ctx, projector, tankRings, palette);
-  }
-
-  // 卫星地面：暖灰色土色调 + 半透明叠加，读作"航拍地面上的人工设施"。
-  var SATELLITE_PALETTE = {
-    areaFill: "rgba(150,145,120,0.35)",
-    areaStroke: "rgba(70,66,50,0.6)",
-    areaStrokeWidth: 2,
-    roadOuter: "rgba(90,86,68,0.75)",
-    roadInner: "rgba(158,152,128,0.8)",
-    perimeter: "rgba(60,58,44,0.85)",
-    perimeterWidth: 3,
-    tankRing: "rgba(80,78,62,0.8)",
-    tankRingWidth: 3
-  };
-
-  // 沙盘地面：延续旧 pump3d 的深蓝网格配色（#1c3a49/#14262f，见 buildSandboxGrid 注释），
-  // 读作"工程沙盘上的高亮标识"。
-  var SANDBOX_PALETTE = {
-    areaFill: "rgba(42,66,79,0.55)",
-    areaStroke: "rgba(48,110,138,0.7)",
-    areaStrokeWidth: 2,
-    roadOuter: "rgba(24,45,56,0.9)",
-    roadInner: "rgba(58,102,122,0.8)",
-    perimeter: "rgba(48,110,138,0.6)",
-    perimeterWidth: 2,
-    tankRing: "rgba(48,110,138,0.6)",
-    tankRingWidth: 2
-  };
-
-  // ---------------------------------------------------------------------
-  // 卫星地面纹理（buildSatelliteGround + 软斑块/颗粒三个私有辅助）已于 2026-08-13
-  // 移出本文件：原「沙盘 / 卫星」双模式拆成了两个互不耦合的独立 POC，卫星那一版在
-  // poc/inspection-3d-aerial，本文件只保留沙盘 POC 真正用到的东西。
-  // 共用的 paintConstructedLayer（硬化地坪/道路/围墙/罐体基础环）仍在下方保留，
-  // 两个 POC 各自持有一份副本，运行时零耦合。
-  // ---------------------------------------------------------------------
-
-  // ---------------------------------------------------------------------
-  // 沙盘地面专用：规则坐标网格
-  // ---------------------------------------------------------------------
-
-  // 网格线配色沿用旧 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js
-  // buildGround 里 THREE.GridHelper(64, 32,
-  // 0x1c3a49, 0x14262f) 的两色，延续"工程沙盘"视觉语言——这里改成画进纹理而不是叠加
-  // 一个 GridHelper 对象，因为沙盘地面还要同时承载硬化地坪/道路等构筑物图层，统一烘进
-  // 一张纹理比"一个 GridHelper + 一个贴图地面"两个对象叠放更好控制层次关系。
-  function paintSandboxGrid(ctx, projector, options) {
-    var spacing = options.gridSpacing || 2;
-    var majorEvery = options.gridMajorEvery || 5;
-    var majorColor = options.gridMajorColor || "#1c3a49";
-    var minorColor = options.gridMinorColor || "#14262f";
-    var stationWidth = options.stationWidth;
-    var stationDepth = options.stationDepth;
-    var halfW = stationWidth / 2;
-    var halfD = stationDepth / 2;
-    var epsilon = 1e-6;
-
-    var i = 0;
-    var x;
-    for (x = -halfW; x <= halfW + epsilon; x += spacing) {
-      var p1 = projector.point(x, -halfD);
-      var p2 = projector.point(x, halfD);
-      var isMajor = i % majorEvery === 0;
-      ctx.strokeStyle = isMajor ? majorColor : minorColor;
-      ctx.lineWidth = isMajor ? 1.6 : 0.8;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-      i += 1;
-    }
-
-    var j = 0;
-    var z;
-    for (z = -halfD; z <= halfD + epsilon; z += spacing) {
-      var q1 = projector.point(-halfW, z);
-      var q2 = projector.point(halfW, z);
-      var isMajorZ = j % majorEvery === 0;
-      ctx.strokeStyle = isMajorZ ? majorColor : minorColor;
-      ctx.lineWidth = isMajorZ ? 1.6 : 0.8;
-      ctx.beginPath();
-      ctx.moveTo(q1.x, q1.y);
-      ctx.lineTo(q2.x, q2.y);
-      ctx.stroke();
-      j += 1;
-    }
-  }
-
-  // 新增：沙盘（程序化工程沙盘）质感地面纹理：深色地坪 + 规则坐标网格线 + 硬化地坪块 + 道路。
-  // 全程只用形状 API，不含任何逐像素噪声层——对应文件头性能表 1024² 形状绘制那一档
-  // （约 0.7-1.7ms），是本文件里最便宜的一张纹理。
-  // options 必填字段：size（纹理边长，默认 1024）、stationWidth / stationDepth（站场世界
-  // 坐标跨度，用于把世界坐标换算到纹理 UV）、anisotropy（各向异性过滤级别，调用方应传
-  // renderer.capabilities.getMaxAnisotropy()，本机实测上限 16——地面斜视时这一项比分辨率
-  // 更重要）。可选：areas / roads / perimeter / tankRings（人工构筑物图层数据，不传则跳过
-  // 对应图层）。额外的网格参数：
-  //   gridSpacing     网格线间距，世界单位，默认 2
-  //   gridMajorEvery  每隔几条画一条主网格线，默认 5
-  //   gridMajorColor / gridMinorColor  主/次网格线颜色，默认沿用旧 GridHelper 配色
-  function buildSandboxGround(THREE, options) {
-    requireTHREE(THREE, "buildSandboxGround");
-    if (!options) {
-      throw new Error("[Map3DShared] buildSandboxGround 缺少 options 参数");
-    }
-    var size = options.size || 1024;
+  // 平面图底图：站外绿地 + 硬化地坪 + 消防通道 + 围栏白框 + 景物名 + 指北针。
+  // 12 个巡检区域的色块**不在这里画**——它们是三维挤出体块（model-plan.js），
+  // 底图只负责"体块底下那层地"。这条分工必须守住：如果底图也把区域色块画一遍，
+  // 区域状态变色时就要重烘整张 2048 纹理，而挤出体块换个材质就够了。
+  function buildPlanGround(THREE, options) {
+    requireTHREE(THREE, "buildPlanGround");
+    if (!options) throw new Error("[Map3DShared] buildPlanGround 缺少 options 参数");
+    var yard = options.yard;
+    if (!yard) throw new Error("[Map3DShared] buildPlanGround 缺少 options.yard");
     requirePositiveNumber(options.anisotropy, "options.anisotropy");
+    var palette = options.palette;
+    if (!palette) throw new Error("[Map3DShared] buildPlanGround 缺少 options.palette");
 
-    var canvas = createCanvas(size, size);
+    var texW = options.texWidth || 2048;
+    var texH = Math.round(texW * yard.d / yard.w);
+    var canvas = createCanvas(texW, texH);
     var ctx = canvas.getContext("2d");
+    var pj = createPlanProjector(yard.w, yard.d, texW, texH);
 
-    ctx.fillStyle = options.baseColor || "#0d1620";
-    ctx.fillRect(0, 0, size, size);
+    // ① 站外绿地：铺满整幅
+    ctx.fillStyle = palette.lawn;
+    ctx.fillRect(0, 0, texW, texH);
 
-    var projector = createProjector(options.stationWidth, options.stationDepth, size);
-    paintSandboxGrid(ctx, projector, options);
-    paintConstructedLayer(ctx, projector, options, SANDBOX_PALETTE);
+    // ② 硬化地坪
+    requireArray(options.paved, "options.paved").forEach(function (rect) {
+      fillRectWorld(ctx, pj, rect, palette.paved);
+    });
+    // 地坪外缘描一道浅边，让"站内 / 站外"的分界在深色底上立得住
+    options.paved.forEach(function (rect) {
+      strokeRectWorld(ctx, pj, rect, palette.pavedEdge, Math.max(1.5, pj.len(3)));
+    });
+
+    // ③ 消防通道
+    paintLanes(ctx, pj, requireArray(options.lanes, "options.lanes"), palette);
+
+    // ④ 围栏白框（平面图上每个功能分区外圈的白线）
+    requireArray(options.enclosures, "options.enclosures").forEach(function (rect) {
+      strokeRectWorld(ctx, pj, rect, palette.fence, Math.max(2, pj.len(4)));
+    });
+
+    // ⑤ 平涂型景物色块
+    var scenery = requireArray(options.scenery, "options.scenery");
+    paintFlatScenery(ctx, pj, scenery, palette);
+
+    // ⑥ 指北针
+    if (!options.northMark) throw new Error("[Map3DShared] buildPlanGround 缺少 options.northMark");
+    paintNorthMark(ctx, pj, options.northMark, palette);
+
+    // ⑦ 景物名（最后画，压在上面所有图层之上）
+    paintSceneryLabels(ctx, pj, scenery, palette);
 
     assertUntainted(canvas);
     var texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = options.anisotropy;
+    return texture;
+  }
+
+  // 消防通道箭头纹理：透明底 + 一个实心红箭头，指向 +U（纹理向右）。
+  // 只做一张，23 个实例靠 InstancedMesh 的每实例旋转矩阵转成 N/S/E/W 四个朝向
+  // （见 model-plan.js 的 buildArrows），所以这张纹理只需要一个朝向。
+  function buildArrowTexture(THREE, color) {
+    requireTHREE(THREE, "buildArrowTexture");
+    var w = 128;
+    var h = 64;
+    var canvas = createCanvas(w, h);
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = color;
+    // 杆
+    ctx.fillRect(4, h * 0.34, w * 0.62, h * 0.32);
+    // 头
+    ctx.beginPath();
+    ctx.moveTo(w * 0.62, h * 0.08);
+    ctx.lineTo(w - 4, h * 0.5);
+    ctx.lineTo(w * 0.62, h * 0.92);
+    ctx.closePath();
+    ctx.fill();
+
+    assertUntainted(canvas);
+    var texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+  }
+
+  // 斜条纹纹理：大门 / 应急逃生门的路障标识（平面图上就是斜纹填充的小矩形）。
+  function buildHatchTexture(THREE, color) {
+    requireTHREE(THREE, "buildHatchTexture");
+    var size = 64;
+    var canvas = createCanvas(size, size);
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#20262c";
+    ctx.fillRect(0, 0, size, size);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 7;
+    var i;
+    for (i = -size; i < size * 2; i += 18) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + size, size);
+      ctx.stroke();
+    }
+    assertUntainted(canvas);
+    var texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
     return texture;
   }
 
@@ -409,7 +388,7 @@
 
   // 三色状态材质。颜色必须与以下两处字面一致，改色要三处同步：
   //   styles/01-tokens.css 的 --status-danger/--status-warn/--status-ok
-  //   /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js 的 HOTSPOT.colors
+  //   scripts/map3d/engine.js 的 HOTSPOT.colors
   function createStatusMaterials(THREE) {
     requireTHREE(THREE, "createStatusMaterials");
     return {
@@ -425,10 +404,7 @@
     };
   }
 
-  // 管道/罐体/机柜/地坪等常用 PBR 材质集。数值取自
-  // /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/model.js 里已在泵项目上
-  // 验证过视觉效果的钢铁/涂层参数（casing/bareSteel/paintedSteel/stainless/concrete），
-  // 只是按用途换了更通用的键名，参数本身原样复用、不重新调参。
+  // 管道/罐体/机柜/地坪等常用 PBR 材质集，参数沿用 pump-demo 已验证过的钢铁/涂层值。
   function createMetalMaterials(THREE) {
     requireTHREE(THREE, "createMetalMaterials");
     return {
@@ -440,33 +416,12 @@
     };
   }
 
-  // ---------------------------------------------------------------------
-  // 资源释放（disposeGroup 已删除，见下方决策记录）
-  // ---------------------------------------------------------------------
-
-  // disposeGroup 已于 2026-08-13 删除，决策记录如下：
-  //
-  // 它当初是为"沙盘/卫星双模式可切换"准备的防线——旧引擎设想的 setMode 会反复换模型，
-  // 而区域热点是每个 4 几何 + 4 材质、完全不共享，12 区每模式 96 个 GPU 对象，不释放
-  // 每切一次就漏 96 个。原始注释里覆盖纹理属性的逻辑是遍历材质对象每个键、凡是值带
-  // isTexture===true 就 dispose()，不写死属性名清单，这样不管未来 three.js 新增哪个
-  // 贴图槏位都能自动覆盖到——如果将来要重新引入这个函数，这条"不写死属性名清单"的
-  // 设计仍然值得保留。
-  //
-  // 现在为什么可以删：双模式已经拆成了两个互不耦合的独立 POC（本 POC 只做沙盘，
-  // poc/inspection-3d-aerial 只做卫星俯视），两边引擎都回到"终生单例、单模型、无
-  // setMode"的形态，全量 grep 确认本文件之外 0 处引用。实测过 5 次 detach/mount 之后
-  // debugInfo().memory.geometries 恒为 173 不增长、contextCreated 恒为 1，确实不存在
-  // 需要它来防的泄漏。**如果将来有人要重新引入换模型能力，必须先把它加回来**——原文
-  // 仍在权威原件 /Users/admin/Code/beng-ai-demo/poc/pump-demo/scripts/pump3d/engine.js
-  // 里可以对照（那份文件全文件只有 2 处 dispose，都是环境贴图的临时产物，因为它是终生
-  // 单例、模型从建好到页面关闭都不换——disposeGroup 这套"遍历释放"的完整实现，是本
-  // 项目为了双模式切换才新增的，不是从那份原件抄来的）。
-
   window.Map3DShared = {
     createCanvas: createCanvas,
     buildNameplateTexture: buildNameplateTexture,
-    buildSandboxGround: buildSandboxGround,
+    buildPlanGround: buildPlanGround,
+    buildArrowTexture: buildArrowTexture,
+    buildHatchTexture: buildHatchTexture,
     createStatusMaterials: createStatusMaterials,
     createMetalMaterials: createMetalMaterials
   };

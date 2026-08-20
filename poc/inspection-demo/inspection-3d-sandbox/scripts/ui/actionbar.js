@@ -1,5 +1,5 @@
-// UI 组件层（L5）：地图页底部的悬浮操作栏，逐字复刻真实巡检 App 的 5 个按钮（含顺序、
-// action 名、角标、警示色）。本组件只渲染，不 addEventListener 改 state：按钮上的
+// UI 组件层（L5）：地图页底部的悬浮操作栏，复刻真实巡检 App 的按钮（含顺序、
+// action 名、角标、警示色），当前保留其中 3 个（见下方 DEFAULT_ACTIONS 的说明）。本组件只渲染，不 addEventListener 改 state：按钮上的
 // data-action 由 boot.js 的 bindStage() 事件委托统一处理。
 //
 // 图标：题面要求“不要外部图片/字体图标，用 Unicode 字符或纯 CSS 形状”——本文件不允许
@@ -15,18 +15,22 @@
   var DEFAULT_ICONS = {
     "add-inspector": "＋",
     "toggle-track": "↝",
-    "refresh-map": "↻",
-    "open-area-picker": "⇄",
-    "open-issue-report": "⚠"
+    "refresh-map": "↻"
   };
 
-  // 顺序即真源：真实 App 底部操作栏从左到右就是这 5 个，改顺序需要同步改产品验收脚本。
+  // 真实 App 底部操作栏从左到右是 5 个：添加人员 / 轨迹 / 刷新 / 切换区域 / 问题上报。
+  // 2026-08-20 按需求把后两个整套移出演示范围（「切换区域」的弹层
+  // scripts/scenes/areapicker.js 与「问题上报」的弹层 scripts/scenes/issuereport.js
+  // 都已删除），所以这里只剩前 3 个。
+  //
+  // 为什么不把它们留成 disabled 占位：这一栏是"逐字复刻真实 App"的地方，留两个点不动
+  // 的灰按钮既不像真实 App（真实 App 里它们是能点的），也不像本演示（本演示里它们
+  // 压根没有对应功能），两头都不占。要恢复的话按 actionbar → boot.js 的 handleAction
+  // → scenes/*.js 三处一起加回来。
   var DEFAULT_ACTIONS = [
     { action: "add-inspector", label: "添加人员" },
     { action: "toggle-track", label: "轨迹", badge: "0" },
-    { action: "refresh-map", label: "刷新" },
-    { action: "open-area-picker", label: "切换区域" },
-    { action: "open-issue-report", label: "问题上报", tone: "warn" }
+    { action: "refresh-map", label: "刷新" }
   ];
 
   function assertNonEmptyString(value, name) {

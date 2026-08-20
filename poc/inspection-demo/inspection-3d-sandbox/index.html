@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>站场 3D 巡检地图</title>
+    <title>站场巡检地图 · 站点平面图 2.5D</title>
     <link rel="stylesheet" href="styles/01-tokens.css">
     <link rel="stylesheet" href="styles/02-shell.css">
     <link rel="stylesheet" href="styles/03-cards.css">
@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="../flow-nav/flow-nav.css">
   </head>
   <body>
-    <div id="appRoot" class="app-shell" aria-label="站场 3D 巡检地图"></div>
+    <div id="appRoot" class="app-shell" aria-label="站场巡检地图 · 站点平面图 2.5D"></div>
 
     <!-- L0 vendor -->
     <script src="vendor/three.min.js"></script>
@@ -27,10 +27,12 @@
     <!-- L1 契约（零依赖，必须最先加载） -->
     <script src="scripts/map3d/contract.js"></script>
 
-    <!-- L2 数据（items-entry.js 必须是三个 items-*.js 中最先加载的一个） -->
+    <!-- L2 数据（items-entry.js 必须是三个 items-*.js 中最先加载的一个；
+         plan.js 必须早于 station.js —— station.js 的 meta().yard 取自 plan.js 的图幅） -->
     <script src="scripts/data/items-entry.js"></script>
     <script src="scripts/data/items-process.js"></script>
     <script src="scripts/data/items-room.js"></script>
+    <script src="scripts/data/plan.js"></script>
     <script src="scripts/data/station.js"></script>
     <script src="scripts/data/series.js"></script>
     <script src="scripts/data/track.js"></script>
@@ -41,7 +43,7 @@
 
     <!-- L3 3D -->
     <script src="scripts/map3d/model-shared.js"></script>
-    <script src="scripts/map3d/model-sandbox.js"></script>
+    <script src="scripts/map3d/model-plan.js"></script>
     <script src="scripts/map3d/model-track.js"></script>
     <script src="scripts/map3d/engine.js"></script>
 
@@ -63,9 +65,7 @@
 
     <!-- L6 场景 -->
     <script src="scripts/scenes/map.js"></script>
-    <script src="scripts/scenes/areapicker.js"></script>
     <script src="scripts/scenes/inspectorpicker.js"></script>
-    <script src="scripts/scenes/issuereport.js"></script>
 
     <!-- L7 引导 -->
     <script src="scripts/boot.js"></script>

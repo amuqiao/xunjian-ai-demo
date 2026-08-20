@@ -46,9 +46,8 @@
   assertGlobal("ActionBar", window.ActionBar);
   assertGlobal("Overlay", window.Overlay);
   assertGlobal("MapScene", window.MapScene);
-  assertGlobal("AreaPickerScene", window.AreaPickerScene);
   assertGlobal("InspectorPickerScene", window.InspectorPickerScene);
-  assertGlobal("IssueReportScene", window.IssueReportScene);
+  assertGlobal("DemoPlan", window.DemoPlan);
 
   window.addEventListener("message", function (event) {
     var data = event.data;
@@ -88,10 +87,11 @@
   }
   window.ChartOptions.setTheme(readCssTheme());
 
-  // ---- 启动期把初始 focus 状态计入流程轨迹（覆盖"持久化状态本来就停在下钻态"
-  // 这种非默认的首次加载情形），运行期的推进都在 selectArea/selectItem/
-  // openIssueReport 内部各自调用 AppState.markFlowStep()。----
-  AppState.markFlowStep(state.focus.areaId == null ? "overview" : "drilldown");
+  // ---- 启动期把初始状态计入流程轨迹（覆盖"持久化状态本来就停在某个区域/已展开
+  // 轨迹"这种非默认的首次加载情形），运行期的推进都在 selectArea/selectItem/
+  // openFlowStep/handleAction 内部各自调用 AppState.markFlowStep()。----
+  AppState.markFlowStep(AppState.phase());
+  if (state.showTrack) AppState.markFlowStep("track");
   if (state.pick.itemId != null) AppState.markFlowStep("checklist");
 
   // ==========================================================================
@@ -123,19 +123,18 @@
   }
 
   function renderHeader() {
-    var phase = state.focus.areaId == null ? "overview" : "drilldown";
     return h("header", { class: "topbar panel" }, [
       h("div", { class: "brand" }, [
         h("div", { class: "brand-mark", "aria-hidden": "true", text: "巡" }),
         h("div", {}, [
-          h("h1", { text: "站场 3D 巡检地图" }),
-          h("small", { text: DATA.meta().fullName + " · 沙盘视图 · XJ-SANDBOX-202608" }),
+          h("h1", { text: "站场巡检地图 · 平面图 2.5D" }),
+          h("small", { text: DATA.meta().fullName + " · 站点平面图视图 · XJ-PLAN-202608" }),
         ]),
       ]),
       window.MapScene.renderTaskCard(),
       h("div", { class: "top-status" }, [
         h("div", { text: DATA.task().actualEnd }),
-        h("div", { text: DATA.statusLine(phase) }),
+        h("div", { text: DATA.statusLine(AppState.phase()) }),
       ]),
     ]);
   }
@@ -148,9 +147,7 @@
         window.MapScene.renderItemPanel(state),
         window.MapScene.renderBottomRow(),
       ]),
-      window.AreaPickerScene.render(state),
       window.InspectorPickerScene.render(state),
-      window.IssueReportScene.render(state),
     ]);
   }
 
@@ -177,12 +174,17 @@
     ]);
   }
 
+  // 流程轨高亮位置：直接拿 AppState.phase() 在 DemoFlow.steps() 里的下标，
+  // 不再在这里第二次判断 state（旧版本这里手写了一套 `overlay==="issue-report"
+  // → 5 / focus==null → 1 / ...` 的映射，和顶栏旁白各算一份，新增 "track" 步骤
+  // 时两处必然对不上）。
   function computeActiveFlowIndex() {
-    if (state.overlay.kind === "issue-report") return 5;
-    if (state.focus.areaId == null) return 1;
-    if (state.pick.itemId == null) return 2;
-    var item = DATA.item(state.focus.areaId, state.pick.itemId);
-    return item.status !== "ok" ? 4 : 3;
+    var current = AppState.phase();
+    var index = DATA.flowSteps().map(function (step) { return step.key; }).indexOf(current);
+    if (index < 0) {
+      throw new Error("[boot] AppState.phase() 返回了 DemoFlow 里不存在的步骤：" + current);
+    }
+    return index;
   }
 
   // 通用挂接步骤：把场景层用 Cards.chart/Cards.metric 的 sparkId 渲染出的空
@@ -236,7 +238,7 @@
     // 换区域（含回到站场全景）之后，旧的 pick.itemId 大概率不属于新区域，
     // 直接清空——不做"猜测新区域里最像的一条"这种兜底，选中态应当显式重来。
     state.pick.itemId = null;
-    AppState.markFlowStep(areaId == null ? "overview" : "drilldown");
+    AppState.markFlowStep(AppState.phase());
     AppState.save();
     render();
   }
@@ -256,8 +258,9 @@
     render();
   }
 
-  // 站场范围内第一条"非正常"的巡检项，用于"问题上报"/流程轨"发现问题"这两处
-  // 需要一个明确目标、但用户还没有显式点开某条具体异常项时的默认落点。
+  // 站场范围内第一条"非正常"的巡检项，用于流程轨"发现问题"这一步需要一个明确
+  // 目标、但用户还没有显式点开某条具体异常项时的默认落点。
+  // （旧版本"问题上报"也用它取上报单的目标，那条路径随弹层一起删了。）
   // 优先取当前聚焦区域内的异常项，聚焦区域没有异常项（或站场全景态）时退到
   // 全站第一条——这是显式的优先级规则，不是"猜"。
   function deriveIssueTarget() {
@@ -306,17 +309,15 @@
   }
 
   // ==========================================================================
-  // 弹层：选择区域 / 问题上报
+  // 弹层：只剩「添加人员」
   // ==========================================================================
-
-  function openAreaPicker() {
-    state.overlay = { kind: "area-picker", areaId: null, itemId: null, query: "" };
-    AppState.save();
-    render();
-  }
+  // 这里原先还有 openAreaPicker()（切换区域）、openIssueReport()（问题上报，含
+  // markFlowStep("report")）与 selectAreaFromPicker()（从切换区域弹层里选中一个区域
+  // 后落到 selectArea）。三者随 scenes/areapicker.js + scenes/issuereport.js 一起删除。
+  // closeOverlay() 保留：「添加人员」弹层仍然需要它。
 
   function openInspectorPicker() {
-    state.overlay = { kind: "inspector-picker", areaId: null, itemId: null, query: "" };
+    state.overlay = { kind: "inspector-picker" };
     AppState.save();
     render();
   }
@@ -329,23 +330,10 @@
     closeOverlay();
   }
 
-  function openIssueReport() {
-    var target = deriveIssueTarget();
-    state.overlay = { kind: "issue-report", areaId: target.areaId, itemId: target.itemId, query: "" };
-    AppState.markFlowStep("report");
-    AppState.save();
-    render();
-  }
-
   function closeOverlay() {
-    state.overlay = { kind: null, areaId: null, itemId: null, query: "" };
+    state.overlay = { kind: null };
     AppState.save();
     render();
-  }
-
-  function selectAreaFromPicker(areaId) {
-    state.overlay = { kind: null, areaId: null, itemId: null, query: "" };
-    selectArea(areaId);
   }
 
   // ==========================================================================
@@ -355,6 +343,19 @@
   function openFlowStep(stepKey) {
     if (stepKey === "open-task") { render(); return; }
     if (stepKey === "overview") { selectArea(null); return; }
+    // 「巡检轨迹」这一步的动作就是把轨迹光带打开（并回到全景，否则轨迹被区域
+    // 详情的叙事盖住）。与 ActionBar 的「轨迹」按钮走同一个 state 字段，不另起
+    // 一套播放状态——model-track.js 只在 false→true 这个跳变上播一次有限时长的
+    // 流动动画，重复点同一步是幂等的。
+    if (stepKey === "track") {
+      state.showTrack = true;
+      state.focus.areaId = null;
+      state.pick.itemId = null;
+      AppState.markFlowStep("track");
+      AppState.save();
+      render();
+      return;
+    }
     if (stepKey === "drilldown") {
       if (state.focus.areaId != null) { render(); return; }
       var withIssue = DATA.areas().filter(function (a) { return a.status !== "ok"; })[0];
@@ -372,7 +373,6 @@
       selectItem(target.itemId);
       return;
     }
-    if (stepKey === "report") { openIssueReport(); return; }
     throw new Error("未知的流程步骤：" + stepKey);
   }
 
@@ -384,6 +384,7 @@
     if (action === "add-inspector") return openInspectorPicker();
     if (action === "toggle-track") {
       state.showTrack = !state.showTrack;
+      if (state.showTrack) AppState.markFlowStep("track");
       AppState.save();
       render();
       return;
@@ -392,24 +393,16 @@
       render();
       return;
     }
-    if (action === "open-area-picker") return openAreaPicker();
-    if (action === "open-issue-report") return openIssueReport();
-    if (action === "submit-issue-report") {
-      AppState.markFlowStep("report");
-      closeOverlay();
-      return;
-    }
     if (action === "close-overlay") return closeOverlay();
     if (action === "map-zoom-in") { window.Map3D.zoom(-140); return; }
     if (action === "map-zoom-out") { window.Map3D.zoom(140); return; }
     // back-to-overview / reset-view 都不走 render()——与 map-zoom-in/out 同类：它们是
-    // 纯 3D 相机交互（重挂宿主、回到 focus.areaId=null 这条状态变化例外，走 selectArea
-    // 本身自带的 render()；reset-view 则完全不改任何 state，只是让引擎把当前 preset 的
-    // 初始机位再走一遍带动画的过渡），不需要重建整棵 DOM。reset-view 尤其要避免走
-    // render()：render() 会先 detach() 再重新 mount()，那条路径会用 mount() 里"同 preset
-    // 只 retarget、不重放巡航"的短路逻辑去接管镜头，而不是真的把镜头拉回初始姿态——
-    // 这正是 resetView() 需要绕开的短路，走 render() 反而会绕不开它，必须直接调
-    // window.Map3D.resetView()。
+    // 纯 3D 相机交互（back-to-overview 那条状态变化例外，走 selectArea 本身自带的
+    // render()；reset-view 则完全不改任何 state，只是让引擎把设计机位再走一遍带动画的
+    // 过渡），不需要重建整棵 DOM。reset-view 尤其要避免走 render()：render() 会先
+    // detach() 再重新 mount()，而 mount() 现在**完全不碰相机**（单档机位，见 engine.js
+    // 的改造说明），所以走 render() 的结果是镜头一动不动、"重置视角"按钮点了没反应。
+    // 必须直接调 window.Map3D.resetView()。
     if (action === "back-to-overview") return selectArea(null);
     if (action === "reset-view") { window.Map3D.resetView(); return; }
     if (action === "item-toggle") return toggleItem(element.getAttribute("data-item-id"));
@@ -428,9 +421,6 @@
     var hotspotEl = target.closest("[" + C.PIN_ATTR + "]");
     if (hotspotEl) { selectArea(hotspotEl.getAttribute(C.PIN_ATTR)); return; }
 
-    var pickerRowEl = target.closest("[data-area-id]");
-    if (pickerRowEl) { selectAreaFromPicker(pickerRowEl.getAttribute("data-area-id")); return; }
-
     var inspectorRowEl = target.closest("[data-inspector-name]");
     if (inspectorRowEl) { addInspectorFromPicker(inspectorRowEl.getAttribute("data-inspector-name")); return; }
 
@@ -444,22 +434,14 @@
 
     var itemRowEl = target.closest(".item-row[data-item-id]");
     if (itemRowEl) { selectItem(itemRowEl.getAttribute("data-item-id")); return; }
-
-    var bannerEl = target.closest(".map-submit-banner");
-    if (bannerEl) { openAreaPicker(); return; }
+    // .map-submit-banner 原先点一下会打开「切换区域」弹层。弹层删了之后这里不给它
+    // 补一个别的动作——它在真实 App 里就是一条状态条（"巡检区域提交情况 12/12"），
+    // 本演示里保持纯展示，不做成"点了没反应"的假按钮（renderStationMap 里它也不带
+    // data-action / role=button）。
   }
 
   function bindStage() {
     root.addEventListener("click", handleClick);
-
-    var searchInput = root.querySelector(".area-picker-search-input");
-    if (searchInput) {
-      searchInput.addEventListener("input", function (event) {
-        state.overlay.query = event.target.value;
-        AppState.save();
-        render();
-      });
-    }
 
     root.querySelectorAll("[data-flow-step]").forEach(function (button) {
       button.addEventListener("click", function () { openFlowStep(button.dataset.flowStep); });
@@ -491,17 +473,11 @@
     remember: function () {
       var el = document.activeElement;
       if (!el || !root.contains(el)) return null;
-      if (el.classList && el.classList.contains("area-picker-search-input")) {
-        return { kind: "search" };
-      }
       if (el.hasAttribute("data-select") && el.hasAttribute("data-select-id")) {
         return { kind: "select", select: el.getAttribute("data-select"), selectId: el.getAttribute("data-select-id") };
       }
       if (el.hasAttribute(C.PIN_ATTR)) {
         return { kind: "hotspot", areaId: el.getAttribute(C.PIN_ATTR) };
-      }
-      if (el.hasAttribute("data-area-id")) {
-        return { kind: "picker-row", areaId: el.getAttribute("data-area-id") };
       }
       if (el.hasAttribute("data-inspector-name")) {
         return { kind: "inspector-row", inspectorName: el.getAttribute("data-inspector-name") };
@@ -520,10 +496,8 @@
     restore: function (mark) {
       if (!mark) return;
       var el = null;
-      if (mark.kind === "search") el = root.querySelector(".area-picker-search-input");
-      else if (mark.kind === "select") el = root.querySelector("[data-select='" + mark.select + "'][data-select-id='" + mark.selectId + "']");
+      if (mark.kind === "select") el = root.querySelector("[data-select='" + mark.select + "'][data-select-id='" + mark.selectId + "']");
       else if (mark.kind === "hotspot") el = root.querySelector("[" + C.PIN_ATTR + "='" + mark.areaId + "']");
-      else if (mark.kind === "picker-row") el = root.querySelector("[data-area-id='" + mark.areaId + "']");
       else if (mark.kind === "inspector-row") el = root.querySelector("[data-inspector-name='" + mark.inspectorName + "']");
       else if (mark.kind === "item-row") el = root.querySelector(".item-row[data-item-id='" + mark.itemId + "']");
       else if (mark.kind === "flow-step") el = root.querySelector("[data-flow-step='" + mark.stepKey + "']");

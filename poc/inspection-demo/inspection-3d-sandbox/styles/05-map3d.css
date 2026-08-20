@@ -6,7 +6,7 @@
          div.map-legend
            span.map-legend-item > i.dot.danger|.warn|.ok + span
            span.map-legend-sep
-           span.map-legend-item > i.map-legend-track|.map-legend-start|.map-legend-end|.map-legend-walker + span
+           span.map-legend-item > i.map-legend-track|.map-legend-start|.map-legend-end|.map-legend-walker|.map-legend-arrow + span
        div.station-map[data-map3d-host][data-map3d-mode]
          canvas.map3d-canvas                 ← 引擎运行时插入
          div.map-submit-banner
@@ -145,6 +145,37 @@
   border-radius: 50%;
   background: var(--cyan);
   box-shadow: 0 0 0 3px rgba(56, 198, 236, 0.24);
+}
+
+/* 消防通道图例（2026-08 新增，随站点平面图底图一起）：一个红色小箭头，形状用
+   border 三角 + 一小段杆拼出来，与三维里那 23 个疏散方向箭头是同一个语义。
+   颜色刻意用 --status-danger 同色系的纯红：它在平面图上就是红的，且不代表
+   "异常状态"，所以不复用状态色变量，直接写字面色值避免日后改状态色时被牵连。 */
+
+.map-legend-arrow {
+  position: relative;
+  width: 18px;
+  height: 8px;
+}
+
+.map-legend-arrow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  width: 11px;
+  height: 2px;
+  background: #e2453c;
+}
+
+.map-legend-arrow::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 7px solid #e2453c;
 }
 
 /* ---------- 3D 宿主：见文件头不变量 1 ---------- */
