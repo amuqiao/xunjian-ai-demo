@@ -3,7 +3,7 @@
    的第一/第三行，不在本文件范围内——本文件只管 .stage 内部那一层，三列一行：
 
      div.overview-scene
-       section.panel.ov-left-col      grid-area: left（固定 320px，纵向 5 块）
+       section.panel.ov-left-col      grid-area: left（固定 320px，纵向 4 块）
        section.panel.ov-map-panel     grid-area: map（05-hunan3d.css 已冻结其
                                        内部结构，本文件只负责给它分配网格格子）
        div.ov-right-col               grid-area: right（固定 380px，可纵向滚动）
@@ -30,7 +30,7 @@
   min-height: 0;
   padding: 14px;
   display: grid;
-  grid-template-rows: auto auto 190px minmax(0, 1fr) 180px;
+  grid-template-rows: auto auto minmax(0, 1fr) 180px;
   gap: 10px;
   overflow: hidden;
 }
@@ -45,7 +45,7 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(3, 176px) minmax(0, 1fr);
+  grid-template-rows: repeat(2, 176px) minmax(0, 1fr);
   gap: 10px;
   overflow-y: auto;
 }
@@ -107,8 +107,8 @@
   overflow-y: auto;
 }
 
-/* 右栏三张紧凑图表卡：约 260×160，比左栏 card-chart 的默认 220px 更矮，
-   一屏能塞下 3 张 + 下钻区域。覆盖 03-cards.css 的 .card-chart-body 默认
+/* 右栏两张紧凑图表卡：约 260×160，比左栏 card-chart 的默认 220px 更矮，
+   一屏能塞下 2 张 + 下钻区域。覆盖 03-cards.css 的 .card-chart-body 默认
    min-height，仅在 .ov-right-col 范围内生效，不影响左栏/其它场景的卡片。 */
 
 .ov-right-col .card-chart-body {
@@ -122,7 +122,7 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 10px;
 }
 

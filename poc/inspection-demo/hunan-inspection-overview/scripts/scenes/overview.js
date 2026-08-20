@@ -239,7 +239,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // 左栏：5 张卡（总体 KPI / 质量指标 / 站点台账 / 作业区排名 / 今日动态）
+  // 左栏：4 张卡（总体 KPI / 质量指标 / 作业区排名 / 今日动态）
   // ---------------------------------------------------------------------
 
   function renderKpiCard(state) {
@@ -251,10 +251,6 @@
       window.Cards.metric({ label: "站点台账", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok", note: sp.zoneTotal + " 作业区 · 站场 " + sp.stationTotal + " · 阀室 " + sp.valveTotal }),
       window.Cards.metric({ label: "行为异常", value: q.duration + q.interval + q.offWindow, unit: "次", status: q.duration + q.interval + q.offWindow > 0 ? "warn" : "ok", note: "AI 提醒 " + q.aiAlerts + " 条" }),
     ]);
-  }
-
-  function renderLedgerOverviewCard() {
-    return window.Cards.chart({ title: "站点台账 · 站场/阀室构成", chartId: "chart-site-kind-mix" });
   }
 
   function renderZoneRankCard(state) {
@@ -313,7 +309,6 @@
     return h("section", { class: "panel ov-left-col" }, [
       renderKpiCard(state),
       renderQualityCard(state),
-      renderLedgerOverviewCard(),
       renderZoneRankCard(state),
       renderTodayCard(state),
     ]);
@@ -378,7 +373,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // 右栏：3 张图表卡 + 下钻区域（省域态提示 / 作业区态站点清单+详情）
+  // 右栏：2 张图表卡 + 下钻区域（省域态提示 / 作业区态站点清单+详情）
   // ---------------------------------------------------------------------
 
   function renderProvinceHint() {
@@ -466,7 +461,6 @@
     if (state.zoneId == null) {
       return h("div", { class: "ov-drill-section" }, [
         renderProvinceHint(),
-        renderQualityCard(state),
       ]);
     }
     var sites = Sites.sitesByZone(state.zoneId).slice().sort(function (a, b) {
@@ -494,7 +488,6 @@
     var activeId = state.siteId != null ? state.siteId : items[0].id;
     var activeSite = sites.filter(function (s) { return s.id === activeId; })[0];
     return h("div", { class: "ov-drill-section" }, [
-      renderQualityCard(state),
       h("div", { class: "ov-site-list-card" }, [
         h("div", { class: "ov-rank-card-head" }, [
           h("span", { class: "ov-rank-card-title", text: Contract.ZONE_NAMES[state.zoneId] + " · " + sites.length + " 个站点" }),
@@ -514,7 +507,6 @@
     assertLoaded();
     return h("div", { class: "ov-right-col" }, [
       window.Cards.chart({ title: "作业区状态分布" , chartId: "chart-zone-status-mix" }),
-      window.Cards.chart({ title: "质量异常构成", chartId: "chart-quality-exception" }),
       window.Cards.chart({ title: "作业区巡检覆盖率", chartId: "chart-zone-coverage" }),
       renderDrillSection(state),
     ]);
@@ -526,12 +518,10 @@
 
   function renderCharts(state) {
     var range = activeDateRange(state);
-    window.Charts.draw("chart-site-kind-mix", window.ChartOptions.siteKindMix());
     window.Charts.draw("chart-coverage-trend", window.ChartOptions.inspectionCoverageTrend({
       pointCount: dateRangePointCount(range, new Date()),
     }));
     window.Charts.draw("chart-zone-status-mix", window.ChartOptions.zoneStatusMix());
-    window.Charts.draw("chart-quality-exception", window.ChartOptions.qualityExceptionMix());
     window.Charts.draw("chart-zone-coverage", window.ChartOptions.zoneCoverageRows());
   }
 

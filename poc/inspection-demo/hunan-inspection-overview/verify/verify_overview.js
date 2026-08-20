@@ -102,6 +102,21 @@ async function main() {
   assert(hostCount === 1, '[data-hunan-host] 恰好 1 个（实际 ' + hostCount + '）');
   const flowNavCount = await page.evaluate(() => document.querySelectorAll('.inspection-flow-nav').length);
   assert(flowNavCount === 0, '首页不渲染外部流程导航浮层（实际 ' + flowNavCount + ' 个）');
+  const removedCardsCheck = await page.evaluate(() => {
+    var text = document.body.textContent;
+    return {
+      qualityCardCount: document.querySelectorAll('.ov-quality-card').length,
+      hasQualityException: text.indexOf('质量异常构成') >= 0,
+      hasSiteKindChart: text.indexOf('站点台账 · 站场/阀室构成') >= 0,
+      siteKindSlotCount: document.querySelectorAll('[data-chart-slot="chart-site-kind-mix"], #chart-site-kind-mix').length,
+      qualityExceptionSlotCount: document.querySelectorAll('[data-chart-slot="chart-quality-exception"], #chart-quality-exception').length
+    };
+  });
+  assert(removedCardsCheck.qualityCardCount === 1, '首页只保留左侧 1 个巡检质量指标卡（实际 ' + removedCardsCheck.qualityCardCount + ' 个）');
+  assert(!removedCardsCheck.hasQualityException, '首页不渲染「质量异常构成」图表标题');
+  assert(!removedCardsCheck.hasSiteKindChart, '首页不渲染「站点台账 · 站场/阀室构成」图表标题');
+  assert(removedCardsCheck.siteKindSlotCount === 0, '首页不创建 chart-site-kind-mix 图表槽位（实际 ' + removedCardsCheck.siteKindSlotCount + ' 个）');
+  assert(removedCardsCheck.qualityExceptionSlotCount === 0, '首页不创建 chart-quality-exception 图表槽位（实际 ' + removedCardsCheck.qualityExceptionSlotCount + ' 个）');
 
   const zoneOrderCheck = await page.evaluate(() => {
     var ids = Array.prototype.map.call(
