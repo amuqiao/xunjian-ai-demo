@@ -213,16 +213,23 @@ def run(page):
     # ---------------------------------------------------------------- 4. 复核：分歧支线
     print("\n== 4. 人工复核（分歧支线）==")
     page.click('.scene-nav-btn[data-scene-key="review"]')
-    check("进入复核页", page.locator(".rv-grid").count() == 1)
+    check("进入轻量复核确认台", page.locator(".rv-review-page").count() == 1)
     check("身份芯片存在", page.locator(".rv-identity-select").count() == 1)
-    check("未表决时 L1 结论区是灰的", page.locator(".rv-outcome-block.pending").count() == 1)
-    check("未选结论时处置路径是灰的", page.locator(".rv-path.pending").count() == 1)
-    check("未选结论时三条路径平铺预览", page.locator(".rv-path-list li").count() == 3)
+    check("复核页不再常驻核心证据图表", page.locator(".rv-metrics").count() == 0)
+    check("复核页不再常驻处置路径大卡", page.locator(".rv-path").count() == 0)
+    check("复核页左侧是 AI 匹配票卡", page.locator(".rv-ticket-match .rv-ticket-card").count() == 1)
+    check("票卡编号首屏已生成", "PUMP-" in text_of(page, ".rv-ticket-meta"))
+    check("主页面有 3 个证据/问答入口", page.locator(".rv-ticket-actions button").count() == 3)
+    check("人工确认改为三选一简单面板", page.locator(".rv-decision-vote").count() == 3)
+    check("右侧按 AI 意见 / 人工复核结论 / 复核意见三块组织",
+          page.locator(".rv-ai-opinion").count() == 1 and page.locator(".rv-review-conclusion").count() == 1 and page.locator(".rv-confirm-note").count() == 1)
+    check("未表决时提示先选择人工复核结论", "请选择人工复核结论" in text_of(page, '[data-gate="hint"]'))
     page.screenshot(path=str(SHOTS / "06-review-empty.png"))
 
     page.click('[data-action="review-vote"][data-vote-id="reject"]')
-    check("驳回后 L1 解锁", page.locator(".rv-outcome-block.pending").count() == 0)
-    check("驳回不预选任何结论", page.locator(".rv-outcome.active").count() == 0)
+    check("驳回后自动选定排除误报结论", "排除误报" in text_of(page, ".rv-review-conclusion"))
+    check("驳回后没有额外票卡选项", page.locator(".rv-ticket-option").count() == 0)
+    check("驳回后自动填充默认复核意见", "现场复核后判断本项为误报" in page.eval_on_selector(".rv-note", "el => el.value"))
 
     # 选一个与 AI 建议不同的结论 → 必须出现分歧条
     # 必须用箭头函数收参数：page.evaluate 的第二个参数不会绑定到裸表达式里的
@@ -234,21 +241,19 @@ def run(page):
         suggested,
     )
     check("反查到一条与 AI 建议不同的结论", other != suggested)
-    page.click('[data-action="select-outcome"][data-outcome-id="%s"]' % other)
+    check("驳回自动选择了与 AI 不同的结论", page.evaluate("() => window.AppState.value.review.outcomeId") == other)
     check("选了与 AI 不同的结论 → 出现分歧条", page.locator(".rv-divergence").count() == 1)
-    check("分歧时复核意见标为必填", page.locator(".rv-note-block.required").count() == 1)
-    check("分歧且未填理由时执行按钮禁用", page.locator('[data-gate="execute"]').is_disabled())
-    check("缺项提示可见", "必须填写复核意见" in text_of(page, '[data-gate="hint"]'))
-
-    # 填必填的结构化字段
-    fill_required_selects(page)
-    check("填完结构化字段后仍因缺理由而禁用", page.locator('[data-gate="execute"]').is_disabled())
+    check("分歧时复核意见标为必填", page.locator(".rv-confirm-note.required").count() == 1)
+    check("默认意见已填时执行按钮可用", not page.locator('[data-gate="execute"]').is_disabled())
+    check("缺项提示隐藏", page.locator('[data-gate="hint"].hidden').count() == 1)
+    check("结构化字段不再常驻主页面", page.locator(".rv-select").count() == 0)
+    check("页面不再提供处置路径浮层入口", page.locator('[data-action="open-review-path"]').count() == 0)
 
     # 点常用语 chip 追加进文本框（演示现场不用打字的那条通路）
     page.locator(".rv-phrase").first.click()
     note_value = page.eval_on_selector(".rv-note", "el => el.value")
     check("点常用语后文本框有内容", len(note_value) > 0)
-    check("填了理由后执行按钮解禁",
+    check("常用语追加后执行按钮仍可用",
           not page.locator('[data-gate="execute"]').is_disabled())
     page.screenshot(path=str(SHOTS / "07-review-divergent.png"))
 
@@ -256,14 +261,15 @@ def run(page):
     page.fill(".rv-note", "")
     check("清空理由后执行按钮重新禁用（定点刷新生效）",
           page.locator('[data-gate="execute"]').is_disabled())
-    page.fill(".rv-note", "占位复核依据：现场已确认，先观察一轮。")
+    page.fill(".rv-note", "占位复核依据：现场已确认，按误报样本归档。")
     check("重新填入后再次解禁", not page.locator('[data-gate="execute"]').is_disabled())
 
     page.click('[data-action="execute-review"]')
-    check("执行后进入执行屏", page.locator(".rv-exec-grid").count() == 1)
-    check("执行屏回显了复核意见原文",
-          "占位复核依据" in text_of(page, ".rv-exec-note-body"))
-    check("执行复核后弹出报告归档确认浮层", page.locator(".rv-report-overlay").count() == 1)
+    check("执行后仍停留人工复核主页面", page.locator(".rv-review-page").count() == 1)
+    check("执行后没有完成态页面", page.locator(".rv-done-page").count() == 0)
+    check("执行复核后弹出报告确认浮层", page.locator(".rv-report-overlay").count() == 1)
+    check("报告回显了复核意见原文",
+          "占位复核依据" in text_of(page, ".rv-report-overlay"))
     page.screenshot(path=str(SHOTS / "08-executed.png"))
 
     # ---------------------------------------------------------------- 5. 归档确认浮层（分歧支线）
@@ -278,10 +284,13 @@ def run(page):
     page.screenshot(path=str(SHOTS / "09-archive-divergent.png"))
 
     page.click('[data-action="archive-report"]')
-    check("确认归档后直接进入知识库", page.locator(".kb-layout").count() == 1)
+    check("确认归档后关闭报告浮层", page.locator(".rv-report-overlay").count() == 0)
+    check("确认归档后仍停留人工复核页", page.locator(".rv-review-page").count() == 1)
+    check("确认归档后不自动跳知识库", page.locator(".kb-layout").count() == 0)
 
     # ---------------------------------------------------------------- 6. 知识库
     print("\n== 6. 知识库 ==")
+    page.click('.scene-nav-btn[data-scene-key="knowledge"]')
     check("进入知识库", page.locator(".kb-layout").count() == 1)
     # 归档报告落在归档案例分类里，切到那个分类才看得到
     target = page.evaluate("window.DOMAIN_KB.archiveTarget().categoryId")
@@ -350,28 +359,13 @@ def run(page):
 
     page.click('.scene-nav-btn[data-scene-key="review"]')
     page.click('[data-action="review-vote"][data-vote-id="accept"]')
-    check("采纳后自动预选 AI 建议的结论", page.locator(".rv-outcome.active").count() == 1)
+    check("采纳后自动预选 AI 建议结论", "确认不对中" in text_of(page, ".rv-review-conclusion"))
+    check("采纳后自动填充默认复核意见", "同意 AI 建议" in page.eval_on_selector(".rv-note", "el => el.value"))
     check("采纳后不出现分歧条", page.locator(".rv-divergence").count() == 0)
-    fill_required_selects(page)
     check("采纳支线不填意见也可执行", not page.locator('[data-gate="execute"]').is_disabled())
     page.click('[data-action="execute-review"]')
     check("采纳支线执行后也弹出报告归档确认浮层", page.locator(".rv-report-overlay").count() == 1)
 
-    # 复测退回：demo 里唯一的一条回头路
-    if page.locator('[data-action="retest-fail"]').count():
-        page.click('[data-action="close-report-archive"]')
-        page.click('[data-action="retest-fail"]')
-        check("复测不通过退回复核页", page.locator(".rv-grid").count() == 1)
-        check("退回后出现提示横幅", page.locator(".rv-retest-banner").count() == 1)
-        check("退回后结论仍保留", page.locator(".rv-outcome.active").count() == 1)
-        page.screenshot(path=str(SHOTS / "13-retest-back.png"))
-        page.click('[data-action="execute-review"]')
-        page.click('[data-action="close-report-archive"]')
-        page.click('[data-action="retest-pass"]')
-        check("复测通过后可重新打开报告归档浮层",
-              page.locator('[data-action="open-report-archive"]').count() == 1)
-
-    page.click('[data-action="open-report-archive"]')
     accept_sections = page.locator(".rv-report-overlay .ar-section").count()
     check("采纳支线不含分歧段",
           page.locator('.rv-report-overlay .ar-section[data-report-section-id="divergence"]').count() == 0)

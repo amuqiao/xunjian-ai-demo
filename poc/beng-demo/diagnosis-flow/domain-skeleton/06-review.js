@@ -21,9 +21,24 @@
 window.DOMAIN_REVIEW = {
   // 恰好 3 条，id 必须是 accept/revise/reject（骨架按 id 决定 L1 是否自动预选）。
   votes: [
-    { id: "accept", label: "采纳", hint: "认可 AI 建议，结论自动预选" },
-    { id: "revise", label: "修正", hint: "部分认可，需重新选择结论" },
-    { id: "reject", label: "驳回", hint: "不认可 AI 建议，需重新选择结论" }
+    {
+      id: "accept",
+      label: "采纳",
+      hint: "认可 AI 建议",
+      defaultNote: "同意 AI 建议，现场复核后确认生成对中处置票卡。"
+    },
+    {
+      id: "revise",
+      label: "修正",
+      hint: "补充人工口径",
+      defaultNote: "部分采纳 AI 建议，按现场复核结果补充处置说明后生成票卡。"
+    },
+    {
+      id: "reject",
+      label: "驳回",
+      hint: "排除本次建议",
+      defaultNote: "现场复核后判断本项为误报，记录排除依据并回流模型样本。"
+    }
   ],
 
   outcomes: [
@@ -51,30 +66,6 @@ window.DOMAIN_REVIEW = {
         titleTpl: "{{objectLabel}} {{partLabel}} 处置报告",
         caseIdTpl: "PUMP-CASE-{{date}}-01",
         statusText: "已归档为处置案例，可被后续相似记录命中。"
-      }
-    },
-    {
-      id: "observe",
-      label: "继续观察",
-      hint: "设置观察窗口，不生成处置票卡",
-      impact: "选定后仅形成观察记录，不进入处置闭环、不解锁案例复用。",
-      track: "closure",
-      fields: ["window", "flags"],
-      steps: [
-        "设置 P-1 机组振动和相位差观察窗口",
-        "登记复评触发条件和复测班次",
-        "通知下一班次重点关注联轴器区域",
-        "形成观察记录并保留趋势证据"
-      ],
-      executeText: "确认观察记录",
-      executedText: "观察记录已确认",
-      retest: { enable: false, passLabel: "", failLabel: "" },
-      unlocksReuse: false,
-      archive: {
-        categoryId: "cat-case",
-        titleTpl: "{{objectLabel}} {{partLabel}} 观察记录",
-        caseIdTpl: "PUMP-OBS-{{date}}-01",
-        statusText: "已归档为观察记录，不触发案例复用。"
       }
     },
     {

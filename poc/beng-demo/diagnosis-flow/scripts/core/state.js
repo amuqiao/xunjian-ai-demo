@@ -129,7 +129,7 @@
         out[fieldId] = field.options.filter(function (o) { return o.default; })
           .map(function (o) { return o.id; });
       } else {
-        out[fieldId] = "";
+        out[fieldId] = field.required ? field.options[0].id : "";
       }
     });
     return out;

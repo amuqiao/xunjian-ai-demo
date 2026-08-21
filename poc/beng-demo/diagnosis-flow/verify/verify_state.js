@@ -132,16 +132,9 @@ S.review.outcomeId = suggestion.id;
 S.review.fields = AppState.defaultFields(suggestion.id);
 S.review.note = "";
 var requiredIds = suggestion.fields.filter(function (f) { return REVIEW.fields[f].required; });
-check("刚选结论时必填项都还空着（共 " + requiredIds.length + " 项）",
-  AppState.missingFields().length === requiredIds.length);
-check("必填项没填齐时不可执行", AppState.canExecute() === false);
-
-requiredIds.forEach(function (fieldId) {
-  var field = REVIEW.fields[fieldId];
-  S.review.fields[fieldId] = field.type === "checkbox" ? [field.options[0].id] : field.options[0].id;
-});
-check("必填项填齐后 missingFields 为空", AppState.missingFields().length === 0);
-check("无分歧 + 必填齐 + 空意见 → 可执行", AppState.canExecute() === true);
+check("刚选结论时必填项已按演示默认值带入（共 " + requiredIds.length + " 项）",
+  AppState.missingFields().length === 0);
+check("无分歧 + 默认必填齐 + 空意见 → 可执行", AppState.canExecute() === true);
 
 // ---- 分歧路径的闸门 ----
 S.review.outcomeId = other.id;
@@ -274,7 +267,7 @@ var fieldBad = loadWith({
     fields: { crew: "crew-x", flags: ["flag-x", "flag-handover"] },
     note: "", executed: false, retestPassed: null }
 });
-check("字段里悬空的下拉取值被清掉", fieldBad.review.fields.crew === "");
+check("字段里悬空的下拉取值回到演示默认值", fieldBad.review.fields.crew === REVIEW.fields.crew.options[0].id);
 check("字段里悬空的勾选项被过滤，合法的保留",
   fieldBad.review.fields.flags.length === 1 && fieldBad.review.fields.flags[0] === "flag-handover");
 
@@ -334,7 +327,7 @@ check("currentFrameOf 与 framesOf[0] 一致",
   fresh.currentFrameOf("PART-1").id === fresh.framesOf("PART-1")[0].id);
 check("defaultFields 按 checkbox 的 default 预勾",
   fresh.defaultFields("fix").flags.indexOf("flag-handover") >= 0);
-check("defaultFields 的下拉项默认为空串（必须由人来选）", fresh.defaultFields("fix").crew === "");
+check("defaultFields 的必填下拉项按演示默认值预填", fresh.defaultFields("fix").crew === REVIEW.fields.crew.options[0].id);
 
 // ================================================================ 汇总
 

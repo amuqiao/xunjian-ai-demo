@@ -422,6 +422,87 @@
   .overlay-panel.rv-report-overlay .overlay-body {
     max-height: min(64vh, 540px);
   }
+
+  .rv-review-page {
+    grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr);
+    gap: 8px;
+  }
+
+  .rv-ticket-match,
+  .rv-review-confirm {
+    padding: 9px 11px;
+  }
+
+  .rv-ticket-match,
+  .rv-review-confirm {
+    gap: 8px;
+  }
+
+  .rv-ticket-card,
+  .rv-ticket-record,
+  .rv-review-block {
+    padding: 9px 10px;
+  }
+
+  .rv-ticket-score {
+    padding: 8px 10px;
+  }
+
+  .rv-ticket-card-head {
+    padding-bottom: 7px;
+  }
+
+  .rv-ticket-card-head strong {
+    font-size: 16px;
+  }
+
+  .rv-ticket-meta {
+    gap: 6px 10px;
+    font-size: 12px;
+  }
+
+  .rv-ticket-note {
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .rv-ticket-record strong,
+  .rv-ai-opinion p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .rv-ticket-score strong {
+    font-size: 22px;
+  }
+
+  .rv-decision-votes {
+    gap: 7px;
+  }
+
+  .rv-decision-vote {
+    min-height: 54px;
+    padding: 8px 9px;
+  }
+
+  .rv-decision-vote strong {
+    font-size: 13px;
+  }
+
+  .rv-decision-vote span {
+    font-size: 11px;
+    line-height: 1.32;
+  }
+
+  .rv-divergence {
+    padding: 7px 10px;
+  }
+
+  .rv-confirm-note .rv-note { min-height: 44px; line-height: 1.42; }
+  .rv-confirm-note .rv-phrases { display: none; }
+  .rv-phrases { margin-top: 4px; }
+  .rv-phrase { padding: 3px 9px; }
 }
 
 @media (max-width: 1180px) {
@@ -457,6 +538,21 @@
 
   .overlay-panel.rv-report-overlay {
     width: 92vw;
+  }
+
+  .rv-review-page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+
+  .rv-decision-votes {
+    grid-template-columns: 1fr;
+  }
+
+  .rv-confirm-footer {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 

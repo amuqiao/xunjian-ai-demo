@@ -473,6 +473,7 @@ window.DomainSchema = (function () {
     review.votes.forEach(function (vote, i) {
       assertString(vote, "label", "DOMAIN_REVIEW.votes[" + i + "]");
       assertString(vote, "hint", "DOMAIN_REVIEW.votes[" + i + "]");
+      assertString(vote, "defaultNote", "DOMAIN_REVIEW.votes[" + i + "]");
     });
 
     if (!review.fields || typeof review.fields !== "object") fail("DOMAIN_REVIEW.fields 缺失");

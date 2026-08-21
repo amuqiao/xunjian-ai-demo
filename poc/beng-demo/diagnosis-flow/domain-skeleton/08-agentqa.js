@@ -96,7 +96,7 @@ window.DOMAIN_AGENTQA = {
           label: "能直接维修吗?",
           question: "命中不对中规则后能否直接生成维修结论？",
           thinkingText: "正在检索知识库…",
-          answer: "不能。AI 只负责组织证据和建议，确认异常、继续观察或排除误报必须由专家结合现场复测、停机窗口和安全边界决定。",
+          answer: "不能。AI 只负责组织证据和建议，是否采纳、修正票卡或排除误报必须由专家结合现场复测、停机窗口和安全边界决定。",
           hit: true,
           hits: [
             { kind: "standard", text: "专家复核边界", docId: "DOC-STD", chunkIndex: 0 },

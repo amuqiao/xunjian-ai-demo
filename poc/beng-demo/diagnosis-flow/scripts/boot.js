@@ -384,30 +384,39 @@
     state.review.fields = AppState.defaultFields(outcomeId);
     state.review.executed = false;
     state.review.retestPassed = null;
+    state.archived = false;
+    state.pick.reviewArchiveOpen = false;
     AppState.markFlowStep("review");
     commit();
   }
 
   function reviewVote(element) {
     var vote = element.dataset.voteId;
-    if (!REVIEW.votes.some(function (v) { return v.id === vote; })) {
+    var voteDef = REVIEW.votes.filter(function (v) { return v.id === vote; })[0];
+    if (!voteDef) {
       throw new Error("[boot] 未知表决：" + vote);
     }
     state.review.vote = vote;
-    if (vote === "accept") {
-      // 采纳 = 直接预选 AI 建议的那条结论。这是 L0 对 L1 的唯一影响。
-      var suggestion = AppState.suggestedOutcome();
-      if (suggestion) {
-        state.review.outcomeId = suggestion.id;
-        state.review.fields = AppState.defaultFields(suggestion.id);
-      }
-    } else {
-      // 修正 / 驳回 = 强制重新选择，不留 AI 的默认值。
-      state.review.outcomeId = "";
-      state.review.fields = {};
+    var suggestion = AppState.suggestedOutcome();
+    var outcome = suggestion;
+    if (vote === "reject") {
+      outcome = REVIEW.outcomes.filter(function (item) {
+        return !suggestion || item.id !== suggestion.id;
+      })[0];
     }
+    if (!outcome) {
+      throw new Error("[boot] 表决缺少可用结论：" + vote);
+    }
+    state.review.outcomeId = outcome.id;
+    state.review.fields = AppState.defaultFields(outcome.id);
+    if (typeof voteDef.defaultNote !== "string" || voteDef.defaultNote.trim() === "") {
+      throw new Error("[boot] 表决缺少默认复核意见：" + vote);
+    }
+    state.review.note = voteDef.defaultNote;
     state.review.executed = false;
     state.review.retestPassed = null;
+    state.archived = false;
+    state.pick.reviewArchiveOpen = false;
     AppState.markFlowStep("review");
     commit();
   }
@@ -513,7 +522,7 @@
     if (!state.review.executed) return;
     state.archived = true;
     state.pick.reviewArchiveOpen = false;
-    state.scene = "knowledge";
+    state.scene = "review";
     state.detail = "";
     state.pick.knowledge.categoryId = KB.archiveTarget().categoryId;
     state.pick.knowledge.docId = null;
@@ -541,12 +550,15 @@
     if (element.dataset.evidenceLocked === "true") return;
     state.pick.workbenchAiListOpen = false;
     state.pick.workbenchAiService = "";
+    state.pick.reviewArchiveOpen = false;
     if (kind === "series") {
+      state.scene = "workbench";
       state.detail = "trend";
       state.pick.trend.pointId = element.dataset.pointId;
       AppState.pointById(state.pick.trend.pointId);
       AppState.markFlowStep("trend");
     } else if (kind === "vision") {
+      state.scene = "workbench";
       state.detail = "vision";
       state.pick.vision.frameId = element.dataset.frameId;
       AppState.frameById(state.pick.vision.frameId);

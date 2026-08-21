@@ -41,9 +41,9 @@ window.DOMAIN_DIAGNOSIS = {
       partId: "PART-1",
       recordId: "REC-002",
       suggestion: {
-        outcomeId: "observe",
-        label: "建议结论：补充复核读数",
-        text: "同一巡检项前一日缺少联轴器对中复核读数，建议补充读数或说明未复测原因。"
+        outcomeId: "fix",
+        label: "建议结论：补齐处置票卡",
+        text: "同一巡检项前一日缺少联轴器对中复核读数，建议按集团既有对中处置票卡补齐复核读数和处置记录。"
       },
       confidence: 74,
       confidenceBand: "needs-review",
@@ -61,9 +61,9 @@ window.DOMAIN_DIAGNOSIS = {
       partId: "PART-2",
       recordId: "REC-003",
       suggestion: {
-        outcomeId: "observe",
-        label: "建议结论：继续观察",
-        text: "底座基础振动接近关注区，地脚状态未见异常，建议纳入 48 小时趋势复评并与联轴器复核同步观察。"
+        outcomeId: "reject",
+        label: "建议结论：排除误报",
+        text: "底座基础振动接近关注区，但地脚状态未见异常，暂不生成处置票卡，建议作为误报样本回流规则优化。"
       },
       confidence: 68,
       confidenceBand: "insufficient",
@@ -73,7 +73,7 @@ window.DOMAIN_DIAGNOSIS = {
         { kind: "rule", label: "基础并发证据口径", detail: "作为不对中复核的辅助证据", ruleId: "R-003", confidence: 68 },
         { kind: "case", label: "运行状态监测报告", detail: "查看并发证据说明", docId: "DOC-METRIC", locked: false }
       ],
-      summary: "案情摘要：本条用于演示正常/关注项如何作为主线异常的辅助证据。"
+      summary: "案情摘要：本条用于演示关注项如何被人工复核为误报反馈。"
     }
   ],
 

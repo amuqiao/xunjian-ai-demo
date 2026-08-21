@@ -8,7 +8,7 @@
 // 迟早漂移。preset 走 URL hash，页面只有一个，永远不会和主入口不一致。
 //
 // ---- 为什么 preset 从契约现算，而不是写死一份 state ----
-// 写死的 state 里含 "observe"、"crew-1" 这类 domain-skeleton 专属 id，换成
+// 写死的 state 里含 "fix"、"crew-1" 这类 domain-skeleton 专属 id，换成
 // domain-pump 就全是悬空引用。这里一律现查：结论取"第一条与 AI 建议不同的"，
 // 字段取"该字段的第一个选项"，于是任何一包领域数据都能用同一套 preset。
 //

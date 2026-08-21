@@ -1,19 +1,13 @@
-/* 人工复核页。布局意图：左 40% 是只读证据（人看完就不再动它），右 60% 是人工介入
-   （整页唯一可操作的地方），下方通栏是处置路径（结论没选之前它是暗的）。 */
+/* 人工复核页：主页面只讲一件事：AI 匹配集团既有票卡，人确认是否采用。
+   证据和报告都走浮层/详情，避免把 demo 做成真实工单系统。 */
 
-.rv-stack {
+.rv-review-page {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(420px, 0.9fr) minmax(0, 1.1fr);
   gap: var(--gap);
   min-height: 0;
+  height: 100%;
 }
-.rv-grid {
-  display: grid;
-  grid-template-columns: 40% 1fr;
-  gap: var(--gap);
-  min-height: 0;
-}
-.rv-evidence, .rv-panel { padding: 14px 16px; overflow: auto; }
 
 /* ---------------- 身份芯片 ---------------- */
 
@@ -37,199 +31,231 @@
 }
 .rv-identity-select option { background: #0f1728; color: var(--text); }
 
-/* ---------------- 段头 ---------------- */
+/* ---------------- 左侧：AI 匹配票卡 ---------------- */
 
-.rv-section-head { align-items: center; }
-.rv-section-title { display: flex; align-items: center; gap: 8px; }
-.rv-step-index {
-  width: 20px; height: 20px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  font-size: 11px;
-  font-family: var(--mono);
+.rv-ticket-match,
+.rv-review-confirm {
+  min-height: 0;
+  padding: 14px 16px;
+  overflow: hidden;
 }
 
-/* ---------------- ① 证据 ---------------- */
+.rv-ticket-match {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+}
 
-.rv-lead { margin: 0 0 10px; font-size: 13px; color: var(--text-dim); line-height: 1.7; }
-.rv-metrics { display: grid; gap: 10px; }
-.rv-subhead { margin: 14px 0 6px; font-size: 12px; color: var(--text-mute); }
-.rv-hit-list { display: grid; gap: 8px; }
-
-/* ---------------- L0 表决 ---------------- */
-
-.rv-vote-block {
-  padding: 12px;
+.rv-ticket-record {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: var(--surface-bg);
+  background: rgba(255, 255, 255, 0.03);
 }
-.rv-vote-head { display: grid; gap: 6px; margin-bottom: 10px; }
-.rv-vote-kicker { font-size: 11px; color: var(--text-mute); letter-spacing: 1px; }
-.rv-vote-head strong { font-size: 15px; }
+.rv-ticket-record span {
+  color: var(--text-mute);
+  font-size: 12px;
+}
+.rv-ticket-record strong {
+  color: var(--text);
+  font-size: 14px;
+}
 
-.rv-vote-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.rv-vote {
+.rv-ticket-card {
   display: grid;
-  gap: 2px;
-  padding: 9px 10px;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
   border-radius: var(--radius);
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--text-dim);
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
+  border: 1px solid rgba(50, 196, 255, 0.45);
+  background:
+    linear-gradient(180deg, rgba(50, 196, 255, 0.10), rgba(50, 196, 255, 0.03)),
+    rgba(255, 255, 255, 0.02);
 }
-.rv-vote:hover:not(:disabled) { color: var(--text); background: rgba(255, 255, 255, 0.05); }
-.rv-vote:disabled { opacity: 0.32; cursor: not-allowed; }
-.rv-vote strong { font-size: 14px; }
-.rv-vote small { font-size: 11px; color: var(--text-mute); }
-.rv-vote.accept.active { border-color: var(--ok); background: rgba(61, 220, 151, 0.14); color: #fff; }
-.rv-vote.revise.active { border-color: var(--warn); background: rgba(255, 180, 84, 0.14); color: #fff; }
-.rv-vote.reject.active { border-color: var(--danger); background: rgba(255, 92, 108, 0.14); color: #fff; }
 
-/* ---------------- L1 结论 ---------------- */
-
-/* 未表决前整段变暗且不可交互：这一页的顺序是"先对 AI 表态，再下自己的结论"。 */
-.rv-outcome-block { margin-top: 12px; }
-.rv-outcome-block.pending { opacity: 0.36; pointer-events: none; }
-.rv-outcome-options { display: grid; gap: 6px; }
-.rv-outcome {
+.rv-ticket-card-head {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.rv-ticket-card-head span { color: var(--text-mute); font-size: 12px; }
+.rv-ticket-card-head strong { color: var(--text); font-size: 18px; }
+
+.rv-ticket-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(0, 178, 255, 0.08);
+}
+.rv-ticket-score span { color: var(--text-mute); font-size: 12px; }
+.rv-ticket-score strong { color: var(--accent); font-size: 26px; font-family: var(--mono); }
+
+.rv-ticket-meta {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.rv-ticket-meta dt { color: var(--text-mute); }
+.rv-ticket-meta dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rv-ticket-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--accent);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.rv-ticket-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------------- 右侧：人工确认 ---------------- */
+
+.rv-review-confirm {
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, auto) auto;
+  align-content: start;
+  gap: 12px;
+}
+
+.rv-review-block {
+  display: grid;
   gap: 10px;
   padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.rv-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rv-block-head span { color: var(--text-mute); font-size: 12px; }
+.rv-block-head strong {
+  color: var(--text);
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rv-ai-opinion p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.rv-decision-votes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rv-decision-vote {
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-dim);
   font-family: inherit;
   text-align: left;
   cursor: pointer;
 }
-.rv-outcome:hover { border-color: var(--line-strong); color: var(--text); }
-.rv-outcome.active { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
-.rv-outcome-radio {
-  width: 14px; height: 14px;
-  margin-top: 3px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  border: 1px solid var(--line-strong);
-}
-.rv-outcome.active .rv-outcome-radio { border-color: var(--accent); box-shadow: inset 0 0 0 3px var(--accent); }
-.rv-outcome strong { display: block; font-size: 13.5px; font-weight: 500; }
-.rv-outcome small { font-size: 11.5px; color: var(--text-mute); }
-.rv-outcome-impact {
-  margin: 8px 0 0;
-  padding: 8px 10px;
-  border-left: 2px solid var(--accent);
-  font-size: 12px;
-  color: var(--text-dim);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-/* ---------------- L2 结构化 ---------------- */
-
-.rv-fields-block {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
-}
-.rv-field { display: grid; gap: 4px; }
-.rv-field-checks { grid-column: 1 / -1; }
-.rv-field-label { font-size: 11.5px; color: var(--text-mute); }
-.rv-required { color: var(--danger); font-style: normal; margin-left: 3px; }
-.rv-select {
-  padding: 7px 9px;
-  border-radius: 8px;
-  border: 1px solid var(--line-strong);
-  background: rgba(255, 255, 255, 0.04);
+.rv-decision-vote:hover {
+  border-color: var(--accent);
   color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
 }
-/* 必填未填时描边转红：这是"还差什么"的第一层提示，第二层是执行按钮旁的文字。 */
-.rv-field.missing .rv-select { border-color: var(--danger); }
-
-.rv-check-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.rv-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--text-dim);
-  font-family: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
+.rv-decision-vote strong { color: var(--text); font-size: 15px; }
+.rv-decision-vote span { color: var(--text-mute); font-size: 12px; line-height: 1.4; }
+.rv-decision-vote.active {
+  border-color: var(--accent);
+  background: rgba(50, 196, 255, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(50, 196, 255, 0.35);
 }
-.rv-check.on { border-color: var(--accent); background: var(--accent-soft); color: #fff; }
-.rv-check-box {
-  width: 14px; height: 14px;
-  display: grid; place-items: center;
-  border-radius: 4px;
-  border: 1px solid var(--line-strong);
-  font-size: 10px;
-}
-.rv-check.on .rv-check-box { border-color: var(--accent); background: var(--accent); }
 
-/* ---------------- 分歧 ---------------- */
+/* ---------------- 分歧 / 意见 / 执行 ---------------- */
 
-/* 分歧条是这一页最重要的一处状态提示，对比度必须够——它偏暗的时候，演示现场
-   投影上基本看不见，而它恰好是"人推翻了 AI"这件事的唯一视觉信号。 */
 .rv-divergence {
   display: grid;
   gap: 3px;
-  margin-top: 12px;
-  padding: 11px 13px;
+  margin: 0;
+  padding: 8px 11px;
   border-radius: var(--radius);
-  border: 1px solid var(--warn);
-  border-left-width: 4px;
-  background: rgba(255, 180, 84, 0.18);
+  border: 1px solid rgba(255, 180, 84, 0.42);
+  background: rgba(255, 180, 84, 0.08);
   animation: diverge-in 0.22s ease-out;
 }
-.rv-divergence strong { font-size: 13.5px; color: #ffd08a; }
-.rv-divergence span { font-size: 12px; color: var(--text); }
+.rv-divergence strong { font-size: 12.5px; color: #ffd08a; }
+.rv-divergence span { font-size: 12px; color: var(--text-dim); }
 
 @keyframes diverge-in {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
 
-/* ---------------- L3 文本 ---------------- */
-
-.rv-note-block { margin-top: 12px; }
+.rv-confirm-note { display: grid; gap: 6px; }
 .rv-note-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 5px;
+  margin-bottom: 2px;
   font-size: 12px;
   color: var(--text-mute);
 }
+.rv-required { color: var(--warn); font-style: normal; margin-left: 3px; }
 .rv-note {
   width: 100%;
-  padding: 9px 11px;
+  min-height: 58px;
+  padding: 8px 10px;
   border-radius: var(--radius);
   border: 1px solid var(--line-strong);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
-  line-height: 1.7;
-  resize: vertical;
+  line-height: 1.55;
+  resize: none;
 }
 .rv-note::placeholder { color: var(--text-mute); }
-.rv-note-block.required .rv-note { border-color: var(--warn); }
+.rv-confirm-note.required .rv-note { border-color: var(--warn); }
 
-.rv-phrases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.rv-phrases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .rv-phrase {
   padding: 4px 10px;
   border-radius: 999px;
@@ -242,75 +268,24 @@
 }
 .rv-phrase:hover { color: var(--text); border-style: solid; border-color: var(--accent); }
 
-/* ---------------- ③ 处置路径 ---------------- */
-
-.rv-path { padding: 12px 16px; }
-.rv-path.pending { opacity: 0.42; pointer-events: none; }
-.rv-path-list { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--text-mute); line-height: 1.9; }
-.rv-path-body { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; }
-.rv-path-label { margin: 0; font-size: 13px; color: var(--text-dim); white-space: nowrap; }
-.rv-path-steps {
+.rv-confirm-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 0;
-  padding-left: 18px;
-  font-size: 12.5px;
-  color: var(--text-dim);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 .rv-gate-hint {
-  grid-column: 1 / -1;
+  flex: 1;
   margin: 0;
   font-size: 12px;
   color: var(--warn);
 }
 .rv-gate-hint.hidden { display: none; }
-.rv-execute { white-space: nowrap; }
-
-/* ---------------- 复测退回横幅 ---------------- */
-
-.rv-retest-banner {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 9px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--danger);
-  background: rgba(255, 92, 108, 0.12);
+.rv-execute {
+  min-width: 168px;
+  margin-left: auto;
+  white-space: nowrap;
 }
-.rv-retest-banner strong { font-size: 13px; color: var(--danger); }
-.rv-retest-banner span { font-size: 12px; color: var(--text-dim); }
-
-/* ---------------- 执行屏 ---------------- */
-
-.rv-exec-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 0.9fr;
-  gap: var(--gap);
-  min-height: 0;
-}
-.rv-ticket, .rv-exec-note, .rv-retest { padding: 14px 16px; overflow: auto; }
-.rv-ticket-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-.rv-ticket-meta span {
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  font-size: 11.5px;
-  color: var(--text-mute);
-}
-.rv-ticket-steps { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-dim); line-height: 2.1; }
-.rv-exec-note-body {
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  border-left: 3px solid var(--accent);
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 13.5px;
-  line-height: 1.9;
-}
-.rv-exec-diverge { font-size: 12px; color: var(--warn); }
-.rv-retest-actions { display: grid; gap: 8px; margin-top: 12px; }
-.rv-retest-fail { border-color: var(--danger); color: var(--danger); }
-.rv-retest-fail:hover { background: rgba(255, 92, 108, 0.12); color: #fff; }
 
 /* ---------------- 报告归档浮层 ---------------- */
 
@@ -368,7 +343,7 @@
 .rv-report-preview .ar-section { padding: 9px 11px; }
 .rv-report-preview .ar-section p { line-height: 1.65; }
 
-/* ---------------- 置信度条（跨页复用，随 ReviewForm 一起用） ---------------- */
+/* ---------------- 置信度条（保留给旧 UI 小件复用） ---------------- */
 
 .confidence { display: flex; align-items: center; gap: 8px; }
 .confidence-label { font-size: 11px; color: var(--text-mute); }
