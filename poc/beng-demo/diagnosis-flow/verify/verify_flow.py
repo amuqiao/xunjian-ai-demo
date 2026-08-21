@@ -188,6 +188,7 @@ def run(page):
     print("\n== 3. Agent 对话 ==")
     page.click('[data-action="open-agent"][data-agent-context="workbench"]')
     check("Agent 浮层打开", page.locator(".ag-overlay").count() == 1)
+    check("Agent 对话标注数据来自 WEACT", page.locator(".ag-source-note", has_text="数据来自 WEACT").count() == 1)
     check("Agent 浮层没有被容器裁掉（宽度 > 0）",
           page.locator(".ag-overlay").bounding_box()["width"] > 400)
     agent_h_empty = page.locator(".ag-overlay").bounding_box()["height"]
@@ -333,8 +334,11 @@ def run(page):
     page.locator(".kb-asset.fresh [data-action='open-doc']").click()
     page.wait_for_selector(".kb-doc-overlay", state="visible")
     page.wait_for_timeout(220)
-    check("能打开归档报告的阅读器", page.locator(".kb-doc-overlay").is_visible())
-    check("归档报告有正文分段", page.locator(".kb-chunk").count() >= 3)
+    check("能打开归档报告的 PDF 预览浮窗", page.locator(".kb-doc-overlay").is_visible())
+    check("知识库查看浮窗内嵌 PDF 预览", page.locator(".kb-doc-overlay .kb-pdf-frame").count() == 1)
+    check("知识库 PDF 预览使用项目内相对路径",
+          "assets/reports/demo-diagnosis-report.pdf" in page.locator(".kb-doc-overlay .kb-pdf-frame").get_attribute("src"))
+    check("知识库查看浮窗不再渲染正文 chunk", page.locator(".kb-doc-overlay .kb-chunk").count() == 0)
     check("知识库阅读浮层提供下载 PDF", page.locator('.kb-doc-overlay a[download$=".pdf"]').count() == 1)
     check("知识库阅读浮层不再显示下载 Markdown", "下载 Markdown" not in text_of(page, ".kb-doc-overlay"))
     page.screenshot(path=str(SHOTS / "10-kb-archived.png"))

@@ -22,14 +22,6 @@
     return KB.document(docId);
   }
 
-  function chunksOf(doc) {
-    if (!doc.body) return [];
-    if (doc.id === "DOC-ARCHIVED") {
-      return doc.body.map(function (text, index) { return { index: index, text: text }; });
-    }
-    return KB.chunksOf(doc.id);
-  }
-
   // ---------------------------------------------------------------- 知识资产
 
   function uploadRunning() {
@@ -177,7 +169,7 @@
   // ---------------------------------------------------------------- 文档阅读器
 
   function renderDocReader(doc, chunkIndex) {
-    var chunks = chunksOf(doc);
+    var pdf = REPORT.previewPdf;
     return h("div", { class: "kb-reader" }, [
       h("aside", { class: "kb-reader-side" }, [
         h("span", { class: "kb-reader-type", text: doc.type }),
@@ -186,32 +178,25 @@
         h("div", { class: "kb-reader-meta" }, [
           h("span", { text: "来源 · " + doc.source }),
           h("span", { text: "更新 · " + doc.updatedAt }),
-          h("span", { text: doc.body ? "正文 " + chunks.length + " 段" : "仅摘要" })
+          chunkIndex == null
+            ? h("span", { text: "预览 · PDF 报告" })
+            : h("span", { text: "引用 · 第 " + (chunkIndex + 1) + " 段依据" })
         ]),
-        doc.body
-          ? h("a", {
-            class: "primary-action kb-download",
-            href: REPORT.previewPdf.src,
-            download: doc.title + ".pdf",
-            text: "下载 PDF"
-          })
-          : h("span", { class: "muted", text: "仅摘要，暂无下载" })
-      ]),
-      h("main", { class: "kb-reader-main" }, doc.body
-        ? chunks.map(function (chunk) {
-          return h("article", {
-            // 命中跳转会带一个 chunkIndex：定位到具体那一段并高亮，这样"引用不是贴
-            // 标签，是真指到某一段"才立得住。
-            class: "kb-chunk" + (chunk.index === chunkIndex ? " target" : "")
-          }, [
-            h("span", { class: "kb-chunk-index", text: "Chunk " + (chunk.index + 1) }),
-            h("p", { text: chunk.text })
-          ]);
+        h("a", {
+          class: "primary-action kb-download",
+          href: pdf.src,
+          download: pdf.filename,
+          text: "下载 PDF"
         })
-        : [h("article", { class: "kb-chunk" }, [
-          h("span", { class: "kb-chunk-index", text: "摘要材料" }),
-          h("p", { text: doc.summary })
-        ])])
+      ]),
+      h("main", { class: "kb-reader-main kb-pdf-main" }, [
+        h("iframe", {
+          class: "kb-pdf-frame",
+          title: pdf.title,
+          src: pdf.src
+        }),
+        h("p", { class: "kb-pdf-fallback", text: "如浏览器未显示 PDF，可使用左侧下载按钮。" })
+      ])
     ]);
   }
 
@@ -224,7 +209,7 @@
     return Overlay.render({
       open: true,
       title: doc.title,
-      kicker: "文档阅读器 · " + doc.type,
+      kicker: "PDF 预览 · " + doc.type,
       body: [renderDocReader(doc, AppState.value.pick.knowledge.chunkIndex)],
       actions: [],
       onCloseAction: "close-doc",

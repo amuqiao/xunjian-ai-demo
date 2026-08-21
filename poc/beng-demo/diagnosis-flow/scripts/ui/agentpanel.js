@@ -152,8 +152,11 @@
               })
             ])
           ]),
-          h("div", { class: "ag-thread-host", dataset: { agentThread: "1" } }, [
-            renderThread(context, state)
+          h("div", { class: "ag-thread-panel" }, [
+            h("div", { class: "ag-source-note", text: "数据来自 WEACT" }),
+            h("div", { class: "ag-thread-host", dataset: { agentThread: "1" } }, [
+              renderThread(context, state)
+            ])
           ])
         ])
       ],

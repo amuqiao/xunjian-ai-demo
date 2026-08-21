@@ -152,6 +152,24 @@
 .ag-questions { display: grid; gap: 6px; align-content: start; overflow: auto; min-height: 0; }
 
 /* 对话区独立滚动：新答案很长时只有这一列滚，左边的预设问题留在原位。 */
+.ag-thread-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+}
+
+.ag-source-note {
+  justify-self: end;
+  padding: 2px 8px;
+  border: 1px solid rgba(105, 145, 175, 0.32);
+  border-radius: 999px;
+  color: var(--text-mute);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
 .ag-thread-host { overflow: auto; min-height: 0; }
 .ag-question {
   padding: 8px 11px;

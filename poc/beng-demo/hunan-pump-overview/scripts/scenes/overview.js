@@ -172,6 +172,7 @@
       h("div", { class: "topbar-right" }, [
         renderDateRangePicker(state, now),
         h("button", { type: "button", class: "tool-btn", "data-action": "refresh", text: "刷新数据" }),
+        h("span", { class: "data-source-chip", text: "数据来源：IMS" }),
         h("div", { class: "topbar-clock" }, [
           h("strong", { text: pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds()) }),
           h("small", { text: formatDate(now) + " " + weekday + " · " + range.shortLabel }),
