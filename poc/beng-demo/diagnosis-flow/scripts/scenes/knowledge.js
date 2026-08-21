@@ -3,8 +3,8 @@
 // 职责收窄为三件事：文档索引、上传入库动画、Agent 问答。**不画任何关系图或节点
 // 连线**——文档之间的关系可视化由独立的知识文档地图 POC 承担，与本 POC 无关。
 //
-// 归档产物由 core/report.js 的 archivedDocument() 提供，在这里拼进列表最前面并带
-// NEW 标。它不写回领域数据（契约是只读的），演示重置后自然消失，不留残渣。
+// 归档产物由 core/report.js 的 archivedDocument() 提供，在资产面板里带 NEW 标。
+// 它不写回领域数据（契约是只读的），演示重置后自然消失，不留残渣。
 (function () {
   "use strict";
 
@@ -12,27 +12,10 @@
   var KB = window.DOMAIN_KB;
   var ReportModel = window.ReportModel;
   var Overlay = window.Overlay;
-  var Cards = window.Cards;
 
   var lastDocBlobUrl = null;
 
   // ---------------------------------------------------------------- 文档集合
-
-  // 归档报告插在目标分类的最前面。这是把"报告归档"和"知识库"缝上的那一针——
-  // 不这么做，两页各说各的，观众感觉不到闭环。
-  function documentsOf(categoryId) {
-    var list = KB.documents(categoryId).slice();
-    var archived = ReportModel.archivedDocument();
-    if (archived && archived.categoryId === categoryId) list.unshift(archived);
-    return list;
-  }
-
-  function allDocuments() {
-    var list = KB.documents().slice();
-    var archived = ReportModel.archivedDocument();
-    if (archived) list.unshift(archived);
-    return list;
-  }
 
   function documentById(docId) {
     var archived = ReportModel.archivedDocument();
@@ -48,119 +31,148 @@
     return KB.chunksOf(doc.id);
   }
 
-  function activeCategoryId() {
-    return AppState.value.pick.knowledge.categoryId || KB.categories()[0].id;
-  }
+  // ---------------------------------------------------------------- 知识资产
 
-  // ---------------------------------------------------------------- 顶部指标
-
-  function renderMetrics() {
+  function uploadRunning() {
     var state = AppState.value;
-    var docs = allDocuments();
-    var withBody = docs.filter(function (doc) { return !!doc.body; }).length;
     var steps = KB.ingestion().length;
-    var defs = [
-      { label: "知识分类", value: KB.categories().length, unit: "类", note: "制度 / 口径 / 模板 / 案例" },
-      { label: "文档资产", value: docs.length, unit: "篇", note: state.archived ? "含本轮归档的 1 篇" : "尚未归档本轮报告" },
-      { label: "可视化正文", value: withBody, unit: "篇", note: "支持 Chunk 视图与 Markdown 下载" },
-      {
-        label: "入库状态",
-        value: state.pick.knowledge.ingestStep === steps ? "完成" : "待演示",
-        unit: "",
-        note: state.pick.knowledge.ingestStep === steps ? "最近一次入库演示已完成" : "点右上角上传文档开始"
-      }
-    ];
-    return h("div", { class: "kb-metrics" }, defs.map(function (def) {
-      return Cards.metric({
-        label: def.label, value: def.value, unit: def.unit, status: "ok", note: def.note
-      });
-    }));
+    return state.pick.knowledge.ingestStep > 0 && state.pick.knowledge.ingestStep < steps;
   }
 
-  // ---------------------------------------------------------------- 分类 / 文档
-
-  function renderCategoryList() {
-    var list = window.SelectList.render({
-      name: "kb-category",
-      variant: "row",
-      activeId: activeCategoryId(),
-      ariaLabel: "知识库分类",
-      items: KB.categories().map(function (category) {
-        return {
-          id: category.id,
-          label: category.title,
-          status: "ok",
-          note: category.desc,
-          badge: String(documentsOf(category.id).length) + " 篇"
-        };
-      })
+  function renderUploadButton() {
+    var running = uploadRunning();
+    return h("button", {
+      type: "button",
+      class: "primary-action kb-upload-action",
+      disabled: running ? "disabled" : null,
+      dataset: { action: "start-ingest", focusKey: "ingest" },
+      text: running ? "上传中…" : "上传文档"
     });
-    list.className += " kb-category-list";
-    return list;
   }
 
-  function renderDocList() {
-    return h("div", { class: "kb-doc-list", role: "list", "aria-label": "文档列表" },
-      documentsOf(activeCategoryId()).map(function (doc) {
-        return h("button", {
-          type: "button",
-          class: "kb-doc" + (doc.isNew ? " fresh" : ""),
-          dataset: { action: "open-doc", docId: doc.id, focusKey: "doc:" + doc.id }
-        }, [
-          h("div", { class: "kb-doc-head" }, [
-            h("strong", { text: doc.title }),
-            doc.isNew ? h("span", { class: "kb-doc-new", text: "NEW" }) : null
-          ]),
-          h("p", { text: doc.summary }),
-          h("div", { class: "kb-doc-foot" }, [
-            h("small", { text: doc.type + " · " + doc.updatedAt }),
-            h("span", { class: "kb-doc-badge" + (doc.body ? " full" : " brief"), text: doc.body ? "阅读 / 下载" : "仅摘要" })
-          ])
-        ]);
-      }));
-  }
-
-  // ---------------------------------------------------------------- 操作台
-
-  function renderActionRail() {
-    var state = AppState.value;
-    var steps = KB.ingestion().length;
-    var finished = state.pick.knowledge.ingestStep === steps;
-    var running = state.pick.knowledge.ingestStep > 0 && !finished;
-    var demoDoc = KB.document(KB.ingestDemoDocId());
-    var context = window.DOMAIN_AGENTQA.contexts.filter(function (c) { return c.id === "knowledge"; })[0];
-
-    return h("section", { class: "panel kb-actions" }, [
-      AppState.panelTitle("演示操作", "上传 / 问答"),
-      h("div", { class: "kb-upload" }, [
-        h("strong", { text: "文档入库演示" }),
-        h("p", { text: "点击上传固定样例文档，在弹窗里播放上传、切分、向量化和检索命中。" }),
-        h("div", { class: "kb-upload-file" }, [
-          h("span", { text: demoDoc.type }),
-          h("strong", { text: demoDoc.title })
+  function renderAssetRow(asset) {
+    return h("div", { class: "kb-asset" + (asset.fresh ? " fresh" : "") }, [
+      h("div", { class: "kb-asset-main" }, [
+        h("div", { class: "kb-asset-head" }, [
+          h("span", { class: "kb-asset-type", text: asset.type }),
+          asset.fresh ? h("span", { class: "kb-doc-new", text: "NEW" }) : null,
+          h("strong", { text: asset.title })
         ]),
-        h("button", {
-          type: "button",
-          class: "primary-action",
-          disabled: running ? "disabled" : null,
-          dataset: { action: "start-ingest", focusKey: "ingest" },
-          text: running ? "入库演示中…" : finished ? "重新演示" : "上传文档"
-        })
+        h("p", { text: asset.summary }),
+        h("div", { class: "kb-asset-tags" }, asset.tags.map(function (tag) {
+          return h("span", { text: tag });
+        }))
       ]),
-      h("div", { class: "kb-agent" }, [
-        h("strong", { text: context.entryTitle }),
-        h("p", { text: context.entryText }),
-        h("div", { class: "kb-agent-tags" }, context.questions.slice(0, 5).map(function (question) {
-          return h("span", { text: question.label });
-        })),
-        h("button", {
+      h("div", { class: "kb-asset-side" }, [
+        h("span", { class: "kb-asset-status", text: asset.status }),
+        asset.docId ? h("button", {
           type: "button",
           class: "plain-button",
-          dataset: { action: "open-agent", agentContext: "knowledge", focusKey: "open-agent" },
-          text: "打开 Agent 问答"
-        })
+          dataset: { action: "open-doc", docId: asset.docId, focusKey: "doc:" + asset.docId },
+          text: "查看"
+        }) : h("span", { class: "kb-waiting", text: "待归档" })
       ])
     ]);
+  }
+
+  function reportAsset() {
+    var archived = ReportModel.archivedDocument();
+    if (archived) {
+      return {
+        type: "复核报告",
+        title: archived.title,
+        summary: "来源：人工复核归档。已沉淀为可检索、可引用的诊断案例。",
+        tags: ["长岭站 P-1", "联轴器不对中", "人工复核结论"],
+        status: "已入库",
+        docId: archived.id,
+        fresh: true
+      };
+    }
+    return {
+      type: "复核报告",
+      title: "输油泵智能诊断报告",
+      summary: "人工复核确认后会在这里出现，作为可信报告资产进入知识库。",
+      tags: ["报告归档", "专家确认", "可追溯"],
+      status: "等待归档",
+      docId: null,
+      fresh: false
+    };
+  }
+
+  function uploadedAssets() {
+    var demoDoc = KB.document(KB.ingestDemoDocId());
+    var stdDoc = KB.document("DOC-STD");
+    return [
+      {
+        type: "上传文档",
+        title: demoDoc.title,
+        summary: "来源：" + demoDoc.source + "。用于演示用户上传资料进入知识库资产。",
+        tags: ["作业票卡", "对中处置", "可检索"],
+        status: "已索引",
+        docId: demoDoc.id,
+        fresh: false
+      },
+      {
+        type: "上传文档",
+        title: stdDoc.title,
+        summary: "来源：" + stdDoc.source + "。用于约束 AI 诊断建议和人工复核边界。",
+        tags: ["复核边界", "诊断规则", "引用依据"],
+        status: "已索引",
+        docId: stdDoc.id,
+        fresh: false
+      }
+    ];
+  }
+
+  function renderAssetPanel() {
+    var assets = [reportAsset()].concat(uploadedAssets());
+    var searchableCount = assets.filter(function (asset) { return !!asset.docId; }).length;
+    return h("section", { class: "panel kb-asset-panel" }, [
+      h("header", { class: "kb-asset-panel-head" }, [
+        h("div", {}, [
+          h("p", { class: "kicker", text: "报告归档 · 文档上传 · Agent 复用" }),
+          h("h3", { text: "知识库资产" }),
+          h("small", { text: assets.length + " 份资产 · " + searchableCount + " 份可检索 · Agent 已启用" })
+        ]),
+        renderUploadButton()
+      ]),
+      h("div", { class: "kb-status-strip", "aria-label": "知识库资产状态" }, [
+        h("div", { class: "kb-status-card" }, [
+          h("span", { text: "报告归档" }),
+          h("strong", { text: ReportModel.archivedDocument() ? "1 份" : "待归档" }),
+          h("small", { text: ReportModel.archivedDocument() ? "人工复核报告已入库" : "复核后自动进入资产" })
+        ]),
+        h("div", { class: "kb-status-card" }, [
+          h("span", { text: "上传文档" }),
+          h("strong", { text: uploadedAssets().length + " 份" }),
+          h("small", { text: "作业票卡 / 复核边界" })
+        ]),
+        h("div", { class: "kb-status-card" }, [
+          h("span", { text: "Agent 检索" }),
+          h("strong", { text: "已启用" }),
+          h("small", { text: searchableCount + " 份资产可引用" })
+        ])
+      ]),
+      h("div", { class: "kb-asset-list" }, assets.map(renderAssetRow)),
+      h("footer", { class: "kb-index-hint" }, [
+        h("span", { text: "轻量索引" }),
+        h("strong", { text: "设备对象" }),
+        h("strong", { text: "故障模式" }),
+        h("strong", { text: "处置经验" }),
+        h("strong", { text: "复核结论" })
+      ])
+    ]);
+  }
+
+  function renderKnowledgeAgentFab() {
+    return h("button", {
+      type: "button",
+      class: "wb-agent-fab kb-agent-fab",
+      title: "Agent 问答",
+      "aria-label": "打开知识库 Agent 问答",
+      dataset: { action: "open-agent", agentContext: "knowledge", focusKey: "open-agent" },
+      text: "AI"
+    });
   }
 
   // ---------------------------------------------------------------- 文档阅读器
@@ -398,30 +410,15 @@
   // ---------------------------------------------------------------- 顶层
 
   function renderKnowledge() {
-    var state = AppState.value;
-    var steps = KB.ingestion().length;
-    var running = state.pick.knowledge.ingestStep > 0 && state.pick.knowledge.ingestStep < steps;
-
     return AppState.pageShell(
-      "知识库 / 资料检索",
+      "知识库 / 资产复用",
       "诊断知识库",
-      h("button", {
-        type: "button",
-        class: "primary-action",
-        disabled: running ? "disabled" : null,
-        dataset: { action: "start-ingest" },
-        text: running ? "入库演示中…" : "上传文档"
-      }),
+      h("span", { class: "kb-page-status", text: "报告归档 · 文档上传 · Agent 可检索" }),
       h("div", { class: "kb-scene" }, [
-        renderMetrics(),
         h("div", { class: "kb-layout" }, [
-          h("section", { class: "panel kb-index" }, [
-            AppState.panelTitle("知识库索引", "分类 → 文档"),
-            renderCategoryList(),
-            renderDocList()
-          ]),
-          renderActionRail()
-        ])
+          renderAssetPanel()
+        ]),
+        renderKnowledgeAgentFab()
       ])
     );
   }
