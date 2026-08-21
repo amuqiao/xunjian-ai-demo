@@ -1,7 +1,7 @@
 // 场景：诊断工作台。要回答的问题是"这条异常，证据齐不齐"。
 //
-// 左列是可点选的记录表（报表），右侧全部内容跟随选中记录联动——时序、视觉、AI 判断
-// 三块必须同源于**选中记录对应的部位**，不能各读各的。pump-demo 在这里踩过：卡片
+// 上方是可点选的记录表（报表），AI 辅助判断、时序、视觉都从点击记录后的浮层进入。
+// 所有下钻内容必须同源于**选中记录对应的部位**，不能各读各的。pump-demo 在这里踩过：卡片
 // 标题取的是记录的部位、曲线取的是全局焦点部位，大多数时候两者重合，一旦分开就是
 // "标题是 A 部位、曲线画的是 B 部位"这种只能靠肉眼发现的错配。
 //
@@ -12,12 +12,7 @@
 
   var AppState = window.AppState;
   var RECORDS = window.DOMAIN_RECORDS;
-  var VISION = window.DOMAIN_VISION;
   var SERIES = window.DOMAIN_SERIES;
-  var Charts = window.Charts;
-  var ChartOptions = window.ChartOptions;
-
-  var TREND_SLOT = "wb-trend";
 
   // ---------------------------------------------------------------- 时间范围
 
@@ -36,7 +31,7 @@
       }));
   }
 
-  // ---------------------------------------------------------------- 左列报表
+  // ---------------------------------------------------------------- 上方报表
 
   function renderRecordPanel() {
     var state = AppState.value;
@@ -73,156 +68,169 @@
     ]);
   }
 
-  // ---------------------------------------------------------------- 摘要条
+  // ---------------------------------------------------------------- AI 判断浮层
 
-  function renderSummaryBar(record, part) {
-    var formNo = record.no ? "第 " + record.no + " 项" : record.id;
-    var area = record.area || part.short;
-    var device = record.device || part.component;
-    return h("div", { class: "panel wb-summary" }, [
-      h("span", {
-        text: [formNo, area, device, record.item, record.date + " " + record.shift, record.inspector].join(" · ")
-      }),
-      h("span", { class: "wb-summary-result", text: record.result || "（未填写）" })
-    ]);
+  function evidenceOf(item, kind) {
+    var matches = item.evidenceChain.filter(function (evidence) { return evidence.kind === kind; });
+    if (matches.length !== 1) throw new Error("[workbench] AI 服务判断需要唯一 " + kind + " 依据");
+    return matches[0];
   }
 
-  // ---------------------------------------------------------------- 时序卡
+  function serviceJudgments(item) {
+    var series = evidenceOf(item, "series");
+    var vision = evidenceOf(item, "vision");
+    var rule = evidenceOf(item, "rule");
+    [series, vision, rule].forEach(function (evidence) {
+      if (typeof evidence.confidence !== "number") throw new Error("[workbench] AI 判断缺少 confidence：" + evidence.label);
+    });
+    return [
+      {
+        kind: "series",
+        service: "时序异常检测服务",
+        status: "danger",
+        verdict: series.label,
+        detail: series.detail,
+        tag: "趋势/阈值",
+        evidence: series,
+        confidence: series.confidence
+      },
+      {
+        kind: "vision",
+        service: "视觉证据识别服务",
+        status: "warn",
+        verdict: vision.label,
+        detail: vision.detail,
+        tag: "关键帧/目标",
+        evidence: vision,
+        confidence: vision.confidence
+      },
+      {
+        kind: "rule",
+        service: "规则知识核验服务",
+        status: "warn",
+        verdict: rule.label,
+        detail: rule.detail,
+        tag: "专家规则",
+        evidence: rule,
+        confidence: rule.confidence
+      }
+    ];
+  }
 
-  function renderTrendCard(part) {
-    var point = AppState.primaryPoint(part.id);
-    var s = AppState.seriesOf(point.id);
-    return h("section", { class: "panel wb-card wb-trend" }, [
-      AppState.panelTitle("时序模型", point.label),
-      h("p", { class: "wb-alert " + s.status, text: s.alert }),
-      h("div", { class: "wb-trend-chart" }, [Charts.slot(TREND_SLOT)]),
-      h("button", {
+  function renderEvidenceEntry(row) {
+    if (row.kind === "series") {
+      return h("button", {
         type: "button",
-        class: "plain-button",
-        dataset: { action: "open-trend-detail", focusKey: "open-trend" },
-        text: "展开时序详情"
-      })
-    ]);
-  }
-
-  // ---------------------------------------------------------------- 视觉卡
-
-  // bbox 是相对**图片实际渲染盒**的 0~1 比例。<figure> 必须紧贴图片（height:100% +
-  // width:auto + inline-block），图片没铺满的两侧留白由外层深色底填——否则换一张
-  // 宽高比不同的照片，标注框会整体飘走，而且不报错。
-  function renderVisionCard(part) {
-    var frame = AppState.currentFrameOf(part.id);
-    var b = frame.bbox;
-    var boxStyle = "left:" + (b.x * 100) + "%;top:" + (b.y * 100) + "%;"
-      + "width:" + (b.w * 100) + "%;height:" + (b.h * 100) + "%;";
-    return h("section", { class: "panel wb-card wb-vision" }, [
-      AppState.panelTitle("视觉模型", frame.label),
-      h("div", { class: "wb-frame-wrap" }, [
-        h("figure", { class: "wb-frame" }, [
-          h("img", { class: "wb-frame-img", src: VISION.media[frame.src], alt: frame.label }),
-          h("div", { class: "wb-frame-box", style: boxStyle }, [
-            h("span", { class: "wb-frame-box-label", text: frame.boxLabel })
-          ])
-        ])
-      ]),
-      h("p", { class: "wb-finding", text: frame.findings[0] }),
-      h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: { action: "open-vision-detail", focusKey: "open-vision" },
-        text: "展开视觉详情"
-      })
-    ]);
-  }
-
-  // ---------------------------------------------------------------- AI 判断卡
-
-  function renderAiCard(record) {
-    var item = AppState.currentCase();
-    var flag = RECORDS.aiFlagText[record.aiFlag];
-
-    // 没有 AI 判断是合法状态（那条记录就是没有模型判读），不是数据缺失。
-    if (!item) {
-      return h("section", { class: "panel wb-card wb-ai empty" }, [
-        AppState.panelTitle("AI 辅助判断", flag.badge),
-        h("p", { class: "muted", text: "本条记录没有模型判读结果，请直接进入人工复核。" }),
-        h("button", {
-          type: "button",
-          class: "primary-action",
-          dataset: { action: "go-review" },
-          text: "进入人工复核"
-        })
-      ]);
+        class: "plain-button wb-ai-evidence-link",
+        dataset: {
+          action: "open-evidence",
+          evidenceKind: "series",
+          pointId: row.evidence.pointId,
+          focusKey: "ai-evidence:series"
+        },
+        text: "查看时序数据"
+      });
     }
-
-    return h("section", { class: "panel wb-card wb-ai " + flag.status }, [
-      AppState.panelTitle("AI 辅助判断", flag.badge),
-      h("p", { class: "wb-ai-conclusion", text: flag.lead + item.suggestion.text }),
-      window.ConfidenceBar.render(item),
-      window.EvidenceChain.render(item),
-      h("button", {
+    if (row.kind === "vision") {
+      return h("button", {
         type: "button",
-        class: "primary-action wb-ai-go",
-        dataset: { action: "go-review", focusKey: "go-review" },
-        text: "进入人工复核"
-      })
-    ]);
+        class: "plain-button wb-ai-evidence-link",
+        dataset: {
+          action: "open-evidence",
+          evidenceKind: "vision",
+          frameId: row.evidence.frameId,
+          focusKey: "ai-evidence:vision"
+        },
+        text: "查看视觉模型"
+      });
+    }
+    return h("span", { class: "wb-ai-evidence-note", text: "规则依据已纳入判断" });
   }
 
-  // ---------------------------------------------------------------- Agent 入口
+  function renderServiceJudgments(item) {
+    return h("div", { class: "wb-ai-service-list" }, serviceJudgments(item).map(function (row) {
+      return h("article", {
+        class: "wb-ai-service " + row.status,
+        dataset: { aiServiceKind: row.kind }
+      }, [
+        h("div", { class: "wb-ai-service-head" }, [
+          h("strong", { text: row.service }),
+          h("span", { text: row.tag })
+        ]),
+        h("p", { text: row.verdict }),
+        h("small", { text: row.detail }),
+        h("strong", { class: "wb-ai-confidence", text: row.confidence + "%" }),
+        h("div", { class: "wb-ai-evidence-entry" }, [
+          renderEvidenceEntry(row)
+        ])
+      ]);
+    }));
+  }
 
-  function renderAgentCard() {
-    var context = window.DOMAIN_AGENTQA.contexts.filter(function (c) { return c.id === "workbench"; })[0];
-    return h("section", { class: "panel wb-card wb-agent" }, [
-      AppState.panelTitle(context.entryTitle, "assistant"),
-      h("p", { text: context.entryText }),
-      h("div", { class: "wb-agent-tags" }, context.questions.slice(0, 3).map(function (question) {
-        return h("span", { text: question.label });
-      })),
-      h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: { action: "open-agent", agentContext: "workbench", focusKey: "open-agent" },
-        text: "打开 Agent 对话"
-      })
-    ]);
+  // ---------------------------------------------------------------- 浮动入口 / 浮层
+
+  function renderAgentFab() {
+    return h("button", {
+      type: "button",
+      class: "wb-agent-fab",
+      title: "Agent 助手",
+      "aria-label": "打开 Agent 助手",
+      dataset: { action: "open-agent", agentContext: "workbench", focusKey: "open-agent" },
+      text: "AI"
+    });
+  }
+
+  function renderAiListOverlay() {
+    var state = AppState.value;
+    if (!state.pick.workbenchAiListOpen) return null;
+    var record = AppState.currentRecord();
+    var part = AppState.partById(record.partId);
+    var item = AppState.currentCase();
+    var body = item
+      ? [
+        h("p", { class: "wb-ai-list-summary", text: item.suggestion.text }),
+        renderServiceJudgments(item)
+      ]
+      : [
+        h("p", { class: "muted", text: "本条记录没有模型判读结果，请直接进入人工复核。" })
+      ];
+
+    return window.Overlay.render({
+      open: true,
+      title: "AI 辅助判断列表",
+      kicker: [record.no ? "第 " + record.no + " 项" : record.id, part.short, record.item].join(" · "),
+      body: body,
+      actions: [
+        { text: "进入人工复核", action: "go-review", primary: true }
+      ],
+      onCloseAction: "close-ai-list",
+      key: "workbench-ai-list",
+      panelClass: "wb-ai-list-overlay"
+    });
   }
 
   // ---------------------------------------------------------------- 顶层
 
   function renderWorkbench() {
-    var record = AppState.currentRecord();
-    // 部位必须从**选中记录**推导，不是读全局焦点——两者在正常流程里重合，但依赖这种
-    // 重合就会出现标题与曲线错配。
-    var part = AppState.partById(record.partId);
-
     return AppState.pageShell(
       "证据质检 / 模型判读",
       AppState.currentObject().label + " 诊断工作台",
       renderRangeSwitch(),
-      h("div", { class: "wb-layout" }, [
-        renderRecordPanel(),
-        h("div", { class: "wb-focus" }, [
-          renderSummaryBar(record, part),
-          h("div", { class: "wb-focus-grid" }, [
-            renderTrendCard(part),
-            renderVisionCard(part),
-            renderAiCard(record),
-            renderAgentCard()
-          ])
-        ])
+      h("div", { class: "wb-page" }, [
+        h("div", { class: "wb-layout" }, [
+          renderRecordPanel()
+        ]),
+        renderAgentFab()
       ])
     );
   }
 
   function renderWorkbenchCharts() {
-    var record = AppState.currentRecord();
-    var part = AppState.partById(record.partId);
-    var point = AppState.primaryPoint(part.id);
-    Charts.draw(TREND_SLOT, ChartOptions.trend([AppState.seriesOf(point.id)]));
+    // 工作台首屏不渲染证据内容；证据入口在 AI 判断弹窗条目里，下钻后再画图。
   }
 
   window.Scenes = window.Scenes || {};
   window.Scenes.renderWorkbench = renderWorkbench;
   window.Scenes.renderWorkbenchCharts = renderWorkbenchCharts;
+  window.Scenes.renderWorkbenchOverlays = function () { return [renderAiListOverlay()]; };
 })();

@@ -437,6 +437,11 @@ window.DomainSchema = (function () {
         }
         assertString(evidence, "label", elabel);
         assertString(evidence, "detail", elabel);
+        if (evidence.kind !== "case") {
+          if (!isFiniteNumber(evidence.confidence) || evidence.confidence < 0 || evidence.confidence > 100) {
+            fail(elabel + ".confidence 必须落在 [0,100] 区间内：" + evidence.confidence);
+          }
+        }
         if (evidence.kind === "series" && !ids.points[evidence.pointId]) {
           fail(elabel + ".pointId 悬空：" + evidence.pointId);
         }

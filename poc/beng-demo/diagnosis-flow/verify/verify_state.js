@@ -19,6 +19,7 @@
 var path = require("path");
 
 var ROOT = path.join(__dirname, "..");
+var STORAGE_KEY = "diagnosis-flow-v3-state";
 var DOMAIN_FILES = [
   "00-meta.js", "01-taxonomy.js", "02-records.js", "03-series.js", "04-vision.js",
   "05-diagnosis.js", "06-review.js", "07-report.js", "08-agentqa.js", "09-kb.js"
@@ -26,7 +27,7 @@ var DOMAIN_FILES = [
 
 function makeLocalStorage(initial) {
   var store = {};
-  if (initial !== undefined) store["diagnosis-flow-v1-state"] = JSON.stringify(initial);
+  if (initial !== undefined) store[STORAGE_KEY] = JSON.stringify(initial);
   return {
     getItem: function (key) {
       return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null;
@@ -84,6 +85,8 @@ check("首屏无子屏", S.detail === "");
 check("焦点对象来自 entry", S.focus.objectId === META.entry.objectId);
 check("焦点部位来自 entry", S.focus.partId === META.entry.partId);
 check("选中记录来自 entry", S.pick.workbench === META.entry.recordId);
+check("默认未打开 AI 判断列表浮层", S.pick.workbenchAiListOpen === false);
+check("默认未打开 AI 服务判断浮层", S.pick.workbenchAiService === "");
 check("默认复核人来自 defaultReviewerId", S.review.reviewerId === META.defaultReviewerId);
 check("默认未表决", S.review.vote === "");
 check("默认未选结论", S.review.outcomeId === "");
@@ -188,6 +191,8 @@ function loadWith(patch) {
     focus: { objectId: "OBJ-A", partId: "PART-1" },
     pick: {
       workbench: "REC-001",
+      workbenchAiListOpen: false,
+      workbenchAiService: "",
       trend: { pointId: null },
       vision: { frameId: null, zoomOpen: false },
       knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
@@ -221,6 +226,9 @@ check("非工作台场景强制清空子屏",
 check("其它对象的记录不被当作当前对象的合法选中项",
   loadWith({ focus: { objectId: "OBJ-A", partId: "PART-1" },
     pick: { workbench: "REC-004" } }).pick.workbench !== "REC-004");
+
+check("悬空 AI 服务判断浮层状态被清掉",
+  loadWith({ pick: { workbenchAiService: "ghost" } }).pick.workbenchAiService === "");
 
 var ingest = loadWith({
   pick: { knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 3, ingestOpen: true } }

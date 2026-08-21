@@ -28,9 +28,9 @@ window.DOMAIN_DIAGNOSIS = {
       confidence: 82,
       confidenceBand: "needs-review",
       evidenceChain: [
-        { kind: "series", label: "泵驱动端振动", detail: "当前 5.82mm/s，越过 4.5mm/s 关注线", pointId: "PT-1" },
-        { kind: "vision", label: "联轴器关键帧", detail: "P-1 联轴器和泵驱动端需现场复核", frameId: "FRM-1-CUR" },
-        { kind: "rule", label: "不对中诊断规则", detail: "2X 频谱 + 相位差异常 + 振动升高", ruleId: "R-001" },
+        { kind: "series", label: "泵驱动端振动", detail: "当前 5.82mm/s，越过 4.5mm/s 关注线", pointId: "PT-1", confidence: 86 },
+        { kind: "vision", label: "联轴器关键帧", detail: "P-1 联轴器和泵驱动端需现场复核", frameId: "FRM-1-CUR", confidence: 79 },
+        { kind: "rule", label: "不对中诊断规则", detail: "2X 频谱 + 相位差异常 + 振动升高", ruleId: "R-001", confidence: 82 },
         { kind: "case", label: "P-1 不对中归档案例", detail: "归档后解锁复用", docId: "DOC-CASE", locked: true }
       ],
       summary: "案情摘要：本轮巡检记录未见异常，但模型证据指向 P-1 联轴器疑似不对中，需要人工复核确认。"
@@ -48,9 +48,9 @@ window.DOMAIN_DIAGNOSIS = {
       confidence: 74,
       confidenceBand: "needs-review",
       evidenceChain: [
-        { kind: "series", label: "相位差趋势", detail: "联轴器相位差已进入异常区间", pointId: "PT-2" },
-        { kind: "vision", label: "激光对中仪", detail: "调整前读数可作为复核依据", frameId: "FRM-1-CMP" },
-        { kind: "rule", label: "对中作业记录要求", detail: "复核应留存调整前后读数", ruleId: "R-002" },
+        { kind: "series", label: "相位差趋势", detail: "联轴器相位差已进入异常区间", pointId: "PT-2", confidence: 77 },
+        { kind: "vision", label: "激光对中仪", detail: "调整前读数可作为复核依据", frameId: "FRM-1-CMP", confidence: 72 },
+        { kind: "rule", label: "对中作业记录要求", detail: "复核应留存调整前后读数", ruleId: "R-002", confidence: 74 },
         { kind: "case", label: "对中作业模板卡", detail: "查看标准步骤", docId: "DOC-CARD", locked: false }
       ],
       summary: "案情摘要：本条用于演示巡检记录缺项和作业卡引用。"
@@ -68,9 +68,9 @@ window.DOMAIN_DIAGNOSIS = {
       confidence: 68,
       confidenceBand: "insufficient",
       evidenceChain: [
-        { kind: "series", label: "基础振动趋势", detail: "当前接近关注线但未形成独立异常", pointId: "PT-3" },
-        { kind: "vision", label: "底座基础关键帧", detail: "地脚状态需现场确认", frameId: "FRM-2-CUR" },
-        { kind: "rule", label: "基础并发证据口径", detail: "作为不对中复核的辅助证据", ruleId: "R-003" },
+        { kind: "series", label: "基础振动趋势", detail: "当前接近关注线但未形成独立异常", pointId: "PT-3", confidence: 70 },
+        { kind: "vision", label: "底座基础关键帧", detail: "地脚状态需现场确认", frameId: "FRM-2-CUR", confidence: 66 },
+        { kind: "rule", label: "基础并发证据口径", detail: "作为不对中复核的辅助证据", ruleId: "R-003", confidence: 68 },
         { kind: "case", label: "运行状态监测报告", detail: "查看并发证据说明", docId: "DOC-METRIC", locked: false }
       ],
       summary: "案情摘要：本条用于演示正常/关注项如何作为主线异常的辅助证据。"

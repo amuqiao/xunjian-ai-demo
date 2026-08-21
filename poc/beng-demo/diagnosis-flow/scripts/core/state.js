@@ -38,7 +38,7 @@
 
   // 结构一变就换 key、旧状态整体丢弃，不做半新半旧的字段级兼容——演示机上留一份
   // 半坏状态是最容易在现场翻车的东西。
-  var STORAGE_KEY = "diagnosis-flow-v1-state";
+  var STORAGE_KEY = "diagnosis-flow-v3-state";
 
   var SCENE_ORDER = META.scenes.map(function (scene) { return scene.key; });
   var DETAILS = ["", "trend", "vision"];
@@ -148,6 +148,8 @@
 
       pick: {
         workbench: META.entry.recordId,
+        workbenchAiListOpen: false,
+        workbenchAiService: "",
         trend: { pointId: null },
         vision: { frameId: null, zoomOpen: false },
         knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
@@ -246,6 +248,8 @@
 
     return {
       workbench: workbench,
+      workbenchAiListOpen: source.workbenchAiListOpen === true,
+      workbenchAiService: (["series", "vision", "rule"].indexOf(source.workbenchAiService) >= 0) ? source.workbenchAiService : "",
       trend: { pointId: pointId },
       vision: { frameId: frameId, zoomOpen: visionSource.zoomOpen === true },
       knowledge: {

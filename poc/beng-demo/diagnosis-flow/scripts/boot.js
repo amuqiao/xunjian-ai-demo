@@ -156,6 +156,9 @@
     var Scenes = window.Scenes || {};
     var nodes = [];
     if (typeof Scenes.renderAgentOverlay === "function") nodes.push(Scenes.renderAgentOverlay());
+    if (state.scene === "workbench" && !state.detail && typeof Scenes.renderWorkbenchOverlays === "function") {
+      nodes = nodes.concat(Scenes.renderWorkbenchOverlays());
+    }
     if (state.scene === "knowledge" && typeof Scenes.renderKnowledgeOverlays === "function") {
       nodes = nodes.concat(Scenes.renderKnowledgeOverlays());
     }
@@ -225,6 +228,8 @@
     if (state.scene !== sceneKey) window.SceneTimers.clearScene(state.scene);
     state.scene = sceneKey;
     state.detail = "";
+    state.pick.workbenchAiListOpen = false;
+    state.pick.workbenchAiService = "";
     closeAgentState();
     AppState.markFlowStep(flowStepOfScene(sceneKey));
     commit();
@@ -246,6 +251,8 @@
       // 选中记录时把焦点部位一并对齐：右侧的时序 / 视觉 / AI 判断都按部位取数，
       // 不对齐就会出现"标题是 A 部位、曲线画的是 B 部位"这种只能靠肉眼发现的错配。
       state.focus.partId = AppState.recordById(id).partId;
+      state.pick.workbenchAiListOpen = true;
+      state.pick.workbenchAiService = "";
       state.pick.trend.pointId = null;
       state.pick.vision.frameId = null;
     },
@@ -507,6 +514,8 @@
   function openEvidence(element) {
     var kind = element.dataset.evidenceKind;
     if (element.dataset.evidenceLocked === "true") return;
+    state.pick.workbenchAiListOpen = false;
+    state.pick.workbenchAiService = "";
     if (kind === "series") {
       state.detail = "trend";
       state.pick.trend.pointId = element.dataset.pointId;
@@ -568,8 +577,33 @@
 
     if (action === "open-evidence") return openEvidence(element);
 
+    if (action === "open-ai-list") {
+      state.pick.workbenchAiListOpen = true;
+      state.pick.workbenchAiService = "";
+      return commit();
+    }
+    if (action === "close-ai-list") {
+      state.pick.workbenchAiListOpen = false;
+      state.pick.workbenchAiService = "";
+      return commit();
+    }
+    if (action === "open-ai-service") {
+      var serviceKind = element.dataset.aiServiceKind;
+      if (["series", "vision", "rule"].indexOf(serviceKind) < 0) {
+        throw new Error("[boot] 未知 AI 服务判断类型：" + serviceKind);
+      }
+      state.pick.workbenchAiService = serviceKind;
+      return commit();
+    }
+    if (action === "close-ai-service") {
+      state.pick.workbenchAiService = "";
+      return commit();
+    }
+
     if (action === "open-trend-detail") {
       state.detail = "trend";
+      state.pick.workbenchAiListOpen = false;
+      state.pick.workbenchAiService = "";
       state.pick.trend.pointId = AppState.primaryPoint(state.focus.partId).id;
       AppState.markFlowStep("trend");
       commit();
@@ -577,6 +611,8 @@
     }
     if (action === "open-vision-detail") {
       state.detail = "vision";
+      state.pick.workbenchAiListOpen = false;
+      state.pick.workbenchAiService = "";
       state.pick.vision.frameId = AppState.currentFrameOf(state.focus.partId).id;
       AppState.markFlowStep("vision");
       commit();
@@ -694,6 +730,14 @@
       if (event.key !== "Escape") return;
       if (state.pick.vision.zoomOpen) {
         state.pick.vision.zoomOpen = false;
+        return commit();
+      }
+      if (state.pick.workbenchAiService) {
+        state.pick.workbenchAiService = "";
+        return commit();
+      }
+      if (state.pick.workbenchAiListOpen) {
+        state.pick.workbenchAiListOpen = false;
         return commit();
       }
       if (state.agent.open) {
