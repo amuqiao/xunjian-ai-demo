@@ -13,7 +13,10 @@ window.DOMAIN_VISION = {
   media: {
     pumpCurrent: "media/pump-current.jpg",
     pumpCompare: "media/pump-compare.jpg",
-    pumpClose: "media/pump-close.jpg"
+    pumpClose: "media/pump-close.jpg",
+    faultSeal: "media/faults/mechanical-seal.jpg",
+    faultBearingThermal: "media/faults/bearing-thermal.jpg",
+    faultCavitation: "media/faults/cavitation-impeller.jpg"
   },
 
   frames: [
@@ -59,6 +62,39 @@ window.DOMAIN_VISION = {
       boxLabel: "底座区域 0.84",
       findings: ["底座基础区域识别 0.84", "地脚状态需现场复核 0.79"],
       confidence: 0.84,
+      role: "current"
+    },
+    {
+      id: "FRM-3-CUR",
+      partId: "PART-3",
+      label: "视觉模型 · 机械密封泄漏风险",
+      src: "faultSeal",
+      bbox: { x: 0.15, y: 0.18, w: 0.68, h: 0.58 },
+      boxLabel: "密封泄漏敏感区 0.87",
+      findings: ["机械密封组件识别 0.91", "泄漏敏感区域需现场复核 0.87", "建议补充油迹近景 0.80"],
+      confidence: 0.87,
+      role: "current"
+    },
+    {
+      id: "FRM-4-CUR",
+      partId: "PART-4",
+      label: "视觉模型 · 轴承温升热成像",
+      src: "faultBearingThermal",
+      bbox: { x: 0.26, y: 0.2, w: 0.48, h: 0.52 },
+      boxLabel: "局部热斑 0.84",
+      findings: ["轴承/电机热斑区域识别 0.84", "温度分布存在局部集中 0.81", "建议复核润滑状态 0.78"],
+      confidence: 0.84,
+      role: "current"
+    },
+    {
+      id: "FRM-5-CUR",
+      partId: "PART-5",
+      label: "视觉模型 · 汽蚀损伤样例",
+      src: "faultCavitation",
+      bbox: { x: 0.08, y: 0.18, w: 0.86, h: 0.62 },
+      boxLabel: "汽蚀损伤特征 0.82",
+      findings: ["叶轮汽蚀损伤特征识别 0.82", "压力波动需结合入口条件复核 0.76"],
+      confidence: 0.82,
       role: "current"
     }
   ]

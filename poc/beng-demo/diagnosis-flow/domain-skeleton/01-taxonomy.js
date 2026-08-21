@@ -32,6 +32,36 @@ window.DOMAIN_TAXONOMY = {
       component: "底座 / 地脚螺栓",
       summary: "底座基础振动和地脚状态作为并发证据，用于排查管道约束或基础松动。",
       checkItem: "底座基础振动和地脚状态"
+    },
+    {
+      id: "PART-3",
+      objectId: null,
+      label: "机械密封与泄漏点",
+      short: "机械密封",
+      badge: "泄漏",
+      component: "机械密封 / 泄漏回收口",
+      summary: "机械密封区域出现泄漏风险，需复核油迹、液滴、冲洗管路和密封端面状态。",
+      checkItem: "机械密封及泵体泄漏检查"
+    },
+    {
+      id: "PART-4",
+      objectId: null,
+      label: "泵驱动端轴承",
+      short: "驱动端轴承",
+      badge: "温升",
+      component: "驱动端轴承 / 润滑系统",
+      summary: "轴承温度告警持续升高，需复核润滑、轴承游隙和热成像局部热斑。",
+      checkItem: "轴承温度与润滑状态"
+    },
+    {
+      id: "PART-5",
+      objectId: null,
+      label: "出口管线与泵体流道",
+      short: "出口压力",
+      badge: "工况",
+      component: "出口管线 / 泵体流道",
+      summary: "出口压力波动叠加泵体异响，需复核入口条件、阀位、过滤器压差和汽蚀风险。",
+      checkItem: "出口压力、流量和泵体异响"
     }
   ],
 
@@ -63,6 +93,33 @@ window.DOMAIN_TAXONOMY = {
       unit: "mm/s",
       primary: true,
       threshold: 3.5,
+      safeSide: "below"
+    },
+    {
+      id: "PT-4",
+      partId: "PART-3",
+      label: "泄漏告警指数",
+      unit: "级",
+      primary: true,
+      threshold: 0.7,
+      safeSide: "below"
+    },
+    {
+      id: "PT-5",
+      partId: "PART-4",
+      label: "轴承温度告警",
+      unit: "℃",
+      primary: true,
+      threshold: 75,
+      safeSide: "below"
+    },
+    {
+      id: "PT-6",
+      partId: "PART-5",
+      label: "出口压力波动告警",
+      unit: "MPa",
+      primary: true,
+      threshold: 0.35,
       safeSide: "below"
     }
   ]

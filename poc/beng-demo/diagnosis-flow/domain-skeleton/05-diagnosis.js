@@ -74,6 +74,66 @@ window.DOMAIN_DIAGNOSIS = {
         { kind: "case", label: "运行状态监测报告", detail: "查看并发证据说明", docId: "DOC-METRIC", locked: false }
       ],
       summary: "案情摘要：本条用于演示关注项如何被人工复核为误报反馈。"
+    },
+    {
+      id: "DIAG-005",
+      objectId: "OBJ-A",
+      partId: "PART-3",
+      recordId: "REC-005",
+      suggestion: {
+        outcomeId: "fix",
+        label: "建议结论：确认泄漏风险",
+        text: "机械密封区域视觉模型识别到油迹风险，泄漏告警指数越过关注线，建议现场复核密封端面和冲洗管路并引用机械密封作业卡。"
+      },
+      confidence: 81,
+      confidenceBand: "needs-review",
+      evidenceChain: [
+        { kind: "series", label: "泄漏告警指数", detail: "当前 0.81，越过 0.70 关注线", pointId: "PT-4", confidence: 83 },
+        { kind: "vision", label: "机械密封视觉识别", detail: "密封件和泄漏敏感区域识别 0.87", frameId: "FRM-3-CUR", confidence: 87 },
+        { kind: "rule", label: "机械密封泄漏复核规则", detail: "油迹 + 泄漏趋势 + 密封作业卡", ruleId: "R-004", confidence: 80 },
+        { kind: "case", label: "机械密封更换作业卡", detail: "查看密封复核与处置步骤", docId: "DOC-SEAL-CARD", locked: false }
+      ],
+      summary: "案情摘要：本条用于演示漏油/泄漏场景如何从巡检表单进入视觉识别、时序告警和知识库作业卡。"
+    },
+    {
+      id: "DIAG-006",
+      objectId: "OBJ-A",
+      partId: "PART-4",
+      recordId: "REC-006",
+      suggestion: {
+        outcomeId: "fix",
+        label: "建议结论：确认温升异常",
+        text: "泵驱动端轴承温度告警持续抬升，热成像关键帧显示局部热斑，建议复核润滑状态、轴承游隙和振动伴随变化。"
+      },
+      confidence: 79,
+      confidenceBand: "needs-review",
+      evidenceChain: [
+        { kind: "series", label: "轴承温度告警", detail: "当前 86.4℃，越过 75℃ 关注线", pointId: "PT-5", confidence: 82 },
+        { kind: "vision", label: "轴承热成像关键帧", detail: "热斑区域识别 0.84", frameId: "FRM-4-CUR", confidence: 84 },
+        { kind: "rule", label: "轴承温升复核规则", detail: "温度抬升 + 热斑 + 润滑/轴承票卡", ruleId: "R-005", confidence: 78 },
+        { kind: "case", label: "轴承温升复核作业卡", detail: "查看润滑与轴承复核步骤", docId: "DOC-BEARING-CARD", locked: false }
+      ],
+      summary: "案情摘要：本条用于演示轴承温升场景如何接入时序告警、热成像和知识库复核卡。"
+    },
+    {
+      id: "DIAG-007",
+      objectId: "OBJ-A",
+      partId: "PART-5",
+      recordId: "REC-007",
+      suggestion: {
+        outcomeId: "fix",
+        label: "建议结论：确认工况异常",
+        text: "出口压力波动告警越过关注线，汽蚀损伤样例与泵体异响记录形成旁证，建议复核入口条件、阀位和泵运行工况。"
+      },
+      confidence: 76,
+      confidenceBand: "needs-review",
+      evidenceChain: [
+        { kind: "series", label: "出口压力波动告警", detail: "当前 0.46MPa，越过 0.35MPa 关注线", pointId: "PT-6", confidence: 78 },
+        { kind: "vision", label: "汽蚀损伤视觉样例", detail: "叶轮汽蚀损伤特征识别 0.82", frameId: "FRM-5-CUR", confidence: 82 },
+        { kind: "rule", label: "压力波动与汽蚀复核规则", detail: "压力波动 + 异响 + 入口条件", ruleId: "R-006", confidence: 74 },
+        { kind: "case", label: "压力波动与汽蚀复核说明", detail: "查看工况复核依据", docId: "DOC-CAVITATION-RULE", locked: false }
+      ],
+      summary: "案情摘要：本条用于演示压力异常/汽蚀风险如何从表单项进入时序告警、视觉样例和知识库规则。"
     }
   ],
 
@@ -95,6 +155,24 @@ window.DOMAIN_DIAGNOSIS = {
       title: "基础振动并发证据口径",
       text: "底座基础振动和地脚状态不单独定性不对中，但可作为管道约束、基础松动或轴系异常的辅助判断依据。",
       source: "输油泵机组运行状态监测报告2026年6月-湖南公司"
+    },
+    {
+      id: "R-004",
+      title: "机械密封泄漏复核规则",
+      text: "当机械密封区域出现油迹、液滴或油雾，且泄漏告警指数持续升高时，应复核密封端面、冲洗管路、轴套磨损和泄漏回收状态。",
+      source: "K248 泵机组机械密封更换作业卡；站场设备设施泄漏管理暂行细则"
+    },
+    {
+      id: "R-005",
+      title: "轴承温升复核规则",
+      text: "轴承温度持续抬升并出现热成像局部热斑时，应结合润滑油状态、轴承游隙、振动伴随变化和运行负荷判断是否进入轴承复核。",
+      source: "泵机组润滑油更换作业卡；输油泵机组运行状态监测指标说明"
+    },
+    {
+      id: "R-006",
+      title: "压力波动与汽蚀复核规则",
+      text: "出口压力波动、泵体异响和入口条件异常同时出现时，应复核入口阀位、过滤器压差、流量工况和汽蚀损伤风险。",
+      source: "成品油管道运行规范；输油泵运行维护规程"
     }
   ]
 };

@@ -167,6 +167,21 @@
   line-height: 30px;
   white-space: nowrap;
 }
+.wb-ai-kb-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.wb-ai-kb-links span {
+  color: var(--text-mute);
+  font-size: 12px;
+}
+.wb-ai-kb-link {
+  min-width: 180px;
+  white-space: nowrap;
+}
 
 .overlay-panel.wb-ai-list-overlay { width: min(980px, 84vw); }
 .overlay-panel.wb-ai-list-overlay .overlay-body { padding-top: 14px; padding-bottom: 14px; }

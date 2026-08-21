@@ -167,6 +167,30 @@
     }));
   }
 
+  function renderKnowledgeEvidence(item) {
+    var cases = item.evidenceChain.filter(function (evidence) { return evidence.kind === "case"; });
+    if (!cases.length) return null;
+    return h("div", { class: "wb-ai-kb-links" }, [
+      h("span", { text: "知识库依据" }),
+      cases.map(function (evidence) {
+        var locked = window.EvidenceChain.isLocked(evidence);
+        return h("button", {
+          type: "button",
+          class: "plain-button wb-ai-kb-link",
+          disabled: locked ? "disabled" : null,
+          dataset: {
+            action: "open-evidence",
+            evidenceKind: "case",
+            docId: evidence.docId,
+            evidenceLocked: locked ? "true" : "false",
+            focusKey: "ai-evidence:case"
+          },
+          text: locked ? evidence.label + "（归档后解锁）" : evidence.label
+        });
+      })
+    ]);
+  }
+
   // ---------------------------------------------------------------- 浮动入口 / 浮层
 
   function renderAgentFab() {
@@ -189,7 +213,8 @@
     var body = item
       ? [
         h("p", { class: "wb-ai-list-summary", text: item.suggestion.text }),
-        renderServiceJudgments(item)
+        renderServiceJudgments(item),
+        renderKnowledgeEvidence(item)
       ]
       : [
         h("p", { class: "muted", text: "本条记录没有模型判读结果，请直接进入人工复核。" })

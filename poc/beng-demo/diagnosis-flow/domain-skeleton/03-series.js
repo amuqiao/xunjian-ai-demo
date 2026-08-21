@@ -26,12 +26,15 @@ window.DOMAIN_SERIES = (function () {
     { key: "90d", label: "近 90 天", points: 180, hoursPerPoint: 12 }
   ];
 
-  // 每个测点在"本轮演示"里的剧本：主测点越线（danger），其余平稳。
+  // 每个测点在"本轮演示"里的剧本：诊断工作台表单项统一使用告警型时序。
   // drift 是区间末端相对基线的偏移比例，noise 是抖动幅度（相对基线）。
   var SCENARIO = {
     "PT-1": { base: 2.6, drift: 1.25, noise: 0.07 },
     "PT-2": { base: 28, drift: 1.9, noise: 0.05 },
-    "PT-3": { base: 2.2, drift: 0.65, noise: 0.06 }
+    "PT-3": { base: 2.2, drift: 0.65, noise: 0.06 },
+    "PT-4": { base: 0.32, drift: 1.55, noise: 0.08 },
+    "PT-5": { base: 55, drift: 0.58, noise: 0.04 },
+    "PT-6": { base: 0.18, drift: 1.55, noise: 0.07 }
   };
 
   function rangeDef(rangeKey) {

@@ -389,6 +389,10 @@
     grid-template-columns: minmax(140px, 0.22fr) minmax(0, 1fr) 64px minmax(126px, 0.18fr);
   }
 
+  .wb-ai-kb-links {
+    margin-top: 8px;
+  }
+
   .wb-agent-fab {
     right: 18px;
     width: 44px;
@@ -557,6 +561,11 @@
   .wb-ai-confidence,
   .wb-ai-evidence-entry {
     justify-self: start;
+  }
+
+  .wb-ai-kb-links {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .kb-asset-panel-head,
