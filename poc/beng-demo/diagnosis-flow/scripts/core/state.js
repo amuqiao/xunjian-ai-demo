@@ -38,7 +38,7 @@
 
   // 结构一变就换 key、旧状态整体丢弃，不做半新半旧的字段级兼容——演示机上留一份
   // 半坏状态是最容易在现场翻车的东西。
-  var STORAGE_KEY = "diagnosis-flow-v3-state";
+  var STORAGE_KEY = "diagnosis-flow-v4-state";
 
   var SCENE_ORDER = META.scenes.map(function (scene) { return scene.key; });
   var DETAILS = ["", "trend", "vision"];
@@ -150,6 +150,7 @@
         workbench: META.entry.recordId,
         workbenchAiListOpen: false,
         workbenchAiService: "",
+        reviewArchiveOpen: false,
         trend: { pointId: null },
         vision: { frameId: null, zoomOpen: false },
         knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
@@ -250,6 +251,7 @@
       workbench: workbench,
       workbenchAiListOpen: source.workbenchAiListOpen === true,
       workbenchAiService: (["series", "vision", "rule"].indexOf(source.workbenchAiService) >= 0) ? source.workbenchAiService : "",
+      reviewArchiveOpen: source.reviewArchiveOpen === true,
       trend: { pointId: pointId },
       vision: { frameId: frameId, zoomOpen: visionSource.zoomOpen === true },
       knowledge: {
@@ -335,6 +337,7 @@
     clean.pick = cleanPick(clean.pick, clean.focus);
     clean.agent = cleanAgent(clean.agent);
     clean.review = cleanReview(clean.review);
+    if (!clean.review.executed || clean.scene !== "review") clean.pick.reviewArchiveOpen = false;
     clean.archived = clean.archived === true && clean.review.executed;
 
     // 子屏只属于工作台。持久化状态里 scene=knowledge 且 detail=trend 是一种"合法字段
@@ -430,10 +433,7 @@
 
   function retestFailed() { return state.review.retestPassed === false; }
 
-  function canOpenForState(sceneKey, target) {
-    if (sceneKey === "archive") return target.review.executed === true;
-    return SCENE_ORDER.indexOf(sceneKey) >= 0;
-  }
+  function canOpenForState(sceneKey) { return SCENE_ORDER.indexOf(sceneKey) >= 0; }
 
   function canOpen(sceneKey) { return canOpenForState(sceneKey, state); }
 

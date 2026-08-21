@@ -111,7 +111,7 @@ var AGENTQA = win.DOMAIN_AGENTQA;
 var KB = win.DOMAIN_KB;
 
 // ---- 导航与流程条：数量和 key 都不能靠"手数出来" ----
-check("scenes 恰好 4 项", META.scenes.length === 4);
+check("scenes 恰好 3 项", META.scenes.length === 3);
 check("flowSteps 恰好 6 步", META.flowSteps.length === 6);
 check("flowSteps 不含大屏/站点的步骤（那两步在本 POC 里永远点不亮）",
   META.flowSteps.every(function (step) { return step.key !== "task" && step.key !== "station"; }));

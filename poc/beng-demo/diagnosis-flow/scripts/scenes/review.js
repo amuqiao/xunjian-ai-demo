@@ -1,11 +1,11 @@
 // 场景：人工复核。这是主语从"AI 在组织证据"换成"人在做决定"的那一页。
 //
 // 三段式：① 证据摘要（只读）② 人工介入（ReviewForm 四层）③ 处置路径。
-// 执行之后（state.review.executed）整页切成执行屏——处置票卡 / 闭环卡 + 复测验收。
+// 执行之后（state.review.executed）整页切成执行屏，并弹出轻量报告归档确认浮层。
 //
 // ---- 这一页的三个机关 ----
 // 1. 分歧必填理由：不填则执行按钮不可用（判据在 AppState.canExecute）
-// 2. 复核意见原文进报告：本页只负责写 state.review.note，回显在 archive.js
+// 2. 复核意见原文进报告：本页写 state.review.note，报告预览浮层用 ReportModel 回显
 // 3. 复测不通过可退回本页：executed 置回 false，结论和意见都保留
 //
 // 本文件不绑任何事件，全部走 data-action 交给 boot.js。
@@ -17,6 +17,8 @@
   var ChartOptions = window.ChartOptions;
   var Cards = window.Cards;
   var META = window.DOMAIN_META;
+  var KB = window.DOMAIN_KB;
+  var ReportModel = window.ReportModel;
 
   var sparkIds = [];
 
@@ -175,16 +177,23 @@
     var outcome = AppState.currentOutcome();
     var state = AppState.value;
     var retest = outcome.retest;
-    return AppState.pageShell(
-      "处置闭环 / 执行",
-      outcome.label,
-      h("button", {
+    var action = state.archived
+      ? h("button", {
+        type: "button",
+        class: "plain-button",
+        dataset: { action: "go-knowledge" },
+        text: "去知识库查看"
+      })
+      : h("button", {
         type: "button",
         class: "primary-action",
-        disabled: (retest.enable && state.review.retestPassed !== true) ? "disabled" : null,
-        dataset: { action: "go-archive" },
-        text: "进入报告归档"
-      }),
+        dataset: { action: "open-report-archive" },
+        text: "预览并归档报告"
+      });
+    return AppState.pageShell(
+      "人工复核 / 报告归档",
+      outcome.label,
+      action,
       h("div", { class: "rv-exec-grid" }, [
         h("section", { class: "panel rv-ticket" }, [
           AppState.panelTitle(META.terms.workOrder, outcome.executedText),
@@ -209,6 +218,66 @@
         renderRetestPanel(retest)
       ])
     );
+  }
+
+  // ---------------------------------------------------------------- 报告归档浮层
+
+  function categoryById(categoryId) {
+    var found = KB.categories().filter(function (category) { return category.id === categoryId; })[0];
+    if (!found) throw new Error("[review] 归档分类不存在：" + categoryId);
+    return found;
+  }
+
+  function renderReportSummary(outcome) {
+    var reviewer = AppState.currentReviewer();
+    var category = categoryById(outcome.archive.categoryId);
+    return h("dl", { class: "rv-report-summary" }, [
+      h("dt", { text: "报告标题" }), h("dd", { text: ReportModel.title() }),
+      h("dt", { text: "人工结论" }), h("dd", { text: outcome.label }),
+      h("dt", { text: "复核人" }), h("dd", { text: reviewer.name + "（" + reviewer.role + "）" }),
+      h("dt", { text: "归档去向" }), h("dd", { text: category.title + " · " + ReportModel.caseId() })
+    ]);
+  }
+
+  function renderReportPreview() {
+    return h("div", { class: "rv-report-preview" }, ReportModel.sections().map(function (section) {
+      return h("article", {
+        class: "ar-section" + (section.human ? " human" : ""),
+        dataset: { reportSectionId: section.id }
+      }, [
+        h("div", { class: "ar-section-head" }, [
+          h("i", { class: "dot " + section.status, "aria-hidden": "true" }),
+          h("strong", { text: section.title })
+        ]),
+        h("p", { text: section.text }),
+        section.human ? h("small", { class: "ar-human-tag", text: "人工确认" }) : null
+      ]);
+    }));
+  }
+
+  function renderReportArchiveOverlay() {
+    var state = AppState.value;
+    if (!state.pick.reviewArchiveOpen || !state.review.executed) return null;
+    var outcome = AppState.currentOutcome();
+    if (!outcome) throw new Error("[review] 打开报告归档浮层时必须已选定结论");
+
+    return window.Overlay.render({
+      open: true,
+      title: "报告归档确认",
+      kicker: "人工复核完成后自动生成",
+      body: [
+        renderReportSummary(outcome),
+        h("p", { class: "rv-report-tip", text: "确认后，本报告会进入知识库并可被后续 Agent 检索复用。" }),
+        renderReportPreview()
+      ],
+      actions: [
+        { text: "返回修改", action: "close-report-archive" },
+        { text: "确认归档到知识库", action: "archive-report", primary: true }
+      ],
+      onCloseAction: "close-report-archive",
+      key: "review-report-archive",
+      panelClass: "rv-report-overlay"
+    });
   }
 
   function fieldValueText(fieldId) {
@@ -307,5 +376,6 @@
   window.Scenes = window.Scenes || {};
   window.Scenes.renderReview = renderReview;
   window.Scenes.renderReviewCharts = renderReviewCharts;
+  window.Scenes.renderReviewOverlays = function () { return [renderReportArchiveOverlay()]; };
   window.Scenes.refreshReviewGates = refreshReviewGates;
 })();

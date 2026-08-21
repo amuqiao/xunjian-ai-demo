@@ -10,7 +10,7 @@
 // 只给选项 = 按部就班；只给输入框 = 现场没人愿意当众打字，会尬住。所以两者都要，
 // 而真正让这一页站得住的是三个机关：
 //   1. 分歧时 L3 变必填，不填则执行按钮不可用（见 AppState.canExecute）
-//   2. L3 的原文逐字进报告（见 scenes/archive.js 的 {{reviewNote}} 插槽）
+//   2. L3 的原文逐字进报告（见 review.js 的报告归档确认浮层）
 //   3. 执行屏的复测可以退回本页（见 boot.js 的 retestFail）
 //
 // 组件只产出 DOM，不绑事件、不改状态——所有变更走 data-action 由 boot.js 分发。

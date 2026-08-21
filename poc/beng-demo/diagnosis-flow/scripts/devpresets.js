@@ -94,12 +94,14 @@ window.DevPresets = (function () {
     "archive": function (state) {
       PRESETS["executed"](state);
       state.review.retestPassed = true;
-      state.scene = "archive";
+      state.scene = "review";
+      state.pick.reviewArchiveOpen = true;
     },
 
     "archived": function (state) {
       PRESETS["archive"](state);
       state.archived = true;
+      state.pick.reviewArchiveOpen = false;
     },
 
     "knowledge": function (state) {

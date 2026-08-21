@@ -20,7 +20,7 @@ window.DomainSchema = (function () {
     "DOMAIN_DIAGNOSIS", "DOMAIN_REVIEW", "DOMAIN_REPORT", "DOMAIN_AGENTQA", "DOMAIN_KB"
   ];
 
-  var SCENE_KEYS = ["workbench", "review", "archive", "knowledge"];
+  var SCENE_KEYS = ["workbench", "review", "knowledge"];
   var FLOW_KEYS = ["inspection", "trend", "vision", "agent", "review", "archive"];
   var VOTE_IDS = ["accept", "revise", "reject"];
   var TERM_KEYS = ["object", "part", "record", "inspector", "workOrder"];

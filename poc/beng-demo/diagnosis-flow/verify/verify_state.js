@@ -19,7 +19,7 @@
 var path = require("path");
 
 var ROOT = path.join(__dirname, "..");
-var STORAGE_KEY = "diagnosis-flow-v3-state";
+var STORAGE_KEY = "diagnosis-flow-v4-state";
 var DOMAIN_FILES = [
   "00-meta.js", "01-taxonomy.js", "02-records.js", "03-series.js", "04-vision.js",
   "05-diagnosis.js", "06-review.js", "07-report.js", "08-agentqa.js", "09-kb.js"
@@ -87,6 +87,7 @@ check("焦点部位来自 entry", S.focus.partId === META.entry.partId);
 check("选中记录来自 entry", S.pick.workbench === META.entry.recordId);
 check("默认未打开 AI 判断列表浮层", S.pick.workbenchAiListOpen === false);
 check("默认未打开 AI 服务判断浮层", S.pick.workbenchAiService === "");
+check("默认未打开报告归档确认浮层", S.pick.reviewArchiveOpen === false);
 check("默认复核人来自 defaultReviewerId", S.review.reviewerId === META.defaultReviewerId);
 check("默认未表决", S.review.vote === "");
 check("默认未选结论", S.review.outcomeId === "");
@@ -108,9 +109,9 @@ check("入口记录能取到 AI 建议结论", !!suggestion);
 check("canOpen(workbench) 恒真", AppState.canOpen("workbench") === true);
 check("canOpen(review) 恒真", AppState.canOpen("review") === true);
 check("canOpen(knowledge) 恒真", AppState.canOpen("knowledge") === true);
-check("canOpen(archive) 未执行时为假", AppState.canOpen("archive") === false);
+check("canOpen(archive) 恒假：归档不是顶部场景", AppState.canOpen("archive") === false);
 S.review.executed = true;
-check("canOpen(archive) 执行后为真", AppState.canOpen("archive") === true);
+check("执行后 archive 仍不是可打开场景", AppState.canOpen("archive") === false);
 S.review.executed = false;
 
 // ---- isDivergent ----
@@ -193,6 +194,7 @@ function loadWith(patch) {
       workbench: "REC-001",
       workbenchAiListOpen: false,
       workbenchAiService: "",
+      reviewArchiveOpen: false,
       trend: { pointId: null },
       vision: { frameId: null, zoomOpen: false },
       knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
@@ -229,6 +231,8 @@ check("其它对象的记录不被当作当前对象的合法选中项",
 
 check("悬空 AI 服务判断浮层状态被清掉",
   loadWith({ pick: { workbenchAiService: "ghost" } }).pick.workbenchAiService === "");
+check("未执行复核时报告归档确认浮层被关掉",
+  loadWith({ pick: { reviewArchiveOpen: true } }).pick.reviewArchiveOpen === false);
 
 var ingest = loadWith({
   pick: { knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 3, ingestOpen: true } }

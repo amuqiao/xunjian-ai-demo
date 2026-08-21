@@ -414,6 +414,14 @@
     width: 44px;
     height: 44px;
   }
+
+  .overlay-panel.rv-report-overlay {
+    width: min(1040px, 88vw);
+  }
+
+  .overlay-panel.rv-report-overlay .overlay-body {
+    max-height: min(64vh, 540px);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -441,6 +449,14 @@
   .wb-ai-confidence,
   .wb-ai-evidence-entry {
     justify-self: start;
+  }
+
+  .rv-report-summary {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .overlay-panel.rv-report-overlay {
+    width: 92vw;
   }
 }
 

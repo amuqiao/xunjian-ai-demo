@@ -355,7 +355,7 @@ canArchive  = review.executed === true
 retestFailed= review.retestPassed === false
 ```
 
-**持久化**：`STORAGE_KEY = "diagnosis-flow-v1-state"`。结构一变就换 key、旧状态整体丢弃，**不做半新半旧的字段级兼容**——演示机上留一份半坏状态是最容易在现场翻车的东西（pump-demo 的 key 已经排到 `pump-demo-v10-state`，其中 `pick.overview` 存错值导致整页空白、且刷新也救不回来那次就是教训）。
+**持久化**：`STORAGE_KEY = "diagnosis-flow-v4-state"`。结构一变就换 key、旧状态整体丢弃，**不做半新半旧的字段级兼容**——演示机上留一份半坏状态是最容易在现场翻车的东西（pump-demo 的 key 已经排到 `pump-demo-v10-state`，其中 `pick.overview` 存错值导致整页空白、且刷新也救不回来那次就是教训）。
 
 **两条清洗路径必须分开写**：
 - `normalizeState()` 处理从 localStorage 读出的候选状态 → 值不在字典里就**退回默认**，不抛错（磁盘数据可能来自旧版本或被手改）。
@@ -370,12 +370,12 @@ retestFailed= review.retestPassed === false
 | 分组 | action |
 | --- | --- |
 | 全局 | `reset-demo`、`set-range` |
-| 导航 | `go-workbench`、`go-review`、`go-archive`、`go-knowledge` |
+| 导航 | `go-workbench`、`go-review`、`go-knowledge` |
 | 工作台 | `select-record`（SelectList `name="workbench-record"`）、`open-evidence`（依据链，按 `kind` 分发） |
 | 子屏 | `open-trend-detail`、`open-vision-detail`、`close-detail`、`select-point`、`select-frame`、`zoom-frame`、`close-zoom` |
 | Agent | `open-agent`（带 `contextId`）、`select-agent-question`、`submit-agent-input`、`close-agent` |
-| 复核 | `select-reviewer`、`review-vote`、`select-outcome`、`set-field`、`toggle-flag`、`append-phrase`、`input-note`、`execute-review`、`retest-pass`、`retest-fail` |
-| 归档 | `archive-report` |
+| 复核 | `select-reviewer`、`review-vote`、`select-outcome`、`set-field`、`toggle-flag`、`append-phrase`、`input-note`、`execute-review`、`retest-pass`、`retest-fail`、`open-report-archive`、`close-report-archive` |
+| 归档 | `go-archive`（兼容动作，打开复核页报告归档浮层）、`archive-report` |
 | 知识库 | `select-kb-category`、`open-doc`、`close-doc`、`start-ingest`、`close-ingest` |
 
 ---

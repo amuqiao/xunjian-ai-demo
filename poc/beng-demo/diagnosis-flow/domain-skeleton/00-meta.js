@@ -25,11 +25,10 @@ window.DOMAIN_META = {
     workOrder: "处置票卡"
   },
 
-  // 恰好 4 项，key 必须是这四个（骨架的路由表按 key 匹配）。
+  // 顶部只保留 3 个主场景。报告归档不再是独立页面，而是人工复核里的确认浮层。
   scenes: [
     { key: "workbench", label: "诊断工作台", node: "证据质检" },
     { key: "review", label: "人工复核", node: "专家决策" },
-    { key: "archive", label: "报告归档", node: "案例沉淀" },
     { key: "knowledge", label: "知识库", node: "资料检索" }
   ],
 

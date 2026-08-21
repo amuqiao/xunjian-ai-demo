@@ -38,7 +38,6 @@
     var map = {
       workbench: Scenes.renderWorkbench,
       review: Scenes.renderReview,
-      archive: Scenes.renderArchive,
       knowledge: Scenes.renderKnowledge
     };
     var fn = map[state.scene];
@@ -88,7 +87,7 @@
     if (state.detail === "trend") return "trend";
     if (state.detail === "vision") return "vision";
     if (state.scene === "review") return "review";
-    if (state.scene === "archive" || state.scene === "knowledge") return "archive";
+    if (state.scene === "knowledge") return "archive";
     return "inspection";
   }
 
@@ -148,7 +147,6 @@
     if (state.scene === "workbench" && state.detail) hook = Scenes.renderDetailScreenCharts;
     else if (state.scene === "workbench") hook = Scenes.renderWorkbenchCharts;
     else if (state.scene === "review") hook = Scenes.renderReviewCharts;
-    else if (state.scene === "archive") hook = Scenes.renderArchiveCharts;
     if (typeof hook === "function") hook();
   }
 
@@ -158,6 +156,9 @@
     if (typeof Scenes.renderAgentOverlay === "function") nodes.push(Scenes.renderAgentOverlay());
     if (state.scene === "workbench" && !state.detail && typeof Scenes.renderWorkbenchOverlays === "function") {
       nodes = nodes.concat(Scenes.renderWorkbenchOverlays());
+    }
+    if (state.scene === "review" && typeof Scenes.renderReviewOverlays === "function") {
+      nodes = nodes.concat(Scenes.renderReviewOverlays());
     }
     if (state.scene === "knowledge" && typeof Scenes.renderKnowledgeOverlays === "function") {
       nodes = nodes.concat(Scenes.renderKnowledgeOverlays());
@@ -230,6 +231,7 @@
     state.detail = "";
     state.pick.workbenchAiListOpen = false;
     state.pick.workbenchAiService = "";
+    state.pick.reviewArchiveOpen = false;
     closeAgentState();
     AppState.markFlowStep(flowStepOfScene(sceneKey));
     commit();
@@ -238,7 +240,7 @@
 
   function flowStepOfScene(sceneKey) {
     if (sceneKey === "review") return "review";
-    if (sceneKey === "archive" || sceneKey === "knowledge") return "archive";
+    if (sceneKey === "knowledge") return "archive";
     return "inspection";
   }
 
@@ -469,6 +471,7 @@
     if (!AppState.canExecute()) return;
     state.review.executed = true;
     state.review.retestPassed = null;
+    state.pick.reviewArchiveOpen = true;
     AppState.markFlowStep("archive");
     commit();
     resetScroll();
@@ -488,15 +491,37 @@
     state.review.executed = false;
     state.archived = false;
     state.scene = "review";
+    state.pick.reviewArchiveOpen = false;
     commit();
     resetScroll();
+  }
+
+  function openReportArchive() {
+    if (!state.review.executed) return;
+    state.scene = "review";
+    state.pick.reviewArchiveOpen = true;
+    AppState.markFlowStep("archive");
+    commit();
+  }
+
+  function closeReportArchive() {
+    state.pick.reviewArchiveOpen = false;
+    commit();
   }
 
   function archiveReport() {
     if (!state.review.executed) return;
     state.archived = true;
+    state.pick.reviewArchiveOpen = false;
+    state.scene = "knowledge";
+    state.detail = "";
+    state.pick.knowledge.categoryId = KB.archiveTarget().categoryId;
+    state.pick.knowledge.docId = null;
+    state.pick.knowledge.chunkIndex = null;
+    closeAgentState();
     AppState.markFlowStep("archive");
     commit();
+    resetScroll();
   }
 
   // 归档产物是一篇"运行期才存在"的文档（core/report.js 的 archivedDocument），
@@ -563,7 +588,7 @@
     if (action === "go-scene") return setScene(element.dataset.sceneKey);
     if (action === "go-workbench") return setScene("workbench");
     if (action === "go-review") return setScene("review");
-    if (action === "go-archive") return setScene("archive");
+    if (action === "go-archive") return openReportArchive();
     if (action === "go-knowledge") return setScene("knowledge");
 
     if (action === "set-range") {
@@ -660,6 +685,8 @@
     if (action === "retest-pass") return retestPass();
     if (action === "retest-fail") return retestFail();
 
+    if (action === "open-report-archive") return openReportArchive();
+    if (action === "close-report-archive") return closeReportArchive();
     if (action === "archive-report") return archiveReport();
 
     if (action === "open-doc") {
@@ -738,6 +765,10 @@
       }
       if (state.pick.workbenchAiListOpen) {
         state.pick.workbenchAiListOpen = false;
+        return commit();
+      }
+      if (state.pick.reviewArchiveOpen) {
+        state.pick.reviewArchiveOpen = false;
         return commit();
       }
       if (state.agent.open) {

@@ -102,11 +102,12 @@ def run(page):
     # ---------------------------------------------------------------- 1. 首屏
     print("== 1. 首屏 ==")
     check("顶栏标题已填充", text_of(page, "#brandTitle") != "")
-    check("导航渲染出 4 项", page.locator(".scene-nav-btn").count() == 4)
+    check("导航渲染出 3 项", page.locator(".scene-nav-btn").count() == 3)
+    check("顶部不再有独立报告归档页",
+          page.locator('.scene-nav-btn[data-scene-key="archive"]').count() == 0)
     check("流程条渲染出 6 步", page.locator(".flow-step").count() == 6)
     check("流程条不含大屏/站点的步骤",
           "任务总览" not in text_of(page, ".flow-track"))
-    check("归档页初始锁定", page.locator('.scene-nav-btn[data-scene-key="archive"]').is_disabled())
     check("工作台记录表有行", page.locator(".sl-table-row").count() >= 3)
     check("工作台主页面不渲染 AI 判断卡", page.locator(".wb-ai").count() == 0)
     check("工作台主页面不渲染时序入口卡", page.locator(".wb-trend").count() == 0)
@@ -262,28 +263,25 @@ def run(page):
     check("执行后进入执行屏", page.locator(".rv-exec-grid").count() == 1)
     check("执行屏回显了复核意见原文",
           "占位复核依据" in text_of(page, ".rv-exec-note-body"))
-    check("归档导航已解锁",
-          not page.locator('.scene-nav-btn[data-scene-key="archive"]').is_disabled())
+    check("执行复核后弹出报告归档确认浮层", page.locator(".rv-report-overlay").count() == 1)
     page.screenshot(path=str(SHOTS / "08-executed.png"))
 
-    # ---------------------------------------------------------------- 5. 归档（分歧支线）
-    print("\n== 5. 报告归档（分歧支线）==")
-    page.click('[data-action="go-archive"]')
-    check("进入归档页", page.locator(".ar-grid").count() == 1)
-    divergent_sections = page.locator(".ar-section").count()
-    check("报告含分歧段", page.locator(".ar-section.human").count() >= 2)
+    # ---------------------------------------------------------------- 5. 归档确认浮层（分歧支线）
+    print("\n== 5. 报告归档确认浮层（分歧支线）==")
+    check("没有进入独立归档页", page.locator(".ar-grid").count() == 0)
+    divergent_sections = page.locator(".rv-report-overlay .ar-section").count()
+    check("报告含分歧段", page.locator(".rv-report-overlay .ar-section.human").count() >= 2)
     check("人工原文逐字出现在报告里",
-          "占位复核依据" in text_of(page, ".ar-report"))
-    check("报告标题已解析插槽（不含未替换的花括号）", "{{" not in text_of(page, ".scene-head h2"))
-    check("报告正文不含未替换的插槽", "{{" not in text_of(page, ".ar-report"))
+          "占位复核依据" in text_of(page, ".rv-report-overlay"))
+    check("报告标题已解析插槽（不含未替换的花括号）", "{{" not in text_of(page, ".rv-report-summary"))
+    check("报告正文不含未替换的插槽", "{{" not in text_of(page, ".rv-report-overlay"))
     page.screenshot(path=str(SHOTS / "09-archive-divergent.png"))
 
     page.click('[data-action="archive-report"]')
-    check("归档后按钮变为已归档", page.locator('[data-action="archive-report"]').is_disabled())
+    check("确认归档后直接进入知识库", page.locator(".kb-layout").count() == 1)
 
     # ---------------------------------------------------------------- 6. 知识库
     print("\n== 6. 知识库 ==")
-    page.click('[data-action="go-knowledge"]')
     check("进入知识库", page.locator(".kb-layout").count() == 1)
     # 归档报告落在归档案例分类里，切到那个分类才看得到
     target = page.evaluate("window.DOMAIN_KB.archiveTarget().categoryId")
@@ -348,8 +346,7 @@ def run(page):
     print("\n== 8. 采纳支线：报告段数必须与分歧支线不同 ==")
     page.click('[data-action="reset-demo"]')
     check("重置后回到工作台", page.locator(".wb-layout").count() == 1)
-    check("重置后归档重新锁定",
-          page.locator('.scene-nav-btn[data-scene-key="archive"]').is_disabled())
+    check("重置后顶部仍只有 3 个主场景", page.locator(".scene-nav-btn").count() == 3)
 
     page.click('.scene-nav-btn[data-scene-key="review"]')
     page.click('[data-action="review-vote"][data-vote-id="accept"]')
@@ -358,22 +355,26 @@ def run(page):
     fill_required_selects(page)
     check("采纳支线不填意见也可执行", not page.locator('[data-gate="execute"]').is_disabled())
     page.click('[data-action="execute-review"]')
+    check("采纳支线执行后也弹出报告归档确认浮层", page.locator(".rv-report-overlay").count() == 1)
 
     # 复测退回：demo 里唯一的一条回头路
     if page.locator('[data-action="retest-fail"]').count():
+        page.click('[data-action="close-report-archive"]')
         page.click('[data-action="retest-fail"]')
         check("复测不通过退回复核页", page.locator(".rv-grid").count() == 1)
         check("退回后出现提示横幅", page.locator(".rv-retest-banner").count() == 1)
         check("退回后结论仍保留", page.locator(".rv-outcome.active").count() == 1)
         page.screenshot(path=str(SHOTS / "13-retest-back.png"))
         page.click('[data-action="execute-review"]')
+        page.click('[data-action="close-report-archive"]')
         page.click('[data-action="retest-pass"]')
-        check("复测通过后可进入归档",
-              not page.locator('[data-action="go-archive"]').is_disabled())
+        check("复测通过后可重新打开报告归档浮层",
+              page.locator('[data-action="open-report-archive"]').count() == 1)
 
-    page.click('[data-action="go-archive"]')
-    accept_sections = page.locator(".ar-section").count()
-    check("采纳支线不含分歧段", page.locator(".ar-section#divergence").count() == 0)
+    page.click('[data-action="open-report-archive"]')
+    accept_sections = page.locator(".rv-report-overlay .ar-section").count()
+    check("采纳支线不含分歧段",
+          page.locator('.rv-report-overlay .ar-section[data-report-section-id="divergence"]').count() == 0)
     check(
         "两条支线的报告段数不同（采纳 %d 段 vs 驳回 %d 段）——相同则说明人工介入只是装饰"
         % (accept_sections, divergent_sections),

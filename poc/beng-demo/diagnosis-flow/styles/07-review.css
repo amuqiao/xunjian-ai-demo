@@ -312,6 +312,62 @@
 .rv-retest-fail { border-color: var(--danger); color: var(--danger); }
 .rv-retest-fail:hover { background: rgba(255, 92, 108, 0.12); color: #fff; }
 
+/* ---------------- 报告归档浮层 ---------------- */
+
+.overlay-panel.rv-report-overlay {
+  width: min(1040px, 86vw);
+}
+.overlay-panel.rv-report-overlay .overlay-body {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+  max-height: min(66vh, 560px);
+  overflow: hidden;
+}
+.rv-report-summary {
+  display: grid;
+  grid-template-columns: 90px 1fr 90px 1fr;
+  gap: 7px 12px;
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 12.5px;
+}
+.rv-report-summary dt { color: var(--text-mute); }
+.rv-report-summary dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rv-report-tip {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rv-report-preview {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-gutter: stable;
+}
+.rv-report-preview::-webkit-scrollbar { width: 8px; }
+.rv-report-preview::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.rv-report-preview .ar-section { padding: 9px 11px; }
+.rv-report-preview .ar-section p { line-height: 1.65; }
+
 /* ---------------- 置信度条（跨页复用，随 ReviewForm 一起用） ---------------- */
 
 .confidence { display: flex; align-items: center; gap: 8px; }
