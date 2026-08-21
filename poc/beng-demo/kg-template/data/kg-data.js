@@ -50,7 +50,7 @@
     categories: [
       {
         id: 'c_gb', name: '国家标准', en: 'NATIONAL STANDARDS', code: 'PUMP-GB',
-        color: '#2F6BFF', icon: 'shield', note: '基础规范', docTotal: 13,
+        color: '#2F6BFF', icon: 'shield', note: '基础规范', docTotal: 186,
         desc: '覆盖爆炸性环境、机械设备安装、输油管道设计、工业管道施工、设备标识和设施维护等国家标准。',
         featured: ['d_gb_3836_13', 'd_gb_50253', 'd_gbt_35068'],
         children: [
@@ -85,7 +85,7 @@
       },
       {
         id: 'c_industry', name: '行业标准', en: 'INDUSTRY STANDARDS', code: 'PUMP-SY',
-        color: '#4FB6D8', icon: 'chart', note: '安装运行', docTotal: 2,
+        color: '#4FB6D8', icon: 'chart', note: '安装运行', docTotal: 128,
         desc: '沉淀输油泵组安装和成品油管道运行的行业标准，作为泵机组安装验收和运行复核依据。',
         featured: ['d_syt_0403', 'd_syt_6695'],
         children: [
@@ -103,7 +103,7 @@
       },
       {
         id: 'c_group', name: '集团制度', en: 'GROUP RULES', code: 'PUMP-GGW',
-        color: '#5A72E8', icon: 'stack', note: '管理要求', docTotal: 7,
+        color: '#5A72E8', icon: 'stack', note: '管理要求', docTotal: 156,
         desc: '覆盖资产完整性、生产运行、站场完整性、站内管道和泄漏管理等集团公司制度文件。',
         featured: ['d_qggw_03001_3', 'd_group_run_rule', 'd_group_leak_rule', 'd_qggw_03001_7'],
         children: [
@@ -126,7 +126,7 @@
       },
       {
         id: 'c_hunan', name: '湖南规程指引', en: 'HUNAN GUIDES', code: 'PUMP-HN',
-        color: '#67B7DA', icon: 'doc', note: '现场执行', docTotal: 8,
+        color: '#67B7DA', icon: 'doc', note: '现场执行', docTotal: 168,
         desc: '湖南公司维检修、作业计划、能量隔离、变更管理和泵操作维护规程，是站场执行层的主要依据。',
         featured: ['d_hn_maintenance_guide', 'd_hn_pump_turning', 'd_hn_feed_pump', 'd_hn_main_pump'],
         children: [
@@ -154,7 +154,7 @@
       },
       {
         id: 'c_ticket', name: '一票一卡', en: 'WORK TICKETS', code: 'PUMP-TICKET',
-        color: '#9DC9FF', icon: 'cal', note: '可执行', docTotal: 9,
+        color: '#9DC9FF', icon: 'cal', note: '可执行', docTotal: 218,
         desc: '覆盖泵机组机械密封更换、4000小时维护、10年大修、泄漏报警检查、润滑油更换和就地启停切换操作票。',
         featured: ['d_k248_seal', 'd_k249_4000h', 'd_k250_overhaul', 'd_p202_start'],
         children: [
@@ -179,7 +179,7 @@
       },
       {
         id: 'c_fault', name: '故障案例', en: 'FAULT CASES', code: 'PUMP-CASE',
-        color: '#6F8FB5', icon: 'people', note: '诊断复用', docTotal: 4,
+        color: '#6F8FB5', icon: 'people', note: '诊断复用', docTotal: 126,
         desc: 'Excel 预留故障库类目；演示中补充 P-1 不对中、P-02 振动联锁、P-03 泄漏报警和启泵失败等案例。',
         featured: ['d_case_p1_alignment', 'd_case_p02_vibration', 'd_case_p03_leak'],
         children: [

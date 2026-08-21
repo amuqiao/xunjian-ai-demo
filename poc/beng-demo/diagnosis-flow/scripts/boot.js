@@ -1,4 +1,4 @@
-// 引导层：渲染管线 + action 分发 + 导航 / 流程条。
+// 引导层：渲染管线 + action 分发 + 顶部导航。
 //
 // ---- 分层纪律 ----
 // 场景文件（scripts/scenes/*.js）只负责把 state 渲染成 DOM，**不绑定任何事件监听**。
@@ -47,7 +47,7 @@
     return fn;
   }
 
-  // ---------------------------------------------------------------- 顶栏 / 流程条
+  // ---------------------------------------------------------------- 顶栏
 
   function renderNav() {
     sceneNav.innerHTML = "";
@@ -66,6 +66,7 @@
   }
 
   function renderFlow() {
+    if (!flowTrack) return;
     flowTrack.innerHTML = "";
     META.flowSteps.forEach(function (step, index) {
       var visited = state.flowVisited.indexOf(step.key) >= 0;
@@ -366,9 +367,9 @@
   }
 
   function closeIngest() {
-    // 动画未跑完不许关：关掉就看不到最关键的"命中"那一步了。按钮本身也是 disabled，
-    // 这里是第二道闸（键盘 Esc 也走同一条路径）。
-    if (state.pick.knowledge.ingestStep !== KB.ingestion().length) return;
+    if (state.pick.knowledge.ingestStep < KB.ingestion().length) {
+      state.pick.knowledge.ingestStep = 0;
+    }
     state.pick.knowledge.ingestOpen = false;
     commit();
   }
@@ -809,7 +810,7 @@
     stage = document.getElementById("stage");
     sceneNav = document.getElementById("sceneNav");
     flowTrack = document.getElementById("flowTrack");
-    if (!stage || !sceneNav || !flowTrack) throw new Error("[boot] 页面骨架节点缺失");
+    if (!stage || !sceneNav) throw new Error("[boot] 页面骨架节点缺失");
 
     window.DomainSchema.assertAll();
 

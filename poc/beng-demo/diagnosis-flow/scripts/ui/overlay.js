@@ -1,8 +1,7 @@
 // UI 组件层：浮层外壳。三个浮层（Agent 对话 / 文档阅读器 / 入库动画）共用它。
 //
 // 组件只产出 DOM，不绑事件：关闭按钮带 data-action=onCloseAction，由 boot.js 的事件
-// 委托接。closeDisabled 用于入库动画未跑完时禁止关闭——那一步关掉就看不到最关键的
-// "检索命中"环节了。
+// 委托接。closeDisabled 留给确实需要锁关闭动作的浮层使用。
 //
 // ---- key 是防闪烁的关键 ----
 // 每个浮层必须声明一个稳定的 key，落到 data-overlay-key 上。boot.js 的

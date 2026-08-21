@@ -9,12 +9,17 @@
   --nav-label-border: rgba(118, 169, 213, 0.3);
 
   position: fixed;
-  left: 16px;
-  top: 50%;
+  left: 18px;
+  bottom: 18px;
   z-index: 9999;
-  display: grid;
-  gap: 10px;
-  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid var(--nav-border);
+  border-radius: 999px;
+  background: rgba(6, 17, 31, 0.52);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.30);
+  backdrop-filter: blur(14px);
   pointer-events: none;
 }
 
@@ -30,8 +35,6 @@
   text-decoration: none;
   font: 800 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   background: var(--nav-bg);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(12px);
   pointer-events: auto;
 }
 
@@ -46,8 +49,8 @@
 .inspection-flow-nav a::after {
   content: attr(data-label);
   position: absolute;
-  left: 44px;
-  top: 50%;
+  left: 50%;
+  bottom: 44px;
   min-width: 116px;
   padding: 7px 9px;
   border: 1px solid var(--nav-label-border);
@@ -56,21 +59,22 @@
   white-space: nowrap;
   background: var(--nav-label-bg);
   opacity: 0;
-  transform: translateY(-50%) translateX(-4px);
+  transform: translateX(-50%) translateY(4px);
   transition: opacity 0.16s ease, transform 0.16s ease;
   pointer-events: none;
 }
 
-.inspection-flow-nav a:hover::after,
-.inspection-flow-nav a:focus-visible::after {
+.inspection-flow-nav a:hover::after {
   opacity: 1;
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 @media (max-width: 900px) {
   .inspection-flow-nav {
-    left: 10px;
-    gap: 7px;
+    left: 12px;
+    bottom: 12px;
+    gap: 6px;
+    padding: 6px;
   }
 
   .inspection-flow-nav a {

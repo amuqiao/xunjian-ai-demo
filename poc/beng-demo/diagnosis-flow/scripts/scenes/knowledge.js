@@ -11,9 +11,8 @@
   var AppState = window.AppState;
   var KB = window.DOMAIN_KB;
   var ReportModel = window.ReportModel;
+  var REPORT = window.DOMAIN_REPORT;
   var Overlay = window.Overlay;
-
-  var lastDocBlobUrl = null;
 
   // ---------------------------------------------------------------- 文档集合
 
@@ -177,22 +176,6 @@
 
   // ---------------------------------------------------------------- 文档阅读器
 
-  function docMarkdown(doc) {
-    var lines = ["# " + doc.title, "", "- 分类：" + doc.type, "- 来源：" + doc.source, "- 更新：" + doc.updatedAt, ""];
-    doc.body.forEach(function (paragraph) {
-      lines.push(paragraph);
-      lines.push("");
-    });
-    return lines.join("\n");
-  }
-
-  // 每次生成新的 blob 前先撤销上一个，否则每打开一次文档就泄漏一个 object URL。
-  function docBlobUrl(doc) {
-    if (lastDocBlobUrl) URL.revokeObjectURL(lastDocBlobUrl);
-    lastDocBlobUrl = URL.createObjectURL(new Blob([docMarkdown(doc)], { type: "text/markdown" }));
-    return lastDocBlobUrl;
-  }
-
   function renderDocReader(doc, chunkIndex) {
     var chunks = chunksOf(doc);
     return h("div", { class: "kb-reader" }, [
@@ -208,9 +191,9 @@
         doc.body
           ? h("a", {
             class: "primary-action kb-download",
-            href: docBlobUrl(doc),
-            download: doc.id + ".md",
-            text: "下载 Markdown"
+            href: REPORT.previewPdf.src,
+            download: doc.title + ".pdf",
+            text: "下载 PDF"
           })
           : h("span", { class: "muted", text: "仅摘要，暂无下载" })
       ]),
@@ -338,18 +321,13 @@
   function renderIngestOverlay() {
     var state = AppState.value;
     if (!state.pick.knowledge.ingestOpen) return null;
-    var finished = state.pick.knowledge.ingestStep === KB.ingestion().length;
     return Overlay.render({
       open: true,
       title: "文档入库演示",
       kicker: "上传 → 解析 → 切分 → 向量化 → 入库 → 可检索",
       body: [renderIngestBody()],
-      // 关闭按钮**恒存在**，只切换 disabled。做成"完成后才出现"的话，按钮的出现
-      // 需要重建 footer，而重建 footer 就要重建整个浮层。
-      actions: [{ action: "close-ingest", text: "关闭", primary: true, disabled: !finished }],
+      actions: [],
       onCloseAction: "close-ingest",
-      // 动画没跑完不许关：关掉就看不到最关键的"检索命中"那一步了。
-      closeDisabled: !finished,
       key: "kb-ingest",
       wide: true,
       panelClass: "kb-ingest-overlay"
@@ -400,11 +378,8 @@
     root.querySelector('[data-ingest-part="queryHit"]').textContent =
       finished ? "命中 " + model.hits.length + " 段" : "";
 
-    // 关闭闸门：动画跑完才允许关。两处按钮同时解禁。
     var closeButton = document.querySelector(".kb-ingest-overlay .overlay-close");
-    if (closeButton) closeButton.disabled = !finished;
-    var footButton = document.querySelector('.kb-ingest-overlay [data-action="close-ingest"]');
-    if (footButton) footButton.disabled = !finished;
+    if (closeButton) closeButton.disabled = false;
   }
 
   // ---------------------------------------------------------------- 顶层

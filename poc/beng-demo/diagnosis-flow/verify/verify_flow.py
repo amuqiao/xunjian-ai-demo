@@ -106,9 +106,8 @@ def run(page):
     check("导航渲染出 3 项", page.locator(".scene-nav-btn").count() == 3)
     check("顶部不再有独立报告归档页",
           page.locator('.scene-nav-btn[data-scene-key="archive"]').count() == 0)
-    check("流程条渲染出 6 步", page.locator(".flow-step").count() == 6)
-    check("流程条不含大屏/站点的步骤",
-          "任务总览" not in text_of(page, ".flow-track"))
+    check("底部流程条已移除", page.locator(".flow-rail").count() == 0)
+    check("底部流程步骤不再常驻", page.locator(".flow-step").count() == 0)
     check("工作台记录表有行", page.locator(".sl-table-row").count() >= 3)
     check("工作台主页面不渲染 AI 判断卡", page.locator(".wb-ai").count() == 0)
     check("工作台主页面不渲染时序入口卡", page.locator(".wb-trend").count() == 0)
@@ -209,7 +208,6 @@ def run(page):
     page.screenshot(path=str(SHOTS / "05-agent-miss.png"))
     page.keyboard.press("Escape")
     check("Esc 关闭 Agent 浮层", page.locator(".ag-overlay").count() == 0)
-    check("Agent 步骤已点亮流程条", page.locator(".flow-step.visited").count() >= 4)
 
     # ---------------------------------------------------------------- 4. 复核：分歧支线
     print("\n== 4. 人工复核（分歧支线）==")
@@ -313,12 +311,23 @@ def run(page):
     page.wait_for_timeout(220)
     check("能打开归档报告的阅读器", page.locator(".kb-doc-overlay").is_visible())
     check("归档报告有正文分段", page.locator(".kb-chunk").count() >= 3)
+    check("知识库阅读浮层提供下载 PDF", page.locator('.kb-doc-overlay a[download$=".pdf"]').count() == 1)
+    check("知识库阅读浮层不再显示下载 Markdown", "下载 Markdown" not in text_of(page, ".kb-doc-overlay"))
     page.screenshot(path=str(SHOTS / "10-kb-archived.png"))
     page.keyboard.press("Escape")
 
     page.click('[data-action="start-ingest"]')
     check("入库动画浮层打开", page.locator(".kb-ingest-overlay").count() == 1)
-    check("动画未完成时关闭按钮禁用", page.locator(".kb-ingest-overlay .overlay-close").is_disabled())
+    check("入库浮层不再显示底部关闭按钮", page.locator(".kb-ingest-overlay .overlay-foot").count() == 0)
+    close_box = page.locator(".kb-ingest-overlay .overlay-close").bounding_box()
+    check("入库浮层右上角 X 点击区域已放大",
+          close_box and close_box["width"] >= 44 and close_box["height"] >= 34)
+    check("入库浮层右上角 X 可点击", not page.locator(".kb-ingest-overlay .overlay-close").is_disabled())
+    page.click(".kb-ingest-overlay .overlay-close")
+    check("入库动画未完成时也可用右上角 X 关闭", page.locator(".kb-ingest-overlay").count() == 0)
+
+    page.click('[data-action="start-ingest"]')
+    check("入库动画浮层可重新打开", page.locator(".kb-ingest-overlay").count() == 1)
     # 六步共约 4 秒。整屏渲染次数必须一次都不涨——涨一次就是闪一次。
     before = render_count(page)
     mark(page, ".kb-rag-chunk")
@@ -348,10 +357,9 @@ def run(page):
           render_count(page) == before)
     check("六步推进全程 chunk 卡未被重建（重建会让落下动画反复重播）",
           probe_survived(page, ".kb-rag-chunk"))
-    check("动画跑完后关闭按钮解禁",
-          not page.locator(".kb-ingest-overlay .overlay-close").is_disabled())
     page.screenshot(path=str(SHOTS / "11-ingest.png"))
-    page.click('[data-action="close-ingest"]')
+    page.click(".kb-ingest-overlay .overlay-close")
+    check("点击右上角 X 后关闭入库浮层", page.locator(".kb-ingest-overlay").count() == 0)
 
     page.click(".kb-agent-fab")
     check("知识库 Agent 在归档后多出一条问题",
