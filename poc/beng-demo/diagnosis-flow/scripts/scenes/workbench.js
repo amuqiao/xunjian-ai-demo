@@ -176,7 +176,7 @@
     return h("section", { class: "panel wb-card wb-agent" }, [
       AppState.panelTitle(context.entryTitle, "assistant"),
       h("p", { text: context.entryText }),
-      h("div", { class: "wb-agent-tags" }, context.questions.slice(0, 5).map(function (question) {
+      h("div", { class: "wb-agent-tags" }, context.questions.slice(0, 3).map(function (question) {
         return h("span", { text: question.label });
       })),
       h("button", {
