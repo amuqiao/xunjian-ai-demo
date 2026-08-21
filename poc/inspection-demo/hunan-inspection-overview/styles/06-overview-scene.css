@@ -3,10 +3,11 @@
    的第一/第三行，不在本文件范围内——本文件只管 .stage 内部那一层，三列一行：
 
      div.overview-scene
-       section.panel.ov-left-col      grid-area: left（固定 320px，纵向 4 块）
+       section.panel.ov-left-col      grid-area: left（弹性指标列，纵向 4 块）
        section.panel.ov-map-panel     grid-area: map（05-hunan3d.css 已冻结其
-                                       内部结构，本文件只负责给它分配网格格子）
-       div.ov-right-col               grid-area: right（固定 380px，可纵向滚动）
+                                       内部结构，本文件只负责给它分配网格格子，
+                                       作为省域概览上下文，不再占主导宽度）
+       div.ov-right-col               grid-area: right（弹性指标列，可纵向滚动）
 
    保守 CSS：无嵌套、无 @layer、无容器查询，全部复用 01-tokens.css 的变量。
 
@@ -18,7 +19,7 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(480px, 0.75fr) minmax(1040px, 1.45fr) minmax(480px, 0.75fr);
   grid-template-areas: "left map right";
   gap: 10px;
   overflow: hidden;
@@ -30,7 +31,7 @@
   min-height: 0;
   padding: 14px;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) 180px;
+  grid-template-rows: auto minmax(360px, 1fr) 350px 160px;
   gap: 10px;
   overflow: hidden;
 }
@@ -45,7 +46,7 @@
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(2, 176px) minmax(0, 1fr);
+  grid-template-rows: 240px minmax(0, 1fr);
   gap: 10px;
   overflow-y: auto;
 }
@@ -104,11 +105,19 @@
 
 .ov-rank-card-body {
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
-/* 右栏两张紧凑图表卡：约 260×160，比左栏 card-chart 的默认 220px 更矮，
-   一屏能塞下 2 张 + 下钻区域。覆盖 03-cards.css 的 .card-chart-body 默认
+.ov-rank-card .sl-table-head th {
+  height: 30px;
+}
+
+.ov-rank-card .sl-table-row {
+  height: 34px;
+}
+
+/* 右栏紧凑图表卡：覆盖率图保留右侧百分比标注，剩余高度交给下钻区域。
+   覆盖 03-cards.css 的 .card-chart-body 默认
    min-height，仅在 .ov-right-col 范围内生效，不影响左栏/其它场景的卡片。 */
 
 .ov-right-col .card-chart-body {
@@ -128,11 +137,16 @@
 
 .ov-quality-card {
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 10px;
   background: var(--panel-bg-strong);
   box-shadow: var(--shadow);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
 }
 
 .ov-quality-head {
@@ -140,7 +154,6 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
 }
 
 .ov-quality-title {
@@ -154,18 +167,77 @@
   font-size: 11px;
 }
 
-.ov-quality-grid {
+.ov-quality-focus {
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ov-quality-focus-item {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 10px;
+  background: rgba(12, 18, 42, 0.84);
+  display: grid;
+  align-content: center;
+  text-align: center;
+}
+
+.ov-quality-focus-item.ok {
+  border-color: rgba(48, 198, 157, 0.32);
+}
+
+.ov-quality-focus-item.warn {
+  border-color: rgba(255, 184, 77, 0.4);
+}
+
+.ov-quality-focus-item.danger {
+  border-color: rgba(255, 82, 102, 0.46);
+}
+
+.ov-quality-focus-item span,
+.ov-quality-focus-item em {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-quality-focus-item strong {
+  display: block;
+  overflow: hidden;
+  margin: 5px 0 4px;
+  color: var(--ink);
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 28px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-quality-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(52px, 1fr);
   gap: 6px;
 }
 
 .ov-quality-item {
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 6px 6px;
+  padding: 7px 6px;
   background: var(--surface-bg);
+  display: grid;
+  align-content: center;
+  text-align: center;
 }
 
 .ov-quality-item.ok {
@@ -184,7 +256,7 @@
   display: block;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -192,11 +264,12 @@
 .ov-quality-value {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 3px;
   margin-top: 2px;
   color: var(--ink);
   font-family: "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 18px;
+  font-size: 24px;
   line-height: 1;
 }
 
@@ -211,7 +284,7 @@
   overflow: hidden;
   margin-top: 3px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -239,7 +239,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // 左栏：4 张卡（总体 KPI / 质量指标 / 作业区排名 / 今日动态）
+  // 左栏：4 张卡（总体 KPI / 质量保障 / 作业区排名 / 今日动态）
   // ---------------------------------------------------------------------
 
   function renderKpiCard(state) {
@@ -373,7 +373,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // 右栏：2 张图表卡 + 下钻区域（省域态提示 / 作业区态站点清单+详情）
+  // 右栏：覆盖率图表 + 下钻区域（省域态提示 / 作业区态站点清单+详情）
   // ---------------------------------------------------------------------
 
   function renderProvinceHint() {
@@ -415,22 +415,39 @@
     var range = activeDateRange(state);
     var riskStatus = q.riskLevel === "P1" ? "danger" : (q.riskLevel === "P2" ? "warn" : "ok");
     var completionStatus = q.completionRate < 95 ? "warn" : "ok";
+    var behaviorExceptions = q.duration + q.interval + q.offWindow;
     return h("section", {
       class: "ov-quality-card",
       "data-quality-scope": state.zoneId == null ? "province" : state.zoneId,
     }, [
       h("div", { class: "ov-quality-head" }, [
-        h("span", { class: "ov-quality-title", text: "巡检质量指标" }),
+        h("span", { class: "ov-quality-title", text: "巡检质量保障" }),
         h("small", { text: q.name + " · " + range.shortLabel }),
       ]),
+      h("div", { class: "ov-quality-focus" }, [
+        h("div", { class: "ov-quality-focus-item " + riskStatus }, [
+          h("span", { text: "当前风险" }),
+          h("strong", { text: q.riskLevel }),
+          h("em", { text: q.currentRisk > 0 ? q.currentRisk + "项待处置" : "无P1风险" }),
+        ]),
+        h("div", { class: "ov-quality-focus-item " + completionStatus }, [
+          h("span", { text: "巡检完成率" }),
+          h("strong", { text: q.completionRate.toFixed(1) + "%" }),
+          h("em", { text: q.completed + "/" + q.planned + " 已完成" }),
+        ]),
+        h("div", { class: "ov-quality-focus-item " + metricTone(behaviorExceptions, 2, 5) }, [
+          h("span", { text: "行为异常" }),
+          h("strong", { text: behaviorExceptions + "次" }),
+          h("em", { text: "AI提醒 " + q.aiAlerts + "条" }),
+        ]),
+      ]),
       h("div", { class: "ov-quality-grid" }, [
-        renderQualityMetric("当前风险", q.riskLevel, "", q.currentRisk > 0 ? q.currentRisk + "项" : "无P1", riskStatus),
-        renderQualityMetric("巡检完成率", q.completionRate.toFixed(1), "%", q.completed + "/" + q.planned, completionStatus),
         renderQualityMetric("发现问题数", q.issues, "项", "P1 " + q.p1Issues, metricTone(q.issues, 1, 4)),
         renderQualityMetric("时长异常", q.duration, "次", "<10min", metricTone(q.duration, 1, 3)),
         renderQualityMetric("间隔异常", q.interval, "次", "<10s", metricTone(q.interval, 1, 3)),
         renderQualityMetric("时段异常", q.offWindow, "次", "偏移30min", metricTone(q.offWindow, 1, 2)),
         renderQualityMetric("AI 提醒", q.aiAlerts, "条", "时序/轨迹", metricTone(q.aiAlerts, 1, 3)),
+        renderQualityMetric("计划巡检", q.planned, "项", "已完成 " + q.completed, completionStatus),
       ]),
     ]);
   }
@@ -506,7 +523,6 @@
   function renderRightColumn(state) {
     assertLoaded();
     return h("div", { class: "ov-right-col" }, [
-      window.Cards.chart({ title: "作业区状态分布" , chartId: "chart-zone-status-mix" }),
       window.Cards.chart({ title: "作业区巡检覆盖率", chartId: "chart-zone-coverage" }),
       renderDrillSection(state),
     ]);
@@ -521,7 +537,6 @@
     window.Charts.draw("chart-coverage-trend", window.ChartOptions.inspectionCoverageTrend({
       pointCount: dateRangePointCount(range, new Date()),
     }));
-    window.Charts.draw("chart-zone-status-mix", window.ChartOptions.zoneStatusMix());
     window.Charts.draw("chart-zone-coverage", window.ChartOptions.zoneCoverageRows());
   }
 

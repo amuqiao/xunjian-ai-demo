@@ -172,7 +172,7 @@
     if (!rows.length) throw new Error("[ChartOptions] zoneCoverageRows() 需要至少一行有效数据");
 
     return {
-      grid: { left: 76, right: 44, top: 8, bottom: 8 },
+      grid: { left: 76, right: 56, top: 8, bottom: 8 },
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "shadow" },
@@ -197,6 +197,13 @@
       series: [{
         type: "bar",
         barWidth: 10,
+        label: {
+          show: true,
+          position: "right",
+          formatter: "{c}%",
+          color: theme.ink,
+          fontSize: 10
+        },
         data: rows.map(function (row) { return { value: row.coverageRate, itemStyle: { color: theme.accent } }; })
       }]
     };
