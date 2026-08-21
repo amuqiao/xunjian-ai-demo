@@ -235,6 +235,10 @@ AGENTQA.contexts.forEach(function (context) {
   check("Agent 上下文 " + context.id + " 的 fallbackAnswer 非空",
     typeof context.fallbackAnswer === "string" && context.fallbackAnswer.length > 0);
 });
+check("诊断工作台 Agent 预设问答为 8 条",
+  AGENTQA.contexts.filter(function (context) { return context.id === "workbench"; })[0].questions.length === 8);
+check("知识库 Agent 预设问答为 8 条",
+  AGENTQA.contexts.filter(function (context) { return context.id === "knowledge"; })[0].questions.length === 8);
 check("存在 unlockedBy:archived 的问题（二次命中包袱）",
   AGENTQA.contexts.some(function (c) {
     return c.questions.some(function (q) { return q.unlockedBy === "archived"; });

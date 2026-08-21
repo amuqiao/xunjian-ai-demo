@@ -24,61 +24,98 @@ window.DOMAIN_AGENTQA = {
       questions: [
         {
           id: "wb-q1",
-          label: "为什么疑似不对中?",
-          question: "为什么判断 P-1 疑似不对中？",
+          label: "为什么要复核?",
+          question: "为什么这个巡检项需要进入人工复核？",
           thinkingText: "正在检索知识库…",
-          answer: "P-1 泵驱动端振动升至 5.82mm/s，联轴器相位差约 81°，并出现 2X 频谱成分突出；底座基础振动偏大作为并发证据，因此建议进入联轴器不对中复核。",
+          answer: "当前记录虽然人工巡检写为未见异常，但告警数据已出现越线，且模型证据指向联轴器不对中风险。Agent 只能组织证据，不能替代专家结论，因此建议进入人工复核。",
           hit: true,
           hits: [
             { kind: "rule", text: "不对中诊断专家规则", docId: "DOC-STD", chunkIndex: 1 },
-            { kind: "metric", text: "振动关注线和复核口径", docId: "DOC-STD", chunkIndex: 2 },
             { kind: "current", text: "P-1 当前时序与巡检记录", docId: "DOC-CASE", chunkIndex: 0 }
           ]
         },
         {
           id: "wb-q2",
-          label: "现场先复核什么?",
-          question: "现场复核优先看什么？",
+          label: "更像哪类故障?",
+          question: "当前更像哪一类输油泵故障？",
           thinkingText: "正在检索知识库…",
-          answer: "优先复核联轴器对中状态、激光对中仪调整前后读数、泵驱动端轴承振动、底座地脚螺栓和管道约束。复核结果应与趋势、频谱和现场照片一起进入专家确认。",
+          answer: "当前主线更像联轴器不对中：泵驱动端振动升高、相位差异常、2X 频谱突出。新增表单项也覆盖机械密封泄漏、轴承温升和出口压力/汽蚀风险，演示时可切换记录分别查看对应证据。",
           hit: true,
           hits: [
-            { kind: "workcard", text: "输油泵对中作业卡", docId: "DOC-CARD", chunkIndex: 1 },
-            { kind: "rule", text: "相位差和 2X 频谱口径", docId: "DOC-STD", chunkIndex: 1 }
+            { kind: "rule", text: "联轴器不对中复核口径", docId: "DOC-STD", chunkIndex: 1 },
+            { kind: "workcard", text: "机械密封泄漏复核卡", docId: "DOC-SEAL-CARD", chunkIndex: 1 },
+            { kind: "workcard", text: "轴承温升复核作业卡", docId: "DOC-BEARING-CARD", chunkIndex: 1 },
+            { kind: "rule", text: "压力波动与汽蚀复核说明", docId: "DOC-CAVITATION-RULE", chunkIndex: 1 }
           ]
         },
         {
           id: "wb-q3",
-          label: "5.82 和 81°说明什么?",
-          question: "振动 5.82mm/s、相位差 81° 说明什么？",
+          label: "告警数据说明?",
+          question: "告警数据主要说明了什么？",
           thinkingText: "正在检索知识库…",
-          answer: "5.82mm/s 已越过 4.5mm/s 关注线，81° 相位差也超过演示关注区间；两者同时出现时，不能只看人工“未见异常”记录，应进入联轴器不对中复核。",
+          answer: "告警数据说明当前状态已经超过演示关注线，不能只依赖现场“未见异常”的文字记录。对于 P-1 主线，泵驱动端振动 5.82mm/s 已越过 4.5mm/s 关注线，应结合相位差和 2X 频谱复核。",
           hit: true,
           hits: [
-            { kind: "metric", text: "振动关注线", docId: "DOC-STD", chunkIndex: 2 },
-            { kind: "case", text: "P-1 当前异常特征", docId: "DOC-CASE", chunkIndex: 0 }
+            { kind: "metric", text: "振动关注线和复核口径", docId: "DOC-STD", chunkIndex: 2 },
+            { kind: "current", text: "P-1 当前异常特征", docId: "DOC-CASE", chunkIndex: 0 }
           ]
         },
         {
           id: "wb-q4",
-          label: "要生成处置票卡吗?",
-          question: "是否需要生成对中处置票卡？",
+          label: "视觉证据怎么看?",
+          question: "视觉模型证据应该怎么看？",
           thinkingText: "正在检索知识库…",
-          answer: "不能由 Agent 直接决定。当前知识库能说明对中作业内容和复核边界，但是否生成处置票卡还需要专家确认停机窗口、安全措施和现场作业条件。",
-          hit: false,
-          hits: []
+          answer: "视觉证据用于补充现场可见状态，不单独下结论。对于不对中主线，应看联轴器、底座和地脚状态；对于泄漏记录，应看机械密封区域油迹、液滴和泄漏回收口。",
+          hit: true,
+          hits: [
+            { kind: "case", text: "现场照片与复核资料", docId: "DOC-CASE", chunkIndex: 1 },
+            { kind: "workcard", text: "机械密封泄漏视觉复核", docId: "DOC-SEAL-CARD", chunkIndex: 0 }
+          ]
         },
         {
           id: "wb-q5",
-          label: "复测看哪些指标?",
-          question: "处置后复测要看哪些指标？",
+          label: "漏油怎么复核?",
+          question: "机械密封漏油类记录应该怎么复核？",
           thinkingText: "正在检索知识库…",
-          answer: "重点复测泵驱动端振动、联轴器相位差、基础振动和现场外观状态，并把调整前后数值回填处置票卡；P-1 案例中振动由 5.82mm/s 回落至 1.80mm/s，可作为演示闭环参考。",
+          answer: "应检查密封端面、轴套磨损、冲洗管路、冷却水状态和泄漏回收口；如果视觉模型识别到密封区域油迹，且泄漏告警指数持续越线，应补拍近景并交由人工确认是否生成机械密封票卡。",
           hit: true,
           hits: [
-            { kind: "workcard", text: "作业完成后的复测要求", docId: "DOC-CARD", chunkIndex: 2 },
-            { kind: "case", text: "P-1 处置后复测结果", docId: "DOC-CASE", chunkIndex: 2 }
+            { kind: "workcard", text: "机械密封泄漏复核项", docId: "DOC-SEAL-CARD", chunkIndex: 0 },
+            { kind: "workcard", text: "泄漏告警与近景复核", docId: "DOC-SEAL-CARD", chunkIndex: 1 }
           ]
+        },
+        {
+          id: "wb-q6",
+          label: "温升怎么判断?",
+          question: "轴承温升类记录应该怎么判断？",
+          thinkingText: "正在检索知识库…",
+          answer: "轴承温升不能只看单点温度，应同时复核运行负荷、润滑油位、油质、轴承箱异响和振动伴随变化。热成像出现局部热斑且温度曲线持续抬升时，再进入润滑或轴承状态复核。",
+          hit: true,
+          hits: [
+            { kind: "workcard", text: "轴承温升复核边界", docId: "DOC-BEARING-CARD", chunkIndex: 0 },
+            { kind: "workcard", text: "热成像与润滑复核", docId: "DOC-BEARING-CARD", chunkIndex: 1 }
+          ]
+        },
+        {
+          id: "wb-q7",
+          label: "汽蚀怎么复核?",
+          question: "出口压力波动或汽蚀风险应该怎么复核？",
+          thinkingText: "正在检索知识库…",
+          answer: "出口压力波动需要结合入口压力、阀位、过滤器压差、流量设定和运行工况判断；当压力波动、泵体异响和振动升高同时出现时，才重点关注入口条件不足、汽蚀风险或工况切换影响。",
+          hit: true,
+          hits: [
+            { kind: "rule", text: "压力波动复核条件", docId: "DOC-CAVITATION-RULE", chunkIndex: 0 },
+            { kind: "rule", text: "汽蚀风险组合特征", docId: "DOC-CAVITATION-RULE", chunkIndex: 1 }
+          ]
+        },
+        {
+          id: "wb-q8",
+          label: "能直接开票吗?",
+          question: "Agent 能否直接决定生成处置票卡？",
+          thinkingText: "正在检索知识库…",
+          answer: "不能。Agent 只能组织告警、视觉和知识库依据；是否采纳、修正或驳回，需要人工复核确认停机窗口、安全措施和现场作业条件。",
+          hit: false,
+          hits: []
         }
       ]
     },
@@ -137,19 +174,73 @@ window.DOMAIN_AGENTQA = {
       questions: [
         {
           id: "kb-q1",
-          label: "不对中依据是什么?",
+          label: "有哪些故障经验?",
+          question: "知识库里有哪些输油泵故障经验？",
+          thinkingText: "正在检索知识库…",
+          answer: "当前知识库覆盖四类演示故障经验：联轴器不对中、机械密封泄漏、轴承温升、出口压力波动/汽蚀风险。每类都保留复核边界、现场证据和票卡或规则依据。",
+          hit: true,
+          hits: [
+            { kind: "standard", text: "不对中复核边界", docId: "DOC-STD", chunkIndex: 1 },
+            { kind: "workcard", text: "机械密封泄漏复核", docId: "DOC-SEAL-CARD", chunkIndex: 0 },
+            { kind: "workcard", text: "轴承温升复核", docId: "DOC-BEARING-CARD", chunkIndex: 0 },
+            { kind: "rule", text: "出口压力与汽蚀复核", docId: "DOC-CAVITATION-RULE", chunkIndex: 0 }
+          ]
+        },
+        {
+          id: "kb-q2",
+          label: "漏油依据是什么?",
+          question: "漏油类故障有哪些处置依据？",
+          thinkingText: "正在检索知识库…",
+          answer: "漏油类故障主要参考机械密封复核卡：检查密封端面、轴套磨损、冲洗管路、冷却水状态和泄漏回收口；视觉识别到密封油迹且泄漏告警越线时，再确认是否生成机械密封票卡。",
+          hit: true,
+          hits: [
+            { kind: "workcard", text: "机械密封泄漏复核项", docId: "DOC-SEAL-CARD", chunkIndex: 0 },
+            { kind: "workcard", text: "泄漏告警与近景复核", docId: "DOC-SEAL-CARD", chunkIndex: 1 },
+            { kind: "workcard", text: "泄漏处置后复核", docId: "DOC-SEAL-CARD", chunkIndex: 2 }
+          ]
+        },
+        {
+          id: "kb-q3",
+          label: "温升参考什么?",
+          question: "轴承温升应参考哪些规则？",
+          thinkingText: "正在检索知识库…",
+          answer: "轴承温升应先看运行负荷、润滑油位、油质、轴承箱异响和振动伴随变化。热成像热斑和温度曲线持续抬升时，应复核润滑不足、轴承游隙、安装偏差和冷却条件。",
+          hit: true,
+          hits: [
+            { kind: "workcard", text: "轴承温升复核边界", docId: "DOC-BEARING-CARD", chunkIndex: 0 },
+            { kind: "workcard", text: "热成像与润滑复核", docId: "DOC-BEARING-CARD", chunkIndex: 1 },
+            { kind: "workcard", text: "处置记录要求", docId: "DOC-BEARING-CARD", chunkIndex: 2 }
+          ]
+        },
+        {
+          id: "kb-q4",
+          label: "汽蚀如何复核?",
+          question: "汽蚀或压力波动如何复核？",
+          thinkingText: "正在检索知识库…",
+          answer: "压力波动不能直接等同设备故障，应结合入口压力、阀位、过滤器压差、流量设定和运行工况判断。若压力波动、泵体异响和振动升高同时出现，再重点复核入口条件和汽蚀风险。",
+          hit: true,
+          hits: [
+            { kind: "rule", text: "压力波动复核口径", docId: "DOC-CAVITATION-RULE", chunkIndex: 0 },
+            { kind: "rule", text: "汽蚀风险组合特征", docId: "DOC-CAVITATION-RULE", chunkIndex: 1 },
+            { kind: "rule", text: "复核记录要求", docId: "DOC-CAVITATION-RULE", chunkIndex: 2 }
+          ]
+        },
+        {
+          id: "kb-q5",
+          label: "不对中依据?",
           question: "输油泵不对中的判定依据是什么？",
           thinkingText: "正在检索知识库…",
           answer: "本演示按泵驱动端振动升高、联轴器相位差异常、2X 频谱突出三类证据组织不对中复核；底座基础振动和管道约束作为辅助排查项。",
           hit: true,
           hits: [
             { kind: "standard", text: "不对中复核边界", docId: "DOC-STD", chunkIndex: 1 },
+            { kind: "metric", text: "振动关注线", docId: "DOC-STD", chunkIndex: 2 },
             { kind: "case", text: "P-1 当前异常特征", docId: "DOC-CASE", chunkIndex: 0 }
           ]
         },
         {
-          id: "kb-q2",
-          label: "作业卡记录什么?",
+          id: "kb-q6",
+          label: "票卡记录什么?",
           question: "对中作业卡需要记录哪些内容？",
           thinkingText: "正在检索知识库…",
           answer: "对中作业卡应记录停机挂牌、风险交底、激光对中仪调整前读数、联轴器相位状态、地脚垫片调整情况，以及作业完成后的振动、相位差和基础振动复测结果。",
@@ -161,34 +252,22 @@ window.DOMAIN_AGENTQA = {
           ]
         },
         {
-          id: "kb-q3",
-          label: "阈值是多少?",
-          question: "泵驱动端振动和相位差阈值是多少？",
+          id: "kb-q7",
+          label: "报告怎么复用?",
+          question: "刚归档的复核报告能被 Agent 如何复用？",
           thinkingText: "正在检索知识库…",
-          answer: "演示口径中泵驱动端振动关注线为 4.5mm/s；P-1 当前 5.82mm/s 已越线，联轴器相位差约 81°，需要结合 2X 频谱和现场复测综合判断。",
-          hit: true,
-          hits: [
-            { kind: "metric", text: "泵驱动端振动关注线", docId: "DOC-STD", chunkIndex: 2 },
-            { kind: "case", text: "P-1 当前时序与巡检记录", docId: "DOC-CASE", chunkIndex: 0 }
-          ]
-        },
-        {
-          id: "kb-q4",
-          label: "案例能复用什么?",
-          question: "P-1 归档案例后续能复用什么？",
-          thinkingText: "正在检索知识库…",
-          answer: "P-1 案例归档后，后续相似复检可以复用复核路径、作业清单、复测指标和报告结构；但是否确认不对中仍需依据当次现场复核重新判断。",
+          answer: "归档报告可作为后续相似记录的复核路径、作业清单、复测指标和报告结构参考；但不能直接继承上一次结论，仍需依据当次现场复核重新判断。",
           hit: true,
           hits: [
             { kind: "case", text: "P-1 不对中归档案例", docId: "DOC-CASE", chunkIndex: 3 }
           ]
         },
         {
-          id: "kb-q5",
-          label: "有哪些作业资料?",
-          question: "机械密封、轴承、联轴器相关作业资料有哪些？",
+          id: "kb-q8",
+          label: "能查全部原文吗?",
+          question: "Agent 能否检索所有集团制度和审批权限原文？",
           thinkingText: "正在检索知识库…",
-          answer: "当前知识库已整理对中作业卡作为主线资料，并在知识图谱中保留轴承拆装、机械密封更换、联轴器中间节拆装、润滑油更换等作业模板条目；诊断台本轮只展开对中作业卡正文。",
+          answer: "当前演示知识库只接入少量报告、规则和作业卡样例，暂不包含完整集团制度原文和审批权限矩阵。真实上线后应由业务侧补齐制度库、权限口径和版本有效性。",
           hit: false,
           hits: []
         }
