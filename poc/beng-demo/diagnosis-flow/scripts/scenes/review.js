@@ -8,6 +8,7 @@
   var AppState = window.AppState;
   var META = window.DOMAIN_META;
   var REVIEW = window.DOMAIN_REVIEW;
+  var REPORT = window.DOMAIN_REPORT;
   var KB = window.DOMAIN_KB;
   var ReportModel = window.ReportModel;
 
@@ -231,20 +232,18 @@
     ]);
   }
 
-  function renderReportPreview() {
-    return h("div", { class: "rv-report-preview" }, ReportModel.sections().map(function (section) {
-      return h("article", {
-        class: "ar-section" + (section.human ? " human" : ""),
-        dataset: { reportSectionId: section.id }
-      }, [
-        h("div", { class: "ar-section-head" }, [
-          h("i", { class: "dot " + section.status, "aria-hidden": "true" }),
-          h("strong", { text: section.title })
-        ]),
-        h("p", { text: section.text }),
-        section.human ? h("small", { class: "ar-human-tag", text: "人工确认" }) : null
-      ]);
-    }));
+  function renderPdfReportPreview() {
+    var pdf = REPORT.previewPdf;
+    return h("div", { class: "rv-pdf-preview" }, [
+      h("iframe", {
+        class: "rv-pdf-frame",
+        title: pdf.title,
+        src: pdf.src
+      }),
+      h("p", { class: "rv-pdf-fallback" }, [
+        h("span", { text: "如浏览器未显示 PDF，可使用下方下载按钮。" })
+      ])
+    ]);
   }
 
   function renderReportArchiveOverlay() {
@@ -259,11 +258,12 @@
       kicker: "由人工复核结果自动生成",
       body: [
         renderReportSummary(outcome),
-        h("p", { class: "rv-report-tip", text: "确认后写入知识库。本页不跳转，后续可从顶部知识库查看归档结果。" }),
-        renderReportPreview()
+        h("p", { class: "rv-report-tip", text: "以下为已生成的 PDF 报告预览。确认后写入知识库，本页不跳转。" }),
+        renderPdfReportPreview()
       ],
       actions: [
         { text: "返回修改", action: "close-report-archive" },
+        { text: "下载 PDF", href: REPORT.previewPdf.src, download: REPORT.previewPdf.filename },
         { text: "归档到知识库", action: "archive-report", primary: true }
       ],
       onCloseAction: "close-report-archive",

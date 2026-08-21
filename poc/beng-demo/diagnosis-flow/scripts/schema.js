@@ -559,6 +559,16 @@ window.DomainSchema = (function () {
 
   function assertReport(report, review) {
     assertString(report, "titleTpl", "DOMAIN_REPORT");
+    if (!report.previewPdf || typeof report.previewPdf !== "object") fail("DOMAIN_REPORT.previewPdf 缺失");
+    ["title", "src", "filename"].forEach(function (field) {
+      assertString(report.previewPdf, field, "DOMAIN_REPORT.previewPdf");
+    });
+    if (/^(?:[A-Za-z]+:|\/)/.test(report.previewPdf.src) || report.previewPdf.src.indexOf("..") >= 0) {
+      fail("DOMAIN_REPORT.previewPdf.src 必须是 diagnosis-flow 内的相对路径：" + report.previewPdf.src);
+    }
+    if (!/\.pdf(?:$|\?)/i.test(report.previewPdf.src)) {
+      fail("DOMAIN_REPORT.previewPdf.src 必须指向 PDF 文件：" + report.previewPdf.src);
+    }
     assertNonEmptyArray(report.sections, "DOMAIN_REPORT.sections");
     assertUniqueIds(report.sections, "id", "DOMAIN_REPORT.sections");
     assertNonEmptyArray(report.slots, "DOMAIN_REPORT.slots");

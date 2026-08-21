@@ -22,6 +22,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INDEX = ROOT / "index.html"
+PDF_REPORT = ROOT / "assets" / "reports" / "demo-diagnosis-report.pdf"
 SHOTS = pathlib.Path("/private/tmp/diagnosis-flow-shots")
 
 passed = 0
@@ -265,22 +266,28 @@ def run(page):
     check("重新填入后再次解禁", not page.locator('[data-gate="execute"]').is_disabled())
 
     page.click('[data-action="execute-review"]')
+    page.wait_for_selector(".rv-report-overlay", state="visible")
+    page.wait_for_timeout(220)
     check("执行后仍停留人工复核主页面", page.locator(".rv-review-page").count() == 1)
     check("执行后没有完成态页面", page.locator(".rv-done-page").count() == 0)
-    check("执行复核后弹出报告确认浮层", page.locator(".rv-report-overlay").count() == 1)
-    check("报告回显了复核意见原文",
-          "占位复核依据" in text_of(page, ".rv-report-overlay"))
+    check("执行复核后弹出报告确认浮层", page.locator(".rv-report-overlay").is_visible())
+    check("报告浮层内嵌 PDF 预览", page.locator(".rv-report-overlay .rv-pdf-frame").count() == 1)
+    check("PDF 预览使用项目内相对路径",
+          "assets/reports/demo-diagnosis-report.pdf" in page.locator(".rv-pdf-frame").get_attribute("src"))
+    check("报告浮层提供下载 PDF",
+          page.locator('.rv-report-overlay a[download="输油泵智能诊断报告.pdf"]').is_visible())
     page.screenshot(path=str(SHOTS / "08-executed.png"))
 
     # ---------------------------------------------------------------- 5. 归档确认浮层（分歧支线）
     print("\n== 5. 报告归档确认浮层（分歧支线）==")
     check("没有进入独立归档页", page.locator(".ar-grid").count() == 0)
-    divergent_sections = page.locator(".rv-report-overlay .ar-section").count()
-    check("报告含分歧段", page.locator(".rv-report-overlay .ar-section.human").count() >= 2)
-    check("人工原文逐字出现在报告里",
-          "占位复核依据" in text_of(page, ".rv-report-overlay"))
+    divergent_sections = page.evaluate("() => window.ReportModel.sections().length")
+    check("报告模型含分歧段",
+          page.evaluate("() => window.ReportModel.sections().some(s => s.id === 'divergence' && s.human)") is True)
+    check("人工原文逐字进入报告模型",
+          page.evaluate("() => window.ReportModel.sections().some(s => s.text.indexOf('占位复核依据') >= 0)") is True)
     check("报告标题已解析插槽（不含未替换的花括号）", "{{" not in text_of(page, ".rv-report-summary"))
-    check("报告正文不含未替换的插槽", "{{" not in text_of(page, ".rv-report-overlay"))
+    check("PDF 浮层文案不含未替换的插槽", "{{" not in text_of(page, ".rv-report-overlay"))
     page.screenshot(path=str(SHOTS / "09-archive-divergent.png"))
 
     page.click('[data-action="archive-report"]')
@@ -364,11 +371,13 @@ def run(page):
     check("采纳后不出现分歧条", page.locator(".rv-divergence").count() == 0)
     check("采纳支线不填意见也可执行", not page.locator('[data-gate="execute"]').is_disabled())
     page.click('[data-action="execute-review"]')
-    check("采纳支线执行后也弹出报告归档确认浮层", page.locator(".rv-report-overlay").count() == 1)
+    page.wait_for_selector(".rv-report-overlay", state="visible")
+    page.wait_for_timeout(220)
+    check("采纳支线执行后也弹出报告归档确认浮层", page.locator(".rv-report-overlay").is_visible())
 
-    accept_sections = page.locator(".rv-report-overlay .ar-section").count()
+    accept_sections = page.evaluate("() => window.ReportModel.sections().length")
     check("采纳支线不含分歧段",
-          page.locator('.rv-report-overlay .ar-section[data-report-section-id="divergence"]').count() == 0)
+          page.evaluate("() => window.ReportModel.sections().some(s => s.id === 'divergence')") is False)
     check(
         "两条支线的报告段数不同（采纳 %d 段 vs 驳回 %d 段）——相同则说明人工介入只是装饰"
         % (accept_sections, divergent_sections),
@@ -379,6 +388,7 @@ def run(page):
 
 def main():
     SHOTS.mkdir(parents=True, exist_ok=True)
+    check("项目内 PDF 报告文件存在", PDF_REPORT.is_file())
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1600, "height": 950})

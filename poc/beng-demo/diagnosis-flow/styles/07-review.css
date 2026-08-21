@@ -290,14 +290,14 @@
 /* ---------------- 报告归档浮层 ---------------- */
 
 .overlay-panel.rv-report-overlay {
-  width: min(1040px, 86vw);
+  width: min(1120px, 88vw);
 }
 .overlay-panel.rv-report-overlay .overlay-body {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
-  max-height: min(66vh, 560px);
+  max-height: min(74vh, 680px);
   overflow: hidden;
 }
 .rv-report-summary {
@@ -326,22 +326,25 @@
   font-size: 13px;
   line-height: 1.6;
 }
-.rv-report-preview {
+.rv-pdf-preview {
   display: grid;
-  gap: 8px;
-  align-content: start;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
   min-height: 0;
-  overflow: auto;
-  padding-right: 2px;
-  scrollbar-gutter: stable;
 }
-.rv-report-preview::-webkit-scrollbar { width: 8px; }
-.rv-report-preview::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
+.rv-pdf-frame {
+  width: 100%;
+  height: min(58vh, 520px);
+  min-height: 360px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
 }
-.rv-report-preview .ar-section { padding: 9px 11px; }
-.rv-report-preview .ar-section p { line-height: 1.65; }
+.rv-pdf-fallback {
+  margin: 0;
+  color: var(--text-mute);
+  font-size: 12px;
+}
 
 /* ---------------- 置信度条（保留给旧 UI 小件复用） ---------------- */
 

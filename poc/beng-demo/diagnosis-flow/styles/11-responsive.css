@@ -416,11 +416,16 @@
   }
 
   .overlay-panel.rv-report-overlay {
-    width: min(1040px, 88vw);
+    width: min(1120px, 90vw);
   }
 
   .overlay-panel.rv-report-overlay .overlay-body {
-    max-height: min(64vh, 540px);
+    max-height: min(70vh, 620px);
+  }
+
+  .rv-pdf-frame {
+    height: min(52vh, 460px);
+    min-height: 330px;
   }
 
   .rv-review-page {
@@ -538,6 +543,10 @@
 
   .overlay-panel.rv-report-overlay {
     width: 92vw;
+  }
+
+  .rv-pdf-frame {
+    min-height: 300px;
   }
 
   .rv-review-page {

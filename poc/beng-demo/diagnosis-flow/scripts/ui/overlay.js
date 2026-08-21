@@ -61,6 +61,16 @@
         h("div", { class: "overlay-body" }, options.body),
         (options.actions && options.actions.length)
           ? h("footer", { class: "overlay-foot" }, options.actions.map(function (action) {
+            if (action.href) {
+              return h("a", {
+                class: action.primary ? "primary-action" : "plain-button",
+                href: action.href,
+                download: action.download || null,
+                target: "_blank",
+                rel: "noopener",
+                text: action.text
+              });
+            }
             return h("button", {
               type: "button",
               class: action.primary ? "primary-action" : "plain-button",
