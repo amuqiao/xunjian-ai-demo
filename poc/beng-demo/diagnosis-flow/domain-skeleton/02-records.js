@@ -131,6 +131,22 @@ window.DOMAIN_RECORDS = {
       result: "压力波动",
       aiFlag: "conflict",
       note: "出口压力波动告警越过关注线，结合泵体异响记录和汽蚀损伤样例，建议复核运行工况。"
+    },
+    {
+      id: "REC-008",
+      objectId: "OBJ-A",
+      partId: "PART-6",
+      date: "2026-07-22",
+      shift: "夜班",
+      inspector: "王建国",
+      no: "25",
+      area: "泵棚区",
+      device: "P-1 输油泵 2号轴承",
+      item: "2号轴承振动值异常上升",
+      standard: "2号轴承振动低于 4.5mm/s，泵体无渗漏，联轴器无明显偏移。",
+      result: "外观未见异常",
+      aiFlag: "conflict",
+      note: "时序引擎检测到 2号轴承振动值异常上升，视觉引擎确认泵体无渗漏、联轴器无明显偏移，RAG 命中 2023 年 XX 站轴承内圈剥落相似案例。"
     }
   ],
 

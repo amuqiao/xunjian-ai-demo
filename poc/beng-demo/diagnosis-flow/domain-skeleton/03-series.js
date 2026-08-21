@@ -34,7 +34,8 @@ window.DOMAIN_SERIES = (function () {
     "PT-3": { base: 2.2, drift: 0.65, noise: 0.06 },
     "PT-4": { base: 0.32, drift: 1.55, noise: 0.08 },
     "PT-5": { base: 55, drift: 0.58, noise: 0.04 },
-    "PT-6": { base: 0.18, drift: 1.55, noise: 0.07 }
+    "PT-6": { base: 0.18, drift: 1.55, noise: 0.07 },
+    "PT-7": { base: 2.35, drift: 1.35, noise: 0.06 }
   };
 
   function rangeDef(rangeKey) {

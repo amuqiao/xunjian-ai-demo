@@ -62,6 +62,16 @@ window.DOMAIN_TAXONOMY = {
       component: "出口管线 / 泵体流道",
       summary: "出口压力波动叠加泵体异响，需复核入口条件、阀位、过滤器压差和汽蚀风险。",
       checkItem: "出口压力、流量和泵体异响"
+    },
+    {
+      id: "PART-6",
+      objectId: null,
+      label: "2号轴承与振动通道",
+      short: "2号轴承",
+      badge: "RAG",
+      component: "2号轴承 / IMS 工单联动",
+      summary: "2号轴承振动值异常上升，视觉证据排除泵体渗漏和联轴器明显偏移，RAG 命中历史轴承内圈剥落案例。",
+      checkItem: "2号轴承振动与内圈剥落复核"
     }
   ],
 
@@ -120,6 +130,15 @@ window.DOMAIN_TAXONOMY = {
       unit: "MPa",
       primary: true,
       threshold: 0.35,
+      safeSide: "below"
+    },
+    {
+      id: "PT-7",
+      partId: "PART-6",
+      label: "2号轴承振动告警",
+      unit: "mm/s",
+      primary: true,
+      threshold: 4.5,
       safeSide: "below"
     }
   ]

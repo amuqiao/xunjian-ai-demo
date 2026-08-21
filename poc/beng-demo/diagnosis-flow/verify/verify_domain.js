@@ -171,6 +171,23 @@ check("依据链里的 case 类依据带 locked 标志（二次命中包袱的�
   entryCase.evidenceChain.filter(function (e) { return e.kind === "case"; })
     .every(function (e) { return typeof e.locked === "boolean"; }));
 
+var bearingRecord = RECORDS.records.filter(function (r) { return r.id === "REC-008"; })[0];
+var bearingCase = DIAGNOSIS.cases.filter(function (c) { return c.recordId === "REC-008"; })[0];
+check("新增 2号轴承振动异常表单项",
+  !!bearingRecord && bearingRecord.item === "2号轴承振动值异常上升");
+check("2号轴承表单项有 AI 判断",
+  !!bearingCase && bearingCase.suggestion.outcomeId === "bearing-inspect");
+check("2号轴承 AI 判断置信度为 87%",
+  !!bearingCase && bearingCase.confidence === 87);
+check("2号轴承依据链包含 Top-5 RAG 规则",
+  !!bearingCase && bearingCase.evidenceChain.some(function (e) {
+    return e.kind === "rule" && e.ruleId === "R-007" && e.detail.indexOf("Top-5") >= 0;
+  }));
+check("2号轴承依据链包含 IMS 票卡知识依据",
+  !!bearingCase && bearingCase.evidenceChain.some(function (e) {
+    return e.kind === "case" && e.docId === "DOC-BEARING-IMS-CARD";
+  }));
+
 // ---- 复核：两条 track 都有、至少一条解锁复用 ----
 check("outcomes 覆盖 treatment 与 closure 两条 track",
   REVIEW.outcomes.some(function (o) { return o.track === "treatment"; })
@@ -183,6 +200,8 @@ check("每条 outcome 的 fields 都能在 fields 字典里查到",
   REVIEW.outcomes.every(function (o) {
     return o.fields.every(function (f) { return !!REVIEW.fields[f]; });
   }));
+check("人工复核包含 2号轴承专项检查票卡",
+  REVIEW.outcomes.some(function (o) { return o.id === "bearing-inspect" && o.executeText === "生成轴承复核票卡"; }));
 
 // ---- 报告：插槽闭合、两条支线产出不同 ----
 function slotsIn(text) {
@@ -260,6 +279,10 @@ check("仅摘要文档的 chunksOf() 返回空数组",
 check("归档落点分类可解析",
   KB.categories().some(function (c) { return c.id === KB.archiveTarget().categoryId; }));
 check("入库演示文档有正文", !!KB.document(KB.ingestDemoDocId()).body);
+check("知识库包含 2023 年轴承内圈剥落案例",
+  KB.document("DOC-BEARING-SPALL-CASE").title.indexOf("内圈剥落") >= 0);
+check("知识库包含 2号轴承振动异常复核票卡",
+  KB.document("DOC-BEARING-IMS-CARD").title.indexOf("复核票卡") >= 0);
 check("DOMAIN_KB 的出口全部是函数（不能混用函数与快照值）",
   ["categories", "documents", "document", "chunksOf", "qaPresets", "qaPreset",
     "retrieve", "ingestion", "ingestDemoDocId", "archiveTarget"]

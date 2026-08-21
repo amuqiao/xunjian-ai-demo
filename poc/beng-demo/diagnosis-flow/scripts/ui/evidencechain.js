@@ -19,7 +19,7 @@
   var DIAGNOSIS = window.DOMAIN_DIAGNOSIS;
 
   var KIND_META = {
-    series: { icon: "📈", label: "时序" },
+    series: { icon: "📈", label: "告警" },
     vision: { icon: "👁", label: "视觉" },
     rule: { icon: "📋", label: "规则" },
     "case": { icon: "📚", label: "案例" }

@@ -16,7 +16,7 @@ window.DOMAIN_KB = (function () {
       { id: "cat-std", title: "标准规范", desc: "API 610/API 682、输油泵运行维护和专家复核边界。" },
       { id: "cat-metric", title: "监测指标", desc: "振动、相位差、频谱、基础振动和复测验收口径。" },
       { id: "cat-card", title: "作业模板", desc: "对中作业卡、轴承拆装、机械密封和标准化检修票卡。" },
-      { id: "cat-case", title: "归档案例", desc: "P-1 不对中处置、后续复检相似命中和历史停泵/泄漏案例。" }
+      { id: "cat-case", title: "归档案例", desc: "P-1 不对中处置、轴承剥落、后续复检相似命中和历史停泵/泄漏案例。" }
     ],
 
     documents: [
@@ -102,6 +102,35 @@ window.DOMAIN_KB = (function () {
         ]
       },
       {
+        id: "DOC-BEARING-SPALL-CASE",
+        categoryId: "cat-case",
+        title: "2023年XX站2号轴承内圈剥落处置案例",
+        type: "归档案例",
+        summary: "用于演示 RAG 检索：轴承、振动上升和当前工况共同命中历史内圈剥落案例。",
+        source: "2023年XX站设备检修报告；演示构造",
+        updatedAt: "2026-07-22",
+        body: [
+          "2023年XX站同型号输油泵出现 2号轴承振动值异常上升，现场外观未见泵体渗漏，联轴器未见明显偏移，故障特征集中在轴承振动通道。",
+          "专家复核后安排 72 小时内停机检查，拆检发现轴承内圈剥落，随后更换轴承并复测振动趋势。",
+          "该案例的可复用上下文包括案例特征、处置记录、设备档案、当前工况和备件型号，适合作为 RAG Top-5 相似案例之一。",
+          "复用边界：RAG 可生成诊断报告、IMS 工单建议、备件信息和移动端作业卡，但是否停机检查必须由人工复核确认。"
+        ]
+      },
+      {
+        id: "DOC-BEARING-IMS-CARD",
+        categoryId: "cat-card",
+        title: "2号轴承振动异常复核票卡",
+        type: "作业模板",
+        summary: "用于演示 AI 建议匹配集团既有处理流程，生成 IMS 工单、备件信息和移动端作业卡。",
+        source: "集团设备复核票卡模板；演示构造",
+        updatedAt: "2026-07-22",
+        body: [
+          "票卡触发条件：时序引擎检测到 2号轴承振动值异常上升，且当前工况与历史轴承剥落案例相似。",
+          "复核前置条件：视觉引擎确认泵体无渗漏、联轴器无明显偏移，排除泄漏和明显不对中造成的误报。",
+          "应用层动作：自动生成 IMS 工单建议，推送轴承备件信息，并形成移动端作业卡供班组确认执行。"
+        ]
+      },
+      {
         id: "DOC-CAVITATION-RULE",
         categoryId: "cat-std",
         title: "出口压力波动与汽蚀风险复核说明",
@@ -155,6 +184,15 @@ window.DOMAIN_KB = (function () {
         citations: [
           { docId: "DOC-CARD", hintChunks: [2] },
           { docId: "DOC-CASE", hintChunks: [2] }
+        ]
+      },
+      {
+        id: "QA-6",
+        question: "2号轴承振动异常如何生成复核票卡？",
+        answer: "演示链路先由时序引擎识别 2号轴承振动值异常上升，再由视觉引擎排除泵体渗漏和联轴器明显偏移，RAG 检索历史轴承剥落案例后，生成 IMS 工单建议、备件信息和移动端作业卡。",
+        citations: [
+          { docId: "DOC-BEARING-SPALL-CASE", hintChunks: [0, 2, 3] },
+          { docId: "DOC-BEARING-IMS-CARD", hintChunks: [0, 1, 2] }
         ]
       }
     ],

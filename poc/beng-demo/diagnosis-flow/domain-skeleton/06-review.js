@@ -25,7 +25,7 @@ window.DOMAIN_REVIEW = {
       id: "accept",
       label: "采纳",
       hint: "认可 AI 建议",
-      defaultNote: "同意 AI 建议，现场复核后确认生成对中处置票卡。"
+      defaultNote: "同意 AI 建议，现场复核后确认生成匹配的复核票卡。"
     },
     {
       id: "revise",
@@ -66,6 +66,32 @@ window.DOMAIN_REVIEW = {
         titleTpl: "{{objectLabel}} {{partLabel}} 处置报告",
         caseIdTpl: "PUMP-CASE-{{date}}-01",
         statusText: "已归档为处置案例，可被后续相似记录命中。"
+      }
+    },
+    {
+      id: "bearing-inspect",
+      label: "疑似轴承内圈剥落，转专项检查",
+      hint: "生成 2号轴承振动异常复核票卡",
+      impact: "AI 匹配到集团既有轴承复核流程；确认后生成 IMS 工单、备件信息和移动端作业卡演示动作。",
+      track: "treatment",
+      fields: ["crew", "window", "riskLevel", "flags"],
+      steps: [
+        "复核 2号轴承振动趋势、频谱和当前运行工况",
+        "核对视觉证据：泵体无渗漏、联轴器无明显偏移",
+        "对照 2023 年 XX 站轴承内圈剥落相似案例",
+        "推送轴承备件信息并生成 IMS 工单建议",
+        "形成移动端作业卡并安排 72h 内停机检查",
+        "回填 IMS 工单、复核意见和诊断报告"
+      ],
+      executeText: "生成轴承复核票卡",
+      executedText: "轴承复核票卡已生成",
+      retest: { enable: true, passLabel: "检查完成", failLabel: "退回复核" },
+      unlocksReuse: true,
+      archive: {
+        categoryId: "cat-case",
+        titleTpl: "{{objectLabel}} {{partLabel}} 复核报告",
+        caseIdTpl: "PUMP-BRG-{{date}}-01",
+        statusText: "已归档为轴承内圈剥落复核案例，可被后续相似振动记录命中。"
       }
     },
     {

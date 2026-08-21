@@ -32,13 +32,13 @@ window.DOMAIN_REPORT = {
       id: "finding",
       title: "一、异常发现",
       status: "warn",
-      text: "{{objectLabel}} {{partLabel}} 于 {{date}} 巡检中发现振动和对中状态需复核，记录人 {{inspector}}。"
+      text: "{{objectLabel}} {{partLabel}} 于 {{date}} 巡检中发现设备状态需复核，记录人 {{inspector}}。"
     },
     {
       id: "evidence",
       title: "二、证据链",
       status: "warn",
-      text: "证据链显示驱动端振动上升、联轴器相位差偏大，现场关键帧已标注联轴器和地脚复核区域。"
+      text: "证据链显示告警趋势、视觉判读与知识库依据共同形成复核建议，需由人工确认是否生成票卡。"
     },
     {
       id: "ai",
@@ -70,21 +70,21 @@ window.DOMAIN_REPORT = {
       id: "treatment",
       title: "六、处置与复测",
       status: "ok",
-      text: "由 {{crew}} 执行联轴器对中处置，复测窗口 {{window}}，风险等级 {{riskLevel}}，复测结果 {{retestResult}}。",
+      text: "由 {{crew}} 执行专项复核/处置票卡，复核窗口 {{window}}，风险等级 {{riskLevel}}，复测结果 {{retestResult}}。",
       showIf: "treatment"
     },
     {
       id: "closure",
       title: "六、闭环记录",
       status: "ok",
-      text: "本轮形成观察闭环记录，观察窗口 {{window}}，不生成处置票卡，后续班次继续关注 P-1 机组趋势。",
+      text: "本轮形成观察闭环记录，观察窗口 {{window}}，不生成处置票卡，后续班次继续关注该设备趋势。",
       showIf: "closure"
     },
     {
       id: "archive",
       title: "七、归档与复用",
       status: "ok",
-      text: "本报告归档为 {{caseId}}，后续 P-1 输油泵相似振动和对中复检记录可命中引用。"
+      text: "本报告归档为 {{caseId}}，后续相似故障复检记录可命中引用。"
     }
   ],
 

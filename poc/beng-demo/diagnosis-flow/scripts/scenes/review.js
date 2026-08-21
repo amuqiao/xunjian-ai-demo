@@ -54,7 +54,7 @@
           pointId: series.pointId,
           focusKey: "review-evidence:series"
         },
-        text: "时序证据"
+        text: "告警数据"
       }) : null,
       vision ? h("button", {
         type: "button",

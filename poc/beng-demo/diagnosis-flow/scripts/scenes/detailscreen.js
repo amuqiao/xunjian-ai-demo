@@ -125,7 +125,7 @@
     var sub = points.filter(function (p) { return p.id !== point.id; })[0];
 
     return AppState.pageShell(
-      "时序模型 / 证据下钻",
+      "告警数据 / 证据下钻",
       part.label + " · " + point.label,
       returnButton(),
       h("div", { class: "dt-trend-grid" }, [

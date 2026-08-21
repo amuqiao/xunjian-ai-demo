@@ -134,6 +134,27 @@ window.DOMAIN_DIAGNOSIS = {
         { kind: "case", label: "压力波动与汽蚀复核说明", detail: "查看工况复核依据", docId: "DOC-CAVITATION-RULE", locked: false }
       ],
       summary: "案情摘要：本条用于演示压力异常/汽蚀风险如何从表单项进入时序告警、视觉样例和知识库规则。"
+    },
+    {
+      id: "DIAG-008",
+      objectId: "OBJ-A",
+      partId: "PART-6",
+      recordId: "REC-008",
+      suggestion: {
+        outcomeId: "bearing-inspect",
+        label: "建议结论：疑似轴承内圈剥落",
+        text: "2号轴承振动值异常上升，视觉证据排除泵体渗漏和联轴器明显偏移；RAG 命中 2023 年 XX 站同类案例，诊断为高度疑似轴承内圈剥落，置信度 87%，处置建议匹配度 65%，建议 72h 内停机检查。"
+      },
+      confidence: 87,
+      confidenceBand: "needs-review",
+      evidenceChain: [
+        { kind: "series", label: "2号轴承振动告警", detail: "时序引擎检测到 2号轴承振动值异常上升，已越过 4.5mm/s 关注线", pointId: "PT-7", confidence: 89 },
+        { kind: "vision", label: "排除性视觉证据", detail: "泵体无渗漏，联轴器无明显偏移", frameId: "FRM-6-CUR", confidence: 88 },
+        { kind: "rule", label: "RAG 相似案例核验", detail: "以 轴承 + 振动上升 + 当前工况 作为 Query，命中 Top-5 相似案例", ruleId: "R-007", confidence: 87 },
+        { kind: "case", label: "2023年XX站同类案例", detail: "历史案例特征：2号轴承振动上升，拆检发现内圈剥落", docId: "DOC-BEARING-SPALL-CASE", locked: false },
+        { kind: "case", label: "2号轴承复核票卡", detail: "生成 IMS 工单建议、备件信息和移动端作业卡", docId: "DOC-BEARING-IMS-CARD", locked: false }
+      ],
+      summary: "案情摘要：本条用于演示时序、视觉和 RAG 如何拼接上下文并把诊断建议落到集团既有复核票卡。"
     }
   ],
 
@@ -173,6 +194,12 @@ window.DOMAIN_DIAGNOSIS = {
       title: "压力波动与汽蚀复核规则",
       text: "出口压力波动、泵体异响和入口条件异常同时出现时，应复核入口阀位、过滤器压差、流量工况和汽蚀损伤风险。",
       source: "成品油管道运行规范；输油泵运行维护规程"
+    },
+    {
+      id: "R-007",
+      title: "轴承振动上升 RAG 复核规则",
+      text: "当 2号轴承振动值异常上升，视觉证据排除泵体渗漏和联轴器明显偏移时，可将轴承、振动上升和当前工况作为 Query 检索相似案例，若命中轴承内圈剥落处置记录，应进入人工复核并生成票卡建议。",
+      source: "2023年XX站轴承内圈剥落处置案例；2号轴承振动异常复核票卡；设备档案"
     }
   ]
 };

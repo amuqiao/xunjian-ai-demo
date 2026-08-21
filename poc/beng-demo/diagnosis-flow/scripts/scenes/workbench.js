@@ -128,7 +128,7 @@
           pointId: row.evidence.pointId,
           focusKey: "ai-evidence:series"
         },
-        text: "查看时序数据"
+        text: "查看告警数据"
       });
     }
     if (row.kind === "vision") {

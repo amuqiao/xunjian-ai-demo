@@ -39,12 +39,12 @@ window.DOMAIN_AGENTQA = {
           label: "更像哪类故障?",
           question: "当前更像哪一类输油泵故障？",
           thinkingText: "正在检索知识库…",
-          answer: "当前主线更像联轴器不对中：泵驱动端振动升高、相位差异常、2X 频谱突出。新增表单项也覆盖机械密封泄漏、轴承温升和出口压力/汽蚀风险，演示时可切换记录分别查看对应证据。",
+          answer: "当前主线更像联轴器不对中：泵驱动端振动升高、相位差异常、2X 频谱突出。新增 RAG 示例覆盖 2号轴承振动异常：时序先发现振动上升，视觉排除泄漏和明显不对中，再检索相似轴承剥落案例。",
           hit: true,
           hits: [
             { kind: "rule", text: "联轴器不对中复核口径", docId: "DOC-STD", chunkIndex: 1 },
             { kind: "workcard", text: "机械密封泄漏复核卡", docId: "DOC-SEAL-CARD", chunkIndex: 1 },
-            { kind: "workcard", text: "轴承温升复核作业卡", docId: "DOC-BEARING-CARD", chunkIndex: 1 },
+            { kind: "case", text: "2号轴承内圈剥落相似案例", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 0 },
             { kind: "rule", text: "压力波动与汽蚀复核说明", docId: "DOC-CAVITATION-RULE", chunkIndex: 1 }
           ]
         },
@@ -86,14 +86,15 @@ window.DOMAIN_AGENTQA = {
         },
         {
           id: "wb-q6",
-          label: "温升怎么判断?",
-          question: "轴承温升类记录应该怎么判断？",
+          label: "2号轴承怎么判?",
+          question: "2号轴承振动异常为什么疑似内圈剥落？",
           thinkingText: "正在检索知识库…",
-          answer: "轴承温升不能只看单点温度，应同时复核运行负荷、润滑油位、油质、轴承箱异响和振动伴随变化。热成像出现局部热斑且温度曲线持续抬升时，再进入润滑或轴承状态复核。",
+          answer: "这条演示链路不是单点判断：时序引擎先检测到 2号轴承振动值异常上升，视觉引擎确认泵体无渗漏、联轴器无明显偏移，RAG 再用“轴承 + 振动上升 + 当前工况”检索 Top-5 相似案例。当前建议为高度疑似轴承内圈剥落，置信度 87%，处置建议匹配度 65%，建议 72h 内停机检查。",
           hit: true,
           hits: [
-            { kind: "workcard", text: "轴承温升复核边界", docId: "DOC-BEARING-CARD", chunkIndex: 0 },
-            { kind: "workcard", text: "热成像与润滑复核", docId: "DOC-BEARING-CARD", chunkIndex: 1 }
+            { kind: "case", text: "2023年XX站相似案例特征", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 0 },
+            { kind: "case", text: "72h 内停机检查与内圈剥落", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 1 },
+            { kind: "workcard", text: "IMS 工单与移动端作业卡", docId: "DOC-BEARING-IMS-CARD", chunkIndex: 2 }
           ]
         },
         {
@@ -177,12 +178,13 @@ window.DOMAIN_AGENTQA = {
           label: "有哪些故障经验?",
           question: "知识库里有哪些输油泵故障经验？",
           thinkingText: "正在检索知识库…",
-          answer: "当前知识库覆盖四类演示故障经验：联轴器不对中、机械密封泄漏、轴承温升、出口压力波动/汽蚀风险。每类都保留复核边界、现场证据和票卡或规则依据。",
+          answer: "当前知识库覆盖五类演示故障经验：联轴器不对中、机械密封泄漏、轴承温升、2号轴承振动异常/内圈剥落、出口压力波动/汽蚀风险。每类都保留复核边界、现场证据和票卡或规则依据。",
           hit: true,
           hits: [
             { kind: "standard", text: "不对中复核边界", docId: "DOC-STD", chunkIndex: 1 },
             { kind: "workcard", text: "机械密封泄漏复核", docId: "DOC-SEAL-CARD", chunkIndex: 0 },
             { kind: "workcard", text: "轴承温升复核", docId: "DOC-BEARING-CARD", chunkIndex: 0 },
+            { kind: "case", text: "2号轴承内圈剥落案例", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 0 },
             { kind: "rule", text: "出口压力与汽蚀复核", docId: "DOC-CAVITATION-RULE", chunkIndex: 0 }
           ]
         },
@@ -201,15 +203,15 @@ window.DOMAIN_AGENTQA = {
         },
         {
           id: "kb-q3",
-          label: "温升参考什么?",
-          question: "轴承温升应参考哪些规则？",
+          label: "轴承剥落案例?",
+          question: "2号轴承内圈剥落案例能给当前诊断什么参考？",
           thinkingText: "正在检索知识库…",
-          answer: "轴承温升应先看运行负荷、润滑油位、油质、轴承箱异响和振动伴随变化。热成像热斑和温度曲线持续抬升时，应复核润滑不足、轴承游隙、安装偏差和冷却条件。",
+          answer: "2023 年 XX 站同型号泵曾出现 2号轴承振动值异常上升，外观未见渗漏且联轴器未见明显偏移，最终拆检发现轴承内圈剥落。当前记录可复用其案例特征、处置记录和设备档案上下文，但停机检查仍需人工复核确认。",
           hit: true,
           hits: [
-            { kind: "workcard", text: "轴承温升复核边界", docId: "DOC-BEARING-CARD", chunkIndex: 0 },
-            { kind: "workcard", text: "热成像与润滑复核", docId: "DOC-BEARING-CARD", chunkIndex: 1 },
-            { kind: "workcard", text: "处置记录要求", docId: "DOC-BEARING-CARD", chunkIndex: 2 }
+            { kind: "case", text: "相似案例特征", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 0 },
+            { kind: "case", text: "72h 停机检查结果", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 1 },
+            { kind: "case", text: "案例特征与设备档案上下文", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 2 }
           ]
         },
         {
@@ -256,10 +258,12 @@ window.DOMAIN_AGENTQA = {
           label: "报告怎么复用?",
           question: "刚归档的复核报告能被 Agent 如何复用？",
           thinkingText: "正在检索知识库…",
-          answer: "归档报告可作为后续相似记录的复核路径、作业清单、复测指标和报告结构参考；但不能直接继承上一次结论，仍需依据当次现场复核重新判断。",
+          answer: "归档报告可作为后续相似记录的复核路径、作业清单、复测指标和报告结构参考；在 2号轴承示例里，还可以把案例特征、处置记录和设备档案拼成 RAG 上下文，再生成 IMS 工单建议、备件信息和移动端作业卡。",
           hit: true,
           hits: [
-            { kind: "case", text: "P-1 不对中归档案例", docId: "DOC-CASE", chunkIndex: 3 }
+            { kind: "case", text: "P-1 不对中归档案例", docId: "DOC-CASE", chunkIndex: 3 },
+            { kind: "case", text: "轴承剥落案例复用边界", docId: "DOC-BEARING-SPALL-CASE", chunkIndex: 3 },
+            { kind: "workcard", text: "IMS 工单和移动端作业卡", docId: "DOC-BEARING-IMS-CARD", chunkIndex: 2 }
           ]
         },
         {

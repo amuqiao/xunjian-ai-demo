@@ -402,7 +402,7 @@
     var outcome = suggestion;
     if (vote === "reject") {
       outcome = REVIEW.outcomes.filter(function (item) {
-        return !suggestion || item.id !== suggestion.id;
+        return item.id === "reject";
       })[0];
     }
     if (!outcome) {

@@ -14,7 +14,7 @@ window.DOMAIN_META = {
   subtitle: "长岭站 P-1 输油泵 · 联轴器/振动复核 · PUMP-20260722-A",
   batchId: "PUMP-20260722-A",
   clockText: "2026-07-22 16:31",
-  statusLine: "泵课题表单、时序趋势、视觉证据与知识库依据已接入演示链路。",
+  statusLine: "泵课题表单、告警趋势、视觉证据与知识库依据已接入演示链路。",
 
   // 骨架层里所有面向用户的名词都从这里取。换课题时只改这里，不改 scripts/。
   terms: {
@@ -36,7 +36,7 @@ window.DOMAIN_META = {
   // 放进来会变成一条前两格永远点不亮的进度条。
   flowSteps: [
     { key: "inspection", label: "质检", desc: "记录 / AI 冲突" },
-    { key: "trend", label: "时序", desc: "曲线 / 阈值" },
+    { key: "trend", label: "告警", desc: "曲线 / 阈值" },
     { key: "vision", label: "视觉", desc: "关键帧 / 标注" },
     { key: "agent", label: "Agent", desc: "问答 / 命中" },
     { key: "review", label: "复核", desc: "专家 / 结论" },

@@ -96,6 +96,17 @@ window.DOMAIN_VISION = {
       findings: ["叶轮汽蚀损伤特征识别 0.82", "压力波动需结合入口条件复核 0.76"],
       confidence: 0.82,
       role: "current"
+    },
+    {
+      id: "FRM-6-CUR",
+      partId: "PART-6",
+      label: "视觉模型 · 泵体与联轴器排除性证据",
+      src: "pumpCurrent",
+      bbox: { x: 0.26, y: 0.18, w: 0.48, h: 0.46 },
+      boxLabel: "无渗漏 / 无明显偏移 0.88",
+      findings: ["泵体外观未见渗漏 0.91", "联轴器无明显偏移 0.88", "外观证据排除泄漏和明显不对中，需结合轴承振动与 RAG 复核 0.84"],
+      confidence: 0.88,
+      role: "current"
     }
   ]
 };
