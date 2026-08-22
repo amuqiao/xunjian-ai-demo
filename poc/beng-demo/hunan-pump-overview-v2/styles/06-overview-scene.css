@@ -1,0 +1,522 @@
+/* 06-overview-scene.css: 唯一场景（scripts/scenes/overview.js）的骨架网格 —— 回字形。
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │ .topbar                    左 标记+时钟 / 中 标题 / 右 口径   │  62
+   ├──────────────────────────────────────────────────────────────┤
+   │ .ov-stat-band              全省 5 个大数（各带一行 note）      │ 124
+   ├────────────┬────────────────────────────────┬────────────────┤
+   │ .ov-left   │ .ov-map-panel（无边框）         │ .ov-right      │
+   │  560       │            1303                │      560       │ 921
+   │  2 块      │  地图 + 浮层：位置/图例/视口     │      2 块      │
+   ├────────────┴────────────────────────────────┴────────────────┤
+   │ .ov-zone-band              6 个作业区卡（下钻入口）           │ 132
+   └──────────────────────────────────────────────────────────────┘
+
+   【行高怎么来的】.app-shell 高 1289，减上下 padding 20 得 1269；再减顶栏 62、
+   指标带 124、作业区带 132、三条 10px gap 共 30 —— 中段剩 921。
+   【列宽怎么来的】.app-shell 宽 2471，减左右 padding 28 得 2443；两条 10px gap
+   共 20；两侧栏各 560 —— 中栏得 1303。
+
+   ── 关于「地图会变小」这件事，必须写在这里 ──────────────────────────────
+   3D 用的是透视相机，垂直 FOV 是固定角度，renderer.setSize(w,h,false) 只改像素尺寸、
+   不改相机覆盖的世界范围。所以中段容器变矮不是把地图裁掉，是**整张地图等比缩小**。
+   而实测省域机位下这块网格是受高度约束的（纵向占满容器 91%，横向只用约 740px），
+   高度就是它的绑定维度：
+       三栏无上下带  中段 1130  地图 100%
+       回字形        中段  949  地图 约 84%
+   这是「地图放中央、避免占满中间」的实现机制，不是副作用。
+
+   连带的风险：地图缩到 84%，6 个作业区标签的投影间距同步缩到 84%。styles/05-hunan3d.css
+   的硬契约第 5 条写明标签盒实测 52×35.64px、对应 minDy≈43.6px 才够排开，而
+   scripts/map3d/engine.js 的 sweepLabels **不是收敛循环**（文件头有条红线：写成
+   while(changed) 会因浮点误差死锁整页），一趟推不开就是推不开。
+   所以 verify/verify_overview.py 里「6 个作业区标签两两不重叠」那一项是这套布局的
+   成立条件。它红了，正确的退路顺序是：① 压薄 .ov-zone-band（132 → 100），把高度还给
+   地图；② 还不够就把作业区带的内容挪进右栏、退回三栏。**不要去改 3D 机位**。
+
+   保守 CSS：无嵌套、无 @layer、无容器查询，全部复用 01-tokens.css 的变量。
+
+   注释纪律：本文件任何注释都不得出现字面的「星号+斜杠」连写，会让浏览器把注释
+   提前截断、后面一段规则被吞掉、面板高度塌成 0 且不报错——本项目已经在别的 POC
+   踩过这个坑，写描述性文字代替。 */
+
+/* ===========================================================================
+   一、回字形四行（.app-shell 的 grid-template-rows 在 02-shell.css，这里是中段）
+   =========================================================================== */
+
+.overview-scene {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 560px minmax(0, 1fr) 560px;
+  grid-template-areas: "left map right";
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* ===========================================================================
+   二、上边：全省指标带（4 个 Cards.metric，一律不传 note）
+   四列固定而不是 auto-fit：数量是设计常量（站点总数 / 作业区 / 发现问题 / 当前 P1）。
+   这一带**不随下钻变化**，永远是全省口径 —— 点开某个作业区时，全省基准仍然在屏上，
+   观众可以直接对比「全省 13 个需关注」与右栏里「岳阳 5 个」。
+   =========================================================================== */
+
+.ov-stat-band {
+  min-width: 0;
+  display: grid;
+  /* 5 列而不是 4：泵这边的大数是「在役 / 主输给油 / 当月故障 / 达大修节点 / 近24月停机」，
+     五个互不重复，也不与四张图里的数字重复。 */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  padding: 10px 4px;
+  overflow: hidden;
+}
+
+/* 指标带里的 Cards.metric 去掉自己的卡片外观，改成「一块面板 + 四段细分隔线」。
+   否则是四个带边框的盒子套在一个带边框的面板里 —— 盒中盒，边框数量翻倍而层级没有
+   增加。分隔线只在第 2..4 段的左侧，第一段不画。 */
+.ov-stat-band .card-metric {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  align-content: center;
+  padding: 6px 22px;
+}
+
+.ov-stat-band .card-metric + .card-metric {
+  border-left: 1px solid var(--line);
+}
+
+/* ===========================================================================
+   三、左边：全省三张图，各按内容定高。不随下钻变化。
+
+   第一版是两张图等分（两个 1fr = 各 450px），实测完成度环被拉成直径 370px、描边只有
+   16px 的细圈，4 根异常柱之间空出 130px —— 两张图都撑不满。把台账构成从右栏挪过来
+   凑成三块，高度按内容给：环 300（环径 ~200 + 上下留白）、2 根台账柱 230、4 根异常柱
+   吃剩下的 361。中段 949 减去本栏上下 padding 28 与两条 10px gap，三块共 891。
+   把弹性给中间那块（异常构成）而不是台账：4 根柱比 2 根柱更能吃下多余高度，台账要是
+   拿到 331px，两条柱之间会空出 150px。
+   =========================================================================== */
+
+.ov-left-col {
+  grid-area: left;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: 300px minmax(0, 1fr) 230px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* ===========================================================================
+   四、右边：整格一块「需关注站点」清单，跟随当前焦点（省域 13 行 / 下钻 1–5 行）。
+   这是屏上唯一跟着下钻换内容的面板 —— 另外两处变化是地图相机和作业区带的高亮。
+   整格给一块之后 560px 的宽度用得上，清单从 3 列加到 4 列。
+   =========================================================================== */
+
+.ov-right-col {
+  grid-area: right;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  /* 三块：帕累托拿最大那格（它是本屏最重要的一张图），故障部位 250，当月故障表 214。
+     帕累托必须是 1fr —— 双轴图压到 250 高时两根轴的刻度会互相挤掉。 */
+  grid-template-rows: minmax(0, 1fr) 250px 214px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.ov-left-col .card-chart,
+.ov-right-col .card-chart {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ===========================================================================
+   五、中间：地图。**没有面板边框** —— 参考大屏（山东公司综合管理与监视平台）的地图
+   是直接浮在底色上的，不是一张卡。少一个盒子，地图就从「一张图表卡」变成「舞台」。
+   styles/05-hunan3d.css 给 .ov-map-panel 定的是「.panel 外观 + padding 14 +
+   两行网格（head + map）」，这里整体覆盖：本场景不渲染 .ov-map-head，位置标签和
+   图例都浮进 .hunan-map 内部。本文件在 index.html 里排在 05-hunan3d.css 之后。
+   =========================================================================== */
+
+.ov-map-panel {
+  grid-area: map;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+/* 上下各留 8px，让地图不贴着指标带和作业区带 —— 「不上下置顶」能做到的部分。
+   再多留就是白挤白：地图本身已经受高度约束，留白直接换成地图变小。 */
+.ov-map-panel .hunan-map {
+  margin: 8px 0;
+  border: 0;
+  border-radius: var(--r-m);
+  background: var(--map-host-bg);
+}
+
+/* 位置指示：浮在地图左上角，取代已删除的底栏面包屑与 .ov-map-head 里的 h3。
+   z-index 4 与 .ov-zoom 同层，都在 .hunan-labels（5）之下、canvas（1）之上 ——
+   作业区标签必须能盖住它，否则标签飘到左上角时会被这块挡住。 */
+.ov-map-place {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  z-index: 4;
+  display: grid;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.ov-map-place h3 {
+  color: #f4fbff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.ov-map-place small {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 图例浮到地图左下角。不能放右下 —— 05-hunan3d.css 的 .ov-zoom 已经占了
+   right:14 bottom:14 那一格。 */
+.ov-map-panel .ov-legend {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  z-index: 4;
+  gap: 14px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--control-bg);
+  pointer-events: none;
+}
+
+.ov-legend-item {
+  font-size: 14px;
+}
+
+/* ===========================================================================
+   六、下边：6 个作业区卡。回字形的底边必须有资格占一整条横边 —— 6 个并列项天然
+   适合宽幅（塞进 560px 竖栏里要么挤成 6 行小字、要么滚动），而且它顺便成了地图
+   标签之外的第二个下钻入口。
+
+   ⚠️ 卡片**不能**用 [data-hunan-zone] 做下钻属性：scripts/map3d/contract.js 的
+   assertPinNamespace() 会遍历全文档的 [data-hunan-zone]/[data-hunan-site]，任何一个
+   落在 .hunan-labels 之外就直接抛错（那两个属性归 3D 标签独占）。所以这里用
+   data-action="select-zone" + data-zone-id，由 boot.js 的事件委托分发。
+   =========================================================================== */
+
+.ov-zone-band {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 14px;
+  overflow: hidden;
+}
+
+.ov-zone-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  gap: 5px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  color: inherit;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.ov-zone-card:hover {
+  border-color: var(--line-strong);
+  background: rgba(120, 170, 255, 0.09);
+}
+
+.ov-zone-card.is-active {
+  border-color: var(--accent);
+  background: rgba(56, 198, 236, 0.14);
+}
+
+.ov-zone-card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ov-zone-card-name {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-zone-card-head .dot {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+}
+
+/* 需关注数是这张卡的主数字（这一带回答的就是「先去哪个区」），完成率是辅助。
+   状态色只染数字，与 .card-metric 同一条规则（见 03-cards.css 文件头借鉴条 1）。 */
+.ov-zone-card-alert {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.ov-zone-card-alert strong {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.ov-zone-card.ok .ov-zone-card-alert strong {
+  color: var(--status-ok);
+}
+
+.ov-zone-card.warn .ov-zone-card-alert strong {
+  color: var(--status-warn);
+}
+
+.ov-zone-card.danger .ov-zone-card-alert strong {
+  color: var(--status-danger);
+}
+
+.ov-zone-card-rate {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ===========================================================================
+   七、右栏第 2 块：需关注站点清单卡（省域态 13 行 / 下钻态 1–5 行）
+   =========================================================================== */
+
+.ov-list-card {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  overflow: hidden;
+}
+
+.ov-list-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ov-list-card-title {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-list-card-meta {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 表头用 position:sticky（见 03-cards.css 的 .ov-table-th），滚动容器必须是这一层。 */
+.ov-list-card-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.ov-list-card-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ov-list-card-body::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: var(--line-strong);
+}
+
+.ov-list-card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 「全部正常」态（见 scripts/scenes/overview.js 的 renderAlertCard）。
+   不是空状态占位，是一个真实可达的业务状态。 */
+.ov-list-empty {
+  padding: 10px 2px;
+  color: var(--status-ok);
+  font-size: 14px;
+}
+
+/* 入场淡入：四个内容区各自播一次。下钻/返回时右栏内容整块换掉，一次 0.34s 的
+   淡入正好交代「这块变了」，比瞬变更容易跟上。 */
+.ov-stat-band > *,
+.ov-left-col > *,
+.ov-right-col > *,
+.ov-zone-band > * {
+  animation: fadeUp 0.34s ease both;
+}
+
+
+/* ===========================================================================
+   八、泵 POC 自己加的三块：顶栏数据口径 / 台账数据质量 / 当月故障机组。
+   =========================================================================== */
+
+/* 顶栏右边三行小字，替代旧屏的日期范围按钮组。三份资料的名字和截止时间都写出来，
+   演示被追问「这数是什么时候的」时直接指给他看。 */
+.ov-source {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+}
+
+.ov-source-line {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* 台账数据质量：四行「名称 —— 数字」。用 grid 而不是 flex，两列才能对齐右边的数字。
+   数字上状态色、文字不上 —— 与全项目的三色语义一致。 */
+.ov-quality-grid {
+  display: grid;
+  align-content: space-evenly;
+  gap: 6px;
+  padding: 4px 2px;
+  min-height: 0;
+}
+
+.ov-quality-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 2px;
+}
+
+.ov-quality-item > span {
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-quality-item > strong {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ov-quality-item > strong.danger { color: var(--status-danger); }
+.ov-quality-item > strong.warn { color: var(--status-warn); }
+
+/* 当月故障机组：两行，每行三段（谁 / 什么故障 / 建议怎么办）。
+   建议那一段是在线监测报告的原文，是这屏最硬的东西，所以给它整行宽度而不是挤成一列。 */
+.ov-fault-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.ov-fault-row {
+  display: grid;
+  gap: 5px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--status-danger);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+}
+
+.ov-fault-who {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ov-fault-who strong { font-size: 14.5px; font-weight: 700; }
+.ov-fault-who small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ov-fault-what {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ov-fault-what strong { color: var(--status-danger); font-size: 14px; font-weight: 700; }
+
+.ov-fault-advice {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* 地图上那 4 个「无机组」的作业区标签（湘北/湘中/郴州/湘西）：压到最低视觉层级。
+   它们只是为了满足 3D 契约的省域全集要求而渲染，不是本屏要讲的对象。 */
+.hunan-labels [data-hunan-zone].is-empty {
+  opacity: 0.42;
+  filter: saturate(0.35);
+}
+
+.hunan-labels [data-hunan-zone].is-empty .zone-pin-count {
+  color: var(--muted);
+  font-size: 11px;
+}

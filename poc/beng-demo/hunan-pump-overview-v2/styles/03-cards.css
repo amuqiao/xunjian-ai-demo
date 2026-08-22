@@ -1,0 +1,272 @@
+/* 03-cards.css: 卡片与列表基元 —— 只承载本 POC 实际会渲染的三类 DOM：
+     1) .card-metric 一族   ← scripts/ui/cards.js 的 Cards.metric()（复用旧目录原文件）
+     2) .card-chart  一族   ← 同上的 Cards.chart()
+     3) .ov-table    一族   ← 本场景自己渲染的只读站点清单表（见第三节注释）
+
+   【相对旧目录 03-cards.css 删掉了什么】旧文件 557 行，其中这几族在本 POC 里没有
+   任何渲染路径，整族删除、不留占位：
+     - .card-detail / .detail-* （14 个类）：旧场景右下角那张 DetailCard。它省域态的
+       正文是「点击左侧作业区排名或地图上的作业区标签，下钻查看该区站点清单与详情。」
+       加两个 tag「两级钻取」「省域 → 作业区」——那是写给开发看的操作说明；作业区态
+       是「类型/介质/类别 + 一句『使用作业区级示意坐标，仅用于首页区域态势』」。整卡
+       删除，scripts/ui/detailcard.js 也不再加载。
+     - .card-evidence 一族：Cards.evidence() 在旧场景里也没有调用点。
+     - .sl / .sl-item / .sl-metric / .sl-row / .sl-tile / .sl-table 全族：本 POC 不再
+       加载 scripts/ui/selectlist.js（下钻态的站点清单改成只读表，理由见第三节），
+       这一族没有任何渲染路径。
+     - .badge / .tag：只有被删掉的 DetailCard 与 Cards.evidence 用它们。
+   本文件因此只有约 250 行。少的那 300 行不是精简掉的样式，是从来没有被渲染的类。
+
+   【借自 dfaft/智能巡检数智员工-演示.html 的三条】
+   1) .stat 的两级排版：label 11.5px + value 大号 700，且**状态色只染数字**。
+      旧目录的做法是给整张 .card-metric 加状态描边 + 状态色背景 + 发光
+      （.card-metric.warn / .danger 各一套），一屏三张卡同时是 warn 时整块左栏都在发
+      橙光，反而看不出哪个数字要紧。现在卡片本身恒为中性表面，只有 <strong> 里的
+      数字跟状态变色，旁边 9px 的 .dot 做色盲冗余。
+   2) table 的形态：表头用一层浅色底、**只有横向分隔线、没有竖线**、最后一行去掉
+      下边框。旧目录的表格带竖向网格线，行数一多就成井字格。（draft 的 table.tbl
+      还有 hover 整行，这里没搬——本表只读、行不可点，hover 高亮会让人以为能点。）
+   3) 三档圆角/阴影：卡片用 --r-s + --sh-s（比 .panel 的 --r-m + --sh-m 浅一档，
+      形成「面板 > 卡片」的深度层级）。 */
+
+/* ===========================================================================
+   一、.card-metric —— 大数字指标块。
+   DOM（由 Cards.metric 产出，本文件不能改其结构）：
+     article.card-metric.ok|.warn|.danger
+       div.card-metric-head > span.card-metric-label + span.dot.<status>
+       div.card-metric-value > strong + span.card-metric-unit?
+       small.card-metric-note?        ← 本场景一律不传 note，见文件头「文案」一节
+   =========================================================================== */
+
+.card-metric {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+}
+
+.card-metric-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-metric-label {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .dot 在 head 里靠 margin-left:auto 推到右端——和 draft 的 .card-head .sub 同一个
+   手法：不给它单独一行，靠 auto margin 挤到行尾。 */
+.card-metric-head .dot {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+}
+
+.card-metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 数字用等宽字形：这些值会随作业区下钻切换，非等宽下整行会左右跳。 */
+.card-metric-value strong {
+  color: var(--ink);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.card-metric-unit {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* 状态色只落在数字上，卡片表面不变色（见文件头借鉴条 1）。 */
+.card-metric.ok .card-metric-value strong {
+  color: var(--status-ok);
+}
+
+.card-metric.warn .card-metric-value strong {
+  color: var(--status-warn);
+}
+
+.card-metric.danger .card-metric-value strong {
+  color: var(--status-danger);
+}
+
+/* Cards.metric 支持 note，本场景不传（文案砍除的一部分）。这里仍然给它一条规则：
+   cards.js 是复用的公共组件，将来别处传了 note 也不该渲染成无样式裸文本。 */
+.card-metric-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ===========================================================================
+   二、.card-chart —— 标题 + 图表宿主。
+   DOM（由 Cards.chart 产出）：
+     section.card-chart[.tall]
+       div.card-chart-head > span.card-chart-title + small.card-chart-meta?
+       div.card-chart-body[data-chart-slot=<id>]   ← 场景层再塞入 Charts.slot(id)
+   card-chart-meta 用 margin-left:auto 推到标题行右端（draft 的 .card-head .sub）。
+   =========================================================================== */
+
+.card-chart {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  overflow: hidden;
+}
+
+.card-chart-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card-chart-title {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-chart-meta {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.card-chart-body {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ===========================================================================
+   三、.ov-table —— 只读站点清单表（下钻态左栏第 4 块）。
+
+   这不是 scripts/ui/selectlist.js 的 variant="table"，是本场景自己渲染的只读表格，
+   类名也另起 .ov-table 前缀，不借用 selectlist 的 .sl- 命名空间。
+
+   为什么不接 SelectList：点选一行在这屏没有任何可见后果。
+   scripts/map3d/engine.js 的文件头写明「首页总览不显示 3D 热点球、引线或站点柱体」，
+   所以站点高亮 setActiveSiteHighlight() 作用在不可见的 built.siteMeshes 上；而走
+   setLevel("site") 把相机推到第三级，是旧设计明确排除的（旧 scenes/overview.js 文件头：
+   「钻取只做两级（任务要求，不做第三级）」），属于改 3D 行为，本轮不动。
+   留一个点了没反应的可选列表，比一个诚实的只读列表更差——所以这里没有选中态、
+   没有 roving tabindex、行不可聚焦，state 里也没有 siteId。
+
+   DOM（本文件与 scripts/scenes/overview.js 的 renderSiteTable() 一一对应）：
+     table.ov-table
+       colgroup > col ×4
+       thead > tr > th.ov-table-th ×4
+       tbody > tr > td.ov-table-td-dot > span.ov-table-dot.<status>
+                  + td.ov-table-td ×3
+
+   表格形态借 draft 的 table.tbl：表头一层浅色底、只有横向分隔线没有竖线、
+   最后一行去掉下边框。旧目录的表格带竖向网格线，行数一多就成井字格。
+   =========================================================================== */
+
+.ov-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.ov-table-th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--table-head-bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.ov-table-td,
+.ov-table-td-dot {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-table tbody tr:last-child .ov-table-td,
+.ov-table tbody tr:last-child .ov-table-td-dot {
+  border-bottom: none;
+}
+
+.ov-table-td-dot {
+  padding-right: 0;
+}
+
+/* 状态不能只靠颜色表达：圆点是视觉强调，状态文本挂在 aria-label 上（见
+   renderSiteTable()），色盲用户与读屏器都能拿到「异常/关注/正常」这三个词。 */
+.ov-table-dot {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-ok);
+}
+
+.ov-table-dot.warn {
+  background: var(--status-warn);
+}
+
+.ov-table-dot.danger {
+  background: var(--status-danger);
+}
+
+/* 状态文字：只读表里唯一带颜色的一列。用「异常/关注」两个词而不是纯色圆点——
+   一屏上颜色已经被地图和图表用满了，再多一列色点是噪声；而这两个词本身就是
+   信息，也天然满足「状态不能只靠颜色表达」。 */
+.ov-table-status {
+  font-weight: 700;
+}
+
+.ov-table-status.warn {
+  color: var(--status-warn);
+}
+
+.ov-table-status.danger {
+  color: var(--status-danger);
+}

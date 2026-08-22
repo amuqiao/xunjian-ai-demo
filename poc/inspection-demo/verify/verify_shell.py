@@ -9,7 +9,7 @@
 #   A. iframe 指向    四个 key 的 src 必须是 v2（旧目录名一个都不许出现）
 #   B. 导航           左下角 4 个点、序号与标签、当前项高亮、点了真的换屏
 #   C. 各屏真渲染     切过去之后 iframe 里的根节点确实在（不是白屏）
-#   D. 单独打开       三个 v2 目录直接双击时，导航链接前缀是 ../ 且同样指向 v2
+#   D. 单独打开       四个组件目录直接双击时，左下角**没有**切换点（导航只属于外壳）
 #
 # 用法：uv run python poc/inspection-demo/verify/verify_shell.py
 import os
@@ -120,20 +120,27 @@ def main():
         check(not errors, "外壳全程无 pageerror / console.error（实际 %s 条）%s"
               % (len(errors), ("：" + errors[0]) if errors else ""))
 
-        # ---------------- D. 三个 v2 单独打开 ----------------
-        for key, no, label, folder, _sel in EXPECT[:3]:
+        # ---------------- D. 组件单独打开时不该有导航 ----------------
+        # 【设计口径】1~4 号切换点只属于外壳（本文件测的这个 index.html）。组件是独立页面，
+        # 单独双击打开时**不出现左下角图标** —— 组件之间的串联由外壳负责，组件自己不该长出
+        # 一个指向兄弟目录的入口。所以每个组件的 index.html 都不加载 ../flow-nav/。
+        # （这条以前反着做过：给三个 v2 加过 flow-nav，口径明确之后已全部摘除。）
+        for key, no, label, folder, _sel in EXPECT:
             solo = browser.new_page(viewport={"width": 1680, "height": 1050})
             solo.goto((ROOT / folder / "index.html").as_uri())
-            solo.wait_for_timeout(2200)
-            links = solo.evaluate("""() => Array.from(document.querySelectorAll('.inspection-flow-nav a'))
-              .map(a => ({ key: a.dataset.key, href: a.getAttribute('href'),
-                           active: a.classList.contains('is-active') }))""")
-            check(len(links) == 4, "%s 单独打开时也有 4 个切换点（实际 %s）" % (folder, len(links)))
-            # 组件目录里前缀必须是 ../ —— 这一条就是三处清单不同步时最先烂掉的地方。
-            check(all(l["href"].startswith("../") for l in links),
-                  "★ %s 单独打开时链接前缀是 ../（实际 %s）" % (folder, links[0]["href"] if links else "无"))
-            check([l["key"] for l in links if l["active"]] == [key],
-                  "%s 单独打开时高亮自己（实际 %s）" % (folder, [l["key"] for l in links if l["active"]]))
+            solo.wait_for_timeout(2000)
+            probe = solo.evaluate("""() => ({
+              nav: document.querySelectorAll('.inspection-flow-nav').length,
+              links: document.querySelectorAll('.inspection-flow-nav a').length,
+              navAssets: Array.from(document.querySelectorAll('link[href], script[src]'))
+                .map(e => e.getAttribute('href') || e.getAttribute('src'))
+                .filter(u => u && u.indexOf('flow-nav') >= 0).length
+            })""")
+            check(probe["nav"] == 0 and probe["links"] == 0,
+                  "★ %s 单独打开时左下角没有切换点（实际 %s 容器 / %s 点）"
+                  % (folder, probe["nav"], probe["links"]))
+            check(probe["navAssets"] == 0,
+                  "%s 的 index.html 不引用 flow-nav 资源（实际 %s 处）" % (folder, probe["navAssets"]))
             solo.close()
 
         browser.close()
