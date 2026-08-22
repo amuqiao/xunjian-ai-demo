@@ -24,7 +24,11 @@ window.DOMAIN_REPORT = {
   previewPdf: {
     title: "巡检智能复核报告",
     src: "assets/reports/inspection-diagnosis-report.pdf",
-    filename: "巡检智能复核报告.pdf"
+    filename: "巡检智能复核报告.pdf",
+    pages: [
+      "assets/reports/inspection-diagnosis-report-page-1.png",
+      "assets/reports/inspection-diagnosis-report-page-2.png"
+    ]
   },
 
   sections: [

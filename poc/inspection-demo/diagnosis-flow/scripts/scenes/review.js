@@ -9,8 +9,6 @@
   var META = window.DOMAIN_META;
   var REVIEW = window.DOMAIN_REVIEW;
   var REPORT = window.DOMAIN_REPORT;
-  var KB = window.DOMAIN_KB;
-  var ReportModel = window.ReportModel;
 
   function renderReviewerChip() {
     var current = AppState.currentReviewer();
@@ -199,48 +197,6 @@
     });
   }
 
-  function categoryById(categoryId) {
-    var found = KB.categories().filter(function (category) { return category.id === categoryId; })[0];
-    if (!found) throw new Error("[review] 归档分类不存在：" + categoryId);
-    return found;
-  }
-
-  function renderReportSummary(outcome) {
-    var reviewer = AppState.currentReviewer();
-    var category = categoryById(outcome.archive.categoryId);
-    return h("dl", { class: "rv-report-summary" }, [
-      h("dt", { text: "报告标题" }), h("dd", { text: ReportModel.title() }),
-      h("dt", { text: "人工结论" }), h("dd", { text: outcome.label }),
-      h("dt", { text: "复核人" }), h("dd", { text: reviewer.name + "（" + reviewer.role + "）" }),
-      h("dt", { text: "归档去向" }), h("dd", { text: category.title + " · " + ReportModel.caseId() })
-    ]);
-  }
-
-  function reportSectionsById() {
-    var out = {};
-    ReportModel.sections().forEach(function (section) {
-      out[section.id] = section;
-    });
-    return out;
-  }
-
-  function renderReportDigest() {
-    var sections = reportSectionsById();
-    var items = [
-      { title: "异常", section: sections.finding },
-      { title: "依据", section: sections.evidence },
-      { title: "人工结论", section: sections.review },
-      { title: "入库去向", section: sections.archive }
-    ];
-    return h("div", { class: "rv-report-digest" }, items.map(function (item) {
-      if (!item.section) throw new Error("[review] 报告摘要缺少段落：" + item.title);
-      return h("article", { class: "rv-report-digest-card" }, [
-        h("span", { text: item.title }),
-        h("p", { text: item.section.text })
-      ]);
-    }));
-  }
-
   function reportRetestStatus(outcome) {
     var state = AppState.value;
     if (!outcome.retest.enable) return null;
@@ -259,7 +215,7 @@
     var needsRetest = outcome.retest.enable && AppState.value.review.retestPassed !== true;
     var actions = [
       { text: "返回修改", action: "close-report-archive" },
-      { text: "查看完整报告", href: REPORT.previewPdf.src }
+      { text: "下载 PDF", href: REPORT.previewPdf.src, download: REPORT.previewPdf.filename }
     ];
     if (needsRetest) {
       actions.push({ text: outcome.retest.failLabel, action: "retest-fail" });
@@ -268,6 +224,20 @@
       actions.push({ text: "归档到知识库", action: "archive-report", primary: true });
     }
     return actions;
+  }
+
+  function renderReportPdfPreview() {
+    var pdf = REPORT.previewPdf;
+    return h("div", { class: "rv-report-pdf-preview" }, [
+      h("div", { class: "rv-report-pdf-frame", dataset: { pdfSrc: pdf.src } }, pdf.pages.map(function (pageSrc, index) {
+        return h("img", {
+          class: "rv-report-pdf-page",
+          src: pageSrc,
+          alt: pdf.title + " 第 " + (index + 1) + " 页"
+        });
+      })),
+      h("p", { class: "rv-report-pdf-fallback", text: "底部按钮可下载完整 PDF 文件。" })
+    ]);
   }
 
   function renderReportArchiveOverlay() {
@@ -281,10 +251,8 @@
       title: "报告预览",
       kicker: "由人工复核结果自动生成",
       body: [
-        renderReportSummary(outcome),
         reportRetestStatus(outcome),
-        h("p", { class: "rv-report-tip", text: "确认后写入知识库，并作为后续相似记录的命中依据。" }),
-        renderReportDigest()
+        renderReportPdfPreview()
       ],
       actions: reportActions(outcome),
       onCloseAction: "close-report-archive",

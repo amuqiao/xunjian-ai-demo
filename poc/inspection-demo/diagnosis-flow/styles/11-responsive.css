@@ -345,10 +345,6 @@
     max-height: min(70vh, 620px);
   }
 
-  .rv-report-summary {
-    grid-template-columns: 78px minmax(0, 1fr);
-  }
-
   .ag-grid {
     grid-template-columns: 1fr;
     grid-template-rows: 188px minmax(0, 1fr);
@@ -475,6 +471,7 @@
 
   .overlay-panel.rv-report-overlay {
     width: calc(100vw - 24px);
+    height: calc(100vh - 48px);
     max-height: calc(100vh - 48px);
     background: #080d1e;
     box-shadow: 0 24px 72px rgba(0, 0, 0, 0.72);
@@ -488,51 +485,16 @@
   }
 
   .overlay-panel.rv-report-overlay .overlay-body {
-    display: block;
+    min-height: 0;
     max-height: none;
-    overflow: auto;
   }
 
-  .rv-report-summary {
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: 6px 9px;
-    padding: 10px;
-    background: rgba(18, 28, 52, 0.96);
-    font-size: 11.5px;
+  .rv-report-pdf-frame {
+    min-height: 0;
   }
 
-  .rv-report-summary dd {
-    white-space: normal;
-    line-height: 1.35;
-  }
-
-  .rv-report-tip {
-    margin: 10px 0;
-    font-size: 12px;
-    line-height: 1.45;
-  }
-
-  .rv-report-document {
-    gap: 8px;
-    padding: 8px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line);
-    background: #0b1224;
-    overflow: visible;
-  }
-
-  .rv-report-document .ar-section {
-    padding: 8px 9px;
-    background: rgba(18, 28, 52, 0.94);
-  }
-
-  .rv-report-document .ar-section.human {
-    background: rgba(24, 42, 76, 0.98);
-  }
-
-  .rv-report-document .ar-section p {
-    font-size: 12px;
-    line-height: 1.6;
+  .rv-report-pdf-fallback {
+    text-align: left;
   }
 
   .kb-report-reader {
@@ -548,9 +510,8 @@
     white-space: normal;
   }
 
-  .kb-pdf-paper {
-    min-height: 0;
-    padding: 18px 16px;
+  .kb-pdf-frame {
+    min-height: 58vh;
   }
 }
 
@@ -603,10 +564,6 @@
   .kb-agent-fab {
     right: 18px;
     bottom: 18px;
-  }
-
-  .rv-report-digest-card {
-    min-height: 112px;
   }
 
   .rv-review-page {
@@ -705,10 +662,6 @@
 
   .kb-asset-side {
     justify-items: start;
-  }
-
-  .rv-report-digest {
-    grid-template-columns: 1fr;
   }
 
   .rv-review-page {

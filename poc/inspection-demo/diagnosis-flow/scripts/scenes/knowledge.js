@@ -249,16 +249,14 @@
       ]),
       ]),
       h("main", { class: "kb-pdf-main" }, [
-        h("article", { class: "kb-pdf-paper", dataset: { pdfSrc: pdf.src } }, [
-          h("header", { class: "kb-pdf-paper-head" }, [
-            h("span", { text: "PDF 预览" }),
-            h("h3", { text: doc.title })
-          ]),
-          h("div", { class: "kb-pdf-paper-body" }, (doc.body || []).slice(0, 5).map(function (line) {
-            return h("p", { text: line });
-          }))
-        ]),
-        h("p", { class: "kb-pdf-fallback", text: "顶部下载按钮可打开原始 PDF 文件。" })
+        h("div", { class: "kb-pdf-frame", dataset: { pdfSrc: pdf.src } }, pdf.pages.map(function (pageSrc, index) {
+          return h("img", {
+            class: "kb-pdf-page",
+            src: pageSrc,
+            alt: doc.title + " 第 " + (index + 1) + " 页"
+          });
+        })),
+        h("p", { class: "kb-pdf-fallback", text: "顶部按钮可下载完整 PDF 文件。" })
       ])
     ]);
   }

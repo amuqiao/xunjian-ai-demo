@@ -563,6 +563,16 @@ window.DomainSchema = (function () {
     if (!/\.pdf(?:$|\?)/i.test(report.previewPdf.src)) {
       fail("DOMAIN_REPORT.previewPdf.src 必须指向 PDF 文件：" + report.previewPdf.src);
     }
+    assertNonEmptyArray(report.previewPdf.pages, "DOMAIN_REPORT.previewPdf.pages");
+    report.previewPdf.pages.forEach(function (page, i) {
+      if (!isNonEmptyString(page)) fail("DOMAIN_REPORT.previewPdf.pages[" + i + "] 必须是非空字符串");
+      if (/^(?:[A-Za-z]+:|\/)/.test(page) || page.indexOf("..") >= 0) {
+        fail("DOMAIN_REPORT.previewPdf.pages[" + i + "] 必须是 diagnosis-flow 内的相对路径：" + page);
+      }
+      if (!/\.png$/i.test(page)) {
+        fail("DOMAIN_REPORT.previewPdf.pages[" + i + "] 必须指向 PNG 页面预览：" + page);
+      }
+    });
     assertNonEmptyArray(report.sections, "DOMAIN_REPORT.sections");
     assertUniqueIds(report.sections, "id", "DOMAIN_REPORT.sections");
     assertNonEmptyArray(report.slots, "DOMAIN_REPORT.slots");

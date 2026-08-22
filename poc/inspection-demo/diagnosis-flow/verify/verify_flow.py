@@ -11,6 +11,10 @@ from playwright.sync_api import sync_playwright
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INDEX = ROOT / "index.html"
 PDF_REPORT = ROOT / "assets" / "reports" / "inspection-diagnosis-report.pdf"
+PDF_PAGES = [
+    ROOT / "assets" / "reports" / "inspection-diagnosis-report-page-1.png",
+    ROOT / "assets" / "reports" / "inspection-diagnosis-report-page-2.png",
+]
 SHOTS = pathlib.Path("/private/tmp/inspection-diagnosis-flow-shots")
 
 passed = 0
@@ -55,6 +59,30 @@ def boxes_overlap(a, b):
     )
 
 
+def box_inside_viewport(page, selector):
+    box = page.locator(selector).bounding_box()
+    viewport = page.viewport_size
+    return bool(box and viewport
+                and box["x"] >= 0
+                and box["y"] >= 0
+                and box["x"] + box["width"] <= viewport["width"]
+                and box["y"] + box["height"] <= viewport["height"])
+
+
+def scroll_frame_to_bottom(page, selector):
+    return page.eval_on_selector(
+        selector,
+        """el => {
+            el.scrollTop = el.scrollHeight;
+            return {
+                scrollTop: el.scrollTop,
+                clientHeight: el.clientHeight,
+                scrollHeight: el.scrollHeight
+            };
+        }"""
+    )
+
+
 def open_ai_list(page, row_text=None):
     if row_text:
         page.locator(".sl-table-row").filter(has_text=row_text).click()
@@ -73,7 +101,17 @@ def clean_load(page):
 
 def run(page):
     print("== 1. 首屏与工作台 ==")
+    pdf_bytes = PDF_REPORT.read_bytes() if PDF_REPORT.is_file() else b""
     check("项目内 PDF 报告文件存在", PDF_REPORT.is_file())
+    check("项目内 PDF 页面预览图存在", all(page_path.is_file() for page_path in PDF_PAGES))
+    check("PDF 报告不是旧英文空占位", len(pdf_bytes) > 300000)
+    check("PDF 报告包含两页图片化报告结构",
+          b"/Count 2" in pdf_bytes and pdf_bytes.count(b"/Subtype /Image") >= 2)
+    check("PDF 报告保留附件 2 来源内容哨兵",
+          b"assets/data/attachment-2" in pdf_bytes
+          and b"inspection daily record" in pdf_bytes
+          and b"maintenance work card" in pdf_bytes
+          and b"video spot check" in pdf_bytes)
     check("顶栏标题已填充", text_of(page, "#brandTitle") != "")
     check("顶部导航渲染出 3 项", page.locator(".scene-nav-btn").count() == 3)
     check("底部流程条已移除", page.locator(".flow-rail").count() == 0)
@@ -137,7 +175,7 @@ def run(page):
     page.wait_for_timeout(220)
     check("未锁定案例依据可跳转知识库文档", page.locator(".kb-doc-overlay").count() == 1)
     check("普通知识资产展示自身正文", page.locator(".kb-doc-overlay .kb-doc-chunk").count() >= 1)
-    check("普通知识资产不会误用报告 PDF", page.locator(".kb-doc-overlay .kb-pdf-paper").count() == 0)
+    check("普通知识资产不会误用报告 PDF", page.locator(".kb-doc-overlay .kb-pdf-frame").count() == 0)
     page.screenshot(path=str(SHOTS / "05-kb-doc-from-workbench.png"))
     page.keyboard.press("Escape")
 
@@ -176,9 +214,27 @@ def run(page):
     page.wait_for_timeout(220)
     check("生成报告后仍停留复核主页面", page.locator(".rv-review-page").count() == 1)
     check("报告以浮窗打开", page.locator(".rv-report-overlay").count() == 1)
-    check("报告浮窗展示四张摘要卡", page.locator(".rv-report-digest-card").count() == 4)
-    check("报告浮窗提供查看完整 PDF 入口",
+    check("报告浮窗直接嵌入 PDF 预览", page.locator(".rv-report-overlay .rv-report-pdf-frame").count() == 1)
+    check("报告浮窗渲染完整 PDF 页面图", page.locator(".rv-report-overlay .rv-report-pdf-page").count() == 2)
+    check("报告浮窗不再显示文本摘要占位卡", page.locator(".rv-report-digest-card").count() == 0)
+    check("报告浮窗提供 PDF 下载入口",
           "inspection-diagnosis-report.pdf" in page.locator(".rv-report-overlay a").first.get_attribute("href"))
+    check("报告浮窗底部下载按钮在视口内可见",
+          box_inside_viewport(page, ".rv-report-overlay .overlay-foot a[download]"))
+    report_body_scroll_before = page.eval_on_selector(
+        ".rv-report-overlay .overlay-body",
+        "el => el.scrollTop"
+    )
+    report_frame_scroll = scroll_frame_to_bottom(page, ".rv-report-overlay .rv-report-pdf-frame")
+    page.wait_for_timeout(120)
+    check("报告浮窗 PDF 预览区本身可滚动",
+          report_frame_scroll["scrollTop"] > 0
+          and report_frame_scroll["scrollHeight"] > report_frame_scroll["clientHeight"])
+    check("报告浮窗预览滚到底后底部下载按钮仍可见",
+          box_inside_viewport(page, ".rv-report-overlay .overlay-foot a[download]"))
+    check("报告浮窗预览滚动不挤走底部操作栏",
+          page.eval_on_selector(".rv-report-overlay .overlay-body", "el => el.scrollTop")
+          == report_body_scroll_before)
     check("报告浮窗文案无未解析插槽", "{{" not in text_of(page, ".rv-report-overlay"))
     page.screenshot(path=str(SHOTS / "07-report-overlay.png"))
 
@@ -234,8 +290,17 @@ def run(page):
     page.locator(".kb-asset.fresh [data-action='open-doc']").click()
     page.wait_for_selector(".kb-doc-overlay", timeout=3000)
     page.wait_for_timeout(220)
-    check("归档报告可打开 PDF 预览浮窗", page.locator(".kb-doc-overlay .kb-pdf-paper").count() == 1)
+    check("归档报告可打开嵌入式 PDF 预览浮窗", page.locator(".kb-doc-overlay .kb-pdf-frame").count() == 1)
+    check("知识库报告浮窗渲染完整 PDF 页面图", page.locator(".kb-doc-overlay .kb-pdf-page").count() == 2)
+    check("归档报告浮窗不再使用文本 PDF 占位", page.locator(".kb-doc-overlay .kb-pdf-paper").count() == 0)
     check("PDF 阅读器提供下载按钮", page.locator('.kb-doc-overlay a[download$=".pdf"]').count() == 1)
+    kb_frame_scroll = scroll_frame_to_bottom(page, ".kb-doc-overlay .kb-pdf-frame")
+    page.wait_for_timeout(120)
+    check("知识库 PDF 预览区本身可滚动",
+          kb_frame_scroll["scrollTop"] > 0
+          and kb_frame_scroll["scrollHeight"] > kb_frame_scroll["clientHeight"])
+    check("知识库 PDF 预览滚到底后下载按钮仍可见",
+          box_inside_viewport(page, '.kb-doc-overlay a[download$=".pdf"]'))
     page.screenshot(path=str(SHOTS / "08-kb-asset-pdf.png"))
     page.keyboard.press("Escape")
 
