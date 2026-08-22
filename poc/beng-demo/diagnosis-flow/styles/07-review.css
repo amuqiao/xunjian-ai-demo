@@ -1,9 +1,8 @@
-/* 人工复核页：主页面只讲一件事：AI 匹配集团既有票卡，人确认是否采用。
-   证据和报告都走浮层/详情，避免把 demo 做成真实工单系统。 */
+/* 人工复核页：主页面只讲一件事——AI 给出建议，人确认最后结论。 */
 
 .rv-review-page {
   display: grid;
-  grid-template-columns: minmax(420px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
   gap: var(--gap);
   min-height: 0;
   height: 100%;
@@ -31,84 +30,83 @@
 }
 .rv-identity-select option { background: #0f1728; color: var(--text); }
 
-/* ---------------- 左侧：AI 匹配票卡 ---------------- */
+/* ---------------- 左侧：AI 摘要 ---------------- */
 
-.rv-ticket-match,
+.rv-ai-summary,
 .rv-review-confirm {
   min-height: 0;
-  padding: 14px 16px;
+  padding: 16px 18px;
   overflow: hidden;
 }
 
-.rv-ticket-match {
+.rv-ai-summary {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: 12px;
-}
-
-.rv-ticket-record {
-  display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.03);
-}
-.rv-ticket-record span {
-  color: var(--text-mute);
-  font-size: 12px;
-}
-.rv-ticket-record strong {
-  color: var(--text);
-  font-size: 14px;
-}
-
-.rv-ticket-card {
-  display: grid;
+  grid-template-rows: auto minmax(0, auto) auto;
   align-content: start;
-  gap: 12px;
-  min-height: 0;
-  padding: 14px;
+  gap: 14px;
+}
+
+.rv-summary-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
   border-radius: var(--radius);
-  border: 1px solid rgba(50, 196, 255, 0.45);
+  border: 1px solid rgba(50, 196, 255, 0.40);
   background:
     linear-gradient(180deg, rgba(50, 196, 255, 0.10), rgba(50, 196, 255, 0.03)),
     rgba(255, 255, 255, 0.02);
 }
 
-.rv-ticket-card-head {
+.rv-summary-head,
+.rv-summary-score {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 10px;
+}
+.rv-summary-head {
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
 }
-.rv-ticket-card-head span { color: var(--text-mute); font-size: 12px; }
-.rv-ticket-card-head strong { color: var(--text); font-size: 18px; }
+.rv-summary-head span,
+.rv-summary-score span { color: var(--text-mute); font-size: 12px; }
+.rv-summary-head strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.rv-ticket-score {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+.rv-summary-score {
   padding: 10px 12px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   background: rgba(0, 178, 255, 0.08);
 }
-.rv-ticket-score span { color: var(--text-mute); font-size: 12px; }
-.rv-ticket-score strong { color: var(--accent); font-size: 26px; font-family: var(--mono); }
+.rv-summary-score strong { color: var(--accent); font-size: 28px; font-family: var(--mono); }
 
-.rv-ticket-meta {
-  display: grid;
-  grid-template-columns: 74px minmax(0, 1fr);
-  gap: 8px 12px;
+.rv-summary-text {
   margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.rv-summary-points {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 9px 12px;
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
   font-size: 13px;
 }
-.rv-ticket-meta dt { color: var(--text-mute); }
-.rv-ticket-meta dd {
+.rv-summary-points dt { color: var(--text-mute); }
+.rv-summary-points dd {
   margin: 0;
   min-width: 0;
   color: var(--text-dim);
@@ -116,30 +114,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rv-ticket-note {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border-left: 3px solid var(--accent);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1.65;
-}
-
-.rv-ticket-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
 
 /* ---------------- 右侧：人工确认 ---------------- */
 
 .rv-review-confirm {
   display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, auto) auto;
+  grid-template-rows: auto auto auto minmax(0, auto) auto;
   align-content: start;
-  gap: 12px;
+  gap: 14px;
 }
 
 .rv-review-block {
@@ -167,13 +149,6 @@
   white-space: nowrap;
 }
 
-.rv-ai-opinion p {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
 .rv-decision-votes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -183,8 +158,8 @@
 .rv-decision-vote {
   display: grid;
   gap: 4px;
-  min-height: 64px;
-  padding: 10px;
+  min-height: 74px;
+  padding: 12px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
@@ -197,7 +172,15 @@
   border-color: var(--accent);
   color: var(--text);
 }
-.rv-decision-vote strong { color: var(--text); font-size: 15px; }
+.rv-decision-vote:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.rv-decision-vote:disabled:hover {
+  border-color: var(--line);
+  color: var(--text-dim);
+}
+.rv-decision-vote strong { color: var(--text); font-size: 16px; }
 .rv-decision-vote span { color: var(--text-mute); font-size: 12px; line-height: 1.4; }
 .rv-decision-vote.active {
   border-color: var(--accent);
@@ -237,7 +220,7 @@
 .rv-required { color: var(--warn); font-style: normal; margin-left: 3px; }
 .rv-note {
   width: 100%;
-  min-height: 58px;
+  min-height: 82px;
   padding: 8px 10px;
   border-radius: var(--radius);
   border: 1px solid var(--line-strong);
@@ -273,6 +256,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding-top: 2px;
 }
 .rv-gate-hint {
   flex: 1;
@@ -326,24 +310,32 @@
   font-size: 13px;
   line-height: 1.6;
 }
-.rv-pdf-preview {
+.rv-report-digest {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   min-height: 0;
+  overflow: auto;
 }
-.rv-pdf-frame {
-  width: 100%;
-  height: min(58vh, 520px);
-  min-height: 360px;
-  border: 1px solid var(--line);
+.rv-report-digest-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 128px;
+  padding: 12px 14px;
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
 }
-.rv-pdf-fallback {
-  margin: 0;
+.rv-report-digest-card span {
   color: var(--text-mute);
   font-size: 12px;
+}
+.rv-report-digest-card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 /* ---------------- 置信度条（保留给旧 UI 小件复用） ---------------- */

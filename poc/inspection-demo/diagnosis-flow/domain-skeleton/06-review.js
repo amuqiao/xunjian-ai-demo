@@ -21,9 +21,24 @@
 window.DOMAIN_REVIEW = {
   // 恰好 3 条，id 必须是 accept/revise/reject（骨架按 id 决定 L1 是否自动预选）。
   votes: [
-    { id: "accept", label: "采纳", hint: "认可 AI 建议，结论自动预选" },
-    { id: "revise", label: "修正", hint: "部分认可，需重新选择结论" },
-    { id: "reject", label: "驳回", hint: "不认可 AI 建议，需重新选择结论" }
+    {
+      id: "accept",
+      label: "采纳",
+      hint: "认可 AI 建议",
+      defaultNote: "同意 AI 建议，现场复核后确认生成匹配的巡检复核报告。"
+    },
+    {
+      id: "revise",
+      label: "修正",
+      hint: "补充人工口径",
+      defaultNote: "部分采纳 AI 建议，按现场复核结果补充处置说明后生成报告。"
+    },
+    {
+      id: "reject",
+      label: "驳回",
+      hint: "排除本次建议",
+      defaultNote: "现场复核后判断本项为误报，记录排除依据并回流模型样本。"
+    }
   ],
 
   outcomes: [

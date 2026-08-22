@@ -151,9 +151,23 @@
 
   function renderServiceJudgments(item) {
     return h("div", { class: "wb-ai-service-list" }, serviceJudgments(item).map(function (row) {
+      var actionData = {
+        focusKey: "ai-service:" + row.kind
+      };
+      if (row.kind === "series") {
+        actionData.action = "open-evidence";
+        actionData.evidenceKind = "series";
+        actionData.pointId = row.evidence.pointId;
+      } else if (row.kind === "vision") {
+        actionData.action = "open-evidence";
+        actionData.evidenceKind = "vision";
+        actionData.frameId = row.evidence.frameId;
+      }
       return h("article", {
-        class: "wb-ai-service " + row.status,
-        dataset: { aiServiceKind: row.kind }
+        class: "wb-ai-service " + row.status + (actionData.action ? " clickable" : ""),
+        role: actionData.action ? "button" : null,
+        tabindex: actionData.action ? "0" : null,
+        dataset: actionData.action ? actionData : { aiServiceKind: row.kind }
       }, [
         h("div", { class: "wb-ai-service-head" }, [
           h("strong", { text: row.service }),

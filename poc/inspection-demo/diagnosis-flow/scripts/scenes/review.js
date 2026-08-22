@@ -1,26 +1,17 @@
-// 场景：人工复核。这是主语从"AI 在组织证据"换成"人在做决定"的那一页。
+// 场景：人工复核。演示重点是"AI 给出摘要，人只确认业务结论"。
 //
-// 主结构：① AI 匹配票卡（只读）② 人工介入（ReviewForm 四层）③ 处置路径。
-// 执行之后（state.review.executed）整页切成执行屏——处置票卡 / 闭环卡 + 复测验收。
-//
-// ---- 这一页的三个机关 ----
-// 1. 分歧必填理由：不填则执行按钮不可用（判据在 AppState.canExecute）
-// 2. 复核意见原文进报告：本页只负责写 state.review.note，回显在 archive.js
-// 3. 复测不通过可退回本页：executed 置回 false，结论和意见都保留
-//
-// 本文件不绑任何事件，全部走 data-action 交给 boot.js。
+// 主页面只保留 AI 摘要和人工确认面板。证据看详情，报告看弹窗；不做完成态页面，
+// 不把真实项目里的完整闭环流程塞进 demo。
 (function () {
   "use strict";
 
   var AppState = window.AppState;
   var META = window.DOMAIN_META;
+  var REVIEW = window.DOMAIN_REVIEW;
+  var REPORT = window.DOMAIN_REPORT;
   var KB = window.DOMAIN_KB;
   var ReportModel = window.ReportModel;
 
-  // ---------------------------------------------------------------- 身份芯片
-
-  // 复核人不是结论的附属字段，而是"谁在做这个决定"，所以它在页头而不在 ReviewForm
-  // 的 L2 里。它的值会进报告的 {{reviewerName}} / {{reviewerRole}}。
   function renderReviewerChip() {
     var current = AppState.currentReviewer();
     return h("label", { class: "rv-identity" }, [
@@ -39,110 +30,134 @@
     ]);
   }
 
-  // ---------------------------------------------------------------- ① AI 匹配票卡
-
-  function evidenceOf(item, kind) {
-    if (!item) return null;
-    var matches = item.evidenceChain.filter(function (evidence) { return evidence.kind === kind; });
-    if (matches.length > 1) throw new Error("[review] " + kind + " 依据不唯一");
-    return matches[0] || null;
-  }
-
-  function ticketNo(outcome) {
-    return outcome ? outcome.archive.caseIdTpl.replace("{{date}}", AppState.currentRecord().date) : "未匹配";
-  }
-
-  function renderEvidenceActions(item) {
-    var series = evidenceOf(item, "series");
-    var vision = evidenceOf(item, "vision");
-    return h("div", { class: "rv-ticket-actions" }, [
-      series ? h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: {
-          action: "open-evidence",
-          evidenceKind: "series",
-          pointId: series.pointId,
-          focusKey: "review-evidence:series"
-        },
-        text: "时序证据"
-      }) : null,
-      vision ? h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: {
-          action: "open-evidence",
-          evidenceKind: "vision",
-          frameId: vision.frameId,
-          focusKey: "review-evidence:vision"
-        },
-        text: "视觉证据"
-      }) : null
-    ]);
-  }
-
-  function renderTicketCard() {
+  function renderAiSummary() {
     var record = AppState.currentRecord();
-    var part = AppState.partById(record.partId);
     var item = AppState.currentCase();
     var outcome = AppState.suggestedOutcome();
-    return h("section", { class: "panel rv-ticket-match" }, [
-      AppState.panelTitle("AI 匹配票卡", record.no ? "第 " + record.no + " 项 · " + part.short : part.short),
-      h("article", { class: "rv-match-card" }, [
-        h("div", { class: "rv-match-card-head" }, [
-          h("span", { text: "匹配票卡" }),
-          h("strong", { text: outcome ? outcome.label : "未匹配票卡" })
+    return h("section", { class: "panel rv-ai-summary" }, [
+      AppState.panelTitle("AI 摘要", record.no ? "第 " + record.no + " 项" : "当前巡检记录"),
+      h("article", { class: "rv-summary-card" }, [
+        h("div", { class: "rv-summary-head" }, [
+          h("span", { text: "AI 建议" }),
+          h("strong", { text: outcome ? outcome.label : "未匹配建议" })
         ]),
-        h("div", { class: "rv-match-score" }, [
+        h("div", { class: "rv-summary-score" }, [
           h("span", { text: "置信度" }),
           h("strong", { text: item ? String(item.confidence) + "%" : "--" })
         ]),
-        h("dl", { class: "rv-match-meta" }, [
-          h("dt", { text: "票卡编号" }), h("dd", { text: ticketNo(outcome) }),
-          h("dt", { text: "适用对象" }), h("dd", { text: AppState.currentObject().label + " · " + part.label }),
-          h("dt", { text: "生成动作" }), h("dd", { text: outcome ? outcome.executeText : "待人工确认" })
-        ]),
-        h("p", {
-          class: "rv-match-note",
-          text: outcome ? outcome.impact : "AI 未匹配到可用票卡，需人工确认。"
-        })
+        h("p", { class: "rv-summary-text", text: item ? item.summary : "本条记录没有模型判读，需人工直接判定。" })
       ]),
-      h("div", { class: "rv-ticket-record" }, [
-        h("span", { text: "巡检项" }),
-        h("strong", { text: record.item + " · " + (record.result || "未填写") })
-      ]),
-      item ? h("p", { class: "rv-ticket-summary", text: item.summary }) : null,
-      renderEvidenceActions(item)
+      h("dl", { class: "rv-summary-points" }, [
+        h("dt", { text: "巡检项" }), h("dd", { text: record.item }),
+        h("dt", { text: "当前读数" }), h("dd", { text: record.result || "未填写" })
+      ])
     ]);
   }
 
-  // ---------------------------------------------------------------- ③ 处置路径
+  function firstTreatmentOutcome() {
+    var found = REVIEW.outcomes.filter(function (outcome) { return outcome.track === "treatment"; })[0];
+    if (!found) throw new Error("[review] 缺少处置型复核结论");
+    return found;
+  }
 
-  // 未选结论前：整段可见但变暗且不可交互，三条路径**平铺列出**，不暗示哪条是默认。
-  // 步数用 steps.length 现算，不写"（6 步）"这类手数出来的字面量——改了数据就不符，
-  // 而且不会报错。
-  function renderPathPreview() {
-    return h("div", { class: "rv-path-preview" }, [
-      h("p", { class: "muted", text: "选择②的复核结论后，这里会展开对应的处置路径：" }),
-      h("ul", { class: "rv-path-list" }, window.DOMAIN_REVIEW.outcomes.map(function (outcome) {
-        return h("li", {
-          text: outcome.label + " → " + outcome.steps.length + " 步：" + outcome.steps[outcome.steps.length - 1]
-        });
-      }))
+  function rejectOutcome() {
+    var found = REVIEW.outcomes.filter(function (outcome) { return outcome.id === "reject"; })[0];
+    if (!found) throw new Error("[review] 缺少 reject 复核结论");
+    return found;
+  }
+
+  function voteTitle(vote) {
+    var suggestion = AppState.suggestedOutcome();
+    if (vote.id === "accept") return suggestion ? "按 AI 结论归档" : "无 AI 结论";
+    if (vote.id === "revise") {
+      if (!suggestion || suggestion.id === "reject") return "人工转处置";
+      if (suggestion.track === "treatment") return suggestion.label;
+      return firstTreatmentOutcome().label;
+    }
+    if (vote.id === "reject") return rejectOutcome().label;
+    throw new Error("[review] 未知表决按钮：" + vote.id);
+  }
+
+  function voteHint(vote) {
+    var suggestion = AppState.suggestedOutcome();
+    if (vote.id === "accept") return suggestion ? "采用建议，直接生成报告" : "当前记录无模型建议";
+    if (vote.id === "revise") {
+      if (!suggestion) return "人工选择处置路径";
+      if (suggestion.id === "reject") return "推翻误报建议，进入处置路径";
+      if (suggestion.track === "treatment") return "补充人工意见后生成报告";
+      return "推翻观察建议，转入处置复核";
+    }
+    if (vote.id === "reject") return "记录为误报样本";
+    throw new Error("[review] 未知表决说明：" + vote.id);
+  }
+
+  function renderReviewConclusion() {
+    return h("div", { class: "rv-review-block rv-review-conclusion" }, [
+      h("div", { class: "rv-block-head" }, [
+        h("span", { text: "人工结论" }),
+        h("strong", { text: AppState.currentOutcome() ? AppState.currentOutcome().label : "待确认" })
+      ]),
+      h("div", { class: "rv-decision-votes" }, REVIEW.votes.map(renderDecisionVote))
+    ]);
+  }
+
+  function renderDecisionVote(vote) {
+    var state = AppState.value;
+    var active = state.review.vote === vote.id;
+    var disabled = vote.id === "accept" && !AppState.suggestedOutcome();
+    return h("button", {
+      type: "button",
+      class: "rv-decision-vote" + (active ? " active" : ""),
+      "aria-pressed": active ? "true" : "false",
+      disabled: disabled ? "disabled" : null,
+      dataset: { action: "review-vote", voteId: vote.id, focusKey: "vote:" + vote.id }
+    }, [
+      h("strong", { text: voteTitle(vote) }),
+      h("span", { text: voteHint(vote) })
+    ]);
+  }
+
+  function renderDivergence() {
+    if (!AppState.isDivergent()) return null;
+    return h("div", { class: "rv-divergence", role: "status", dataset: { gate: "divergence" } }, [
+      h("strong", { text: REVIEW.divergence.badgeText }),
+      h("span", { text: REVIEW.divergence.noteHint })
+    ]);
+  }
+
+  function renderNote() {
+    var required = AppState.noteRequired();
+    return h("div", { class: "rv-review-block rv-confirm-note" + (required ? " required" : "") }, [
+      h("div", { class: "rv-block-head" }, [
+        h("span", { text: "复核意见" }),
+        required ? h("i", { class: "rv-required", text: "* 必填" }) : h("small", { class: "muted", text: "自动生成，可改" })
+      ]),
+      h("textarea", {
+        class: "rv-note",
+        rows: 3,
+        placeholder: REVIEW.notePlaceholder,
+        dataset: { action: "input-note", focusKey: "review-note" },
+        text: AppState.value.review.note
+      }),
+      h("div", { class: "rv-phrases", role: "group", "aria-label": "常用语" },
+        REVIEW.phrases.slice(0, 3).map(function (phrase, i) {
+          return h("button", {
+            type: "button",
+            class: "rv-phrase",
+            dataset: { action: "append-phrase", phrase: phrase, focusKey: "phrase:" + i },
+            text: phrase
+          });
+        }))
     ]);
   }
 
   function renderMissingHint() {
-    var missing = AppState.missingFields();
     var parts = [];
-    if (missing.length) {
-      parts.push("还需填写：" + missing.map(function (fieldId) {
-        return window.DOMAIN_REVIEW.fields[fieldId].label;
-      }).join("、"));
-    }
+    if (!AppState.currentOutcome()) parts.push("请选择人工复核结论");
     if (AppState.noteRequired() && AppState.value.review.note.trim() === "") {
-      parts.push("与 AI 建议不一致，必须填写复核意见");
+      parts.push("与 AI 匹配不一致，需要填写复核意见");
     }
+    if (AppState.value.archived) parts.push("本轮报告已归档到知识库");
     return h("p", {
       class: "rv-gate-hint" + (parts.length ? "" : " hidden"),
       dataset: { gate: "hint" },
@@ -150,156 +165,33 @@
     });
   }
 
-  function renderPathSteps(outcome) {
-    return h("div", { class: "rv-path-body" }, [
-      h("p", { class: "rv-path-label", text: outcome.label + " · " + outcome.steps.length + " 步" }),
-      h("ol", { class: "rv-path-steps" }, outcome.steps.map(function (step) {
-        return h("li", { text: step });
-      })),
-      renderMissingHint(),
-      h("button", {
-        type: "button",
-        class: "primary-action rv-execute",
-        disabled: AppState.canExecute() ? null : "disabled",
-        dataset: { action: "execute-review", gate: "execute", focusKey: "execute" },
-        text: outcome.executeText
-      })
-    ]);
-  }
-
-  function renderPath() {
-    var outcome = AppState.currentOutcome();
-    var pending = !outcome;
-    return h("section", {
-      class: "panel rv-path" + (pending ? " pending" : ""),
-      "aria-disabled": pending ? "true" : "false"
-    }, [
-      window.ReviewForm.sectionHead("③", "处置路径", pending ? "待选择结论" : outcome.label),
-      pending ? renderPathPreview() : renderPathSteps(outcome)
-    ]);
-  }
-
-  // ---------------------------------------------------------------- 复测退回横幅
-
-  function renderRetestBanner() {
-    if (!AppState.retestFailed()) return null;
-    return h("div", { class: "rv-retest-banner", role: "status" }, [
-      h("strong", { text: "复测未通过，已退回复核" }),
-      h("span", { text: "结论与复核意见都保留，可以维持原判，也可以改。" })
-    ]);
-  }
-
-  function renderReviewAgentFab() {
-    return h("button", {
-      type: "button",
-      class: "wb-agent-fab rv-agent-fab",
-      title: "Agent 助手",
-      "aria-label": "打开复核 Agent 助手",
-      dataset: { action: "open-agent", agentContext: "review", focusKey: "review-agent" },
-      text: "AI"
-    });
-  }
-
-  // ---------------------------------------------------------------- 执行屏
-
-  function renderExecuted() {
-    var outcome = AppState.currentOutcome();
-    var state = AppState.value;
-    var retest = outcome.retest;
-    var reportBlocked = retest.enable && state.review.retestPassed !== true;
-    return AppState.pageShell(
-      "处置闭环 / 执行",
-      outcome.label,
-      h("button", {
-        type: "button",
-        class: "primary-action",
-        disabled: (reportBlocked || state.archived) ? "disabled" : null,
-        dataset: { action: "go-archive" },
-        text: state.archived ? "已归档到知识库" : "预览报告"
-      }),
-      h("div", { class: "rv-exec-grid" }, [
-        h("section", { class: "panel rv-ticket" }, [
-          AppState.panelTitle(META.terms.workOrder, outcome.executedText),
-          h("div", { class: "rv-ticket-meta" }, [
-            h("span", { text: "复核人 " + AppState.currentReviewer().name }),
-            h("span", { text: AppState.currentReviewer().role })
-          ].concat(outcome.fields.map(function (fieldId) {
-            var field = window.DOMAIN_REVIEW.fields[fieldId];
-            return h("span", { text: field.label + "：" + fieldValueText(fieldId) });
-          }))),
-          h("ol", { class: "rv-ticket-steps" }, outcome.steps.map(function (step) {
-            return h("li", { text: step });
-          }))
-        ]),
-        h("section", { class: "panel rv-exec-note" }, [
-          AppState.panelTitle("复核意见", AppState.isDivergent() ? "与 AI 建议不一致" : "与 AI 建议一致"),
-          h("p", { class: "rv-exec-note-body", text: state.review.note || "（未填写）" }),
-          AppState.isDivergent()
-            ? h("p", { class: "rv-exec-diverge", text: "本条意见将进入报告的分歧段，并作为模型反馈样本回流知识库。" })
-            : null
-        ]),
-        renderRetestPanel(retest),
-        renderReviewAgentFab()
-      ])
-    );
-  }
-
-  function fieldValueText(fieldId) {
-    var field = window.DOMAIN_REVIEW.fields[fieldId];
-    var value = AppState.value.review.fields[fieldId];
-    if (field.type === "checkbox") {
-      var picked = (value || []).map(function (optionId) {
-        return field.options.filter(function (o) { return o.id === optionId; })[0].label;
-      });
-      return picked.length ? picked.join("、") : "无";
-    }
-    if (!value) return "未填写";
-    return field.options.filter(function (o) { return o.id === value; })[0].label;
-  }
-
-  // 复测：这是 demo 里唯一的一条回头路。一条只能往前点的流程，观众一眼就知道是假的。
-  function renderRetestPanel(retest) {
-    var state = AppState.value;
-    if (!retest.enable) {
-      return h("aside", { class: "panel rv-retest" }, [
-        AppState.panelTitle("闭环确认", "无复测环节"),
-        h("p", { class: "muted", text: "本结论不生成处置票卡，也不需要复测，可直接进入归档。" })
-      ]);
-    }
-    var decided = state.review.retestPassed === true;
-    var archived = state.archived === true;
-    return h("aside", { class: "panel rv-retest" }, [
-      AppState.panelTitle("复测验收", archived ? "已归档" : (decided ? "已通过" : "待确认")),
-      h("p", { class: "muted", text: archived ? "报告已归档，复测结果已锁定。" : "处置完成后由现场回填复测结果。" }),
-      h("div", { class: "rv-retest-actions" }, [
-        h("button", {
-          type: "button",
-          class: "primary-action",
-          disabled: (decided || archived) ? "disabled" : null,
-          dataset: { action: "retest-pass" },
-          text: decided ? "复测已通过" : retest.passLabel
-        }),
-        h("button", {
-          type: "button",
-          class: "plain-button rv-retest-fail",
-          disabled: archived ? "disabled" : null,
-          dataset: { action: "retest-fail" },
-          text: archived ? "归档后不可退回" : retest.failLabel
-        })
+  function renderConfirmPanel() {
+    var archived = AppState.value.archived;
+    return h("div", { class: "rv-review-page" }, [
+      renderAiSummary(),
+      h("section", { class: "panel rv-review-confirm" }, [
+        AppState.panelTitle("人工确认", AppState.currentReviewer().name),
+        renderReviewConclusion(),
+        renderDivergence(),
+        renderNote(),
+        h("div", { class: "rv-confirm-footer" }, [
+          renderMissingHint(),
+          h("button", {
+            type: "button",
+            class: "primary-action rv-execute",
+            disabled: (!AppState.canExecute() || archived) ? "disabled" : null,
+            dataset: { action: "execute-review", gate: "execute", focusKey: "execute" },
+            text: archived ? "已归档到知识库" : "生成报告"
+          })
+        ])
       ])
     ]);
   }
-
-  // ---------------------------------------------------------------- 报告归档浮层
 
   function categoryById(categoryId) {
     var found = KB.categories().filter(function (category) { return category.id === categoryId; })[0];
     if (!found) throw new Error("[review] 归档分类不存在：" + categoryId);
     return found;
-  }
-
-  function reportArchiveBlocked(outcome) {
-    return outcome.retest.enable && AppState.value.review.retestPassed !== true;
   }
 
   function renderReportSummary(outcome) {
@@ -313,17 +205,58 @@
     ]);
   }
 
-  function renderReportPreview() {
-    return h("div", { class: "rv-report-document" }, ReportModel.sections().map(function (section) {
-      return h("article", { class: "ar-section" + (section.human ? " human" : "") }, [
-        h("div", { class: "ar-section-head" }, [
-          h("i", { class: "dot " + section.status, "aria-hidden": "true" }),
-          h("strong", { text: section.title })
-        ]),
-        h("p", { text: section.text }),
-        section.human ? h("small", { class: "ar-human-tag", text: "人工填写" }) : null
+  function reportSectionsById() {
+    var out = {};
+    ReportModel.sections().forEach(function (section) {
+      out[section.id] = section;
+    });
+    return out;
+  }
+
+  function renderReportDigest() {
+    var sections = reportSectionsById();
+    var items = [
+      { title: "异常", section: sections.finding },
+      { title: "依据", section: sections.evidence },
+      { title: "人工结论", section: sections.review },
+      { title: "入库去向", section: sections.archive }
+    ];
+    return h("div", { class: "rv-report-digest" }, items.map(function (item) {
+      if (!item.section) throw new Error("[review] 报告摘要缺少段落：" + item.title);
+      return h("article", { class: "rv-report-digest-card" }, [
+        h("span", { text: item.title }),
+        h("p", { text: item.section.text })
       ]);
     }));
+  }
+
+  function reportRetestStatus(outcome) {
+    var state = AppState.value;
+    if (!outcome.retest.enable) return null;
+    var passed = state.review.retestPassed === true;
+    return h("div", { class: "rv-report-retest" + (passed ? " passed" : "") }, [
+      h("strong", { text: passed ? "复测已通过" : "需要复测确认" }),
+      h("span", {
+        text: passed
+          ? "处置结果已完成确认，可以归档到知识库。"
+          : "处置型结论先确认复测，再归档为可复用案例。"
+      })
+    ]);
+  }
+
+  function reportActions(outcome) {
+    var needsRetest = outcome.retest.enable && AppState.value.review.retestPassed !== true;
+    var actions = [
+      { text: "返回修改", action: "close-report-archive" },
+      { text: "查看完整报告", href: REPORT.previewPdf.src }
+    ];
+    if (needsRetest) {
+      actions.push({ text: outcome.retest.failLabel, action: "retest-fail" });
+      actions.push({ text: outcome.retest.passLabel, action: "retest-pass", primary: true });
+    } else {
+      actions.push({ text: "归档到知识库", action: "archive-report", primary: true });
+    }
+    return actions;
   }
 
   function renderReportArchiveOverlay() {
@@ -332,76 +265,48 @@
     var outcome = AppState.currentOutcome();
     if (!outcome) throw new Error("[review] 打开报告归档浮层时必须已选定结论");
 
-    var blocked = reportArchiveBlocked(outcome);
     return window.Overlay.render({
       open: true,
       title: "报告预览",
       kicker: "由人工复核结果自动生成",
       body: [
         renderReportSummary(outcome),
-        h("p", {
-          class: "rv-report-tip",
-          text: blocked
-            ? "复测通过后才能归档。当前报告可先预览，确认复测结果后再写入知识库。"
-            : "确认后写入知识库，本页不跳转。"
-        }),
-        renderReportPreview()
+        reportRetestStatus(outcome),
+        h("p", { class: "rv-report-tip", text: "确认后写入知识库，并作为后续相似记录的命中依据。" }),
+        renderReportDigest()
       ],
-      actions: [
-        { text: "返回修改", action: "close-report-archive" },
-        { text: state.archived ? "已归档" : "归档到知识库", action: "archive-report", primary: true, disabled: blocked || state.archived }
-      ],
+      actions: reportActions(outcome),
       onCloseAction: "close-report-archive",
-      key: "review-report-archive",
+      key: "review-report-archive:" + (outcome.retest.enable && state.review.retestPassed !== true ? "retest" : "ready"),
       panelClass: "rv-report-overlay"
     });
   }
 
-  // ---------------------------------------------------------------- 顶层
-
   function renderReview() {
-    if (AppState.value.review.executed) return renderExecuted();
-
     return AppState.pageShell(
-      "人工复核 / AI 匹配票卡",
+      "人工复核 / 结论确认",
       AppState.currentObject().label + " " + AppState.currentPart().label,
       renderReviewerChip(),
-      h("div", { class: "rv-stack rv-review-stack" }, [
-        renderRetestBanner(),
-        h("div", { class: "rv-grid rv-review-page" }, [
-          renderTicketCard(),
-          h("div", { class: "rv-review-column" }, [
-            window.ReviewForm.render(),
-            renderPath()
-          ])
-        ]),
-        renderReviewAgentFab()
-      ])
+      renderConfirmPanel()
     );
   }
 
   function renderReviewCharts() {
-    // 复核主页面不画图。时序/视觉证据通过左侧票卡按钮进入详情。
+    // 复核主页面不画图。证据统一从工作台 AI 判断浮层进入详情。
   }
 
-  // 定点刷新：文本框输入不走 render()（每敲一个字整屏重建会丢光标），只更新受影响的
-  // 两处——执行按钮的可用性和缺项提示。
   function refreshReviewGates() {
     var button = document.querySelector('[data-gate="execute"]');
-    if (button) button.disabled = !AppState.canExecute();
+    if (button) button.disabled = !AppState.canExecute() || AppState.value.archived;
 
     var hint = document.querySelector('[data-gate="hint"]');
     if (!hint) return;
-    var missing = AppState.missingFields();
     var parts = [];
-    if (missing.length) {
-      parts.push("还需填写：" + missing.map(function (fieldId) {
-        return window.DOMAIN_REVIEW.fields[fieldId].label;
-      }).join("、"));
-    }
+    if (!AppState.currentOutcome()) parts.push("请选择人工复核结论");
     if (AppState.noteRequired() && AppState.value.review.note.trim() === "") {
-      parts.push("与 AI 建议不一致，必须填写复核意见");
+      parts.push("与 AI 匹配不一致，需要填写复核意见");
     }
+    if (AppState.value.archived) parts.push("本轮报告已归档到知识库");
     hint.textContent = parts.join("；");
     hint.classList.toggle("hidden", parts.length === 0);
   }

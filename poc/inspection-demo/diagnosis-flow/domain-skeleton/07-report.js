@@ -19,6 +19,14 @@
 window.DOMAIN_REPORT = {
   titleTpl: "{{objectLabel}} {{partLabel}} 复核报告",
 
+  // 单机版 demo 使用目录内 PDF 作为"已生成报告"预览。业务方替换报告时只改这里，
+  // 不让页面运行时依赖仓库外部目录。
+  previewPdf: {
+    title: "巡检智能复核报告",
+    src: "assets/reports/inspection-diagnosis-report.pdf",
+    filename: "巡检智能复核报告.pdf"
+  },
+
   sections: [
     {
       id: "finding",

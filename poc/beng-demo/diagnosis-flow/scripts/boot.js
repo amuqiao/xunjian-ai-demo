@@ -400,11 +400,10 @@
     state.review.vote = vote;
     var suggestion = AppState.suggestedOutcome();
     var outcome = suggestion;
-    if (vote === "reject") {
-      outcome = REVIEW.outcomes.filter(function (item) {
-        return item.id === "reject";
-      })[0];
-    }
+    var rejectOutcome = REVIEW.outcomes.filter(function (item) { return item.id === "reject"; })[0];
+    var treatmentOutcome = REVIEW.outcomes.filter(function (item) { return item.id === "fix"; })[0];
+    if (vote === "reject") outcome = rejectOutcome;
+    if (vote === "revise" && (!outcome || outcome.id === "reject")) outcome = treatmentOutcome;
     if (!outcome) {
       throw new Error("[boot] 表决缺少可用结论：" + vote);
     }
@@ -413,7 +412,13 @@
     if (typeof voteDef.defaultNote !== "string" || voteDef.defaultNote.trim() === "") {
       throw new Error("[boot] 表决缺少默认复核意见：" + vote);
     }
-    state.review.note = voteDef.defaultNote;
+    if (vote === "accept" && outcome.id === "reject") {
+      state.review.note = "同意 AI 建议，现场复核后确认本项为误报，按误报样本归档。";
+    } else if (vote === "revise" && suggestion && suggestion.id === "reject") {
+      state.review.note = "人工复核后认为仍需转处置，请补充现场依据后生成报告。";
+    } else {
+      state.review.note = voteDef.defaultNote;
+    }
     state.review.executed = false;
     state.review.retestPassed = null;
     state.archived = false;

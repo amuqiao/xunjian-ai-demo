@@ -138,7 +138,7 @@ def run(page):
     page.locator(".sl-table-row").filter(has_text="出口压力、流量和泵体异响").click()
     page.click('.wb-ai-list-overlay [data-action="open-evidence"][data-evidence-kind="case"]')
     check("新增压力/汽蚀表单项可跳转知识库文档", page.locator(".kb-doc-overlay").count() == 1)
-    check("知识库打开汽蚀复核说明", "出口压力波动与汽蚀风险复核说明" in text_of(page, ".kb-doc-overlay"))
+    check("知识库打开汽蚀复核说明", "管道振动、汽蚀与出口压力波动复核说明" in text_of(page, ".kb-doc-overlay"))
     page.keyboard.press("Escape")
     page.click('.scene-nav-btn[data-scene-key="workbench"]')
 
@@ -160,14 +160,30 @@ def run(page):
     page.locator(".sl-table-row").filter(has_text="2号轴承振动值异常上升").click()
     page.locator('.wb-ai-list-overlay [data-action="open-evidence"][data-evidence-kind="case"]').first.click()
     check("2号轴承表单项可跳转轴承剥落案例", page.locator(".kb-doc-overlay").count() == 1)
-    check("知识库打开 2023 年轴承内圈剥落案例", "2023年XX站2号轴承内圈剥落处置案例" in text_of(page, ".kb-doc-overlay"))
+    check("知识库打开叶轮与轴承关联案例", "叶轮磨损、腐蚀或破损案例" in text_of(page, ".kb-doc-overlay"))
     page.keyboard.press("Escape")
     page.click('.scene-nav-btn[data-scene-key="workbench"]')
     page.locator(".sl-table-row").filter(has_text="2号轴承振动值异常上升").click()
     page.click('.wb-ai-list-overlay [data-action="go-review"]')
-    check("2号轴承进入复核页后匹配轴承专项检查票卡", "疑似轴承内圈剥落" in text_of(page, ".rv-ticket-match"))
-    check("2号轴承复核票卡编号使用 PUMP-BRG 前缀", "PUMP-BRG" in text_of(page, ".rv-ticket-meta"))
+    check("2号轴承进入复核页后 AI 摘要显示轴承专项建议", "疑似轴承内圈剥落" in text_of(page, ".rv-ai-summary"))
+    check("2号轴承复核页不再展示票卡编号", "PUMP-BRG" not in text_of(page, ".rv-ai-summary"))
+    check("2号轴承复核页展示专项检查业务按钮", "转专项检查" in text_of(page, ".rv-review-conclusion"))
+    page.click('[data-action="review-vote"][data-vote-id="revise"]')
+    check("2号轴承转专项检查仍落到轴承专项结论", "疑似轴承内圈剥落" in text_of(page, ".rv-review-conclusion"))
     page.click('.scene-nav-btn[data-scene-key="workbench"]')
+    page.evaluate(
+        """() => {
+          const state = window.AppState.value;
+          state.review.vote = '';
+          state.review.outcomeId = '';
+          state.review.fields = {};
+          state.review.note = '';
+          state.review.executed = false;
+          state.review.retestPassed = null;
+          state.pick.reviewArchiveOpen = false;
+          state.archived = false;
+        }"""
+    )
 
     page.locator(".sl-table-row").first.click()
     check("点击巡检记录打开 AI 辅助判断列表浮层", page.locator(".wb-ai-list-overlay").count() == 1)
@@ -254,11 +270,8 @@ def run(page):
     check("整屏渲染后同 key 浮层原地保留（退回 innerHTML=\"\" 全量重挂时这条会红）",
           probe_survived(page, ".ag-overlay"))
 
-    page.locator(".ag-question.miss").first.click()
-    page.wait_for_selector(".ag-miss", timeout=4000)
-    check("未命中态渲染出「知识库暂无直接依据」", page.locator(".ag-miss").count() == 1)
-    check("未命中态不渲染命中卡", page.locator(".ag-hit").count() == 0)
-    page.screenshot(path=str(SHOTS / "05-agent-miss.png"))
+    check("归档前工作台 Agent 未命中问题保持隐藏", page.locator(".ag-question.miss").count() == 0)
+    page.screenshot(path=str(SHOTS / "05-agent-prearchive.png"))
     page.keyboard.press("Escape")
     check("Esc 关闭 Agent 浮层", page.locator(".ag-overlay").count() == 0)
 
@@ -269,15 +282,23 @@ def run(page):
     check("身份芯片存在", page.locator(".rv-identity-select").count() == 1)
     check("复核页不再常驻核心证据图表", page.locator(".rv-metrics").count() == 0)
     check("复核页不再常驻处置路径大卡", page.locator(".rv-path").count() == 0)
-    check("复核页左侧是 AI 匹配票卡", page.locator(".rv-ticket-match .rv-ticket-card").count() == 1)
-    check("票卡编号首屏已生成", "PUMP-" in text_of(page, ".rv-ticket-meta"))
-    check("主页面有 3 个证据/问答入口", page.locator(".rv-ticket-actions button").count() == 3)
-    check("人工确认改为三选一简单面板", page.locator(".rv-decision-vote").count() == 3)
-    check("右侧按 AI 意见 / 人工复核结论 / 复核意见三块组织",
-          page.locator(".rv-ai-opinion").count() == 1 and page.locator(".rv-review-conclusion").count() == 1 and page.locator(".rv-confirm-note").count() == 1)
+    check("复核页左侧只保留 AI 摘要", page.locator(".rv-ai-summary .rv-summary-card").count() == 1)
+    check("复核页首屏不再展示票卡编号", "PUMP-" not in text_of(page, ".rv-ai-summary"))
+    check("复核页不再重复放证据入口", page.locator(".rv-ticket-actions button").count() == 0)
+    check("复核页不再放 Agent 浮动入口", page.locator(".rv-agent-fab").count() == 0)
+    check("人工确认改为三类业务结论按钮", page.locator(".rv-decision-vote").count() == 3)
+    check("业务结论文案直达，不再显示采纳/修正/驳回",
+          "按 AI 结论归档" in text_of(page, ".rv-review-conclusion")
+          and "补充后归档" in text_of(page, ".rv-review-conclusion")
+          and "排除误报" in text_of(page, ".rv-review-conclusion")
+          and "采纳" not in text_of(page, ".rv-review-conclusion"))
+    check("右侧只按人工结论 / 复核意见组织",
+          page.locator(".rv-ai-opinion").count() == 0 and page.locator(".rv-review-conclusion").count() == 1 and page.locator(".rv-confirm-note").count() == 1)
     check("未表决时提示先选择人工复核结论", "请选择人工复核结论" in text_of(page, '[data-gate="hint"]'))
     page.screenshot(path=str(SHOTS / "06-review-empty.png"))
 
+    page.click('[data-action="review-vote"][data-vote-id="revise"]')
+    check("补充后归档按钮保留当前 AI 建议结论", "确认不对中" in text_of(page, ".rv-review-conclusion"))
     page.click('[data-action="review-vote"][data-vote-id="reject"]')
     check("驳回后自动选定排除误报结论", "排除误报" in text_of(page, ".rv-review-conclusion"))
     check("驳回后没有额外票卡选项", page.locator(".rv-ticket-option").count() == 0)
@@ -319,11 +340,10 @@ def run(page):
     check("执行后仍停留人工复核主页面", page.locator(".rv-review-page").count() == 1)
     check("执行后没有完成态页面", page.locator(".rv-done-page").count() == 0)
     check("执行复核后弹出报告确认浮层", page.locator(".rv-report-overlay").is_visible())
-    check("报告浮层内嵌 PDF 预览", page.locator(".rv-report-overlay .rv-pdf-frame").count() == 1)
-    check("PDF 预览使用项目内相对路径",
-          "assets/reports/demo-diagnosis-report.pdf" in page.locator(".rv-pdf-frame").get_attribute("src"))
-    check("报告浮层提供下载 PDF",
-          page.locator('.rv-report-overlay a[download="输油泵智能诊断报告.pdf"]').is_visible())
+    check("报告浮层默认展示摘要卡", page.locator(".rv-report-overlay .rv-report-digest-card").count() == 4)
+    check("报告浮层不再默认内嵌 PDF", page.locator(".rv-report-overlay .rv-pdf-frame").count() == 0)
+    check("报告浮层保留查看完整报告入口",
+          page.locator('.rv-report-overlay a[href$="demo-diagnosis-report.pdf"]').is_visible())
     page.screenshot(path=str(SHOTS / "08-executed.png"))
 
     # ---------------------------------------------------------------- 5. 归档确认浮层（分歧支线）
@@ -335,7 +355,7 @@ def run(page):
     check("人工原文逐字进入报告模型",
           page.evaluate("() => window.ReportModel.sections().some(s => s.text.indexOf('占位复核依据') >= 0)") is True)
     check("报告标题已解析插槽（不含未替换的花括号）", "{{" not in text_of(page, ".rv-report-summary"))
-    check("PDF 浮层文案不含未替换的插槽", "{{" not in text_of(page, ".rv-report-overlay"))
+    check("报告浮层文案不含未替换的插槽", "{{" not in text_of(page, ".rv-report-overlay"))
     page.screenshot(path=str(SHOTS / "09-archive-divergent.png"))
 
     page.click('[data-action="archive-report"]')
@@ -442,6 +462,7 @@ def run(page):
     page.wait_for_selector(".rv-report-overlay", state="visible")
     page.wait_for_timeout(220)
     check("采纳支线执行后也弹出报告归档确认浮层", page.locator(".rv-report-overlay").is_visible())
+    check("采纳支线报告默认仍是摘要浮层", page.locator(".rv-report-overlay .rv-report-digest-card").count() == 4)
 
     accept_sections = page.evaluate("() => window.ReportModel.sections().length")
     check("采纳支线不含分歧段",
@@ -452,6 +473,110 @@ def run(page):
         accept_sections != divergent_sections,
     )
     page.screenshot(path=str(SHOTS / "14-archive-accept.png"))
+
+    # ---------------------------------------------------------------- 9. 无 AI 判读支线
+    print("\n== 9. 无 AI 判读记录：不能按 AI 结论归档 ==")
+    page.evaluate(
+        """() => {
+          const state = window.AppState.value;
+          state.scene = 'review';
+          state.detail = '';
+          state.focus.objectId = 'OBJ-B';
+          state.focus.partId = 'PART-1';
+          state.pick.workbench = 'REC-004';
+          state.pick.reviewArchiveOpen = false;
+          state.review.vote = '';
+          state.review.outcomeId = '';
+          state.review.fields = {};
+          state.review.note = '';
+          state.review.executed = false;
+          state.review.retestPassed = null;
+          state.archived = false;
+          window.Boot.render();
+        }"""
+    )
+    check("无 AI 判读记录显示人工直接判定空态", "没有模型判读" in text_of(page, ".rv-ai-summary"))
+    check("无 AI 判读记录禁用按 AI 结论归档",
+          page.locator('[data-action="review-vote"][data-vote-id="accept"]').is_disabled())
+    page.click('[data-action="review-vote"][data-vote-id="revise"]')
+    check("无 AI 判读记录仍可人工转处置，不会点击后抛错",
+          page.evaluate("() => !!window.AppState.value.review.outcomeId") is True)
+
+    # ---------------------------------------------------------------- 10. AI 建议误报支线
+    print("\n== 10. AI 建议误报记录：人工可推翻 ==")
+    page.evaluate(
+        """() => {
+          const state = window.AppState.value;
+          state.scene = 'review';
+          state.detail = '';
+          state.focus.objectId = 'OBJ-A';
+          state.focus.partId = 'PART-2';
+          state.pick.workbench = 'REC-003';
+          state.pick.reviewArchiveOpen = false;
+          state.review.vote = '';
+          state.review.outcomeId = '';
+          state.review.fields = {};
+          state.review.note = '';
+          state.review.executed = false;
+          state.review.retestPassed = null;
+          state.archived = false;
+          window.Boot.render();
+        }"""
+    )
+    check("AI 建议误报记录展示人工转处置按钮", "人工转处置" in text_of(page, ".rv-review-conclusion"))
+    page.click('[data-action="review-vote"][data-vote-id="accept"]')
+    check("采纳误报建议时落到排除误报结论",
+          page.evaluate("() => window.AppState.value.review.outcomeId") == "reject")
+    check("采纳误报建议的默认意见不再写生成票卡",
+          "误报样本" in page.eval_on_selector(".rv-note", "el => el.value"))
+    page.evaluate(
+        """() => {
+          const state = window.AppState.value;
+          state.review.vote = '';
+          state.review.outcomeId = '';
+          state.review.fields = {};
+          state.review.note = '';
+          state.review.executed = false;
+          state.review.retestPassed = null;
+          state.archived = false;
+          state.pick.reviewArchiveOpen = false;
+          window.Boot.render();
+        }"""
+    )
+    page.click('[data-action="review-vote"][data-vote-id="revise"]')
+    check("推翻误报建议时转入处置结论",
+          page.evaluate("() => window.AppState.value.review.outcomeId") == "fix")
+    check("推翻误报建议的默认意见提示转处置",
+          "仍需转处置" in page.eval_on_selector(".rv-note", "el => el.value"))
+    check("推翻误报建议触发分歧说明", page.locator(".rv-divergence").count() == 1)
+
+
+def run_mobile_review_nav(browser):
+    print("\n== 11. 移动端复核页切换器 ==")
+    page = browser.new_page(viewport={"width": 390, "height": 844})
+    page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: console_errors.append("pageerror: " + str(e)))
+    page.goto(INDEX.as_uri(), wait_until="domcontentloaded")
+    page.wait_for_selector(".wb-layout", timeout=8000)
+    page.click('.scene-nav-btn[data-scene-key="review"]')
+    page.screenshot(path=str(SHOTS / "15-review-mobile-nav.png"), full_page=True)
+    boxes = page.evaluate(
+        """() => {
+          const nav = document.querySelector('.inspection-flow-nav');
+          const votes = [...document.querySelectorAll('.rv-decision-vote')];
+          const nb = nav.getBoundingClientRect();
+          return {
+            navY: nb.y,
+            overlaps: votes.map((vote) => {
+              const b = vote.getBoundingClientRect();
+              return !(nb.right < b.left || nb.left > b.right || nb.bottom < b.top || nb.top > b.bottom);
+            })
+          };
+        }"""
+    )
+    check("移动端 1/2/3/4 切换器不遮挡人工结论按钮", not any(boxes["overlaps"]))
+    check("移动端 1/2/3/4 切换器进入内容流底部", boxes["navY"] > 900)
+    page.close()
 
 
 def main():
@@ -469,6 +594,7 @@ def main():
 
         try:
             run(page)
+            run_mobile_review_nav(browser)
         finally:
             browser.close()
 

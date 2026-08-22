@@ -149,6 +149,7 @@
       pick: {
         workbench: META.entry.recordId,
         workbenchAiListOpen: false,
+        workbenchAiService: "",
         reviewArchiveOpen: false,
         trend: { pointId: null },
         vision: { frameId: null, zoomOpen: false },
@@ -249,6 +250,8 @@
     return {
       workbench: workbench,
       workbenchAiListOpen: source.workbenchAiListOpen === true,
+      workbenchAiService: ["series", "vision", "rule"].indexOf(source.workbenchAiService) >= 0
+        ? source.workbenchAiService : "",
       reviewArchiveOpen: source.reviewArchiveOpen === true,
       trend: { pointId: pointId },
       vision: { frameId: frameId, zoomOpen: visionSource.zoomOpen === true },
@@ -342,13 +345,16 @@
     clean.pick = cleanPick(clean.pick, clean.focus);
     clean.agent = cleanAgent(clean.agent);
     clean.review = cleanReview(clean.review);
-    clean.archived = clean.archived === true && clean.review.executed;
+    clean.archived = clean.archived === true && canArchiveReview(clean.review);
     if (!clean.review.executed || clean.scene !== "review") clean.pick.reviewArchiveOpen = false;
 
     // 子屏只属于工作台。持久化状态里 scene=knowledge 且 detail=trend 是一种"合法字段
     // 组合但语义矛盾"的脏状态，会让知识库页被时序子屏整屏盖住。
     if (clean.scene !== "workbench") clean.detail = "";
-    if (clean.scene !== "workbench" || clean.detail) clean.pick.workbenchAiListOpen = false;
+    if (clean.scene !== "workbench" || clean.detail) {
+      clean.pick.workbenchAiListOpen = false;
+      clean.pick.workbenchAiService = "";
+    }
 
     clean.flowVisited = Array.isArray(clean.flowVisited)
       ? clean.flowVisited.filter(function (key) {
@@ -435,6 +441,16 @@
     if (missingFields().length) return false;
     if (noteRequired() && state.review.note.trim() === "") return false;
     return true;
+  }
+
+  function canArchiveReview(review) {
+    if (!review.executed || !review.outcomeId) return false;
+    var outcome = outcomeById(review.outcomeId);
+    return !outcome.retest.enable || review.retestPassed === true;
+  }
+
+  function canArchiveReport() {
+    return canArchiveReview(state.review);
   }
 
   function retestFailed() { return state.review.retestPassed === false; }
@@ -537,6 +553,7 @@
     missingFields: missingFields,
     noteRequired: noteRequired,
     canExecute: canExecute,
+    canArchiveReport: canArchiveReport,
     retestFailed: retestFailed,
     canOpen: canOpen,
     reuseUnlocked: reuseUnlocked,

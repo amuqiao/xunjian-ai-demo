@@ -71,8 +71,9 @@
 
 @media (max-width: 900px) {
   .inspection-flow-nav {
-    left: 12px;
-    bottom: 12px;
+    position: static;
+    width: max-content;
+    margin: 12px 0 16px 12px;
     gap: 6px;
     padding: 6px;
   }

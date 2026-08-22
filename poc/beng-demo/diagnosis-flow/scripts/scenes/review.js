@@ -1,6 +1,6 @@
-// 场景：人工复核。演示重点是"AI 匹配集团既有票卡，人确认是否采用"。
+// 场景：人工复核。演示重点是"AI 给出摘要，人只确认业务结论"。
 //
-// 主页面只保留票卡匹配和人工确认面板。证据看详情，报告看弹窗；不做完成态页面，
+// 主页面只保留 AI 摘要和人工确认面板。证据看详情，报告看弹窗；不做完成态页面，
 // 不把真实项目里的完整闭环流程塞进 demo。
 (function () {
   "use strict";
@@ -30,104 +30,60 @@
     ]);
   }
 
-  function evidenceOf(item, kind) {
-    if (!item) return null;
-    var matches = item.evidenceChain.filter(function (evidence) { return evidence.kind === kind; });
-    if (matches.length > 1) throw new Error("[review] " + kind + " 依据不唯一");
-    return matches[0] || null;
-  }
-
-  function ticketNo(outcome) {
-    return outcome ? outcome.archive.caseIdTpl.replace("{{date}}", AppState.currentRecord().date) : "未匹配";
-  }
-
-  function renderEvidenceActions(item) {
-    var series = evidenceOf(item, "series");
-    var vision = evidenceOf(item, "vision");
-    return h("div", { class: "rv-ticket-actions" }, [
-      series ? h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: {
-          action: "open-evidence",
-          evidenceKind: "series",
-          pointId: series.pointId,
-          focusKey: "review-evidence:series"
-        },
-        text: "告警数据"
-      }) : null,
-      vision ? h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: {
-          action: "open-evidence",
-          evidenceKind: "vision",
-          frameId: vision.frameId,
-          focusKey: "review-evidence:vision"
-        },
-        text: "视觉证据"
-      }) : null
-    ]);
-  }
-
-  function renderReviewAgentFab() {
-    return h("button", {
-      type: "button",
-      class: "wb-agent-fab rv-agent-fab",
-      title: "Agent 问答",
-      "aria-label": "打开人工复核 Agent 问答",
-      dataset: { action: "open-agent", agentContext: "review", focusKey: "review-agent" },
-      text: "AI"
-    });
-  }
-
-  function renderTicketCard() {
+  function renderAiSummary() {
     var record = AppState.currentRecord();
-    var part = AppState.partById(record.partId);
     var item = AppState.currentCase();
     var outcome = AppState.suggestedOutcome();
-    return h("section", { class: "panel rv-ticket-match" }, [
-      AppState.panelTitle("AI 匹配票卡", record.no ? "第 " + record.no + " 项 · " + part.short : part.short),
-      h("article", { class: "rv-ticket-card" }, [
-        h("div", { class: "rv-ticket-card-head" }, [
-          h("span", { text: "匹配票卡" }),
-          h("strong", { text: outcome ? outcome.label : "未匹配票卡" })
+    return h("section", { class: "panel rv-ai-summary" }, [
+      AppState.panelTitle("AI 摘要", record.no ? "第 " + record.no + " 项" : "当前巡检记录"),
+      h("article", { class: "rv-summary-card" }, [
+        h("div", { class: "rv-summary-head" }, [
+          h("span", { text: "AI 建议" }),
+          h("strong", { text: outcome ? outcome.label : "未匹配建议" })
         ]),
-        h("div", { class: "rv-ticket-score" }, [
+        h("div", { class: "rv-summary-score" }, [
           h("span", { text: "置信度" }),
           h("strong", { text: item ? String(item.confidence) + "%" : "--" })
         ]),
-        h("dl", { class: "rv-ticket-meta" }, [
-          h("dt", { text: "票卡编号" }), h("dd", { text: ticketNo(outcome) }),
-          h("dt", { text: "适用对象" }), h("dd", { text: AppState.currentObject().label + " · " + part.label }),
-          h("dt", { text: "生成动作" }), h("dd", { text: outcome ? outcome.executeText : "待人工确认" })
-        ]),
-        h("p", { class: "rv-ticket-note", text: outcome ? outcome.impact : "AI 未匹配到可用票卡，需人工确认。" })
+        h("p", { class: "rv-summary-text", text: item ? item.summary : "本条记录没有模型判读，需人工直接判定。" })
       ]),
-      h("div", { class: "rv-ticket-record" }, [
-        h("span", { text: "巡检项" }),
-        h("strong", { text: record.item + " · " + (record.result || "未填写") })
-      ]),
-      renderEvidenceActions(item)
+      h("dl", { class: "rv-summary-points" }, [
+        h("dt", { text: "巡检项" }), h("dd", { text: record.item }),
+        h("dt", { text: "当前读数" }), h("dd", { text: record.result || "未填写" })
+      ])
     ]);
   }
 
-  function renderAiOpinion() {
-    var item = AppState.currentCase();
+  function voteTitle(vote) {
     var suggestion = AppState.suggestedOutcome();
-    return h("div", { class: "rv-review-block rv-ai-opinion" }, [
-      h("div", { class: "rv-block-head" }, [
-        h("span", { text: "AI 意见" }),
-        h("strong", { text: suggestion ? suggestion.label : "未匹配" })
-      ]),
-      h("p", { text: item ? item.suggestion.text : "本条记录没有模型判读。" })
-    ]);
+    if (vote.id === "accept") return suggestion ? "按 AI 结论归档" : "无 AI 结论";
+    if (vote.id === "revise") {
+      if (!suggestion) return "人工转处置";
+      if (suggestion.id === "reject") return "人工转处置";
+      if (suggestion.id === "bearing-inspect") return "转专项检查";
+      return "补充后归档";
+    }
+    if (vote.id === "reject") return "排除误报";
+    throw new Error("[review] 未知表决按钮：" + vote.id);
+  }
+
+  function voteHint(vote) {
+    var suggestion = AppState.suggestedOutcome();
+    if (vote.id === "accept") return suggestion ? "采用建议，直接生成报告" : "当前记录无模型建议";
+    if (vote.id === "revise") {
+      if (!suggestion) return "人工选择处置路径";
+      if (suggestion.id === "reject") return "推翻误报建议，进入处置路径";
+      if (suggestion.id === "bearing-inspect") return "进入轴承专项检查路径";
+      return "补充人工意见后生成报告";
+    }
+    if (vote.id === "reject") return "记录为误报样本";
+    throw new Error("[review] 未知表决说明：" + vote.id);
   }
 
   function renderReviewConclusion() {
     return h("div", { class: "rv-review-block rv-review-conclusion" }, [
       h("div", { class: "rv-block-head" }, [
-        h("span", { text: "人工复核结论" }),
+        h("span", { text: "人工结论" }),
         h("strong", { text: AppState.currentOutcome() ? AppState.currentOutcome().label : "待确认" })
       ]),
       h("div", { class: "rv-decision-votes" }, REVIEW.votes.map(renderDecisionVote))
@@ -137,14 +93,16 @@
   function renderDecisionVote(vote) {
     var state = AppState.value;
     var active = state.review.vote === vote.id;
+    var disabled = vote.id === "accept" && !AppState.suggestedOutcome();
     return h("button", {
       type: "button",
       class: "rv-decision-vote" + (active ? " active" : ""),
       "aria-pressed": active ? "true" : "false",
+      disabled: disabled ? "disabled" : null,
       dataset: { action: "review-vote", voteId: vote.id, focusKey: "vote:" + vote.id }
     }, [
-      h("strong", { text: vote.label }),
-      h("span", { text: vote.hint })
+      h("strong", { text: voteTitle(vote) }),
+      h("span", { text: voteHint(vote) })
     ]);
   }
 
@@ -161,7 +119,7 @@
     return h("div", { class: "rv-review-block rv-confirm-note" + (required ? " required" : "") }, [
       h("div", { class: "rv-block-head" }, [
         h("span", { text: "复核意见" }),
-        required ? h("i", { class: "rv-required", text: "* 分歧必填" }) : h("small", { class: "muted", text: "自动填充，可修改" })
+        required ? h("i", { class: "rv-required", text: "* 必填" }) : h("small", { class: "muted", text: "自动生成，可改" })
       ]),
       h("textarea", {
         class: "rv-note",
@@ -199,10 +157,9 @@
   function renderConfirmPanel() {
     var archived = AppState.value.archived;
     return h("div", { class: "rv-review-page" }, [
-      renderTicketCard(),
+      renderAiSummary(),
       h("section", { class: "panel rv-review-confirm" }, [
         AppState.panelTitle("人工确认", AppState.currentReviewer().name),
-        renderAiOpinion(),
         renderReviewConclusion(),
         renderDivergence(),
         renderNote(),
@@ -216,8 +173,7 @@
             text: archived ? "已归档到知识库" : "生成报告"
           })
         ])
-      ]),
-      renderReviewAgentFab()
+      ])
     ]);
   }
 
@@ -238,18 +194,29 @@
     ]);
   }
 
-  function renderPdfReportPreview() {
-    var pdf = REPORT.previewPdf;
-    return h("div", { class: "rv-pdf-preview" }, [
-      h("iframe", {
-        class: "rv-pdf-frame",
-        title: pdf.title,
-        src: pdf.src
-      }),
-      h("p", { class: "rv-pdf-fallback" }, [
-        h("span", { text: "如浏览器未显示 PDF，可使用下方下载按钮。" })
-      ])
-    ]);
+  function reportSectionsById() {
+    var out = {};
+    ReportModel.sections().forEach(function (section) {
+      out[section.id] = section;
+    });
+    return out;
+  }
+
+  function renderReportDigest() {
+    var sections = reportSectionsById();
+    var items = [
+      { title: "异常", section: sections.finding },
+      { title: "依据", section: sections.evidence },
+      { title: "人工结论", section: sections.review },
+      { title: "入库去向", section: sections.archive }
+    ];
+    return h("div", { class: "rv-report-digest" }, items.map(function (item) {
+      if (!item.section) throw new Error("[review] 报告摘要缺少段落：" + item.title);
+      return h("article", { class: "rv-report-digest-card" }, [
+        h("span", { text: item.title }),
+        h("p", { text: item.section.text })
+      ]);
+    }));
   }
 
   function renderReportArchiveOverlay() {
@@ -264,12 +231,12 @@
       kicker: "由人工复核结果自动生成",
       body: [
         renderReportSummary(outcome),
-        h("p", { class: "rv-report-tip", text: "以下为已生成的 PDF 报告预览。确认后写入知识库，本页不跳转。" }),
-        renderPdfReportPreview()
+        h("p", { class: "rv-report-tip", text: "确认后写入知识库，并作为后续相似记录的命中依据。" }),
+        renderReportDigest()
       ],
       actions: [
         { text: "返回修改", action: "close-report-archive" },
-        { text: "下载 PDF", href: REPORT.previewPdf.src, download: REPORT.previewPdf.filename },
+        { text: "查看完整报告", href: REPORT.previewPdf.src },
         { text: "归档到知识库", action: "archive-report", primary: true }
       ],
       onCloseAction: "close-report-archive",
@@ -280,7 +247,7 @@
 
   function renderReview() {
     return AppState.pageShell(
-      "人工复核 / AI 匹配票卡",
+      "人工复核 / 结论确认",
       AppState.currentObject().label + " " + AppState.currentPart().label,
       renderReviewerChip(),
       renderConfirmPanel()
@@ -288,7 +255,7 @@
   }
 
   function renderReviewCharts() {
-    // 复核主页面不画图。证据通过左侧票卡按钮进入详情。
+    // 复核主页面不画图。证据统一从工作台 AI 判断浮层进入详情。
   }
 
   function refreshReviewGates() {

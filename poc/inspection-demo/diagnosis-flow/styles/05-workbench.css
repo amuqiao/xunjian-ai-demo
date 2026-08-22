@@ -102,6 +102,11 @@
 }
 .wb-ai-service.warn { border-color: rgba(255, 180, 84, 0.32); }
 .wb-ai-service.danger { border-color: rgba(255, 92, 108, 0.36); }
+.wb-ai-service.clickable { cursor: pointer; }
+.wb-ai-service.clickable:hover {
+  border-color: var(--accent);
+  background: rgba(77, 141, 255, 0.08);
+}
 .wb-ai-service-head {
   display: grid;
   gap: 3px;

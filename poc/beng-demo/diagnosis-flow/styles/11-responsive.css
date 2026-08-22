@@ -449,9 +449,8 @@
     max-height: min(70vh, 620px);
   }
 
-  .rv-pdf-frame {
-    height: min(52vh, 460px);
-    min-height: 330px;
+  .rv-report-digest-card {
+    min-height: 112px;
   }
 
   .rv-review-page {
@@ -459,52 +458,45 @@
     gap: 8px;
   }
 
-  .rv-ticket-match,
+  .rv-ai-summary,
   .rv-review-confirm {
     padding: 9px 11px;
   }
 
-  .rv-ticket-match,
+  .rv-ai-summary,
   .rv-review-confirm {
     gap: 8px;
   }
 
-  .rv-ticket-card,
-  .rv-ticket-record,
+  .rv-summary-card,
+  .rv-summary-points,
   .rv-review-block {
     padding: 9px 10px;
   }
 
-  .rv-ticket-score {
+  .rv-summary-score {
     padding: 8px 10px;
   }
 
-  .rv-ticket-card-head {
+  .rv-summary-head {
     padding-bottom: 7px;
   }
 
-  .rv-ticket-card-head strong {
+  .rv-summary-head strong {
     font-size: 16px;
   }
 
-  .rv-ticket-meta {
+  .rv-summary-points {
     gap: 6px 10px;
     font-size: 12px;
   }
 
-  .rv-ticket-note {
-    padding: 8px 10px;
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  .rv-ticket-record strong,
-  .rv-ai-opinion p {
+  .rv-summary-text {
     font-size: 12px;
     line-height: 1.45;
   }
 
-  .rv-ticket-score strong {
+  .rv-summary-score strong {
     font-size: 22px;
   }
 
@@ -594,8 +586,8 @@
     width: 92vw;
   }
 
-  .rv-pdf-frame {
-    min-height: 300px;
+  .rv-report-digest {
+    grid-template-columns: 1fr;
   }
 
   .rv-review-page {

@@ -66,6 +66,7 @@
   }
 
   function renderFlow() {
+    if (!flowTrack) return;
     flowTrack.innerHTML = "";
     META.flowSteps.forEach(function (step, index) {
       var visited = state.flowVisited.indexOf(step.key) >= 0;
@@ -231,6 +232,7 @@
     state.scene = sceneKey;
     state.detail = "";
     state.pick.workbenchAiListOpen = false;
+    state.pick.workbenchAiService = "";
     state.pick.reviewArchiveOpen = false;
     closeAgentState();
     AppState.markFlowStep(flowStepOfScene(sceneKey));
@@ -254,6 +256,7 @@
       // 不对齐就会出现"标题是 A 部位、曲线画的是 B 部位"这种只能靠肉眼发现的错配。
       state.focus.partId = AppState.recordById(id).partId;
       state.pick.workbenchAiListOpen = true;
+      state.pick.workbenchAiService = "";
       state.pick.trend.pointId = null;
       state.pick.vision.frameId = null;
     },
@@ -296,15 +299,20 @@
 
   function openAgent(element) {
     var contextId = element.dataset.agentContext;
-    agentContext(contextId);
+    var context = agentContext(contextId);
+    var questionId = element.dataset.agentQuestionId || "";
+    if (questionId && !context.questions.some(function (q) { return q.id === questionId; })) {
+      throw new Error("[boot] 未知 Agent 问题：" + questionId + "（上下文 " + context.id + "）");
+    }
     state.agent.open = true;
     state.agent.contextId = contextId;
-    state.agent.questionId = "";
+    state.agent.questionId = questionId;
     state.agent.skillId = "";
     state.agent.freeText = "";
-    state.agent.phase = "idle";
+    state.agent.phase = questionId ? "thinking" : "idle";
     AppState.markFlowStep("agent");
     commit();
+    if (questionId) askAgent();
   }
 
   // 提问 → 检索中 → 答案，全程走 tick()：不重建浮层，只换对话区那一块。
@@ -388,14 +396,26 @@
   }
 
   function closeIngest() {
-    // 动画未跑完不许关：关掉就看不到最关键的"命中"那一步了。按钮本身也是 disabled，
-    // 这里是第二道闸（键盘 Esc 也走同一条路径）。
-    if (state.pick.knowledge.ingestStep !== KB.ingestion().length) return;
+    if (state.pick.knowledge.ingestStep < KB.ingestion().length) {
+      state.pick.knowledge.ingestStep = 0;
+    }
     state.pick.knowledge.ingestOpen = false;
     commit();
   }
 
   // ---------------------------------------------------------------- 复核
+
+  function demoFields(outcomeId) {
+    var fields = AppState.defaultFields(outcomeId);
+    var outcome = AppState.outcomeById(outcomeId);
+    outcome.fields.forEach(function (fieldId) {
+      var field = REVIEW.fields[fieldId];
+      if (field.type === "select" && fields[fieldId] === "") {
+        fields[fieldId] = field.options[0].id;
+      }
+    });
+    return fields;
+  }
 
   function selectOutcome(element) {
     var outcomeId = element.dataset.outcomeId;
@@ -403,9 +423,10 @@
     state.review.outcomeId = outcomeId;
     // 换结论 = 换一套结构化字段。保留上一套的值会让"处置班组"这种只属于维修路径的
     // 字段跟着观察结论一起进报告。
-    state.review.fields = AppState.defaultFields(outcomeId);
+    state.review.fields = demoFields(outcomeId);
     state.review.executed = false;
     state.review.retestPassed = null;
+    state.archived = false;
     state.pick.reviewArchiveOpen = false;
     AppState.markFlowStep("review");
     commit();
@@ -413,24 +434,35 @@
 
   function reviewVote(element) {
     var vote = element.dataset.voteId;
-    if (!REVIEW.votes.some(function (v) { return v.id === vote; })) {
+    var voteDef = REVIEW.votes.filter(function (v) { return v.id === vote; })[0];
+    if (!voteDef) {
       throw new Error("[boot] 未知表决：" + vote);
     }
     state.review.vote = vote;
-    if (vote === "accept") {
-      // 采纳 = 直接预选 AI 建议的那条结论。这是 L0 对 L1 的唯一影响。
-      var suggestion = AppState.suggestedOutcome();
-      if (suggestion) {
-        state.review.outcomeId = suggestion.id;
-        state.review.fields = AppState.defaultFields(suggestion.id);
-      }
+    var suggestion = AppState.suggestedOutcome();
+    var outcome = suggestion;
+    var rejectOutcome = REVIEW.outcomes.filter(function (item) { return item.id === "reject"; })[0];
+    var treatmentOutcome = REVIEW.outcomes.filter(function (item) { return item.track === "treatment"; })[0];
+    if (vote === "reject") outcome = rejectOutcome;
+    if (vote === "revise" && (!outcome || outcome.id === "reject")) outcome = treatmentOutcome;
+    if (!outcome) {
+      throw new Error("[boot] 表决缺少可用结论：" + vote);
+    }
+    if (typeof voteDef.defaultNote !== "string" || voteDef.defaultNote.trim() === "") {
+      throw new Error("[boot] 表决缺少默认复核意见：" + vote);
+    }
+    state.review.outcomeId = outcome.id;
+    state.review.fields = demoFields(outcome.id);
+    if (vote === "accept" && outcome.id === "reject") {
+      state.review.note = "同意 AI 建议，现场复核后确认本项为误报，按误报样本归档。";
+    } else if (vote === "revise" && suggestion && suggestion.id === "reject") {
+      state.review.note = "人工复核后认为仍需转处置，请补充现场依据后生成报告。";
     } else {
-      // 修正 / 驳回 = 强制重新选择，不留 AI 的默认值。
-      state.review.outcomeId = "";
-      state.review.fields = {};
+      state.review.note = voteDef.defaultNote;
     }
     state.review.executed = false;
     state.review.retestPassed = null;
+    state.archived = false;
     state.pick.reviewArchiveOpen = false;
     AppState.markFlowStep("review");
     commit();
@@ -493,10 +525,9 @@
 
   function executeReview() {
     if (!AppState.canExecute()) return;
-    var outcome = AppState.currentOutcome();
     state.review.executed = true;
     state.review.retestPassed = null;
-    state.pick.reviewArchiveOpen = outcome && !outcome.retest.enable;
+    state.pick.reviewArchiveOpen = true;
     AppState.markFlowStep("archive");
     commit();
     resetScroll();
@@ -537,9 +568,7 @@
   }
 
   function archiveReport() {
-    if (!state.review.executed) return;
-    var outcome = AppState.currentOutcome();
-    if (outcome && outcome.retest.enable && state.review.retestPassed !== true) return;
+    if (!AppState.canArchiveReport()) return;
     state.archived = true;
     state.pick.reviewArchiveOpen = false;
     state.scene = "review";
@@ -569,13 +598,16 @@
     var kind = element.dataset.evidenceKind;
     if (element.dataset.evidenceLocked === "true") return;
     state.pick.workbenchAiListOpen = false;
+    state.pick.workbenchAiService = "";
     state.pick.reviewArchiveOpen = false;
     if (kind === "series") {
+      state.scene = "workbench";
       state.detail = "trend";
       state.pick.trend.pointId = element.dataset.pointId;
       AppState.pointById(state.pick.trend.pointId);
       AppState.markFlowStep("trend");
     } else if (kind === "vision") {
+      state.scene = "workbench";
       state.detail = "vision";
       state.pick.vision.frameId = element.dataset.frameId;
       AppState.frameById(state.pick.vision.frameId);
@@ -631,9 +663,33 @@
 
     if (action === "open-evidence") return openEvidence(element);
 
+    if (action === "open-ai-list") {
+      state.pick.workbenchAiListOpen = true;
+      state.pick.workbenchAiService = "";
+      return commit();
+    }
+    if (action === "close-ai-list") {
+      state.pick.workbenchAiListOpen = false;
+      state.pick.workbenchAiService = "";
+      return commit();
+    }
+    if (action === "open-ai-service") {
+      var serviceKind = element.dataset.aiServiceKind;
+      if (["series", "vision", "rule"].indexOf(serviceKind) < 0) {
+        throw new Error("[boot] 未知 AI 服务判断类型：" + serviceKind);
+      }
+      state.pick.workbenchAiService = serviceKind;
+      return commit();
+    }
+    if (action === "close-ai-service") {
+      state.pick.workbenchAiService = "";
+      return commit();
+    }
+
     if (action === "open-trend-detail") {
       state.detail = "trend";
       state.pick.workbenchAiListOpen = false;
+      state.pick.workbenchAiService = "";
       state.pick.trend.pointId = AppState.primaryPoint(state.focus.partId).id;
       AppState.markFlowStep("trend");
       commit();
@@ -642,6 +698,7 @@
     if (action === "open-vision-detail") {
       state.detail = "vision";
       state.pick.workbenchAiListOpen = false;
+      state.pick.workbenchAiService = "";
       state.pick.vision.frameId = AppState.currentFrameOf(state.focus.partId).id;
       AppState.markFlowStep("vision");
       commit();
@@ -671,11 +728,6 @@
       state.pick.vision.zoomOpen = false;
       return commit();
     }
-    if (action === "close-ai-list") {
-      state.pick.workbenchAiListOpen = false;
-      return commit();
-    }
-
     if (action === "open-agent") return openAgent(element);
     if (action === "select-agent-question") return selectAgentQuestion(element);
     if (action === "select-agent-skill") return selectAgentSkill(element);
@@ -694,6 +746,7 @@
     if (action === "retest-pass") return retestPass();
     if (action === "retest-fail") return retestFail();
 
+    if (action === "open-report-archive") return openReportArchive();
     if (action === "archive-report") return archiveReport();
     if (action === "close-report-archive") return closeReportArchive();
 
@@ -762,6 +815,14 @@
 
   function bindKeys() {
     document.addEventListener("keydown", function (event) {
+      var keyTarget = event.target && event.target.dataset && event.target.dataset.action ? event.target : null;
+      if (keyTarget && (event.key === "Enter" || event.key === " ")) {
+        var tag = keyTarget.tagName;
+        if (tag !== "BUTTON" && tag !== "A" && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+          event.preventDefault();
+          return handleAction(keyTarget.dataset.action, keyTarget);
+        }
+      }
       if (event.key !== "Escape") return;
       if (state.pick.vision.zoomOpen) {
         state.pick.vision.zoomOpen = false;
@@ -769,6 +830,11 @@
       }
       if (state.pick.workbenchAiListOpen) {
         state.pick.workbenchAiListOpen = false;
+        state.pick.workbenchAiService = "";
+        return commit();
+      }
+      if (state.pick.workbenchAiService) {
+        state.pick.workbenchAiService = "";
         return commit();
       }
       if (state.agent.open) {
@@ -794,7 +860,7 @@
     stage = document.getElementById("stage");
     sceneNav = document.getElementById("sceneNav");
     flowTrack = document.getElementById("flowTrack");
-    if (!stage || !sceneNav || !flowTrack) throw new Error("[boot] 页面骨架节点缺失");
+    if (!stage || !sceneNav) throw new Error("[boot] 页面骨架节点缺失");
 
     window.DomainSchema.assertAll();
 
