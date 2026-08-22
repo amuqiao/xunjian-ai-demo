@@ -1,0 +1,193 @@
+/* 03-cards.css: 卡片与表格基元 —— 三页共用。
+   .card / .card-head / .card-body（draft 的卡片骨架：sub 用 margin-left:auto 推到
+   标题行右端，省掉一行）、.dx-table（只读表：表头浅底、只有横线、hover 整行）、
+   .chip 一族、.conf 置信度条、.stat 指标块。
+
+   借自 dfaft/智能巡检数智员工-演示.html 的三条：卡片骨架、状态色只染数字/文字而不染
+   整块、表格只有横向分隔线。旧目录 03-cards.css 只有 100 行，而外观逻辑散落在
+   05-workbench.css(238) / 07-review.css(765) / 09-knowledge.css(614) 里各自重造了一遍
+   —— 本文件是把那三片里重复的部分收上来，三页只写布局、不写外观。 */
+
+.card {
+  min-width: 0; min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  overflow: hidden;
+}
+
+.card.auto { grid-template-rows: auto auto; }
+
+.card-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+
+.card-title {
+  color: var(--ink);
+  font-size: 16px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.card-sub {
+  margin-left: auto; flex: 0 0 auto;
+  color: var(--muted); font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-body { min-width: 0; min-height: 0; overflow: hidden; }
+.card-body.scroll { overflow-y: auto; overflow-x: hidden; }
+
+.card-body.scroll::-webkit-scrollbar { width: 6px; }
+.card-body.scroll::-webkit-scrollbar-thumb { border-radius: 6px; background: var(--line-strong); }
+.card-body.scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* ===========================================================================
+   .dx-table —— 诊断记录表（可选中）与只读清单共用一套外观。
+   可选中的行带 data-select-id，由 boot.js 事件委托处理；只读表不带，也就不 hover。
+   =========================================================================== */
+
+.dx-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; }
+
+.dx-th {
+  position: sticky; top: 0; z-index: 1;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--table-head-bg);
+  color: var(--muted);
+  font-size: 13px; font-weight: 600; text-align: left; white-space: nowrap;
+}
+
+.dx-td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: middle;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.dx-table tbody tr:last-child .dx-td { border-bottom: none; }
+
+.dx-row[data-select-id] { cursor: pointer; transition: background-color .16s ease; }
+.dx-row[data-select-id]:hover .dx-td { background: rgba(120, 170, 255, 0.07); }
+.dx-row.active .dx-td { background: rgba(56, 198, 236, 0.14); color: #eafcff; }
+.dx-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.dx-td-dot { width: 1%; padding-right: 0; }
+.dx-dot { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--status-ok); }
+.dx-dot.warn { background: var(--status-warn); }
+.dx-dot.danger { background: var(--status-danger); }
+
+/* AI 质检那一列：文字带色，不用纯色块 —— 「重点复核」四个字本身就是信息。 */
+.dx-flag { font-weight: 700; }
+.dx-flag.conflict { color: var(--status-danger); }
+.dx-flag.gap { color: var(--status-warn); }
+.dx-flag.ok { color: var(--status-ok); }
+
+/* ===========================================================================
+   .chip 一族。三种用途，共用盒子、只换色：
+     .chip.evidence  依据链芯片（可点，点了换右栏证据台）
+     .chip.outcome   结论选项（单选）
+     .chip.phrase    常用语（点了追加进意见框）
+   =========================================================================== */
+
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg-2);
+  color: var(--ink);
+  font-size: 14px;
+  text-align: left;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+
+.chip:hover { border-color: var(--line-strong); background: rgba(120, 170, 255, 0.09); }
+.chip.active { border-color: var(--accent); background: rgba(56, 198, 236, 0.16); color: #eafcff; }
+
+.chip:disabled {
+  opacity: .45;
+  border-style: dashed;
+}
+
+/* 依据链芯片：左侧一个小方标注证据类型，让"这条依据是什么形态"在点之前就能看出来。
+   kind 与 domain/04-records.js 的 evidence[].kind 一一对应。 */
+.chip-kind {
+  width: 22px; height: 22px; flex: 0 0 22px;
+  border-radius: 5px;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800;
+  background: rgba(90, 140, 255, 0.18);
+  color: var(--accent-2);
+}
+.chip-kind.series { background: rgba(56, 198, 236, 0.18); color: var(--accent); }
+.chip-kind.compare { background: rgba(90, 140, 255, 0.18); color: var(--accent-2); }
+.chip-kind.timeline { background: rgba(238, 180, 74, 0.18); color: var(--status-warn); }
+.chip-kind.gaps { background: rgba(238, 180, 74, 0.18); color: var(--status-warn); }
+.chip-kind.vision { background: rgba(48, 198, 157, 0.18); color: var(--status-ok); }
+.chip-kind.rule { background: rgba(135, 163, 184, 0.18); color: var(--muted); }
+.chip-kind.case { background: rgba(255, 98, 92, 0.18); color: var(--status-danger); }
+
+.chip-text { display: grid; gap: 1px; min-width: 0; }
+.chip-text strong { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-text small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 结论芯片：竖排两行（标题 + 提示），选中时描边变 accent。
+   tone 只染标题文字，不染整块 —— 三个选项同时上色会看不出哪个被选中。 */
+.chip.outcome { min-height: 62px; padding: 9px 14px; align-items: flex-start; }
+.chip.outcome .chip-text strong { white-space: normal; }
+.chip.outcome.tone-danger .chip-text strong { color: var(--status-danger); }
+.chip.outcome.tone-warn .chip-text strong { color: var(--status-warn); }
+.chip.outcome.tone-ok .chip-text strong { color: var(--status-ok); }
+
+.chip.phrase { min-height: 30px; padding: 0 11px; font-size: 13px; border-radius: 999px; }
+
+/* ===========================================================================
+   .conf —— 置信度条。数字在右、条在下，条本身用 accent-2（AI 侧的颜色），
+   不用状态三色：置信度高低不等于结论好坏。
+   =========================================================================== */
+
+.conf { display: grid; gap: 7px; }
+.conf-head { display: flex; align-items: baseline; justify-content: space-between; }
+.conf-head span { color: var(--muted); font-size: 13px; }
+.conf-head strong {
+  color: var(--accent-2);
+  font-size: 26px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.conf-bar { height: 6px; border-radius: 3px; background: rgba(120, 150, 255, 0.16); overflow: hidden; }
+.conf-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+
+/* ===========================================================================
+   .stat —— 小指标块（键值对，两级排版）。用在 AI 摘要卡与知识库顶部。
+   =========================================================================== */
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; }
+
+.stat {
+  min-width: 0;
+  display: grid; gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg-2);
+}
+.stat span { color: var(--muted); font-size: 13px; }
+.stat strong {
+  color: var(--ink);
+  font-size: 22px; font-weight: 700; line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.stat.ok strong { color: var(--status-ok); }
+.stat.warn strong { color: var(--status-warn); }
+.stat.danger strong { color: var(--status-danger); }
+
+/* 键值行（AI 摘要卡里的「记录项 / 判定口径 / 现场系统值」那几行）。 */
+.kv { display: grid; gap: 9px; font-size: 14px; }
+.kv-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; align-items: start; }
+.kv-row b { color: var(--muted); font-weight: 400; }
+.kv-row span { color: var(--ink); line-height: 1.6; }

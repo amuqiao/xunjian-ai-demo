@@ -179,20 +179,52 @@
       },
       {
         id: 'c_fault', name: '故障案例', en: 'FAULT CASES', code: 'PUMP-CASE',
-        color: '#6F8FB5', icon: 'people', note: '诊断复用', docTotal: 126,
-        desc: 'Excel 预留故障库类目；演示中补充 P-1 不对中、P-02 振动联锁、P-03 泄漏报警和启泵失败等案例。',
-        featured: ['d_case_p1_alignment', 'd_case_p02_vibration', 'd_case_p03_leak'],
+        color: '#6F8FB5', icon: 'people', note: '诊断复用', docTotal: 24,
+        desc: '收录诊断工作台输油泵故障案例目录中的停泵、泄漏、振动、水击、电压波动和变频泵异常等案例名称。',
+        featured: ['d_case_20250825_wuxin_b4_leak', 'd_case_changling_b02_vibration', 'd_case_miluo_p03_leak', 'd_case_xinbao_voltage'],
         children: [
-          { name: '振动与不对中', children: [
-            { name: '诊断案例', children: [
-              { id: 'd_case_p1_alignment', name: '长岭站 P-1 输油泵不对中诊断与处置报告' },
-              { id: 'd_case_p02_vibration', name: '汨罗站 P-02 非驱动端振动联锁停泵报告' }
+          { name: '泄漏与密封', children: [
+            { name: '机械密封与泄漏停泵', children: [
+              { id: 'd_case_20250825_wuxin_b4_leak', name: '20250825 “8.25”武信武汉站B-4给油泵驱动端泄漏停泵事件' },
+              { id: 'd_case_liuzhou_612_seal_leak', name: '6·12柳州泵站1#泵机封泄漏报警触发联锁停泵分析报告' },
+              { id: 'd_case_miluo_p03_leak', name: '湖南公司汨罗站P-03输油泵驱动端泄漏检测报警故障停泵报告' },
+              { id: 'd_case_huazhong_20250825_seal_leak', name: '2025年华中增加1次---生产异常事件分析报告-输油泵机组故障和缺陷报告（华中公司2025年8月25日机械密封泄漏故障停泵）' }
             ]}
           ]},
-          { name: '泄漏与启停', children: [
-            { name: '历史案例', children: [
-              { id: 'd_case_p03_leak', name: '汨罗站 P-03 驱动端泄漏检测报警故障停泵报告' },
-              { id: 'd_case_start_fail', name: '154站004P0202主输泵启泵失败情况说明' }
+          { name: '振动与设备保护', children: [
+            { name: '振动报警与保护停泵', children: [
+              { id: 'd_case_changling_p01_vibration', name: '长岭站P-01输油泵驱动端振动报警故障停泵报告V1' },
+              { id: 'd_case_changling_b02_vibration', name: '3.泵机组故障停机报告：长岭站B-02给油泵非驱动端振动报警故障停泵报告' },
+              { id: 'd_case_neijiang_b25401_protection', name: '一事一档（2024.10.26内江输油站B-25401保护性停泵事件报告）' },
+              { id: 'd_case_kelamayi_0323_stop', name: '2_乌鲁木齐输油气分公司“03.23”克拉玛依成品油站克乌复线停泵故障报告' },
+              { id: 'd_case_kelamayi_0920_stop', name: '附件：乌鲁木齐输油气分公司“9.20”北疆成品油管道克拉玛依首站1#泵停泵异常事件报告' }
+            ]}
+          ]},
+          { name: '供电与晃电', children: [
+            { name: '电压波动与晃电停泵', children: [
+              { id: 'd_case_xinbao_voltage', name: '2025.4.25新堡输油站双兰线异常停泵事件报告（电压波动）' },
+              { id: 'd_case_rizhao_20250401_power', name: '20250401 日仪线日照站4.1晃电停泵事件分析报告' },
+              { id: 'd_case_nansha_12_vfd_power', name: '南沙作业区南沙站12#变频主输泵晃电停泵分析报告V2' },
+              { id: 'd_case_malan_3_stop', name: '马兰输油站3#泵停泵事件分析报告（2024年5月12日）' }
+            ]}
+          ]},
+          { name: '水击与流程异常', children: [
+            { name: '水击、排气与阀门关断', children: [
+              { id: 'd_case_dongying_20240711_waterhammer', name: '2024年07月11日东营站停泵触发水击东临复线全线停输异常事件' },
+              { id: 'd_case_yangzi_20241005_air', name: '2024年10月5日扬子站因中石化油库新管线未充分排气导致异常停泵苏北北线停输事件' },
+              { id: 'd_case_dongying_0212_valve', name: '“2.12”商储东营分公司阀门关断造成董东线水击联锁停泵事件 (2)' },
+              { id: 'd_case_ridong_20250625_stop', name: '20250625 日东线异常停泵事件分析报告' }
+            ]}
+          ]},
+          { name: '变频泵与站场异常', children: [
+            { name: '异常停泵事件报告', children: [
+              { id: 'd_case_jiangyin_1108_stop', name: '“11.08”江阴站异常停泵情况说明V07' },
+              { id: 'd_case_qinnan_p0404_vfd', name: '钦南柳南宁输油站P0404变频泵异常停泵分析报告-终稿' },
+              { id: 'd_case_xinzheng_p0403_stop', name: '郑州分公司新郑作业区P0403#泵停泵异常事件报告' },
+              { id: 'd_case_dushanzi_b1201_stop', name: '独山子成品油站异常停输事件原因排查分析情况（B1201停泵分析报告）' },
+              { id: 'd_case_qinzhou_p134_stop', name: '钦州输油站“6月4日”P134主输泵异常停泵事件报告' },
+              { id: 'd_case_cuiling_0124_stop', name: '20240124 45.“1.24”翠岭输油站成品油1#泵停泵排查报告' },
+              { id: 'd_case_litang_14_stop', name: '黎塘站14#给油泵非命令触发停泵分析报告pdf' }
             ]}
           ]}
         ]
@@ -236,8 +268,19 @@
       ['d_k248_seal', 'e_mechanical_seal', 'cites'], ['d_k249_4000h', 'e_4000h', 'cites'], ['d_k250_overhaul', 'e_overhaul', 'cites'],
       ['d_k251_leak_plate', 'e_leak_alarm', 'cites'], ['d_k252_oil_change', 'e_lubrication', 'cites'],
       ['d_p202_start', 'e_start_stop', 'cites'], ['d_p203_stop', 'e_start_stop', 'cites'], ['d_p204_switch', 'e_start_stop', 'cites'], ['d_p205_turning', 'e_centrifugal_pump', 'cites'],
-      ['d_case_p1_alignment', 'e_alignment', 'cites'], ['d_case_p1_alignment', 'e_case_reuse', 'cites'],
-      ['d_case_p02_vibration', 'e_vibration', 'cites'], ['d_case_p03_leak', 'e_leak_alarm', 'cites'], ['d_case_start_fail', 'e_start_stop', 'cites'],
+      ['d_case_changling_p01_vibration', 'e_vibration', 'cites'], ['d_case_changling_b02_vibration', 'e_vibration', 'cites'],
+      ['d_case_changling_p01_vibration', 'e_alignment', 'cites'],
+      ['d_case_20250825_wuxin_b4_leak', 'e_leak_alarm', 'cites'], ['d_case_liuzhou_612_seal_leak', 'e_leak_alarm', 'cites'],
+      ['d_case_miluo_p03_leak', 'e_leak_alarm', 'cites'], ['d_case_huazhong_20250825_seal_leak', 'e_leak_alarm', 'cites'],
+      ['d_case_xinbao_voltage', 'e_start_stop', 'cites'], ['d_case_rizhao_20250401_power', 'e_start_stop', 'cites'],
+      ['d_case_nansha_12_vfd_power', 'e_start_stop', 'cites'], ['d_case_malan_3_stop', 'e_start_stop', 'cites'],
+      ['d_case_dongying_20240711_waterhammer', 'e_pipeline', 'cites'], ['d_case_yangzi_20241005_air', 'e_pipeline', 'cites'],
+      ['d_case_dongying_0212_valve', 'e_pipeline', 'cites'], ['d_case_ridong_20250625_stop', 'e_pipeline', 'cites'],
+      ['d_case_jiangyin_1108_stop', 'e_case_reuse', 'cites'], ['d_case_qinnan_p0404_vfd', 'e_case_reuse', 'cites'],
+      ['d_case_xinzheng_p0403_stop', 'e_case_reuse', 'cites'], ['d_case_dushanzi_b1201_stop', 'e_case_reuse', 'cites'],
+      ['d_case_qinzhou_p134_stop', 'e_case_reuse', 'cites'], ['d_case_cuiling_0124_stop', 'e_case_reuse', 'cites'],
+      ['d_case_litang_14_stop', 'e_case_reuse', 'cites'], ['d_case_neijiang_b25401_protection', 'e_case_reuse', 'cites'],
+      ['d_case_kelamayi_0323_stop', 'e_case_reuse', 'cites'], ['d_case_kelamayi_0920_stop', 'e_case_reuse', 'cites'],
 
       ['d_k248_seal', 'd_hn_maintenance_guide', 'refers'],
       ['d_k249_4000h', 'd_hn_plan_maintenance_table', 'refers'],
@@ -246,12 +289,12 @@
       ['d_p202_start', 'd_hn_main_pump', 'refers'],
       ['d_p203_stop', 'd_hn_main_pump', 'refers'],
       ['d_p205_turning', 'd_hn_pump_turning', 'refers'],
-      ['d_case_p1_alignment', 'd_syt_0403', 'refers'],
-      ['d_case_p1_alignment', 'd_k249_4000h', 'refers'],
-      ['d_case_p02_vibration', 'd_case_p1_alignment', 'refers'],
-      ['d_case_p03_leak', 'd_k248_seal', 'refers'],
-      ['d_case_start_fail', 'd_p202_start', 'refers'],
-      ['d_case_p1_alignment', 'd_case_p02_vibration', 'derives']
+      ['d_case_20250825_wuxin_b4_leak', 'd_k248_seal', 'refers'],
+      ['d_case_miluo_p03_leak', 'd_k251_leak_plate', 'refers'],
+      ['d_case_changling_b02_vibration', 'd_syt_0403', 'refers'],
+      ['d_case_xinbao_voltage', 'd_p203_stop', 'refers'],
+      ['d_case_dongying_0212_valve', 'd_gb_50253', 'refers'],
+      ['d_case_changling_p01_vibration', 'd_case_changling_b02_vibration', 'derives']
     ]
   };
 })(typeof window !== 'undefined' ? window : this);

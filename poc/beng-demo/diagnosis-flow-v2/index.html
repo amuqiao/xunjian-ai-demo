@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>输油泵机组智能诊断台 · 长郴-衡阳站</title>
+
+    <link rel="stylesheet" href="styles/01-tokens.css">
+    <link rel="stylesheet" href="styles/02-shell.css">
+    <link rel="stylesheet" href="styles/03-cards.css">
+    <link rel="stylesheet" href="styles/04-scenes.css">
+    <!-- A4 报告版式。tools/report-template.html 也 link 这一份 —— 屏上归档浮窗的预览
+         和构建出来的 PDF 因此不会各自漂移。它是浅色的（一份纸质报告），与深色主题无关。 -->
+    <link rel="stylesheet" href="styles/05-report.css">
+  </head>
+  <body>
+    <div id="appRoot" class="app-shell" aria-label="输油泵机组智能诊断台 · 长郴-衡阳站"></div>
+
+    <!-- ===================================================================
+         【依赖策略】只有 ECharts 与四张站内定点摄像头关键帧引用旧目录
+         ../diagnosis-flow/ 的原文件（不复制副本）；其余全部是本目录自己写的。
+
+         与 hunan-overview-v2 / inspection-station-v2 那两个 v2 目录不同：那两个复用了
+         旧目录的整个 3D 层和数据层，因为它们只重排表现层。本目录**连数据层一起重写**
+         —— 旧的 10 份领域契约里，部位和测点是先写出来再去找图配的，四张真实关键帧对不
+         上任何一条（三条记录共用同一帧，测点「泵体温度 75℃」「控制回路电源状态 88%」
+         没有对应的检查项）。所以这里反过来：先认素材，再定部位与表单项。
+         详见 domain/01-station.js 与 domain/04-records.js 的文件头。
+
+         本目录不引 three.js、不做 3D、不放知识图谱入口 —— 那三块各是独立 POC。
+         =================================================================== -->
+
+    <!-- L0 vendor -->
+    <script src="../diagnosis-flow/vendor/echarts.min.js"></script>
+
+    <!-- L1 领域契约。换课题只换这一组 script；页面代码不含任何业务名词。
+         01 必须最先（02/03/04 都读它）；03 读 01 的测点；04 读 01 与 02；
+         06 的插槽由 scripts/core/report.js 消费。 -->
+    <script src="domain/01-station.js"></script>
+    <script src="domain/02-vision.js"></script>
+    <script src="domain/03-series.js"></script>
+    <script src="domain/04-records.js"></script>
+    <script src="domain/05-review.js"></script>
+    <script src="domain/06-report.js"></script>
+    <script src="domain/07-kb.js"></script>
+
+    <!-- L2 core。state.js 在 IIFE 顶部就读全部 domain，顺序不能倒；
+         report.js 同理。 -->
+    <script src="scripts/core/dom.js"></script>
+    <script src="scripts/core/screen-scale.js"></script>
+    <script src="scripts/core/charts.js"></script>
+    <script src="scripts/core/chartopts.js"></script>
+    <script src="scripts/core/report.js"></script>
+    <script src="scripts/core/state.js"></script>
+
+    <!-- L3 ui -->
+    <script src="scripts/ui/overlay.js"></script>
+    <script src="scripts/ui/evidence.js"></script>
+    <script src="scripts/ui/reportview.js"></script>
+    <script src="scripts/ui/agent.js"></script>
+
+    <!-- L4 场景 -->
+    <script src="scripts/scenes/workbench.js"></script>
+    <script src="scripts/scenes/review.js"></script>
+    <script src="scripts/scenes/knowledge.js"></script>
+
+    <!-- L5 引导 -->
+    <script src="scripts/boot.js"></script>
+  </body>
+</html>

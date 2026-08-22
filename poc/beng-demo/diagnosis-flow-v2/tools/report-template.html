@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>报告排版模板（仅供 tools/build_report.py 打印）</title>
+<!--
+  A4 报告排版模板。**只被 tools/build_report.py 加载**，不是页面的一部分。
+
+  单一真源：本文件不自己写任何报告文案，它加载 domain/*.js + scripts/core/report.js，
+  调 ReportModel.resolve() 拿已填好插槽的段落，再把段落排成 A4。屏上归档浮窗的预览
+  用的是同一份 resolve() 结果 —— 所以下载下来的 PDF 和屏上看到的不会对不上。
+
+  尺寸：A4 在 96dpi 下是 794×1123 CSS px。build_report.py 用 page.pdf({format:'A4'})
+  打印，同时以 deviceScaleFactor=2 逐页截图导出 PNG（1588×2246）给浮窗做内嵌预览
+  —— 内嵌预览必须用图，因为 headless Chromium 没有 PDF 插件（实测 "Couldn't load plugin."）。
+
+  视觉口径照业务方那份占位 PDF 来：深色页眉条 + 蓝色章节标题带下划线 + AI 结论蓝框 +
+  人工复核意见绿框 + 归档标签胶囊 + 页脚「第 N 页 / 共 N 页」。
+-->
+<!-- A4 版式来自 ../styles/05-report.css —— 屏上归档浮窗的预览读同一份，
+     所以「屏上所见」和「下载所得」不会各自漂移。这里只补两条**打印专属**的规则：
+     @page 去掉页边距（版式自己有 46px 内边距），以及给 body 一个灰底方便肉眼看页边界。 -->
+<link rel="stylesheet" href="../styles/05-report.css">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #6b7280; -webkit-font-smoothing: antialiased; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="../domain/01-station.js"></script>
+<script src="../domain/02-vision.js"></script>
+<script src="../domain/03-series.js"></script>
+<script src="../domain/04-records.js"></script>
+<script src="../domain/05-review.js"></script>
+<script src="../domain/06-report.js"></script>
+<script src="../domain/07-kb.js"></script>
+<script src="../scripts/core/report.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // 剧本从 URL 查询串来，build_report.py 传进来。默认走「确认异常」这一支
+  // （REC-1 的 AI 建议就是它，所以默认无分歧；传 outcome=OUT-RECHECK 就能出分歧版）。
+  var q = new URLSearchParams(location.search);
+  var state = {
+    recordId: q.get("record") || "REC-1",
+    reviewerId: q.get("reviewer") || "RV-1",
+    outcomeId: q.get("outcome") || "OUT-CONFIRM",
+    note: q.get("note") || "现场已复核，就地表与 SCADA 读数一致；已联系上游调整工况，安排下一班跟踪。",
+    range: q.get("range") || "12h",
+    generatedAt: q.get("at") || "2026-07-22 20:47"
+  };
+
+  var model = window.ReportModel.resolve(window.ReportModel.contextFromState(state));
+  var VISION = window.DOMAIN_VISION;
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function renderSection(sec) {
+    if (sec.kind === "callout") {
+      var box = el("div", "rp-sec rp-callout " + sec.tone);
+      box.appendChild(el("h2", null, sec.title));
+      box.appendChild(el("p", null, sec.body));
+      return box;
+    }
+    var wrap = el("div", "rp-sec");
+    wrap.appendChild(el("h2", null, sec.title));
+    if (sec.kind === "grid") {
+      var grid = el("div", "rp-grid");
+      sec.rows.forEach(function (row, i) {
+        // 判定标准和人工结果通常较长，让它们各占满一行。
+        var cell = el("div", i >= sec.rows.length - 2 ? "wide" : null);
+        cell.appendChild(el("b", null, row[0] + "："));
+        cell.appendChild(el("span", null, row[1]));
+        grid.appendChild(cell);
+      });
+      wrap.appendChild(grid);
+    } else if (sec.kind === "list") {
+      var ul = el("ul", "rp-list");
+      sec.items.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+      wrap.appendChild(ul);
+      // 附件来源那一段配一张现场佐证照 —— 业务方给的真实现场作业照，放这里最合语义。
+      if (sec.id === "SEC-SOURCE") {
+        var fig = el("figure", "rp-photo");
+        var img = document.createElement("img");
+        // 模板在 tools/ 下，素材路径要回退一级。
+        img.src = "../" + VISION.sourceOf("FRM-SITE-LASER");
+        img.alt = "机械专业岗现场架设激光对中仪";
+        fig.appendChild(img);
+        fig.appendChild(el("figcaption", null, "现场佐证：机械专业岗架设 EASY-LASER 测头，另一人用移动终端记录读数。"));
+        wrap.appendChild(fig);
+      }
+    } else if (sec.kind === "tags") {
+      var tags = el("div", "rp-tags");
+      sec.tags.forEach(function (t) { tags.appendChild(el("span", null, t)); });
+      wrap.appendChild(tags);
+    } else {
+      throw new Error("未知段落类型：" + sec.kind);
+    }
+    return wrap;
+  }
+
+  var root = document.getElementById("root");
+  model.pages.forEach(function (page) {
+    var pageEl = el("div", "rp-page");
+    pageEl.dataset.page = String(page.page);
+
+    var head = el("div", "rp-head");
+    var left = el("div");
+    left.appendChild(el("h1", null, model.header.title));
+    left.appendChild(el("small", null, model.header.subtitle));
+    head.appendChild(left);
+    var meta = el("div", "rp-head-meta");
+    meta.appendChild(el("div", null, "报告编号：" + model.header.caseId));
+    meta.appendChild(el("div", null, "生成时间：" + model.header.generatedAt));
+    head.appendChild(meta);
+    pageEl.appendChild(head);
+
+    var body = el("div", "rp-body");
+    page.sections.forEach(function (sec) { body.appendChild(renderSection(sec)); });
+    pageEl.appendChild(body);
+
+    var foot = el("div", "rp-foot");
+    foot.appendChild(el("span", null,
+      model.divergent ? "本报告含复核分歧说明段" : "人工结论与 AI 建议一致"));
+    foot.appendChild(el("span", null, "第 " + page.page + " 页 / 共 " + page.total + " 页"));
+    pageEl.appendChild(foot);
+
+    root.appendChild(pageEl);
+  });
+
+  // 给 build_report.py 一个明确的完成信号：图片也加载完了才算 ready。
+  var imgs = Array.prototype.slice.call(document.images);
+  Promise.all(imgs.map(function (img) {
+    if (img.complete) return Promise.resolve();
+    return new Promise(function (res, rej) {
+      img.addEventListener("load", res);
+      img.addEventListener("error", function () { rej(new Error("图片加载失败：" + img.src)); });
+    });
+  })).then(function () {
+    window.__REPORT_READY__ = { pages: model.pages.length, divergent: model.divergent };
+  });
+})();
+</script>
+</body>
+</html>
