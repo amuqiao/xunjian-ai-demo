@@ -1,0 +1,356 @@
+/* 02-shell.css: app-shell（两行网格）/ topbar（单行）/ stage / panel / kicker /
+   dot / tool-btn / muted / crumbs / date-range 选择器 —— 外壳级基元。
+
+   相对旧目录 styles/02-shell.css 的三处结构改动：
+
+   1) 【.app-shell 从三行变两行】旧的 grid-template-rows 是
+      `auto minmax(0,1fr) 62px`，第三行是 .bottombar，而底栏里只有一条面包屑
+      （旧 renderBottombar 的注释自己写明「底栏只做位置指示，不再放任何操作按钮」）。
+      一整行 62px + 一个 .panel 容器只为承载「湖南省 › 岳阳作业区」两个词，不值。
+      底栏整块删除，.bottombar / .bottombar-back / .bottombar-actions / .crumbs /
+      .crumb / .crumb-sep 全部删除，连面包屑本身一起去掉——当前位置由
+      .ov-map-head 的 <h3>（「湖南省全域」/「岳阳作业区」）单独表达，返回全省沿用
+      地图右下角 .ov-zoom 里已有的 ‹ 按钮（data-action="back-to-overview"）。
+      旧代码在 renderBottombar 的注释里已经写明视口操作要「全部收进地图右下角那一组，
+      一处即全部」，面包屑是同一条原则下最后一处重复的位置指示。
+      省下的 62px + 10px gap 全部给地图。
+
+   2) 【.topbar 从三列变两列，高度 76 → 62】旧顶栏是
+      `minmax(220px,1fr) auto minmax(220px,1fr)`，中间那一列是 .topbar-title：
+      英文 kicker「HUNAN OIL & GAS NETWORK OVERVIEW」+ 居中大标题「湖南省油气管网
+      巡检总览」+ 一条发光横线 + 两侧各一段「装饰线 + 菱形节点」的 .topbar-wing。
+      而左侧 .brand 里已经写着「湖南省油气管网大屏 / 巡检站总览」——中间那句是同一
+      句话的第二遍，英文 kicker 是第三遍。三者说同一件事，占掉 76px 里的全部高度。
+      现在只留两列：左 brand，右 日期范围 + 时钟。.topbar-title / .topbar-wing /
+      .topbar-title-main / .topbar-title-rule 四组样式删除。
+
+   3) 【.panel 圆角与阴影走三档制】旧的 .panel 是 border-radius:8px +
+      box-shadow:var(--shadow)。现在面板用 --r-m(12px) + --sh-m，卡片用 --r-s(8px)
+      + --sh-s（见 03-cards.css），浮层用 --r-m + --sh-l——三级深度可区分。
+
+   保留未改的基元（scripts/ui/cards.js、selectlist.js 和复用的
+   styles/05-hunan3d.css 会直接读它们，类名和取值都不能动）：
+   .panel / .kicker / .dot 三色 / .tool-btn / .muted / .stage。 */
+
+.app-shell {
+  position: fixed;
+  left: var(--screen-offset-x);
+  top: var(--screen-offset-y);
+  width: var(--screen-design-width);
+  max-width: none;
+  height: var(--screen-design-height);
+  min-height: 0;
+  margin: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+  will-change: transform;
+  background: var(--app-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   topbar：两列 grid（左 brand / 右 日期范围 + 时钟）。
+
+   DOM 契约：
+   <header class="topbar panel">
+     <div class="topbar-left">
+       <div class="brand">
+         <span class="brand-mark">湘</span>
+         <div><h1>...</h1><small>...</small></div>
+       </div>
+     </div>
+     <div class="topbar-right">
+       <div class="date-range-picker">...</div>
+       <div class="topbar-clock"><strong class="num">14:03:22</strong><small class="num">...</small></div>
+     </div>
+   </header>
+   --------------------------------------------------------------------------- */
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding: 8px 20px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* 旧目录这里带 box-shadow 发光 + 一段呼吸动画，两者都不搬（动效纪律见
+   01-tokens.css 文件尾）。字面值 rgba(56,198,236,0.14) 是 --accent 的 14%
+   透明度副本，改 --accent 记得同步改这里。 */
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--accent);
+  display: grid;
+  place-items: center;
+  background: rgba(56, 198, 236, 0.14);
+  color: #e2f8ff;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+}
+
+.brand h1 {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.brand small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.topbar-clock {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  line-height: 1.25;
+}
+
+.topbar-clock strong {
+  color: #eef9ff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.topbar-clock small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------------------
+   日期范围选择器：从旧目录 02-shell.css 原样搬来（类名、尺寸、交互态全不变），
+   只把圆角常量换成 --r-s/--r-m。它控制的是「统计口径标签」，见
+   scripts/scenes/overview.js 里 renderCompletionCard() 的注释。
+   --------------------------------------------------------------------------- */
+
+.date-range-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.date-range-label {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.date-range-options {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-bg);
+}
+
+.date-range-control {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.date-range-btn {
+  min-width: 54px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.date-range-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.date-range-btn.is-active {
+  border-color: var(--accent);
+  background: rgba(56, 198, 236, 0.16);
+  color: #eafcff;
+}
+
+.date-range-btn.is-open {
+  border-color: var(--line-strong);
+  color: #eafcff;
+}
+
+.custom-date-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: 286px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-m);
+  background: rgba(8, 28, 46, 0.96);
+  box-shadow: var(--sh-l);
+  padding: 10px;
+}
+
+.custom-date-menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.custom-date-menu-head strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.custom-date-menu-head span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.custom-date-menu-list {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.custom-date-option {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  padding: 7px 9px;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+.custom-date-option:hover {
+  border-color: var(--line-strong);
+  background: rgba(56, 198, 236, 0.1);
+}
+
+.custom-date-option.is-active {
+  border-color: var(--accent);
+  background: rgba(56, 198, 236, 0.16);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.custom-date-option-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.custom-date-option-range {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* --------------------------------------------------------------------------- */
+
+.stage {
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+  outline: none;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-bg);
+  box-shadow: var(--sh-m);
+}
+
+.kicker {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--status-ok);
+}
+
+.dot.ok {
+  background: var(--status-ok);
+}
+
+.dot.warn {
+  background: var(--status-warn);
+}
+
+.dot.danger {
+  background: var(--status-danger);
+}
+
+.tool-btn {
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.tool-btn:hover {
+  border-color: var(--accent);
+  color: #eafcff;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

@@ -3,10 +3,13 @@
 // window.HunanSeries 的数据 + CSS 主题色拼成 option 对象。
 //
 // 【POC：hunan-inspection-overview（巡检站总览）】
-// 本文件与 poc/hunan-pump-overview/scripts/core/chartopts.js 是姐妹文件但内容不同：
-// 两份文件都实现 zoneStatusMix/siteKindMix（两块屏"共有"的方法），但各自独有的第三
-// 个构造器不同——本文件是 qualityExceptionMix/zoneCoverageRows 二选一（对应巡检语义），
-// 姐妹文件换成 pumpHealthRank/throughputRows（对应成品油泵站语义）。不写死任何色值：
+// 【2026-08 精简】本文件曾有 5 个构造器，其中 zoneStatusMix / siteKindMix /
+// qualityExceptionMix 三个从来没有被任何场景调用过（scripts/scenes/overview.js 只
+// draw 了 zoneCoverageRows 与 inspectionCoverageTrend 两张图）。这三个已整体删除，
+// 不留占位、不做兼容——留着没有调用者的构造器，只会让后来的人以为存在更多条合法的
+// 画图路径。同批删除的还有它们专用的 statusColor() 与 STATUS_KEYS/THEME_KEYS 两个
+// 常量。新版总览（poc/inspection-demo/hunan-overview-v2/scripts/core/chartopts.js）
+// 有自己独立的一份构造器，与本文件无引用关系。不写死任何色值：
 // 颜色全部现读 getComputedStyle(document.documentElement)，两块屏各自的青蓝/暖琥珀
 // 基调因此自动生效，不在本文件里另写一套色板（这是任务硬约束）。不引入 ECharts 地图
 // 组件——省域地图由 Three.js 负责，这里只画统计图表。
@@ -14,8 +17,6 @@
   "use strict";
 
   var THEME = null;
-  var THEME_KEYS = ["accent", "accent2", "ok", "warn", "danger", "muted", "ink", "lineStrong"];
-  var STATUS_KEYS = ["ok", "warn", "danger"];
 
   function readTheme() {
     var computed = getComputedStyle(document.documentElement);
@@ -41,126 +42,11 @@
     return THEME;
   }
 
-  function statusColor(theme, status) {
-    if (STATUS_KEYS.indexOf(status) < 0) {
-      throw new Error("[ChartOptions] 非法 status: " + status + "，应 ∈ [" + STATUS_KEYS.join(", ") + "]");
-    }
-    return theme[status];
-  }
-
   function requireSeries(fnName) {
     if (!window.HunanSeries) {
       throw new Error("[ChartOptions] " + fnName + " 需要 window.HunanSeries，请检查 scripts/data/series.js 是否已加载");
     }
     return window.HunanSeries;
-  }
-
-  // ---------- zoneStatusMix()：6 作业区状态堆叠柱（ok/warn/danger 三色堆叠） ----------
-  function zoneStatusMix() {
-    var theme = requireTheme();
-    var rows = requireSeries("zoneStatusMix()").zoneStatusMix();
-    if (!rows.length) throw new Error("[ChartOptions] zoneStatusMix() 需要至少一行数据");
-
-    return {
-      grid: { left: 70, right: 16, top: 26, bottom: 46 },
-      legend: { top: 0, right: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: theme.muted, fontSize: 10 } },
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-      xAxis: {
-        type: "category",
-        data: rows.map(function (row) { return row.name.replace("作业区", ""); }),
-        axisLabel: { color: theme.muted, fontSize: 10, interval: 0, rotate: 40 },
-        axisLine: { lineStyle: { color: theme.lineStrong } }
-      },
-      yAxis: {
-        type: "value",
-        axisLabel: { color: theme.muted, fontSize: 10 },
-        splitLine: { lineStyle: { color: theme.lineStrong } }
-      },
-      series: STATUS_KEYS.map(function (status) {
-        return {
-          name: status,
-          type: "bar",
-          stack: "mix",
-          barWidth: 12,
-          itemStyle: { color: statusColor(theme, status) },
-          data: rows.map(function (row) { return row[status]; })
-        };
-      })
-    };
-  }
-
-  // ---------- siteKindMix()：站场 vs 阀室占比（环形图） ----------
-  function siteKindMix() {
-    var theme = requireTheme();
-    var mix = requireSeries("siteKindMix()").siteKindMix();
-    if (mix.total <= 0) throw new Error("[ChartOptions] siteKindMix() 的 total 必须大于 0");
-
-    return {
-      color: [theme.accent, theme.accent2],
-      tooltip: { trigger: "item" },
-      legend: { bottom: 0, itemWidth: 10, itemHeight: 10, textStyle: { color: theme.muted, fontSize: 10 } },
-      series: [{
-        name: "站点类型",
-        type: "pie",
-        radius: ["44%", "68%"],
-        center: ["50%", "42%"],
-        avoidLabelOverlap: true,
-        label: { color: theme.ink, fontSize: 11, formatter: "{b}\n{d}%" },
-        labelLine: { lineStyle: { color: theme.lineStrong } },
-        data: [
-          { name: "站场", value: mix.station },
-          { name: "阀室", value: mix.valve }
-        ]
-      }]
-    };
-  }
-
-  // ---------- qualityExceptionMix()：巡检质量异常构成（横向柱状图） ----------
-  function qualityExceptionMix() {
-    var theme = requireTheme();
-    if (!window.HunanInspectionQuality || typeof window.HunanInspectionQuality.province !== "function") {
-      throw new Error("[ChartOptions] qualityExceptionMix() 需要 window.HunanInspectionQuality.province()");
-    }
-    var q = window.HunanInspectionQuality.province();
-    var rows = [
-      { label: "时长异常", value: q.duration },
-      { label: "间隔异常", value: q.interval },
-      { label: "时段异常", value: q.offWindow },
-      { label: "AI 提醒", value: q.aiAlerts },
-      { label: "当前 P1", value: q.currentRisk },
-    ];
-
-    return {
-      grid: { left: 78, right: 32, top: 8, bottom: 8 },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "shadow" },
-        formatter: function (params) {
-          var row = rows[params[0].dataIndex];
-          return row.label + "：" + row.value + " 次/条";
-        }
-      },
-      xAxis: {
-        type: "value",
-        axisLabel: { color: theme.muted, fontSize: 10 },
-        splitLine: { lineStyle: { color: theme.lineStrong } }
-      },
-      yAxis: {
-        type: "category",
-        data: rows.map(function (row) { return row.label; }),
-        axisLabel: { color: theme.ink, fontSize: 11 },
-        axisLine: { lineStyle: { color: theme.lineStrong } }
-      },
-      series: [{
-        type: "bar",
-        barWidth: 16,
-        data: rows.map(function (row, index) {
-          var color = index >= 3 ? theme.warn : theme.accent;
-          if (row.label === "当前 P1") color = theme.danger;
-          return { value: row.value, itemStyle: { color: color } };
-        })
-      }]
-    };
   }
 
   // ---------- zoneCoverageRows()：各作业区巡检覆盖率（横向柱状图） ----------
@@ -252,9 +138,6 @@
   }
 
   window.ChartOptions = {
-    zoneStatusMix: zoneStatusMix,
-    siteKindMix: siteKindMix,
-    qualityExceptionMix: qualityExceptionMix,
     zoneCoverageRows: zoneCoverageRows,
     inspectionCoverageTrend: inspectionCoverageTrend
   };

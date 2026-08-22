@@ -1,0 +1,189 @@
+/* 06-overview-scene.css: 唯一场景（scripts/scenes/overview.js）的骨架网格。
+
+   【相对旧目录 06-overview-scene.css 的改动：三列 → 两列】
+   旧网格是
+     grid-template-columns: minmax(480px, 0.75fr) minmax(1040px, 1.45fr) minmax(480px, 0.75fr);
+     grid-template-areas: "left map right";
+   左栏四块（KPI 行 / 巡检质量保障 / 作业区排名表 / 动态趋势图）、右栏两块
+   （作业区覆盖率图 / 下钻详情卡）。一屏 8 个容器，视线要左-中-右扫三段，地图只占
+   1040px。
+
+   现在是两列：左栏 660px 一根竖列 + 地图吃掉全部剩余宽度（约 1773px，比旧的 1040px
+   宽 70%）。屏上恒为 2 个顶层容器，视线竖着扫一次即可。
+
+   【左栏为什么是 660 而不是更窄的 520】第一版做成 520px，实测发现湖南省这块 3D 网格
+   在 1289 的画布高度下是**受高度约束**的：省域机位下网格纵向已经占满面板 91%，横向
+   只用掉约 740px。也就是说地图面板宽度越过 ~800px 之后再加宽，地图本身一个像素都不会
+   变大，多出来的全变成右侧死白。所以那 140px 从地图挪给左栏——地图观感不变，左栏的
+   环形图、横向柱和站点表都从局促变宽裕。要让地图真的更大只能改
+   scripts/map3d/engine.js 的 PRESETS 机位，那是本轮明确不动的 3D 层。
+
+   左栏四块自上而下（宽度全部等于 520px，不再有横向切分）：
+     1. .ov-stat-row      三个大数指标（Cards.metric ×3）
+     2. 完成度环形图      Cards.chart + chartopts.completionGauge()
+     3. 质量异常构成      Cards.chart + chartopts.qualityExceptionMix()
+     4. 省域态：作业区需关注站点（chartopts.zoneStatusMix()）
+        下钻态：.ov-list-card 该作业区站点清单（SelectList variant=table）
+     第 4 块在两种状态下都恰好是 1 个容器，所以省域态与下钻态的容器数完全相同，
+     切换时布局不跳。旧场景在下钻时右栏会从 1 张卡变成 2 张（清单 + 详情），
+     整屏网格会抖一下。
+
+   行高分配：.app-shell 高 1289，减去上下 padding 20、顶栏 62、行间 gap 10，
+   .stage 得 1197；左栏再减去自身上下 padding 28 与三条 10px gap，四块共 1139。
+   前三块给定高（92 / 262 / 236），第四块吃剩下的 549——它是四块里唯一需要弹性的
+   （需关注站点数随作业区变化，实测 1 到 5 行）。
+
+   保守 CSS：无嵌套、无 @layer、无容器查询，全部复用 01-tokens.css 的变量。
+
+   注释纪律：本文件任何注释都不得出现字面的「星号+斜杠」连写，会让浏览器把注释
+   提前截断、后面一段规则被吞掉、面板高度塌成 0 且不报错——本项目已经在别的 POC
+   踩过这个坑，写描述性文字代替。 */
+
+.overview-scene {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 660px minmax(0, 1fr);
+  grid-template-areas: "left map";
+  gap: 10px;
+  overflow: hidden;
+}
+
+.ov-left-col {
+  grid-area: left;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: 92px 262px 236px minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* 下钻态第 4 块只有 1 到 5 行表格（省域态那一格是 6 根柱的图，需要全部弹性高度），
+   继续给它 1fr 会撑出一张下半截全空的卡片。改成 auto 让卡片贴着内容收边，多出来的
+   高度留成面板底部的空白——空白比空卡片看起来更像是有意留的。
+   .is-drilled 由 scripts/scenes/overview.js 的 renderLeftColumn 按 state.zoneId 加。 */
+.ov-left-col.is-drilled {
+  grid-template-rows: 92px 262px 236px auto;
+}
+
+.ov-map-panel {
+  grid-area: map;
+  overflow: hidden;
+}
+
+/* 第 1 块：三个大数横向等分。draft 的 .stat-row 用的是
+   repeat(auto-fit, minmax(112px,1fr))，这里固定三列——数量是设计常量（发现问题 /
+   当前 P1 / 行为异常），不需要 auto-fit 的弹性。 */
+.ov-stat-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* 第 2、3、4 块里的 .card-chart 必须能被父级行高压住：min-height:0 让内部
+   minmax(0,1fr) 的图表体真的可以收缩，否则 ECharts 宿主会按内容高度把卡片顶破。 */
+.ov-left-col .card-chart {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 第 4 块（下钻态）：站点清单卡。head 固定，body 纵向滚动。
+   DOM 契约：
+     section.ov-list-card
+       div.ov-list-card-head > span.ov-list-card-title
+       div.ov-list-card-body > table.sl.sl-table
+   与 .card-chart 保持同一套表面样式（同边框、同圆角、同阴影、同内边距），
+   这样第 4 块在省域态是图、下钻态是表，但外观是同一张卡，切换时只有内容变。 */
+.ov-list-card {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  overflow: hidden;
+}
+
+.ov-list-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ov-list-card-title {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ov-list-card-meta {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 表头用 position:sticky（见 03-cards.css 的 .sl-table-th），滚动容器必须是这一层。 */
+.ov-list-card-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.ov-list-card-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ov-list-card-body::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: var(--line-strong);
+}
+
+.ov-list-card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 整个左栏入场一次淡入上移（draft 的 fadeUp）。只在场景首次挂载时可见，
+   每轮 render 都会重播——这是刻意的：下钻/返回时左栏内容整块换掉，一次
+   0.34s 的淡入正好交代「这块内容变了」，比瞬变更容易跟上。 */
+.ov-left-col > * {
+  animation: fadeUp 0.34s ease both;
+}
+
+/* ---------------------------------------------------------------------------
+   两处字号覆盖。styles/05-hunan3d.css 是 3D 契约的禁改区（那份文件原样复用旧目录），
+   但它给 .ov-map-head h3 定的 16px、给 .ov-legend 定的字号是按旧版 1040px 窄地图面板
+   调的，在现在这块 1773px 的面板上偏小。本文件在 index.html 里排在 05-hunan3d.css
+   之后，用同等特异度的选择器覆盖字号——只改这两个 font-size，不碰那份文件里任何
+   与 3D 投影/标签去碰撞相关的尺寸（那些改动前必须先跑标签重叠扫描）。
+   --------------------------------------------------------------------------- */
+
+.ov-map-head h3 {
+  font-size: 20px;
+}
+
+.ov-legend-item {
+  font-size: 14px;
+}
+
+/* 下钻态第 4 块的「全部正常」态（见 scripts/scenes/overview.js 的 renderZoneBlock）。
+   不是空状态占位，是一个真实可达的业务状态。 */
+.ov-list-empty {
+  padding: 10px 2px;
+  color: var(--status-ok);
+  font-size: 14px;
+}

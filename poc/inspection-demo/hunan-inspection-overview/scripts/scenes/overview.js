@@ -3,9 +3,13 @@
 // 【POC：hunan-inspection-overview（巡检站总览，6 作业区站点台账）】
 // 本文件与 poc/hunan-pump-overview/scripts/scenes/overview.js 是姐妹文件但内容不同：
 // 布局骨架/交互模式完全一致（两级钻取：省域 → 作业区），但左栏第 2/4 卡、右栏第 2/3
-// 张图表用各自 POC 独有的 HunanSeries 方法（本文件用 siteKindMix /
-// inspectionCoverageTrend / qualityExceptionMix / zoneCoverageRows，姐妹文件换成 pipelineProfile /
-// throughputRows / pumpHealthRank），标题文案也各自贴合"巡检"与"泵站"两种业务语义。
+// 张图表用各自 POC 独有的 HunanSeries 方法（本文件用 inspectionCoverageTrend /
+// zoneCoverageRows，姐妹文件换成 pipelineProfile / throughputRows / pumpHealthRank），
+// 标题文案也各自贴合"巡检"与"泵站"两种业务语义。
+//
+// 【2026-08】本文件是**旧版**总览场景，仍可独立运行、未做改动。重排过布局与文案的
+// 新版在 poc/inspection-demo/hunan-overview-v2/scripts/scenes/overview.js——那一版
+// 跨目录引用本目录的数据层与 3D 层原文件（不复制），两版共存以便对比。
 //
 // 钻取只做两级（任务要求，不做第三级）：
 //   省域（zoneId == null）：3D 显示 6 个作业区标签 + 热点，右栏是全省态势提示。

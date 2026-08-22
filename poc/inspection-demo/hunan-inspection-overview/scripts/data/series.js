@@ -1,5 +1,14 @@
 // 首页图表数据源：从新版站点台账聚合，不再依赖旧 topology.js。
 // 真源：scripts/data/sites.js（由 assets/.data/站点数据/湖南公司管道基础资料_20260820102547.xlsx 生成）。
+//
+// 【2026-08 精简】删掉 siteKindMix / mediumMix / categoryMix 三个方法：它们唯一的
+// 消费者是 scripts/core/chartopts.js 里同名的三个 ECharts 构造器，而那三个构造器
+// 从来没有被任何场景调用过，已同批删除。随之失去调用者的两个内部辅助函数
+// allSites() 与 groupCount() 也一并删除。
+// 仍在使用的：zoneRankRows / zoneStatusMix / provinceSummary /
+// inspectionCoverageTrend / zoneCoverageRows。其中 zoneStatusMix 除了本目录，
+// 也被 poc/inspection-demo/hunan-overview-v2 的新版总览读取（那边跨目录引用本文件
+// 原文，不复制副本），删它之前要先确认那一侧。
 (function () {
   "use strict";
 
@@ -18,12 +27,6 @@
     return window.HunanSites;
   }
 
-  function allSites() {
-    var list = requireSites().sites();
-    if (!Array.isArray(list)) throw new Error("[HunanSeries] HunanSites.sites() 未返回数组");
-    return list;
-  }
-
   function countStatus(list) {
     var out = { ok: 0, warn: 0, danger: 0 };
     list.forEach(function (site) {
@@ -31,16 +34,6 @@
       out[site.status] += 1;
     });
     return out;
-  }
-
-  function groupCount(list, key) {
-    var out = {};
-    list.forEach(function (site) {
-      var value = site[key];
-      if (!value) throw new Error("[HunanSeries] 站点 " + site.id + " 缺少字段 " + key);
-      out[value] = (out[value] || 0) + 1;
-    });
-    return Object.keys(out).map(function (name) { return { name: name, value: out[name] }; });
   }
 
   // 6 作业区排名：{ zoneId, name, stationCount, valveCount, total, issueCount, score }
@@ -72,28 +65,6 @@
       var mix = countStatus(Sites.sitesByZone(zoneId));
       return { zoneId: zoneId, name: ZONE_NAMES[zoneId], ok: mix.ok, warn: mix.warn, danger: mix.danger };
     });
-  }
-
-  function siteKindMix() {
-    var list = allSites();
-    var station = list.filter(function (site) { return site.kind === "station"; }).length;
-    var valve = list.filter(function (site) { return site.kind === "valve"; }).length;
-    var total = list.length;
-    return {
-      station: station,
-      valve: valve,
-      total: total,
-      stationPct: total === 0 ? 0 : Math.round((station / total) * 1000) / 10,
-      valvePct: total === 0 ? 0 : Math.round((valve / total) * 1000) / 10
-    };
-  }
-
-  function mediumMix() {
-    return groupCount(allSites(), "medium");
-  }
-
-  function categoryMix() {
-    return groupCount(allSites(), "category");
   }
 
   function provinceSummary() {
@@ -136,9 +107,6 @@
   window.HunanSeries = {
     zoneRankRows: zoneRankRows,
     zoneStatusMix: zoneStatusMix,
-    siteKindMix: siteKindMix,
-    mediumMix: mediumMix,
-    categoryMix: categoryMix,
     provinceSummary: provinceSummary,
     inspectionCoverageTrend: inspectionCoverageTrend,
     zoneCoverageRows: zoneCoverageRows

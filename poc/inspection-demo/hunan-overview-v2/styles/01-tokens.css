@@ -1,0 +1,157 @@
+/* 01-tokens.css: CSS 变量 / reset / 排版基元 / 固定画布变量
+   —— 「湖南省油气管网巡检总览 v2」（POC: hunan-overview-v2）。
+
+   本文件是 poc/inspection-demo/hunan-inspection-overview/styles/01-tokens.css 的
+   改写版，不是新设计。三件事变了，其余逐条保留：
+
+   1) 【变量名单一个不改】本目录复用旧目录两片 CSS —— styles/04-charts.css 与
+      styles/05-hunan3d.css（后者是 3D 地图的禁改契约样式）。它们读的变量名是
+      --accent / --ink / --muted / --line-strong / --control-bg / --label-bg /
+      --map-host-bg / --status-ok / --status-warn / --status-danger。所以旧文件头
+      那份「跨 POC 命名契约」名单在这里必须原样成立，一个名字都不能改、不能少。
+      新增的变量只能是**追加**（下面的三档圆角/三档阴影），不能替换旧名字。
+
+   2) 【背景从 6 层降到 2 层】旧文件的 --screen-bg 叠了：扫描线 + 四角暗角 +
+      顶部光 + 两团径向发光 + 底色，共 6 层。其中「四角暗角」
+      （radial-gradient(... var(--bg-vignette-mid) 78%, var(--bg-vignette-edge) 100%)）
+      会把贴边的卡片整体压灰——大屏上左栏正好贴左边缘，四张卡的对比度被这层暗角
+      吃掉一截，视觉上就是「发灰、发脏」。扫描线同理：每 3px 一条 0.035 alpha 的
+      横纹叠在整屏上，等于给所有文字加了一层雾。两层都删掉，只留底色 + 一层极浅
+      顶光。--bg-scanline / --bg-vignette-mid / --bg-vignette-edge 三个变量随之删除
+      （没有别的文件读它们，已全库确认）。
+
+   3) 【追加三档圆角 / 三档阴影】取自 dfaft/智能巡检数智员工-演示.html 的 --r-s/m/l
+      与 --sh-s/m/l。旧目录圆角在 8/10/14/999 之间混用、阴影只有一个
+      --shadow: 0 18px 42px rgba(0,0,0,.36)——在深色底上这个阴影几乎不可见，等于
+      没有层次分级。三档制让「卡片 / 面板 / 浮层」三级深度可区分。--shadow 保留
+      （旧名字，仍指向最深那一档），避免旧 CSS 里的引用断掉。
+
+   【三色语义契约】--status-danger / --status-warn / --status-ok 分别对应
+   「异常 / 关注 / 正常」，取值与旧目录逐字节相同。三处必须同步：本文件的 .dot /
+   徽标 / 卡片状态色、scripts/map3d/*（复用旧目录原文件，未改）、
+   scripts/core/chartopts.js 的 ECharts series 状态色。 */
+
+:root {
+  /* 固定画布：与旧目录、与 inspection-3d-sandbox 同一套尺寸口径。
+     scripts/core/screen-scale.js（复用旧目录原文件）把 2471×1289 硬编码在自己
+     内部，本文件这三个变量只是给 .app-shell 用的落点，改这里不会改缩放行为。 */
+  --screen-design-width: 2471px;
+  --screen-design-height: 1289px;
+  --screen-scale: 1;
+  --screen-offset-x: 0px;
+  --screen-offset-y: 0px;
+
+  /* 基底色板：取值与旧目录一致。 */
+  --bg: #05060f;
+  --panel: #080c1e;
+  --panel-2: #101936;
+  --panel-3: #17264a;
+  --ink: #eaf6fb;
+  --muted: #87a3b8;
+  --line: rgba(120, 150, 255, 0.18);
+  --line-strong: rgba(120, 170, 255, 0.48);
+
+  /* 只剩两层：一层极浅顶光 + 底色。扫描线与四角暗角已删（见文件头第 2 条）。 */
+  --bg-top-glow: rgba(76, 125, 255, 0.07);
+  --screen-bg:
+    linear-gradient(180deg, var(--bg-top-glow) 0%, transparent 34%),
+    var(--bg);
+  --app-bg: var(--screen-bg);
+
+  --panel-bg: linear-gradient(180deg, rgba(8, 12, 30, 0.92), rgba(5, 6, 15, 0.96));
+  --panel-bg-strong: linear-gradient(180deg, rgba(16, 25, 54, 0.88), rgba(8, 12, 30, 0.96));
+  --surface-bg: rgba(16, 25, 54, 0.46);
+  --table-head-bg: var(--panel-bg-strong);
+  --map-host-bg: linear-gradient(180deg, rgba(10, 14, 31, 0.72), rgba(5, 6, 15, 0.94));
+  --label-bg: rgba(8, 12, 30, 0.92);
+  --control-bg: rgba(8, 12, 30, 0.82);
+
+  /* --accent 焦点色/激活态/地图定位；--accent-2 巡检轨迹类图形元素，不参与
+     三色语义判定。取值与旧目录一字不改。 */
+  --accent: #38c6ec;
+  --accent-2: #5a8cff;
+
+  --status-danger: #ff625c;
+  --status-warn: #eeb44a;
+  --status-ok: #30c69d;
+
+  /* 三档圆角 / 三档阴影（借自 draft）。--shadow 是旧名字，保留并指向最深一档。 */
+  --r-s: 8px;
+  --r-m: 12px;
+  --r-l: 16px;
+  --sh-s: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --sh-m: 0 6px 18px rgba(0, 0, 0, 0.30);
+  --sh-l: 0 18px 42px rgba(0, 0, 0, 0.36);
+  --shadow: var(--sh-l);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: var(--screen-bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* .num：等宽数字。借自 draft 的同名类。大屏上时钟每秒重绘、指标数字会变，
+   比例数字下这些字符宽度不同，整行会左右抖动；tabular-nums 让它们等宽。
+   凡是会变化的数字都要带这个类。 */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 动效纪律（借自 draft）：全局只保留 fadeUp 与 pulse 两个关键帧，都在 0.5s 内。
+   旧目录在 brand-mark / 顶栏标题 / 作业区标签上散布了多组发光呼吸动画，全部不搬。 */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 0 5px rgba(48, 198, 157, 0.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
