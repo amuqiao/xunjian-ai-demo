@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>长岭站 P-1 输油泵机组状态 v2</title>
+
+    <!-- 本目录自己的四片：token / 外壳 / 卡片 / 场景网格 -->
+    <link rel="stylesheet" href="styles/01-tokens.css">
+    <link rel="stylesheet" href="styles/02-shell.css">
+    <link rel="stylesheet" href="styles/03-cards.css">
+    <!-- 复用旧目录原文件（一字未改）：图表宿主盒 + 泵机组 3D 的冻结契约样式。
+         05-pump3d.css 是禁改区，它读的变量名单在 styles/01-tokens.css 里逐条保留。 -->
+    <link rel="stylesheet" href="../pump-station-situation/styles/04-charts.css">
+    <link rel="stylesheet" href="../pump-station-situation/styles/05-pump3d.css">
+    <link rel="stylesheet" href="styles/06-station-scene.css">
+  </head>
+  <body>
+    <div id="appRoot" class="app-shell" aria-label="长岭站 P-1 输油泵机组状态"></div>
+
+    <!-- ===================================================================
+         【依赖策略】3D 层、vendor、core 的四个通用文件、ui/cards.js 全部相对引用旧目录
+         ../pump-station-situation/ 下的原文件，**不复制副本** —— 这里和旧目录读的是同一份
+         字节，不会两边漂移；旧目录仍可独立运行，随时对比。
+
+         数据层的两个泵文件相对引用 ../hunan-pump-overview-v2/ —— 大屏和次屏共用同一份
+         台账与检测报告转录，「40 台 / 7 站库 / ISO 分级」这三处口径因此天然一致，
+         不是靠人去两边对。
+
+         本目录自己新写的只有 4 个 JS：
+           scripts/data/measure.js      25 个测点挂到 3D 的 6 个部位上（本屏的全部数据逻辑）
+           scripts/core/chartopts.js    两张图
+           scripts/scenes/station.js    回字形四段
+           scripts/boot.js              引导
+         =================================================================== -->
+
+    <!-- L0 vendor -->
+    <script src="../pump-station-situation/vendor/three.min.js"></script>
+    <script src="../pump-station-situation/vendor/echarts.min.js"></script>
+
+    <!-- L1 契约（零依赖，必须最先加载；measure.js 在 IIFE 末尾就要读
+         Pump3DContract.PART_IDS 做顺序断言，顺序不能倒） -->
+    <script src="../pump-station-situation/scripts/pump3d/contract.js"></script>
+
+    <!-- L2 数据。前两个是大屏 v2 的生成物/手抄件，本屏共用；measure.js 依赖它们，排最后 -->
+    <script src="../hunan-pump-overview-v2/scripts/data/pump-ledger.js"></script>
+    <script src="../hunan-pump-overview-v2/scripts/data/pump-state.js"></script>
+    <script src="scripts/data/measure.js"></script>
+
+    <!-- L3 3D model + engine（model 必须在 engine 之前：engine 的 ensureEngine()
+         直接调 window.Pump3DModel.build） -->
+    <script src="../pump-station-situation/scripts/pump3d/model.js"></script>
+    <script src="../pump-station-situation/scripts/pump3d/engine.js"></script>
+
+    <!-- L4 core：前四个复用旧目录，chartopts.js 是本目录新写的 -->
+    <script src="../pump-station-situation/scripts/core/screen-scale.js"></script>
+    <script src="../pump-station-situation/scripts/core/dom.js"></script>
+    <script src="../pump-station-situation/scripts/core/charts.js"></script>
+    <script src="../pump-station-situation/scripts/core/timers.js"></script>
+    <script src="scripts/core/chartopts.js"></script>
+
+    <!-- L5 ui：只用 cards.js（指标卡 / 图表卡）。selectlist / detailcard / overlay /
+         agentdialog 在本 POC 里没有渲染路径，不加载 —— 那些是诊断台那一屏的东西。 -->
+    <script src="../pump-station-situation/scripts/ui/cards.js"></script>
+
+    <!-- L6 场景 -->
+    <script src="scripts/scenes/station.js"></script>
+
+    <!-- L7 引导 -->
+    <script src="scripts/boot.js"></script>
+  </body>
+</html>

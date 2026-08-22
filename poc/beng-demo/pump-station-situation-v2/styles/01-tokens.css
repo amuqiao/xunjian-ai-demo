@@ -1,0 +1,160 @@
+/* 01-tokens.css: CSS 变量 / reset / 排版基元 / 固定画布变量
+   —— 「长沙输油站 · 站场巡检（AI 监控视角）」（POC: inspection-station-v2）。
+
+   本文件是 poc/inspection-demo/inspection-3d-sandbox/styles/01-tokens.css 的改写版，
+   不是新设计，做法与 poc/inspection-demo/hunan-overview-v2 那一版逐条对应。三件事变了：
+
+   1) 【变量名单一个不改】本目录复用原目录三片 CSS —— styles/04-charts.css、
+      styles/05-map3d.css（2.5D 平面图的禁改契约样式）、styles/08-itemlist.css。
+      它们读的名字是 --ink / --muted / --line / --line-strong / --cyan / --blue /
+      --control-bg / --label-bg / --map-host-bg / --panel-bg / --surface-bg /
+      --table-head-bg / --status-ok|warn|danger。所以整份名单必须原样成立，一个都不能
+      改、不能少。注意这里是 --cyan / --blue（原目录的写法），不是 hunan-overview-v2
+      那边改过名的 --accent / --accent-2 —— 那次改名是为了让两个姐妹大屏共用一份变量
+      名单，本 POC 不涉及那对姐妹，跟着原目录走，少一次无谓的重命名。
+      新增的只能是**追加**（下面的三档圆角/三档阴影），不能替换旧名字。
+
+   2) 【背景从 6 层降到 2 层】原文件的 --screen-bg 叠了扫描线 + 四角暗角 + 顶部光 +
+      两团径向发光 + 底色。四角暗角会把贴边的面板整体压灰（回字形左右两栏正好贴边），
+      扫描线等于给全屏文字盖一层雾。两层都删，只留底色 + 一层极浅顶光。
+      --bg-scanline / --bg-vignette-mid / --bg-vignette-edge 三个变量随之删除
+      （已全库确认没有别的文件读它们）。
+
+   3) 【追加三档圆角 / 三档阴影】取自 dfaft/智能巡检数智员工-演示.html 的 --r-s/m/l
+      与 --sh-s/m/l。原目录圆角在 8/10/14/999 之间混用、阴影只有一个
+      --shadow: 0 18px 42px rgba(0,0,0,.36)——深色底上几乎不可见，等于没有层次分级。
+      --shadow 保留（旧名字，指向最深那一档），避免复用的三片 CSS 里引用断掉。
+
+   【三色语义契约】--status-danger / --status-warn / --status-ok 分别对应
+   「异常 / 关注 / 正常」，取值与原目录逐字节相同。三处必须同步：本文件的 .dot /
+   徽标 / 卡片状态色、scripts/map3d/*（复用原目录原文件，未改）、
+   scripts/core/chartopts.js 的 ECharts series 状态色。 */
+
+:root {
+  /* 固定画布：与原目录、与 hunan-overview-v2 同一套尺寸口径。
+     scripts/core/screen-scale.js（复用原目录原文件）把 2471×1289 硬编码在自己内部，
+     本文件这三个变量只是给 .app-shell 用的落点，改这里不会改缩放行为。 */
+  --screen-design-width: 2471px;
+  --screen-design-height: 1289px;
+  --screen-scale: 1;
+  --screen-offset-x: 0px;
+  --screen-offset-y: 0px;
+
+  /* 基底色板：取值与原目录一致。 */
+  --bg: #05060f;
+  --panel: #080c1e;
+  --panel-2: #101936;
+  --panel-3: #17264a;
+  --ink: #eaf6fb;
+  --muted: #87a3b8;
+  --line: rgba(120, 150, 255, 0.18);
+  --line-strong: rgba(120, 170, 255, 0.48);
+
+  /* 只剩两层：一层极浅顶光 + 底色。 */
+  --bg-top-glow: rgba(76, 125, 255, 0.07);
+  --screen-bg:
+    linear-gradient(180deg, var(--bg-top-glow) 0%, transparent 34%),
+    var(--bg);
+  --app-bg: var(--screen-bg);
+
+  --panel-bg: linear-gradient(180deg, rgba(8, 12, 30, 0.92), rgba(5, 6, 15, 0.96));
+  --panel-bg-strong: linear-gradient(180deg, rgba(16, 25, 54, 0.88), rgba(8, 12, 30, 0.96));
+  --surface-bg: rgba(16, 25, 54, 0.46);
+  --table-head-bg: var(--panel-bg-strong);
+  --map-host-bg: linear-gradient(180deg, rgba(10, 14, 31, 0.72), rgba(5, 6, 15, 0.94));
+  --label-bg: rgba(8, 12, 30, 0.92);
+  --control-bg: rgba(8, 12, 30, 0.82);
+
+  /* --cyan 焦点色/激活态/热点定位；--blue 专给轨迹一类图形元素，不参与三色语义判定。 */
+  --cyan: #38c6ec;
+  --blue: #5a8cff;
+
+  /* ── 3D 宿主契约：../pump-station-situation/styles/05-pump3d.css 与 04-charts.css
+     一字未改地复用，它们按**旧目录的变量名**读色。这四个别名在这里逐条补上，
+     值指向本文件已有的三色语义变量，所以颜色只有一份真源：改 --status-* 即可，
+     不会出现「卡片红了、3D 热点还是绿的」。--pump-stage-bg 是 3D 舞台底色，
+     从旧目录原样搬过来。 ── */
+  --green: var(--status-ok);
+  --amber: var(--status-warn);
+  --red: var(--status-danger);
+  --pump-stage-bg:
+    radial-gradient(circle at 50% 36%, rgba(56, 198, 236, 0.13), transparent 42%),
+    radial-gradient(circle at 78% 70%, rgba(47, 140, 255, 0.12), transparent 38%),
+    linear-gradient(180deg, rgba(8, 24, 40, 0.86), rgba(4, 11, 20, 0.96));
+
+  --status-danger: #ff625c;
+  --status-warn: #eeb44a;
+  --status-ok: #30c69d;
+
+  /* 三档圆角 / 三档阴影（借自 draft）。--shadow 是旧名字，保留并指向最深一档。 */
+  --r-s: 8px;
+  --r-m: 12px;
+  --r-l: 16px;
+  --sh-s: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --sh-m: 0 6px 18px rgba(0, 0, 0, 0.30);
+  --sh-l: 0 18px 42px rgba(0, 0, 0, 0.36);
+  --shadow: var(--sh-l);
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: var(--screen-bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* .num：等宽数字。会变化的数字都要带这个类，否则比例字形下整行会左右抖。 */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 动效纪律：全局只保留 fadeUp 一个关键帧，0.34s。原目录在 brand-mark / 区域热点 /
+   流程轨上散布了多组发光呼吸动画，全部不搬。 */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

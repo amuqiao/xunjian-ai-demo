@@ -1,0 +1,257 @@
+/* 02-shell.css: app-shell（回字形四行）/ topbar（三列，居中标题）/ stage / panel /
+   kicker / dot / tool-btn / muted —— 外壳级基元。
+
+   结构与 poc/inspection-demo/hunan-overview-v2/styles/02-shell.css 逐条对应（两屏
+   刻意用同一套外壳语言：省域大屏和站内页面并排放的时候，顶栏高度、面板圆角、
+   分隔线粗细都必须一致，否则会像两套系统）。
+
+   ── 相对原目录 inspection-3d-sandbox/styles/02-shell.css 删掉了什么 ──────────
+   1) 【.task-card 一族整体不用】原顶栏挂着一张巨大的任务卡：表单名 + 徽标 +
+      「巡检站场 / 巡检人 / 计划 / 实际 / 巡检区域」5 个字段 + 一行状态 pill +
+      一行 tab + 一个大勾。那张卡是照录屏截图复刻的，pill 和 tab 都不可点，是纯装饰。
+      现在压成顶栏右侧的两行：「巡检人 · 实际时段」+ 一个状态徽标；完整的
+      「计划 → 实际」时间戳进 title，悬停可见。styles/10-taskcard.css 不再加载。
+   2) 【.flow-rail / .flow-track 一族不用】原页面底部有一条 6 步「巡检闭环流程」轨，
+      每步带 label + hint 两行文字。回字形的底边给了 12 个区域卡（那是本页真正的
+      下钻入口），一屏不该有两条并列的横向导航。
+   3) 【日期范围选择器不搬】hunan-overview-v2 顶栏右侧那组「近7天/近30天/本月/自定义」
+      在这里没有对应语义：本页是**一次**巡检任务的结果（2026-08-04 那一轮），不是一个
+      可切统计窗口的看板。顶栏右侧改成这次任务的实际时段，是确定的事实而不是可调口径。
+
+   ── .app-shell 的四行 ────────────────────────────────────────────────────
+   `auto 104px minmax(0,1fr) 132px`：顶栏 / 监督指标带 / 三列中段 / 区域带。
+   指标带比省域大屏那边多 8px：这里每个大数下面还有一行 note（「较上轮 −1 次」这类
+   趋势对比），三行排布需要多一点高度。行高推导见 06-station-scene.css 文件头。 */
+
+.app-shell {
+  position: fixed;
+  left: var(--screen-offset-x);
+  top: var(--screen-offset-y);
+  width: var(--screen-design-width);
+  max-width: none;
+  height: var(--screen-design-height);
+  min-height: 0;
+  margin: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-rows: auto 104px minmax(0, 1fr) 132px;
+  gap: 10px;
+  overflow: hidden;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+  will-change: transform;
+  background: var(--app-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   topbar：三列（左 标记+站名 / 中 居中标题 / 右 巡检人+时段+状态徽标）。
+
+   DOM 契约：
+   <header class="topbar panel">
+     <div class="topbar-left">
+       <span class="brand-mark">巡</span>
+       <div class="topbar-site"><strong>长沙输油站</strong><small>长郴管道 · 12 个巡检区域</small></div>
+     </div>
+     <div class="topbar-title">
+       <h1>站场巡检 · AI 监控视角</h1>
+       <div class="topbar-title-rule"></div>
+     </div>
+     <div class="topbar-right">
+       <div class="topbar-task" title="计划 … → 实际 …">
+         <strong class="num">09:02 → 10:05</strong><small>巡检人 郭鹏 · 63 分钟</small>
+       </div>
+       <span class="badge ok">未超期</span>
+     </div>
+   </header>
+   两侧列都是 1fr，中间那列才真的落在画布水平中点上 —— 写成 auto 会让标题跟着左右两边
+   内容宽度的差值偏移。
+   --------------------------------------------------------------------------- */
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding: 8px 20px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* 原目录这里带 box-shadow 发光 + 一段呼吸动画，两者都不搬。字面值
+   rgba(56,198,236,0.14) 是 --cyan 的 14% 透明度副本，改 --cyan 记得同步改这里。 */
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--cyan);
+  display: grid;
+  place-items: center;
+  background: rgba(56, 198, 236, 0.14);
+  color: #e2f8ff;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+}
+
+.topbar-site {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.topbar-site strong {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.topbar-site small {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.topbar-title {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.topbar-title h1 {
+  color: #f2fbff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* 1px 细线，不加 box-shadow 发光。 */
+.topbar-title-rule {
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+}
+
+.topbar-task {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  line-height: 1.25;
+  cursor: help;
+}
+
+.topbar-task strong {
+  color: #eef9ff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.topbar-task small {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------- */
+
+.stage {
+  min-height: 0;
+  display: grid;
+  overflow: hidden;
+  outline: none;
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-bg);
+  box-shadow: var(--sh-m);
+}
+
+.kicker {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--status-ok);
+}
+
+.dot.ok {
+  background: var(--status-ok);
+}
+
+.dot.warn {
+  background: var(--status-warn);
+}
+
+.dot.danger {
+  background: var(--status-danger);
+}
+
+/* .badge：顶栏那个「未超期 / 已超期」徽标，以及右栏卡头的计数徽标。
+   原目录 03-cards.css 里有同名类，本文件重写一份（本 POC 不加载那片 CSS）。 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge.ok {
+  border-color: rgba(48, 198, 157, 0.55);
+  color: var(--status-ok);
+}
+
+.badge.warn {
+  border-color: rgba(238, 180, 74, 0.7);
+  color: var(--status-warn);
+}
+
+.badge.danger {
+  border-color: rgba(255, 98, 92, 0.75);
+  color: var(--status-danger);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
