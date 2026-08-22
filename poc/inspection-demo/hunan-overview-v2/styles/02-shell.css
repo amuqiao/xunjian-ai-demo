@@ -1,28 +1,31 @@
-/* 02-shell.css: app-shell（两行网格）/ topbar（单行）/ stage / panel / kicker /
-   dot / tool-btn / muted / crumbs / date-range 选择器 —— 外壳级基元。
+/* 02-shell.css: app-shell（回字形四行网格）/ topbar（三列，居中标题）/ stage /
+   panel / kicker / dot / tool-btn / muted / date-range 选择器 —— 外壳级基元。
 
    相对旧目录 styles/02-shell.css 的三处结构改动：
 
-   1) 【.app-shell 从三行变两行】旧的 grid-template-rows 是
-      `auto minmax(0,1fr) 62px`，第三行是 .bottombar，而底栏里只有一条面包屑
-      （旧 renderBottombar 的注释自己写明「底栏只做位置指示，不再放任何操作按钮」）。
-      一整行 62px + 一个 .panel 容器只为承载「湖南省 › 岳阳作业区」两个词，不值。
-      底栏整块删除，.bottombar / .bottombar-back / .bottombar-actions / .crumbs /
-      .crumb / .crumb-sep 全部删除，连面包屑本身一起去掉——当前位置由
-      .ov-map-head 的 <h3>（「湖南省全域」/「岳阳作业区」）单独表达，返回全省沿用
-      地图右下角 .ov-zoom 里已有的 ‹ 按钮（data-action="back-to-overview"）。
-      旧代码在 renderBottombar 的注释里已经写明视口操作要「全部收进地图右下角那一组，
-      一处即全部」，面包屑是同一条原则下最后一处重复的位置指示。
-      省下的 62px + 10px gap 全部给地图。
+   1) 【.app-shell 是回字形四行网格】grid-template-rows 为
+      `auto 96px minmax(0,1fr) 132px`：顶栏 / 全省指标带 / 三栏中段 / 作业区带。
+      内容从四边围住中间的地图，这是「回」字的那一圈。行高推导见
+      06-overview-scene.css 文件头。
 
-   2) 【.topbar 从三列变两列，高度 76 → 62】旧顶栏是
-      `minmax(220px,1fr) auto minmax(220px,1fr)`，中间那一列是 .topbar-title：
-      英文 kicker「HUNAN OIL & GAS NETWORK OVERVIEW」+ 居中大标题「湖南省油气管网
-      巡检总览」+ 一条发光横线 + 两侧各一段「装饰线 + 菱形节点」的 .topbar-wing。
-      而左侧 .brand 里已经写着「湖南省油气管网大屏 / 巡检站总览」——中间那句是同一
-      句话的第二遍，英文 kicker 是第三遍。三者说同一件事，占掉 76px 里的全部高度。
-      现在只留两列：左 brand，右 日期范围 + 时钟。.topbar-title / .topbar-wing /
-      .topbar-title-main / .topbar-title-rule 四组样式删除。
+      旧目录的 .bottombar 一族（.bottombar / .bottombar-back / .bottombar-actions）
+      与面包屑（.crumbs / .crumb / .crumb-sep）全部删除：底栏里只有一条「湖南省 ›
+      岳阳作业区」，一整行 62px + 一个 .panel 容器只为两个词，不值。当前位置改由浮在
+      地图左上角的 .ov-map-place 表达，返回全省沿用地图右下角 .ov-zoom 里已有的 ‹
+      按钮（data-action="back-to-overview"）——旧代码在 renderBottombar 的注释里已经
+      写明视口操作要「全部收进地图右下角那一组，一处即全部」，面包屑是同一条原则下
+      最后一处重复的位置指示。
+
+   2) 【.topbar 三列：左 标记+时钟 / 中 居中标题 / 右 统计口径，高度 76 → 62】
+      保留居中大标题（这是参考大屏那种指挥台仪式感的来源），但**同时删掉左侧 brand
+      里重复的两行文字**。旧顶栏的问题不是「有居中标题」，而是左侧 .brand 写着
+      「湖南省油气管网大屏 / 巡检站总览」、中间又写「湖南省油气管网巡检总览」、上面
+      还有英文 kicker「HUNAN OIL & GAS NETWORK OVERVIEW」——同一句话说三遍。现在左侧
+      只留一个 34px 的「湘」标记 + 时钟，标题只在中间出现一次。
+
+      删掉的装饰：.topbar-wing（两侧「装饰线 + 菱形节点」）整族，以及标题的
+      text-shadow 发光和 .topbar-title-rule 的 box-shadow 发光。保留一条 1px 的
+      accent 细线，不发光——仪式感靠居中和字重，不靠光晕。
 
    3) 【.panel 圆角与阴影走三档制】旧的 .panel 是 border-radius:8px +
       box-shadow:var(--shadow)。现在面板用 --r-m(12px) + --sh-m，卡片用 --r-s(8px)
@@ -43,7 +46,7 @@
   margin: 0;
   padding: 10px 14px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto 96px minmax(0, 1fr) 132px;
   gap: 10px;
   overflow: hidden;
   transform: scale(var(--screen-scale));
@@ -58,25 +61,51 @@
    DOM 契约：
    <header class="topbar panel">
      <div class="topbar-left">
-       <div class="brand">
-         <span class="brand-mark">湘</span>
-         <div><h1>...</h1><small>...</small></div>
-       </div>
+       <span class="brand-mark">湘</span>
+       <div class="topbar-clock"><strong class="num">14:03:22</strong><small class="num">...</small></div>
+     </div>
+     <div class="topbar-title">
+       <h1>湖南省油气管网巡检总览</h1>
+       <div class="topbar-title-rule"></div>
      </div>
      <div class="topbar-right">
        <div class="date-range-picker">...</div>
-       <div class="topbar-clock"><strong class="num">14:03:22</strong><small class="num">...</small></div>
      </div>
    </header>
+   两侧列等宽（1fr）保证中间那一列真的落在画布水平中点上——写成 auto 会让标题跟着
+   左右两边内容宽度的差值偏移，日期范围按钮组一变宽标题就跟着挪。
    --------------------------------------------------------------------------- */
 
 .topbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
   min-height: 62px;
   padding: 8px 20px;
+}
+
+.topbar-title {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.topbar-title h1 {
+  color: #f2fbff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* 1px 细线，不加 box-shadow 发光。 */
+.topbar-title-rule {
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
 }
 
 .topbar-left {
@@ -91,14 +120,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: 18px;
-  min-width: 0;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  flex: 0 0 auto;
   min-width: 0;
 }
 
@@ -120,21 +141,10 @@
   font-family: Bahnschrift, "DIN Alternate", sans-serif;
 }
 
-.brand h1 {
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 0;
-}
-
-.brand small {
-  color: var(--muted);
-  font-size: 13px;
-}
-
+/* 时钟现在在左列（跟着「湘」标记），所以左对齐。 */
 .topbar-clock {
   display: grid;
-  justify-items: end;
+  justify-items: start;
   gap: 1px;
   line-height: 1.25;
 }

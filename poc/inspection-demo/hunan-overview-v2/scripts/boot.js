@@ -10,11 +10,16 @@
 //   2) 不再断言/加载 SelectList、DetailCard、Overlay 三个 ui 模块——本 POC 没有渲染
 //      路径调用它们。Charts.beginPass() 旁边那句 SelectList.resetRenderPass() 也随之
 //      删除（那是 SelectList 的「一轮 render」边界，没有 SelectList 就没有这个边界）。
-//   3) 不再 append 底栏。旧 render() 是 topbar + stage + bottombar 三段，现在两段。
-//   4) 事件委托去掉 data-select 分支。旧版有 zone-rank / site-list 两个 SelectList 的
-//      name，以及 crumb-province 面包屑。作业区下钻现在只有一个入口——地图上的
-//      [data-hunan-zone] 标签；返回全省只有一个入口——地图右下角的
-//      data-action="back-to-overview"。同一个动作不再有两条并行路径。
+//   3) 回字形四段：render() 依次 append topbar / statBand / stage / zoneBand，对应
+//      .app-shell 的四行网格（见 styles/02-shell.css 的 grid-template-rows）。旧版是
+//      topbar + stage + bottombar 三段，底栏已删。
+//   4) 事件委托去掉 data-select 分支，换成 data-action="select-zone"。旧版有
+//      zone-rank / site-list 两个 SelectList 的 name 以及 crumb-province 面包屑。
+//      现在作业区下钻有两个入口，但都不走 data-select：地图上的 [data-hunan-zone]
+//      标签，以及下边作业区带的 data-action="select-zone" 卡片。后者不能复用
+//      [data-hunan-zone]——contract.js 的 assertPinNamespace() 只允许该属性出现在
+//      .hunan-labels 内部，落在外面直接抛错。返回全省仍只有一个入口：地图右下角的
+//      data-action="back-to-overview"。
 //
 // 状态：{ zoneId, dateRangeId, customRangeId, customRangeOpen }，selectZone 是 zoneId
 // 唯一的写入口。zoneId == null 代表省域视图。不做 localStorage 持久化——单场景 demo，
@@ -87,6 +92,7 @@
       h("div", { class: "overview-scene" }, [
         window.OverviewScene.renderLeftColumn(state),
         window.OverviewScene.renderMapPanel(state),
+        window.OverviewScene.renderRightColumn(state),
       ]),
     ]);
   }
@@ -127,14 +133,18 @@
     window.HunanMap3D.detach();
 
     root.innerHTML = "";
+    // 四段的 append 顺序必须与 .app-shell 的 grid-template-rows 一致：
+    // auto（顶栏）/ 96px（指标带）/ 1fr（中段三栏）/ 132px（作业区带）。
     root.appendChild(window.OverviewScene.renderTopbar(state));
+    root.appendChild(window.OverviewScene.renderStatBand());
     root.appendChild(renderStage());
+    root.appendChild(window.OverviewScene.renderZoneBand(state));
 
     bindStage();
 
     mountChartSlots();
     mountMap3D();
-    window.OverviewScene.renderCharts(state);
+    window.OverviewScene.renderCharts();
     window.Charts.flush();
 
     Contract.assertPinNamespace();
@@ -157,7 +167,9 @@
       throw new Error("selectZone 收到非法 zoneId：" + zoneId);
     }
     state.customRangeOpen = false;
-    state.zoneId = zoneId;
+    // 再点一次当前已选中的作业区 = 回到全省。作业区带的卡片是 aria-pressed 的开关型
+    // 按钮，按下去再按一次弹回来是它的自然预期；地图标签点同一个区也走这条路。
+    state.zoneId = (zoneId != null && zoneId === state.zoneId) ? null : zoneId;
     render();
   }
 
@@ -193,6 +205,7 @@
   // ==========================================================================
 
   function handleAction(action, sourceEl) {
+    if (action === "select-zone") { selectZone(sourceEl.getAttribute("data-zone-id")); return; }
     if (action === "set-date-range") { selectDateRange(sourceEl.getAttribute("data-date-range")); return; }
     if (action === "toggle-custom-date-menu") { toggleCustomDateRangeMenu(); return; }
     if (action === "set-custom-date-range") { selectCustomDateRange(sourceEl.getAttribute("data-custom-range")); return; }
@@ -214,7 +227,8 @@
       return;
     }
 
-    // 作业区下钻的唯一入口：地图上的作业区标签。
+    // 作业区下钻的第二个入口：地图上的作业区标签（第一个是作业区带的卡片，
+    // 走上面 handleAction 的 select-zone 分支）。
     var zonePinEl = target.closest("[" + Contract.ZONE_PIN_ATTR + "]");
     if (zonePinEl) { selectZone(zonePinEl.getAttribute(Contract.ZONE_PIN_ATTR)); return; }
   }

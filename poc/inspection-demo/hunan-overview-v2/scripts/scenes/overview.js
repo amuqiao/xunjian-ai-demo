@@ -1,43 +1,56 @@
 // 唯一场景：window.OverviewScene（L6 场景层，早于 boot.js，晚于 core/* 与 ui/*）。
 //
-// 【POC：hunan-overview-v2】本文件是旧目录 scripts/scenes/overview.js（553 行）的
-// 重写。数据层、3D 层、契约层全部复用旧目录原文件，一行未改；变的只有「屏上摆什么、
+// 【POC：hunan-overview-v2】旧目录 scripts/scenes/overview.js（553 行）的布局与文案
+// 重排版。数据层、3D 层、契约层全部复用旧目录原文件，一行未改；变的只有「屏上摆什么、
 // 摆在哪、写多少字」。
 //
-// ── 一屏容器数：8 → 2 ────────────────────────────────────────────────────────
-// 旧场景是顶栏 + 左栏(4 块) + 地图 + 右栏(2 块) + 底栏。现在是顶栏 + 左栏(4 块) +
-// 地图，其中顶层容器只有左栏和地图两个（顶栏不算内容容器）。右栏与底栏整块删除。
+// ── 回字形：内容从四边围住地图 ────────────────────────────────────────────
+//   上  .ov-stat-band   全省 4 个大数                    —— 全省，**下钻时不变**
+//   左  .ov-left-col    完成度环 / 异常构成 / 台账构成    —— 全省，**下钻时不变**
+//   中  .ov-map-panel   地图（无面板边框）                —— 跟随焦点
+//   右  .ov-right-col   需关注站点清单（整格一块）        —— 跟随焦点
+//   下  .ov-zone-band   6 个作业区卡                      —— 分区总览 + 第二个下钻入口
 //
-// ── 删掉的三块内容 ──────────────────────────────────────────────────────────
-// 1) 右下角 DetailCard（旧 renderProvinceHint / renderSiteDetail）。省域态它的正文是
-//    「点击左侧作业区排名或地图上的作业区标签，下钻查看该区站点清单与详情。」外加两个
-//    tag「两级钻取」「省域 → 作业区」——写给开发看的操作说明。作业区态是「类型/介质/
-//    类别」三行 + 一句「XX站 使用作业区级示意坐标，仅用于首页区域态势。」——路演里念
-//    出这句等于自己扣分。整卡删除，scripts/ui/detailcard.js 不再加载。
-// 2) 「动态趋势 · 近N日巡检完成率」折线图。完成率已由 completionGauge() 的环心承载。
-// 3) 「作业区巡检覆盖率」横向柱。被 zoneStatusMix() 取代——同样按作业区横排，但每根
-//    柱拆成正常/关注/异常三段，比单一覆盖率比值信息量大。
+// 上/左恒为全省是刻意的：点开岳阳时全省基准仍然在屏上，观众可以直接对读
+// 「全省 13 个需关注 / 岳阳 5 个」、「全省 95% / 岳阳卡上的 94.4%」。旧版三栏是整块
+// 换掉全省数据，这层对比关系丢了。所以跟随焦点变化的只有三处：地图相机、右栏清单、
+// 作业区带的高亮。
 //
-// ── 「巡检质量保障」卡怎么拆 ─────────────────────────────────────────────────
-// 旧的这张卡里有 9 个数字块（focus 3 个 + grid 6 个），每个还带一行 em/note 小字。
-// 背后其实只有 quality.js 的 8 个字段。拆成三张图 + 一行大数，规则是**每个数只出现
-// 一次**：
-//   completionRate / completed / planned   → 只在 completionGauge 的环里
-//   duration / interval / offWindow / aiAlerts → 只在 qualityExceptionMix 的四根柱里
-//   issues / currentRisk                   → 只在左栏第一行的大数指标里
-// riskLevel 与 p1Issues 屏上不出现：riskLevel 是 currentRisk/issues/aiAlerts 派生出的
-// 等级标签，屏上已经有它的三个输入；p1Issues 是「累计问题中的 P1」，与「当前仍是 P1」
-// （currentRisk）只差一个时态，同屏放两个会被当成两件事。数据层保留这两个字段不动。
+// 【左栏为什么是 3 块、右栏为什么是 1 块】第一版是左 2 块 / 右 2 块，实测左栏 911px
+// 高分给两张图，完成度环被拉成一个直径 370px、描边只有 16px 的细圈，4 根异常柱之间
+// 空出 130px。把台账构成从右栏挪到左栏、三块各按内容定高（300 / 260 / 剩余）之后每块
+// 都填满了；右栏整格 911px 给需关注清单，省域态 13 行正好，列也从 3 列加到 4 列（宽度
+// 用得上）。行高/列宽推导与「地图会缩到 84%」的机制见 styles/06-overview-scene.css。
 //
-// ── 文案 ────────────────────────────────────────────────────────────────────
-// 删：顶栏英文 kicker「HUNAN OIL & GAS NETWORK OVERVIEW」、顶栏居中大标题「湖南省
-// 油气管网巡检总览」（左侧 brand 已写「湖南省油气管网大屏 / 巡检站总览」，是同一句话
-// 的第二遍）、两侧 .topbar-wing 装饰翼、地图头 kicker「区域质量热区 · 省域总览」、
-// 排名卡标题的「· 点击下钻」、Cards.metric 的全部 note、质量卡 6 条阈值 note
-// （「<10min」「<10s」「偏移30min」「时序/轨迹」——挪进 chartopts 的 tooltip）。
+// ── 每个数只出现一次 ──────────────────────────────────────────────────────
+// 旧的「巡检质量保障」卡里有 9 个数字块（focus 3 + grid 6），每块还带一行小字，背后
+// 只有 quality.js 的 8 个字段。现在的分配：
+//   站点总数 / zoneTotal / issues / currentRisk      → 上带 4 个大数
+//   completionRate / completed / planned            → 左① 完成度环
+//   duration / interval / offWindow / aiAlerts       → 左② 异常构成
+//   kind / medium 分布                               → 左③ 台账构成
+//   逐站 status                                      → 右 需关注清单
+//   分区 needAttention / 分区 completionRate         → 下带 6 张卡
+// riskLevel 与 p1Issues 屏上不出现（前者是后三个字段派生的等级标签，后者与
+// currentRisk 只差一个时态，同屏放两个会被当成两件事）。数据层保留这两个字段不动。
 //
-// ── 下钻态第 4 块只列「需关注站点」 ─────────────────────────────────────────
-// 不列全部站点。理由与实测数字见 renderZoneBlock 上方的注释。
+// ── 删掉的内容 ────────────────────────────────────────────────────────────
+// 1) 右下角 DetailCard（旧 renderProvinceHint / renderSiteDetail）：省域态正文是
+//    「点击左侧作业区排名或地图上的作业区标签，下钻查看该区站点清单与详情。」加两个
+//    tag「两级钻取」「省域 → 作业区」——写给开发看的操作说明；作业区态是「类型/介质/
+//    类别」三行 + 一句「XX站 使用作业区级示意坐标，仅用于首页区域态势。」——路演里
+//    念出这句等于自己扣分。scripts/ui/detailcard.js 不再加载。
+// 2) 「动态趋势 · 近N日巡检完成率」折线图：完成率已由完成度环的环心承载。
+// 3) 「作业区巡检覆盖率」横向柱：被下带的 6 张作业区卡取代，卡片还能点。
+// 4) 底栏 + 面包屑：位置由浮在地图左上角的 .ov-map-place 表达，返回全省沿用地图
+//    右下角 .ov-zoom 里已有的 ‹ 按钮。
+// 5) 顶栏英文 kicker、左侧 brand 的两行文字、两侧 .topbar-wing 装饰翼：标题只在
+//    顶栏中间出现一次（详见 styles/02-shell.css 文件头第 2 条）。
+// 6) Cards.metric 的全部 note、质量卡 6 条阈值 note（「<10min」「<10s」「偏移30min」
+//    「时序/轨迹」——挪进 chartopts 的 tooltip）。
+//
+// ── 下钻态第 4 块只列「需关注站点」 ────────────────────────────────────────
+// 不列全部站点。理由与实测数字见 renderAlertCard 上方的注释。
 //
 // 本文件只渲染 DOM，不 addEventListener：交互点天然带 data-action /
 // data-hunan-zone，由 boot.js 的 bindStage() 统一做事件委托。
@@ -57,7 +70,7 @@
   // 「这一轮 draw 了哪几张图」严格相等——见 renderCharts() 里的状态分支。
   var CHART_COMPLETION = "chart-completion";
   var CHART_EXCEPTION = "chart-exception";
-  var CHART_ZONE_STATUS = "chart-zone-status";
+  var CHART_LEDGER = "chart-ledger";
 
   var DATE_RANGES = [
     { id: "7d", label: "近7天", shortLabel: "近7日", days: 7 },
@@ -203,7 +216,8 @@
   }
 
   // =====================================================================
-  // 顶栏：两列（左 brand / 右 统计口径 + 时钟），高度 56px。
+  // 顶栏：三列（左 湘标记+时钟 / 中 居中标题 / 右 统计口径），高度 62px。
+  // 两侧列都是 1fr，中间那列才真的落在画布水平中点上。
   // DOM 契约见 styles/02-shell.css 文件头。
   // =====================================================================
 
@@ -212,30 +226,28 @@
     var weekday = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"][now.getDay()];
     return h("header", { class: "topbar panel" }, [
       h("div", { class: "topbar-left" }, [
-        h("div", { class: "brand" }, [
-          h("span", { class: "brand-mark", "aria-hidden": "true", text: "湘" }),
-          h("div", {}, [
-            h("h1", { text: "湖南省油气管网大屏" }),
-            h("small", { text: "巡检站总览" }),
-          ]),
-        ]),
-      ]),
-      h("div", { class: "topbar-right" }, [
-        renderDateRangePicker(state, now),
+        h("span", { class: "brand-mark", "aria-hidden": "true", text: "湘" }),
         h("div", { class: "topbar-clock" }, [
           h("strong", { class: "num", text: pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + ":" + pad2(now.getSeconds()) }),
           h("small", { class: "num", text: formatDate(now) + " " + weekday }),
         ]),
       ]),
+      h("div", { class: "topbar-title" }, [
+        h("h1", { text: "湖南省油气管网巡检总览" }),
+        h("div", { class: "topbar-title-rule", "aria-hidden": "true" }),
+      ]),
+      h("div", { class: "topbar-right" }, [
+        renderDateRangePicker(state, now),
+      ]),
     ]);
   }
 
   // =====================================================================
-  // 左栏第 1 块：三个大数指标（Cards.metric ×3，一律不传 note）
+  // 上边：全省指标带（4 个 Cards.metric，一律不传 note）。**不随下钻变化**。
   //
-  // 三个数的选择理由：站点总数 = 规模锚点（让旁边地图上的柱子有量级参照）、
-  // 发现问题 = 问题总量、当前 P1 = 最紧急。三者互不重复，也不与三张图里的任何
-  // 数字重复。
+  // 四个数的选择：站点总数 = 盘子多大（给旁边地图一个量级参照）、作业区 = 分几块管、
+  // 发现问题 = 问题总量、当前 P1 = 最紧急。四者互不重复，也不与四张图里的任何数字
+  // 重复。完成率不在这里——它只在左栏的环心里。
   // =====================================================================
 
   function issuesStatus(q) {
@@ -243,112 +255,124 @@
     return q.p1Issues > 0 ? "danger" : "warn";
   }
 
-  function renderStatRow(state) {
-    var q = Quality.current(state.zoneId);
-    var siteTotal;
-    if (state.zoneId == null) {
-      var sp = Series.provinceSummary();
-      siteTotal = sp.stationTotal + sp.valveTotal;
-    } else {
-      siteTotal = Sites.sitesByZone(state.zoneId).length;
-    }
-
-    return h("div", { class: "ov-stat-row" }, [
-      window.Cards.metric({ label: "站点总数", value: siteTotal, unit: "个", status: "ok" }),
+  function renderStatBand() {
+    var sp = Series.provinceSummary();
+    var q = Quality.province();
+    return h("section", { class: "panel ov-stat-band" }, [
+      window.Cards.metric({ label: "站点总数", value: sp.stationTotal + sp.valveTotal, unit: "个", status: "ok" }),
+      window.Cards.metric({ label: "作业区", value: sp.zoneTotal, unit: "个", status: "ok" }),
       window.Cards.metric({ label: "发现问题", value: q.issues, unit: "项", status: issuesStatus(q) }),
       window.Cards.metric({ label: "当前 P1", value: q.currentRisk, unit: "项", status: q.currentRisk > 0 ? "danger" : "ok" }),
     ]);
   }
 
   // =====================================================================
-  // 左栏第 2、3 块：两张图（完成度环 / 异常构成柱）
+  // 左边：全省两张图，等分中段高度。**不随下钻变化**。
   //
-  // 第 2 块的 meta 放统计口径短标签（近7日 / 本月 / 4-24至4-30 …）——顶栏的日期范围
+  // 第 1 块 meta 放统计口径短标签（近7日 / 本月 / 4/24-4/30 …）——顶栏的日期范围
   // 按钮改的就是这个标签。quality.js 是一份静态快照，各字段不随日期范围变化，所以
   // 这个控件的真实作用范围就是「给屏上的数标注统计口径」，不假装数据会跟着变。
   // =====================================================================
 
-  function renderCompletionCard(state) {
+  function renderLeftColumn(state) {
+    assertLoaded();
     var range = activeDateRange(state);
-    return window.Cards.chart({
-      title: "巡检完成度",
-      meta: range.shortLabel,
-      chartId: CHART_COMPLETION,
-    });
-  }
-
-  function renderExceptionCard() {
-    return window.Cards.chart({
-      title: "质量异常构成",
-      chartId: CHART_EXCEPTION,
-    });
+    var sp = Series.provinceSummary();
+    return h("section", { class: "panel ov-left-col" }, [
+      window.Cards.chart({ title: "巡检完成度", meta: range.shortLabel, chartId: CHART_COMPLETION }),
+      window.Cards.chart({ title: "质量异常构成", chartId: CHART_EXCEPTION }),
+      window.Cards.chart({ title: "台账构成", meta: sp.stationTotal + sp.valveTotal + " 个", chartId: CHART_LEDGER }),
+    ]);
   }
 
   // =====================================================================
-  // 左栏第 4 块：省域态是「作业区质量分布」堆叠柱，下钻态是该区站点只读清单。
-  // 两种状态都恰好 1 个容器、外观是同一张卡（见 06-overview-scene.css 的
-  // .ov-list-card 注释），切换时布局不跳。
-  // =====================================================================
-
+  // 右边：整格一块「需关注站点」清单，跟随焦点。省域态 = 全省 13 行，下钻态 = 该作业区。
+  // 这是屏上唯一跟着下钻换内容的面板（另外两处变化是地图相机和作业区带的高亮）。
+  //
   // 只列**需关注**的站点（danger + warn），不列全部。
-  //
-  // 第一版列了全部站点，实测岳阳作业区是 36 行，而那 36 行里「类型」列全是「阀室」、
+  // 第一版列了全部站点，岳阳作业区是 36 行，而那 36 行里「类型」列全是「阀室」、
   // 「所在市」列全是「岳阳市」——两整列 72 个格子写着同一个词，正是要治的那种「占位
-  // 多、字多、信息少」。改成只列异常与关注的站点后，实测各作业区是 1 到 5 行
-  // （岳阳 5 / 长沙 1 / 衡阳 2 / 永郴 2 / 湘娄 1 / 株洲 2），一屏扫完，而且列出来的
-  // 正是路演时唯一值得指着讲的那几个。总数没有丢，在卡头的 meta 里。
+  // 多、字多、信息少」。只列异常与关注之后，实测省域态 13 行、各作业区 1 到 5 行
+  // （岳阳 5 / 长沙 1 / 衡阳 2 / 永郴 2 / 湘娄 1 / 株洲 2）。总数没有丢，在卡头 meta 里。
   //
-  // 三列：站点 / 介质 / 状态。「所在市」不列——6 个作业区里有 4 个只覆盖 1 个市，
-  // 那一列在这些区里恒为同一个值。「介质」（天然气/成品油）在每个作业区内部都真的有
-  // 分布，是这三列里唯一每行都可能不同的业务字段。
-  var ALERT_COLUMNS = [
-    { key: "name", label: "站点", width: 46 },
-    { key: "medium", label: "介质", width: 28 },
-    { key: "status", label: "状态", width: 26 },
+  // 两种状态的列不同，因为「哪一列每行都不一样」不同：
+  //   省域态：作业区 / 站点 / 介质 / 状态   —— 13 行跨 6 个区，作业区列是最有用的那一列
+  //   下钻态：站点 / 类型 / 介质 / 状态     —— 同一个区内作业区列恒为同值，换成类型
+  // 「所在市」两种状态都不列：6 个作业区里有 4 个只覆盖 1 个市，那一列在这些区里恒为
+  // 同一个值——第一版就是踩在这上面（岳阳 36 行里「所在市」整列写着「岳阳市」）。
+  // =====================================================================
+
+  var PROVINCE_ALERT_COLUMNS = [
+    { key: "zone", label: "作业区", width: 22 },
+    { key: "name", label: "站点", width: 36 },
+    { key: "medium", label: "介质", width: 22 },
+    { key: "status", label: "状态", width: 20 },
+  ];
+  var ZONE_ALERT_COLUMNS = [
+    { key: "name", label: "站点", width: 38 },
+    { key: "kind", label: "类型", width: 20 },
+    { key: "medium", label: "介质", width: 22 },
+    { key: "status", label: "状态", width: 20 },
   ];
 
-  function alertSites(zoneId) {
-    return Sites.sitesByZone(zoneId).slice()
-      .filter(function (site) { return site.status !== "ok"; })
-      .sort(function (a, b) {
-        if (a.status !== b.status) return STATUS_RANK[a.status] - STATUS_RANK[b.status];
-        return a.name < b.name ? -1 : 1;
-      });
+  function sortByStatus(a, b) {
+    if (a.status !== b.status) return STATUS_RANK[a.status] - STATUS_RANK[b.status];
+    return a.name < b.name ? -1 : 1;
   }
 
-  function renderAlertTable(sites) {
-    var total = ALERT_COLUMNS.reduce(function (sum, col) { return sum + col.width; }, 0);
+  function alertSites(zoneId) {
+    if (zoneId != null) {
+      return Sites.sitesByZone(zoneId).filter(function (s) { return s.status !== "ok"; }).sort(sortByStatus);
+    }
+    // 省域态：按作业区顺序取全省的非正常站点，再整体按状态排——先按 ZONE_IDS 收集
+    // 是为了让同一个区的站点在同状态内挨着（sortByStatus 的次级键是站点名，不是区）。
+    var all = [];
+    Contract.ZONE_IDS.forEach(function (zoneKey) {
+      Sites.sitesByZone(zoneKey).forEach(function (site) {
+        if (site.status !== "ok") all.push(site);
+      });
+    });
+    return all.sort(sortByStatus);
+  }
+
+  function alertCellText(columnKey, site) {
+    if (columnKey === "zone") return Contract.ZONE_NAMES[site.zoneId].replace("作业区", "");
+    if (columnKey === "name") return site.name;
+    if (columnKey === "kind") return site.kind === "station" ? "站场" : "阀室";
+    if (columnKey === "medium") return site.medium;
+    throw new Error("[OverviewScene] 未知的清单列：" + columnKey);
+  }
+
+  function renderAlertTable(columns, sites) {
+    var total = columns.reduce(function (sum, col) { return sum + col.width; }, 0);
     return h("table", { class: "ov-table" }, [
-      h("colgroup", {}, ALERT_COLUMNS.map(function (col) {
+      h("colgroup", {}, columns.map(function (col) {
         return h("col", { style: "width:" + (col.width / total * 100) + "%" });
       })),
       h("thead", {}, [
-        h("tr", {}, ALERT_COLUMNS.map(function (col) {
+        h("tr", {}, columns.map(function (col) {
           return h("th", { scope: "col", class: "ov-table-th", text: col.label });
         })),
       ]),
       h("tbody", {}, sites.map(function (site) {
-        return h("tr", {}, [
-          h("td", { class: "ov-table-td", text: site.name }),
-          h("td", { class: "ov-table-td", text: site.medium }),
-          // 状态用文字而不是色点：这一列本身就是「异常/关注」两个词，不依赖颜色也能读。
-          h("td", { class: "ov-table-td" }, [
-            h("span", { class: "ov-table-status " + site.status, text: STATUS_LABEL[site.status] }),
-          ]),
-        ]);
+        return h("tr", {}, columns.map(function (col) {
+          // 状态列用文字而不是色点：这一列本身就是「异常/关注」两个词，不依赖颜色也能读。
+          if (col.key === "status") {
+            return h("td", { class: "ov-table-td" }, [
+              h("span", { class: "ov-table-status " + site.status, text: STATUS_LABEL[site.status] }),
+            ]);
+          }
+          return h("td", { class: "ov-table-td", text: alertCellText(col.key, site) });
+        }));
       })),
     ]);
   }
 
-  function renderZoneBlock(state) {
-    if (state.zoneId == null) {
-      return window.Cards.chart({
-        title: "作业区需关注站点",
-        chartId: CHART_ZONE_STATUS,
-      });
-    }
-    var siteTotal = Sites.sitesByZone(state.zoneId).length;
+  function renderAlertCard(state) {
+    var drilled = state.zoneId != null;
+    var siteTotal = drilled ? Sites.sitesByZone(state.zoneId).length : Sites.sites().length;
     var alerts = alertSites(state.zoneId);
+    var columns = drilled ? ZONE_ALERT_COLUMNS : PROVINCE_ALERT_COLUMNS;
     return h("section", { class: "ov-list-card" }, [
       h("div", { class: "ov-list-card-head" }, [
         h("span", { class: "ov-list-card-title", text: "需关注站点" }),
@@ -359,30 +383,68 @@
         // 作业区都至少有一个异常站点（当前 6 个区恰好都有，1 到 5 个不等）。整改完
         // 一个区之后它就会走到这一支，那时候屏上该说的是「全部正常」，不是一张空表。
         alerts.length
-          ? renderAlertTable(alerts)
+          ? renderAlertTable(columns, alerts)
           : h("p", { class: "ov-list-empty", text: siteTotal + " 个站点全部正常" }),
       ]),
     ]);
   }
 
-  function renderLeftColumn(state) {
+  function renderRightColumn(state) {
     assertLoaded();
-    // .is-drilled 只改第 4 行的行高（1fr -> auto），见 06-overview-scene.css 的注释。
-    var drilled = state.zoneId != null;
-    return h("section", { class: "panel ov-left-col" + (drilled ? " is-drilled" : "") }, [
-      renderStatRow(state),
-      renderCompletionCard(state),
-      renderExceptionCard(),
-      renderZoneBlock(state),
+    return h("section", { class: "panel ov-right-col" }, [
+      renderAlertCard(state),
     ]);
   }
 
   // =====================================================================
-  // 中间：3D 地图面板。内部 DOM 是 styles/05-hunan3d.css 的冻结契约（复用旧目录
-  // 原文件），本函数产出的结构与旧场景逐字相同，只有两处减法：
-  //   - 删掉 head 里的 p.kicker「区域质量热区 · 省域总览」，h3 直接做 flex 子节点
-  //   - h3 现在是屏上唯一的位置指示（旧的底栏面包屑已删）
-  // 作业区标签是本屏唯一的下钻入口：button[data-hunan-zone]，原生可聚焦、可回车。
+  // 下边：6 个作业区卡。分区总览 + 地图标签之外的第二个下钻入口。
+  //
+  // ⚠️ 卡片不能用 [data-hunan-zone]：scripts/map3d/contract.js 的
+  // assertPinNamespace() 会遍历全文档的 [data-hunan-zone]/[data-hunan-site]，任何一个
+  // 落在 .hunan-labels 之外就直接抛错（那两个属性归 3D 标签独占）。所以用
+  // data-action="select-zone" + data-zone-id。
+  //
+  // 卡上的状态色取自 Sites.zoneStatuses()，与地图标签同源——同一个作业区在地图上
+  // 和在这条带上必须是同一个颜色，否则会出现「地图上红了、下面卡还是绿的」。
+  // =====================================================================
+
+  function renderZoneBand(state) {
+    var zoneStatuses = Sites.zoneStatuses();
+    var mix = Series.zoneStatusMix();
+    return h("section", { class: "panel ov-zone-band", "aria-label": "作业区总览" }, mix.map(function (row) {
+      var status = zoneStatuses[row.zoneId];
+      var needAttention = row.warn + row.danger;
+      var q = Quality.byZone(row.zoneId);
+      var active = state.zoneId === row.zoneId;
+      return h("button", {
+        type: "button",
+        class: "ov-zone-card " + status + (active ? " is-active" : ""),
+        "data-action": "select-zone",
+        "data-zone-id": row.zoneId,
+        "aria-pressed": active ? "true" : "false",
+        title: Contract.ZONE_NAMES[row.zoneId] + " · " + STATUS_LABEL[status],
+      }, [
+        h("div", { class: "ov-zone-card-head" }, [
+          h("span", { class: "ov-zone-card-name", text: row.name.replace("作业区", "") }),
+          h("span", { class: "dot " + status, "aria-hidden": "true" }),
+        ]),
+        h("div", { class: "ov-zone-card-alert" }, [
+          h("strong", { class: "num", text: String(needAttention) }),
+          h("span", { text: "需关注" }),
+        ]),
+        h("div", { class: "ov-zone-card-rate num", text: "完成率 " + q.completionRate + "%" }),
+      ]);
+    }));
+  }
+
+  // =====================================================================
+  // 中间：3D 地图。**没有面板边框**（见 styles/06-overview-scene.css 第五节）。
+  //
+  // 相对旧场景的两处减法：
+  //   - 不渲染 .ov-map-head（那一行是 p.kicker「区域质量热区 · 省域总览」+ h3 + 图例）。
+  //     位置改成浮在地图左上角的 .ov-map-place，图例浮到左下角（右下角被 .ov-zoom 占了）。
+  //   - kicker 整句删除。
+  // 作业区标签仍是地图上的下钻入口：button[data-hunan-zone]，原生可聚焦、可回车。
   // =====================================================================
 
   function renderMapPanel(state) {
@@ -408,17 +470,22 @@
       ]);
     });
 
-    return h("section", { class: "panel ov-map-panel" }, [
-      h("div", { class: "ov-map-head" }, [
-        h("h3", { text: state.zoneId == null ? "湖南省全域" : Contract.ZONE_NAMES[state.zoneId] }),
+    var placeSub = state.zoneId == null
+      ? Sites.sites().length + " 个站场 / 阀室"
+      : Sites.sitesByZone(state.zoneId).length + " 个站场 / 阀室";
+
+    return h("section", { class: "ov-map-panel" }, [
+      h("div", { class: "hunan-map", "data-hunan-host": "1" }, [
+        h("div", { class: "ov-map-place" }, [
+          h("h3", { text: state.zoneId == null ? "湖南省全域" : Contract.ZONE_NAMES[state.zoneId] }),
+          h("small", { text: placeSub }),
+        ]),
+        h("div", { class: "hunan-labels" }, zoneLabels),
         h("div", { class: "ov-legend" }, [
           h("span", { class: "ov-legend-item" }, [h("i", { class: "dot ok" }), "正常"]),
           h("span", { class: "ov-legend-item" }, [h("i", { class: "dot warn" }), "关注"]),
           h("span", { class: "ov-legend-item" }, [h("i", { class: "dot danger" }), "异常"]),
         ]),
-      ]),
-      h("div", { class: "hunan-map", "data-hunan-host": "1" }, [
-        h("div", { class: "hunan-labels" }, zoneLabels),
         // 视口操作**唯一**的一组：返回 / 放大 / 缩小 / 重置视角。全部带 title。
         // 「返回全省」只在下钻态出现（省域态没有上一层可返回，不渲染、也不做 disabled
         // 占位），所以这一组在两种状态下分别是 3 个和 4 个按钮。
@@ -438,22 +505,24 @@
   // =====================================================================
   // 图表绘制（boot.js 在 DOM append + mountChartSlots 之后调用）
   //
-  // 必须与 renderZoneBlock() 的状态分支严格对应：Charts.draw 对没有先 slot 的 id
-  // 直接抛错，所以下钻态**不能**再 draw CHART_ZONE_STATUS（那一格已经换成站点表）。
+  // 三张图都在左栏、都是全省口径、每一轮都画，没有状态分支。Charts.draw 对没有先
+  // slot 的 id 会直接抛错，所以「渲染了哪几张」必须和「draw 了哪几张」严格相等；
+  // 这里恒等于 3，不随 zoneId 变化。
   // =====================================================================
 
-  function renderCharts(state) {
-    window.Charts.draw(CHART_COMPLETION, window.ChartOptions.completionGauge(state.zoneId));
-    window.Charts.draw(CHART_EXCEPTION, window.ChartOptions.qualityExceptionMix(state.zoneId));
-    if (state.zoneId == null) {
-      window.Charts.draw(CHART_ZONE_STATUS, window.ChartOptions.zoneStatusMix());
-    }
+  function renderCharts() {
+    window.Charts.draw(CHART_COMPLETION, window.ChartOptions.completionGauge());
+    window.Charts.draw(CHART_EXCEPTION, window.ChartOptions.qualityExceptionMix());
+    window.Charts.draw(CHART_LEDGER, window.ChartOptions.ledgerMix());
   }
 
   window.OverviewScene = {
     renderTopbar: renderTopbar,
+    renderStatBand: renderStatBand,
     renderLeftColumn: renderLeftColumn,
     renderMapPanel: renderMapPanel,
+    renderRightColumn: renderRightColumn,
+    renderZoneBand: renderZoneBand,
     renderCharts: renderCharts,
     isDateRangeId: isDateRangeId,
     isCustomDateRangeId: isCustomDateRangeId,

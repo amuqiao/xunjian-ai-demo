@@ -208,7 +208,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 6px 9px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--line-strong);
   background: var(--table-head-bg);
   color: var(--muted);
@@ -220,7 +220,7 @@
 
 .ov-table-td,
 .ov-table-td-dot {
-  padding: 6px 9px;
+  padding: 11px 10px;
   border-bottom: 1px solid var(--line);
   color: var(--ink);
   vertical-align: middle;
