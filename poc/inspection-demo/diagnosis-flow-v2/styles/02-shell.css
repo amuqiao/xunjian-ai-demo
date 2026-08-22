@@ -1,0 +1,226 @@
+/* 02-shell.css: app-shell（固定画布 + 两行）/ topbar（三列：站名 / 三步导航 / 进度）
+   / stage / panel / 基元（kicker / dot / badge / chip / tool-btn）。
+
+   ── 相对旧目录的三处结构改动 ──────────────────────────────────────────────
+   1) 【真做固定画布】.app-shell 用 transform: scale(var(--screen-scale)) —— 旧目录的
+      同名类是 width:100vw/height:100vh 的自然流，那个变量没人用（详见 01-tokens.css
+      文件头第 1 条）。scripts/core/screen-scale.js 只写变量，缩放在这里发生。
+   2) 【顶栏加真实的三步进度】旧目录 renderNav 里有 locked/disabled 分支和
+      title「完成人工复核的执行动作后解锁」，但 AppState.canOpen() 恒 return true
+      —— 那个锁态永远不出现。同时它还有一条 6 步流程轨（质检→时序→视觉→Agent→复核
+      →归档），而 index.html 里**没有 #flowTrack 挂载点**，renderFlow() 每次第一行就
+      return，整条轨从来没渲染过。
+      本版：导航就是主线三步（诊断工作台 / 人工复核 / 知识库），每一步带一个可派生的
+      完成态圆点（选了结论 / 生成了报告 / 已归档），不做假锁、不留没渲染的轨。
+   3) 【常驻 Agent 悬浮按钮】三页都挂（这是刻意的设计：模拟常驻 AI 助手）。它固定在
+      画布右下角，不属于任何场景网格，所以放在 .app-shell 层而不是 .stage 里 ——
+      放 stage 里会被场景的 overflow:hidden 裁掉。 */
+
+.app-shell {
+  position: fixed;
+  left: var(--screen-offset-x);
+  top: var(--screen-offset-y);
+  width: var(--screen-design-width);
+  height: var(--screen-design-height);
+  min-height: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  overflow: hidden;
+  transform: scale(var(--screen-scale));
+  transform-origin: top left;
+  will-change: transform;
+  background: var(--app-bg);
+}
+
+/* ---------------------------------------------------------------------------
+   topbar 三列：左 站名 / 中 三步导航 / 右 案例编号 + 时间
+   两侧列都是 1fr，中间那列才真的落在画布水平中点上。
+   --------------------------------------------------------------------------- */
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+  padding: 8px 20px;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 14px; min-width: 0; }
+
+.brand-mark {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--accent);
+  display: grid; place-items: center;
+  /* 字面值是 --accent(56,198,236) 的 14% 透明度副本，改 --accent 记得同步改这里。 */
+  background: rgba(56, 198, 236, 0.14);
+  color: #e2f8ff;
+  font-size: 20px; font-weight: 800;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+}
+
+.topbar-site { display: grid; gap: 1px; min-width: 0; line-height: 1.25; }
+.topbar-site strong { color: var(--ink); font-size: 20px; font-weight: 700; white-space: nowrap; }
+.topbar-site small { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+.topbar-meta { display: grid; justify-items: end; gap: 1px; line-height: 1.25; }
+.topbar-meta strong {
+  color: #eef9ff;
+  font-family: Bahnschrift, "DIN Alternate", sans-serif;
+  font-size: 18px; font-weight: 700; letter-spacing: 0.04em;
+}
+.topbar-meta small { color: var(--muted); font-size: 13px; }
+
+/* ---------------------------------------------------------------------------
+   三步导航。每个按钮左侧一个序号圆，完成后圆变实心 + 打勾。
+   完成态是**派生**的，不存字段：① 选了结论 ② 生成了报告 ③ 已归档。
+   --------------------------------------------------------------------------- */
+
+.step-nav {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-bg-2);
+}
+
+.step-btn {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px; font-weight: 700;
+  white-space: nowrap;
+  transition: color .16s ease, border-color .16s ease, background-color .16s ease;
+}
+
+.step-btn:hover { color: var(--ink); border-color: var(--line-strong); }
+
+.step-btn.active {
+  border-color: var(--accent);
+  background: rgba(56, 198, 236, 0.14);
+  color: #eafcff;
+}
+
+.step-index {
+  width: 20px; height: 20px; flex: 0 0 20px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-btn.done .step-index {
+  border-color: var(--status-ok);
+  background: var(--status-ok);
+  color: #04120d;
+}
+
+.step-sep {
+  width: 14px; height: 1px;
+  background: var(--line-strong);
+  flex: 0 0 14px;
+}
+
+/* --------------------------------------------------------------------------- */
+
+.stage { min-height: 0; display: grid; overflow: hidden; outline: none; }
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--panel-bg);
+  box-shadow: var(--sh-m);
+}
+
+.kicker {
+  color: var(--accent);
+  font-size: 12px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+
+.dot {
+  width: 9px; height: 9px;
+  display: inline-block; border-radius: 50%;
+  background: var(--status-ok);
+}
+.dot.ok { background: var(--status-ok); }
+.dot.warn { background: var(--status-warn); }
+.dot.danger { background: var(--status-danger); }
+.dot.ai { background: var(--accent-2); }
+
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-bg);
+  color: var(--ink);
+  font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.badge.ok { border-color: rgba(48, 198, 157, 0.55); color: var(--status-ok); }
+.badge.warn { border-color: rgba(238, 180, 74, 0.70); color: var(--status-warn); }
+.badge.danger { border-color: rgba(255, 98, 92, 0.75); color: var(--status-danger); }
+.badge.ai { border-color: rgba(90, 140, 255, 0.60); color: var(--accent-2); }
+
+.tool-btn {
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-s);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  padding: 0 14px;
+  font-size: 14px;
+}
+.tool-btn:hover { border-color: var(--accent); color: #eafcff; }
+
+.primary-btn {
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--r-s);
+  background: linear-gradient(135deg, #1a9bc4, #2fbf95);
+  color: #04121a;
+  padding: 0 20px;
+  font-size: 15px; font-weight: 800;
+  box-shadow: var(--sh-s);
+}
+.primary-btn:hover { filter: brightness(1.06); }
+.primary-btn:disabled {
+  background: rgba(120, 150, 255, 0.14);
+  color: var(--muted);
+  box-shadow: none;
+  filter: none;
+}
+
+.muted { color: var(--muted); }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------------------
+   常驻 AI 助手悬浮按钮。三页都在 —— 这是刻意的设计（模拟常驻助手），不是三处重复
+   入口。挂在 .app-shell 层，不进 .stage，否则会被场景的 overflow 裁掉。
+   --------------------------------------------------------------------------- */
+
+.agent-fab {
+  position: absolute;
+  right: 26px; bottom: 22px;
+  z-index: 40;
+  width: 62px; height: 62px;
+  border-radius: 50%;
+  border: 1px solid rgba(90, 140, 255, 0.55);
+  background: radial-gradient(circle at 32% 28%, #4f8cff, #1b3f8f);
+  color: #eef4ff;
+  display: grid; place-items: center;
+  font-size: 15px; font-weight: 800; letter-spacing: 0.04em;
+  box-shadow: var(--sh-l);
+}
+.agent-fab:hover { filter: brightness(1.1); }
+.agent-fab.is-open { border-color: var(--accent); }

@@ -1,0 +1,115 @@
+/* 05-report.css: A4 报告版式。**两处共用同一份**：
+     1. tools/report-template.html —— 被 tools/build_report.py 加载并打印成 PDF
+     2. 归档浮窗里的屏上预览（scripts/scenes/review.js 渲染同样的 DOM）
+   抽成独立文件而不是各写一份，是因为版式一旦分叉，"屏上所见"和"下载所得"就会不一样，
+   而那种不一致只有把 PDF 打开逐段对比才能发现。
+
+   视觉口径照业务方那份占位 PDF：深色页眉条 + 蓝色章节标题带下划线 + AI 结论蓝框 +
+   人工复核意见绿框 + 归档标签胶囊 + 页脚「第 N 页 / 共 N 页」。
+
+   ⚠️ 本文件是**浅色**的：它是一份纸质报告，嵌在深色页面里也必须是白底黑字。
+   所以这里不读 01-tokens.css 的任何深色变量，色值全部写字面量 —— 它跟深色主题无关，
+   跟"报告在纸上长什么样"有关。改深色主题不该影响这份文件。
+
+   A4 在 96dpi 下是 794×1123 CSS px；.rp-page 固定这个尺寸，build_report.py 按
+   format:'A4' 打印，浮窗预览按 transform: scale() 缩到容器宽度。 */
+
+.rp-page {
+  position: relative;
+  width: 794px;
+  height: 1123px;
+  background: #fff;
+  color: #1b2534;
+  font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  overflow: hidden;
+  page-break-after: always;
+}
+
+.rp-page:last-child { page-break-after: auto; }
+
+/* 页眉：深色条，左标题 + 右编号/时间 */
+.rp-head {
+  height: 84px;
+  background: #10233c;
+  color: #fff;
+  padding: 0 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rp-head h1 { margin: 0; font-size: 25px; font-weight: 700; letter-spacing: .01em; }
+.rp-head small { display: block; margin-top: 5px; font-size: 11px; color: #b9c7dc; font-weight: 400; }
+.rp-head-meta { text-align: right; font-size: 11px; line-height: 1.7; color: #cdd9ea; }
+
+.rp-body { padding: 26px 46px 0; }
+
+/* 章节标题：蓝色 + 细下划线 */
+.rp-sec { margin-bottom: 20px; }
+.rp-sec > h2 {
+  margin: 0 0 11px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a6de0;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #dfe6f0;
+}
+
+/* callout：AI 蓝框 / 人工绿框 / 分歧橙框 */
+.rp-callout { border-radius: 11px; padding: 15px 18px; border: 1px solid; }
+.rp-callout h2 { border: 0; padding: 0; margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+.rp-callout p { margin: 0; font-size: 12.5px; line-height: 1.85; white-space: pre-line; }
+.rp-callout.ai { background: #f2f7ff; border-color: #cbddfa; }
+.rp-callout.ai h2 { color: #1558bc; }
+.rp-callout.human { background: #f1faf4; border-color: #bfe6cd; }
+.rp-callout.human h2 { color: #12a150; }
+.rp-callout.divergent { background: #fff8ec; border-color: #f4dfba; }
+.rp-callout.divergent h2 { color: #b8730a; }
+
+/* grid：两列键值 */
+.rp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px 26px; }
+.rp-grid div { font-size: 12.5px; line-height: 1.6; }
+.rp-grid b { color: #47566c; font-weight: 400; }
+.rp-grid span { color: #1b2534; }
+.rp-grid .wide { grid-column: 1 / -1; }
+
+/* list：项目符号 */
+.rp-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rp-list li { font-size: 12.5px; line-height: 1.75; padding-left: 15px; position: relative; }
+.rp-list li::before {
+  content: ""; position: absolute; left: 3px; top: 8px;
+  width: 4px; height: 4px; border-radius: 50%; background: #1a6de0;
+}
+
+/* tags：胶囊 */
+.rp-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.rp-tags span {
+  font-size: 11.5px; color: #47566c;
+  border: 1px solid #dfe6f0; border-radius: 999px; padding: 4px 12px; background: #fafbfd;
+}
+
+/* 现场佐证照：业务方给的真实巡检照，放在附件来源那一段下面 */
+.rp-photo { margin: 12px 0 0; }
+.rp-photo img { width: 100%; height: 196px; object-fit: cover; border-radius: 9px; border: 1px solid #dfe6f0; }
+.rp-photo figcaption { margin-top: 6px; font-size: 11px; color: #8494a9; }
+
+.rp-foot {
+  position: absolute; left: 46px; right: 46px; bottom: 26px;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  font-size: 10.5px; color: #8494a9;
+  border-top: 1px dashed #e4eaf2; padding-top: 9px;
+}
+
+/* ---------------------------------------------------------------------------
+   屏上预览：A4 页原尺寸居中竖排，容器纵向滚动。
+
+   不做缩放。曾经写了一套 transform: scale(var(--scale)) 的等比缩小，后来算下来用不上：
+   固定画布 2471 宽的布局里，复核页右栏的草稿区可用约 1500px、归档浮窗的预览区可用约
+   1620px，都远大于 A4 的 794px —— 缩放系数恒为 1，那套机制是死的灵活性。
+   真要在更窄的容器里嵌，再加回来，别提前留。
+   --------------------------------------------------------------------------- */
+
+.rp-stack {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}

@@ -158,6 +158,17 @@ verify/verify_station.py         68 项断言
   是按项数摊派的，12 个区算下来 12.9–17.1 秒/项，没有区分度）、「巡检项型分布」。
 - 平面图热点的副行从 `done/total`（恒为 N/N）换成**本轮标记条数**。
 
+## 已接入演示外壳（主线）
+
+`poc/inspection-demo/index.html` 的第 2 屏现在指向本目录（旧目录 `inspection-3d-sandbox` 未删、仍可单独打开，
+但已不在主线上）。左下角 1~4 号切换点由 `flow-nav/` 提供，单独双击本目录的 `index.html`
+也会出现。
+
+组件清单**只在 `flow-nav/flow-nav.js` 的 `steps` 里维护一份**：外壳读
+`window.InspectionFlowSteps`，路径判断（当前是哪一屏、链接要不要加 `../`）由每个 step 的
+`dirs` 派生。原先这份清单抄了三处，切 v2 时正是这三处不同步咬了一口 —— 外壳级验收
+`uv run python poc/inspection-demo/verify/verify_shell.py` 盯着它别再散开。
+
 ## 跑验收
 
 ```sh

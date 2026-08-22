@@ -1,30 +1,39 @@
 (function () {
   "use strict";
 
+  // 【这张表是唯一真源】index.html 的外壳不再自己抄一份，改成读 window.InspectionFlowSteps
+  // （见本文件末尾）。原先 steps 在 index.html 和这里各写一遍、路径判断又在下面手写第三遍
+  // —— 三个 v2 目录接线时正是这三处不同步咬了一口。现在换目录只改这张表。
+  //
+  // href 指向 v2；dirs 里同时列出旧目录 —— 旧的三个目录没删、仍可单独打开，如果不列进来，
+  // 从旧目录打开时 prefixFor 会算成 ""，导航链接就指到旧目录底下去了。
   var steps = [
-    { key: "overview", label: "大屏总览", href: "hunan-inspection-overview/index.html" },
-    { key: "station", label: "站点态势", href: "inspection-3d-sandbox/index.html" },
-    { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow/index.html" },
-    { key: "graph", label: "知识图谱", href: "kg-template/index.html" }
+    { key: "overview", label: "大屏总览", href: "hunan-overview-v2/index.html",
+      dirs: ["hunan-overview-v2", "hunan-inspection-overview"] },
+    { key: "station", label: "站点态势", href: "inspection-station-v2/index.html",
+      dirs: ["inspection-station-v2", "inspection-3d-sandbox"] },
+    { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow-v2/index.html",
+      dirs: ["diagnosis-flow-v2", "diagnosis-flow"] },
+    { key: "graph", label: "知识图谱", href: "kg-template/index.html",
+      dirs: ["kg-template"] }
   ];
+
+  function stepOfPath(pathname) {
+    return steps.filter(function (step) {
+      return step.dirs.some(function (dir) { return pathname.indexOf("/" + dir + "/") >= 0; });
+    })[0] || null;
+  }
 
   function currentKey(pathname) {
     if (window.InspectionDemoShell && typeof window.InspectionDemoShell.currentKey === "function") {
       return window.InspectionDemoShell.currentKey();
     }
-    if (pathname.indexOf("/hunan-inspection-overview/") >= 0) return "overview";
-    if (pathname.indexOf("/inspection-3d-sandbox/") >= 0) return "station";
-    if (pathname.indexOf("/diagnosis-flow/") >= 0) return "diagnosis";
-    if (pathname.indexOf("/kg-template/") >= 0) return "graph";
-    return "overview";
+    var step = stepOfPath(pathname);
+    return step ? step.key : "overview";
   }
 
   function prefixFor(pathname) {
-    var inComponent = pathname.indexOf("/hunan-inspection-overview/") >= 0
-      || pathname.indexOf("/inspection-3d-sandbox/") >= 0
-      || pathname.indexOf("/diagnosis-flow/") >= 0
-      || pathname.indexOf("/kg-template/") >= 0;
-    return inComponent ? "../" : "";
+    return stepOfPath(pathname) ? "../" : "";
   }
 
   function inFrame() {
@@ -97,6 +106,11 @@
 
     document.body.appendChild(nav);
   }
+
+  // 外壳（index.html）要用同一张表建 iframe。这里同步暴露 —— 所以 index.html 必须先
+  // 加载本文件、再跑它自己那段内联脚本。mount() 走 DOMContentLoaded，那时外壳已经把
+  // InspectionDemoShell 挂上了，顺序不冲突。
+  window.InspectionFlowSteps = steps;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", mount);

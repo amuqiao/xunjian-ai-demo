@@ -166,6 +166,17 @@ verify/verify_overview.py       59 项断言
 
 返回全省仍只有一个视口入口：地图右下角的 `data-action="back-to-overview"`。
 
+## 已接入演示外壳（主线）
+
+`poc/inspection-demo/index.html` 的第 1 屏现在指向本目录（旧目录 `hunan-inspection-overview` 未删、仍可单独打开，
+但已不在主线上）。左下角 1~4 号切换点由 `flow-nav/` 提供，单独双击本目录的 `index.html`
+也会出现。
+
+组件清单**只在 `flow-nav/flow-nav.js` 的 `steps` 里维护一份**：外壳读
+`window.InspectionFlowSteps`，路径判断（当前是哪一屏、链接要不要加 `../`）由每个 step 的
+`dirs` 派生。原先这份清单抄了三处，切 v2 时正是这三处不同步咬了一口 —— 外壳级验收
+`uv run python poc/inspection-demo/verify/verify_shell.py` 盯着它别再散开。
+
 ## 跑验收
 
 ```sh

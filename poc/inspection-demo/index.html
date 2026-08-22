@@ -83,16 +83,17 @@
     <main class="demo-frame-stage" id="frameStage" aria-label="巡检演示组件容器"></main>
     <div class="demo-boot" id="bootMask">巡检演示加载中</div>
 
+    <script src="flow-nav/flow-nav.js"></script>
     <script>
       (function () {
         "use strict";
 
-        var steps = [
-          { key: "overview", label: "大屏总览", href: "hunan-inspection-overview/index.html" },
-          { key: "station", label: "站点态势", href: "inspection-3d-sandbox/index.html" },
-          { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow/index.html" },
-          { key: "graph", label: "知识图谱", href: "kg-template/index.html" }
-        ];
+        // 组件清单只在 flow-nav/flow-nav.js 里维护一份。这里不留兜底：拿不到就直接炸，
+        // 换目录时才不会出现"导航切到 v2、iframe 还指着旧目录"这种一半生效的状态。
+        if (!window.InspectionFlowSteps) {
+          throw new Error("[inspection-demo] flow-nav/flow-nav.js 未先加载，取不到组件清单");
+        }
+        var steps = window.InspectionFlowSteps;
 
         var stage = document.getElementById("frameStage");
         var bootMask = document.getElementById("bootMask");
@@ -202,6 +203,5 @@
         preloadRest();
       })();
     </script>
-    <script src="flow-nav/flow-nav.js"></script>
   </body>
 </html>
