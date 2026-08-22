@@ -14,8 +14,11 @@
       dirs: ["hunan-pump-overview-v2", "hunan-pump-overview"] },
     { key: "station", label: "泵站态势", href: "pump-station-situation-v2/index.html",
       dirs: ["pump-station-situation-v2", "pump-station-situation"] },
-    { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow/index.html",
-      dirs: ["diagnosis-flow"] },
+    { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow-v2/index.html",
+      // dirs 里 v2 必须排在旧目录前面：stepOfPath 用 indexOf("/" + dir + "/") 逐个试，
+      // 而 "/diagnosis-flow-v2/" 里**包含** "/diagnosis-flow" 但不含 "/diagnosis-flow/"，
+      // 所以两者不会互相误命中。顺序在这里不影响正确性，但保持"新的在前"的写法一致。
+      dirs: ["diagnosis-flow-v2", "diagnosis-flow"] },
     { key: "graph", label: "知识图谱", href: "kg-template/index.html",
       dirs: ["kg-template"] }
   ];

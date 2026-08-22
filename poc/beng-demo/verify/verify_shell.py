@@ -6,7 +6,7 @@
 # v2、iframe 还在加载旧目录"这种一半生效的状态。现在清单收成 flow-nav.js 一份，
 # 这个脚本盯着它别再散开。
 #
-#   A. iframe 指向    前两个 key 的 src 必须是 v2（旧目录名一个都不许出现）
+#   A. iframe 指向    前三个 key 的 src 必须是 v2（旧目录名一个都不许出现）
 #   B. 导航           左下角 4 个点、序号与标签、当前项高亮、点了真的换屏
 #   C. 各屏真渲染     切过去之后 iframe 里的根节点确实在（不是白屏）
 #   D. 单独打开       四个组件目录直接双击时，左下角**没有**切换点（导航只属于外壳）
@@ -24,17 +24,17 @@ ROOT = HERE.parent
 INDEX = (ROOT / "index.html").as_uri()
 SHOT_DIR = Path(os.environ.get("SHOT_DIR") or (Path(tempfile.gettempdir()) / "beng-demo-shell-verify"))
 
-# 主线现在是两个 v2 + 诊断台 + 知识图谱。改主线就改这张表，断言跟着走。
+# 主线现在是三个 v2 + 知识图谱。改主线就改这张表，断言跟着走。
 EXPECT = [
     ("overview", "1", "大屏总览", "hunan-pump-overview-v2", ".ov-map-panel, .hunan-map"),
     ("station", "2", "泵站态势", "pump-station-situation-v2", ".st-map-panel, .pump3d-canvas"),
-    ("diagnosis", "3", "诊断台 / 知识库", "diagnosis-flow", ".app-shell"),
+    ("diagnosis", "3", "诊断台 / 知识库", "diagnosis-flow-v2", ".wb-scene, .app-shell"),
     ("graph", "4", "知识图谱", "kg-template", "canvas, svg"),
 ]
 # 旧目录没删（仍可单独打开），但主线里一个都不该出现。
 # 注意结尾的 "/"：没有它，"hunan-pump-overview-v2/index.html" 会把
 # "hunan-pump-overview" 当成命中，断言反而永远红。
-RETIRED = ["hunan-pump-overview/", "pump-station-situation/"]
+RETIRED = ["hunan-pump-overview/", "pump-station-situation/", "diagnosis-flow/"]
 
 CONSOLE_ALLOW = ('Scripts "build/three.js"', "SwiftShader", "build/three.js")
 
