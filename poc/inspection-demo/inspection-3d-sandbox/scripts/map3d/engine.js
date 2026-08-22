@@ -582,12 +582,31 @@
     return Array.isArray(mesh.material) ? mesh.material : [mesh.material];
   }
 
+  // 只有带 emissive 通道的材质能参与「区域选中高亮」——本项目的高亮做法就是把 emissive
+  // 调亮、取消选中时再复原。THREE.MeshBasicMaterial 是不受光照的材质，**根本没有
+  // emissive 属性**，把它排除掉是语义正确，不是容错兜底：不发光的材质本来就没有
+  // 「发光强度」可以调。
+  //
+  // 【2026-08-23 修复的 bug】过滤之前，储油罐区/消防水罐区/中间罐区/混油罐区这四个
+  // tank 区的罐号铭牌（model-plan.js 的 buildNameplateTexture + MeshBasicMaterial，
+  // 经 addPart 落进 areaMeshes[areaId]）会让 cacheAndApplySelection 在
+  // `material.emissive.clone()` 上抛 TypeError。而 setActiveAreaHighlight 在调用它
+  // **之前**就已经把 engine.activeAreaId 写成了目标区域 —— 于是 selectionCache[id]
+  // 永远没建立，此后每一次切区都会在 restoreSelection 的 `cache.forEach` 上再抛一次，
+  // 级联成 12 个区全部无法选中。表现是「点区域下钻，3D 高亮不生效且控制台一路报错」，
+  // 但页面其余部分照常渲染，所以一直没被发现。
+  function highlightableMaterials(mesh) {
+    return collectMaterials(mesh).filter(function (material) {
+      return material && material.emissive;
+    });
+  }
+
   function cacheAndApplySelection(engine, id) {
     var meshes = engine.areaMeshes[id];
     if (!meshes) throw new Error("未知的高亮区域: " + id);
     var cache = [];
     meshes.forEach(function (mesh) {
-      collectMaterials(mesh).forEach(function (material) {
+      highlightableMaterials(mesh).forEach(function (material) {
         cache.push({
           material: material,
           emissive: material.emissive.clone(),

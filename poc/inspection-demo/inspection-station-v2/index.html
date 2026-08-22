@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>长沙输油站 · 站场巡检质量监督</title>
+
+    <!-- 本目录自己的四片：token / 外壳 / 卡片 / 场景网格 -->
+    <link rel="stylesheet" href="styles/01-tokens.css">
+    <link rel="stylesheet" href="styles/02-shell.css">
+    <link rel="stylesheet" href="styles/03-cards.css">
+    <!-- 复用原目录原文件（一字未改）：图表宿主盒 / 2.5D 平面图的冻结契约样式 /
+         巡检项列表。05-map3d.css 是禁改区，它读的变量名单在 styles/01-tokens.css
+         里逐条保留（含 --cyan / --blue 两个原名）。 -->
+    <link rel="stylesheet" href="../inspection-3d-sandbox/styles/04-charts.css">
+    <link rel="stylesheet" href="../inspection-3d-sandbox/styles/05-map3d.css">
+    <link rel="stylesheet" href="../inspection-3d-sandbox/styles/08-itemlist.css">
+    <link rel="stylesheet" href="styles/06-station-scene.css">
+  </head>
+  <body>
+    <div id="appRoot" class="app-shell" aria-label="长沙输油站 · 站场巡检质量监督"></div>
+
+    <!-- ===================================================================
+         【依赖策略】2.5D 平面图层、数据层、契约层、vendor 与 core 的四个通用文件、
+         ui/cards.js + ui/itemlist.js 全部用相对路径直接引用 ../inspection-3d-sandbox/
+         下的原文件，**不复制副本**。
+
+         前提已核实：那批文件不加载任何外部资源。model-shared.js 的文件头写明「本文件
+         不允许出现 TextureLoader / drawImage(外部图片)」——地面箭头、网纹、铭牌全部是
+         程序化生成的 CanvasTexture；平面图坐标是内联在 data/plan.js 里的数字，不是
+         .json fetch。所以跨目录引用在 file:// 双击打开时同样成立。
+
+         好处是「平面图与数据不动」是字面意义上的不动：这里和原目录读的是同一份字节，
+         不会出现两份副本各自漂移。原目录仍可独立运行，随时对比。
+
+         本目录自己新写的只有 4 个 JS：data/quality.js（唯一的新增数据：近 14 轮巡检质量
+         记录 + 本轮异常明细）、core/chartopts.js、scenes/station.js、boot.js
+         （另加 verify/verify_station.py 不在页面里）。
+         =================================================================== -->
+
+    <!-- L0 vendor -->
+    <script src="../inspection-3d-sandbox/vendor/three.min.js"></script>
+    <script src="../inspection-3d-sandbox/vendor/echarts.min.js"></script>
+
+    <!-- L1 契约（零依赖，必须最先加载；ui/cards.js 与 ui/itemlist.js 在 IIFE 顶部就读
+         Map3DContract，顺序不能倒） -->
+    <script src="../inspection-3d-sandbox/scripts/map3d/contract.js"></script>
+
+    <!-- L2 数据（items-entry.js 必须是三个 items-*.js 中最先加载的一个；
+         plan.js 必须早于 station.js —— station.js 的 meta().yard 取自 plan.js 的图幅；
+         quality.js 必须在 station.js / track.js / task.js 之后 —— 它加载时就要把最后一轮
+         与真实数据逐条比对） -->
+    <script src="../inspection-3d-sandbox/scripts/data/items-entry.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/items-process.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/items-room.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/plan.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/station.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/series.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/track.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/task.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/flow.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/schema.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/data/index.js"></script>
+    <script src="scripts/data/quality.js"></script>
+
+    <!-- L3 2.5D 平面图 model + engine -->
+    <script src="../inspection-3d-sandbox/scripts/map3d/model-shared.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/map3d/model-plan.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/map3d/model-track.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/map3d/engine.js"></script>
+
+    <!-- L4 core：前四个复用原目录，chartopts.js 是本目录新写的。
+         不加载原目录的 core/state.js（理由见 scripts/boot.js 文件头减法 1） -->
+    <script src="../inspection-3d-sandbox/scripts/core/screen-scale.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/core/dom.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/core/charts.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/core/timers.js"></script>
+    <script src="scripts/core/chartopts.js"></script>
+
+    <!-- L5 ui：只用 cards.js 与 itemlist.js。selectlist.js / detailcard.js /
+         actionbar.js / overlay.js 在本 POC 里没有渲染路径，不加载 -->
+    <script src="../inspection-3d-sandbox/scripts/ui/cards.js"></script>
+    <script src="../inspection-3d-sandbox/scripts/ui/itemlist.js"></script>
+
+    <!-- L6 场景 -->
+    <script src="scripts/scenes/station.js"></script>
+
+    <!-- L7 引导 -->
+    <script src="scripts/boot.js"></script>
+  </body>
+</html>

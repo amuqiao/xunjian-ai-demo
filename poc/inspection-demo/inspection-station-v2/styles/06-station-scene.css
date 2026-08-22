@@ -1,0 +1,421 @@
+/* 06-station-scene.css: 唯一场景（scripts/scenes/station.js）的骨架网格 —— 回字形。
+   与 poc/inspection-demo/hunan-overview-v2/styles/06-overview-scene.css 同一套骨架，
+   只是各区装的东西换成站内尺度。
+
+   ┌──────────────────────────────────────────────────────────────┐
+   │ .topbar               左 站名 / 中 标题 / 右 巡检人+时段      │  62
+   ├──────────────────────────────────────────────────────────────┤
+   │ .st-stat-band         4 个监督指标（值 + 较上轮 Δ）           │ 104
+   ├────────────┬────────────────────────────────┬────────────────┤
+   │ .st-left   │ .st-map-panel（无边框）         │ .st-right      │
+   │  560       │            1303                │      560       │ 949
+   │  3 块趋势图 │  2.5D 平面图 + 浮层             │  1 块明细/巡检项│
+   ├────────────┴────────────────────────────────┴────────────────┤
+   │ .st-area-band         12 个区域卡（下钻入口）                 │ 132
+   └──────────────────────────────────────────────────────────────┘
+
+   【行高怎么来的】.app-shell 高 1289，减上下 padding 20 得 1269；再减顶栏 62、
+   指标带 104、区域带 132、三条 10px gap 共 30 —— 中段剩 941。
+   【列宽怎么来的】.app-shell 宽 2471，减左右 padding 28 得 2443；两条 10px gap
+   共 20；两侧栏各 560 —— 中栏得 1303。
+
+   ── 地图会变小，这是刻意的 ──────────────────────────────────────────────
+   2.5D 用的是透视相机，垂直 FOV 是固定角度，renderer.setSize(w,h,false) 只改像素
+   尺寸、不改相机覆盖的世界范围。所以中段容器变矮不是把平面图裁掉，是整张图等比缩小。
+   回字形上下各让掉一条带，中段从「顶栏之下全部高度」降到 949。
+
+   连带风险：12 个区域热点标签的投影间距同步缩小。styles/05-map3d.css 是禁改区，
+   它按实测盒子尺寸核定过标签去碰撞的间距，而 scripts/map3d/engine.js 的 sweepLabels
+   不是收敛循环（写成 while(changed) 会因浮点误差死锁整页），一趟推不开就是推不开。
+   所以 verify/verify_station.py 里「12 个区域标签两两不重叠」是这套布局的**成立条件**，
+   不是普通断言。它红了，退路顺序是：① 压薄 .st-area-band（132 → 100）把高度还给
+   平面图；② 还不够就把区域带挪进侧栏、退回三栏。**不要去改 3D 机位。**
+
+   保守 CSS：无嵌套、无 @layer、无容器查询，全部复用 01-tokens.css 的变量。
+
+   ⚠️ 注释纪律：本文件内任何注释都不得出现字面的两个字符「星号+斜杠」连写 —— 会被
+   浏览器当成注释提前结束，后面一大段规则被吞掉、面板高度塌成 0，且不报错。
+   本项目已经在别的 POC 踩过这个坑，这里用文字描述代替。 */
+
+/* ===========================================================================
+   一、中段三列
+   =========================================================================== */
+
+.station-scene {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 560px minmax(0, 1fr) 560px;
+  grid-template-areas: "left map right";
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* ===========================================================================
+   二、上边：监督指标带（4 个 Cards.metric，**每个都带一行 note**）。**不随下钻变化**。
+
+   四个数：当前风险 / 计划巡检 / 行为异常 / 发现问题，note 分别给「N 项待处置」
+   「已提交 N 项」「较上轮 ±N 次」「P1 N 项 · AI 提醒 N 条」。省域大屏那边一律不传
+   note（那边的 note 只能重复绝对值），这里传是因为有时间维 —— 副行装的是趋势对比。
+
+   与 hunan-overview-v2 同款：指标带里的 Cards.metric 去掉自己的卡片外观，改成
+   「一块面板 + 三段细分隔线」，否则是四个带边框的盒子套在一个带边框的面板里，
+   边框数量翻倍而层级没有增加。
+   =========================================================================== */
+
+.st-stat-band {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  padding: 10px 4px;
+  overflow: hidden;
+}
+
+.st-stat-band .card-metric {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  align-content: center;
+  padding: 6px 22px;
+}
+
+.st-stat-band .card-metric + .card-metric {
+  border-left: 1px solid var(--line);
+}
+
+/* ===========================================================================
+   三、左边：三张以轮次为横轴的图，等分高度。不随下钻变化。
+
+   中段 941 减去本栏上下 padding 28 与两条 10px gap，三块共 893，等分各约 297。
+   等分而不是给定 px：三张都是 14 个点的时间序列图（折线 / 堆叠柱 / 折线），对高度的
+   敏感度一样，等分最省心，也让这一栏在视觉上是三个同等重量的块 —— 它们本来就是要
+   连起来对读的（合规率在降 / 行为异常在涨 / 用时在被压短），没有主次。
+   =========================================================================== */
+
+.st-left-col {
+  grid-area: left;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* ===========================================================================
+   四、右边：整格一块，内容随焦点切换 —— 这是屏上唯一跟着下钻换内容的面板
+   （另外两处变化是平面图高亮和区域带的高亮）。
+     全景态：本轮异常明细（18 条 = 12 条行为异常 + 6 条 AI 提醒，每条挂真实巡检项）
+     下钻态：该区巡检项列表（ItemList，7–67 行，标准与实测逐项可查）
+   渐进披露：先看这一轮哪些项被判了、判的什么，点进某个区再看该区的全部项。
+   =========================================================================== */
+
+.st-right-col {
+  grid-area: right;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.st-left-col .card-chart {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 右栏那一块卡：head 固定，body 滚动。两种状态共用同一个外壳，只有 body 里换内容。 */
+.st-list-card {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  overflow: hidden;
+}
+
+.st-list-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.st-list-card-title {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-list-card-meta {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.st-list-card-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.st-list-card-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.st-list-card-body::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: var(--line-strong);
+}
+
+.st-list-card-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 复用的 styles/08-itemlist.css 给 .item-list 定了自己的滚动与高度；这里只保证它
+   能被本卡的 body 压住（min-height:0 让 minmax(0,1fr) 真的可以收缩）。 */
+.st-list-card-body .item-list {
+  min-height: 0;
+  max-height: none;
+}
+
+/* 巡检项的字号覆盖。08-itemlist.css 是复用的原文件（禁改），它那套 9–13px 是按原版
+   500px 右栏调的，而本项目是 2471px 固定画布等比缩放 —— 在 1920 宽的屏上缩放系数
+   0.777，10px 的标准值会落到 7.8px，投影仪上更小。这里只上调 font-size，不碰任何
+   与行高/控件命中区相关的尺寸（那些改了会影响 ItemList 的方向键导航与开关命中）。 */
+.st-list-card-body .item-name {
+  font-size: 15px;
+}
+
+.st-list-card-body .item-standard {
+  font-size: 12px;
+}
+
+.st-list-card-body .item-seq,
+.st-list-card-body .item-step {
+  font-size: 12px;
+}
+
+.st-list-card-body .item-control {
+  font-size: 13px;
+}
+
+/* 「该区本轮无标记」态。不是空状态占位，是一个真实可达的业务状态：12 个区里当前有
+   2 个区（工艺设备区、消防泵房）一条都没有。 */
+.st-list-empty {
+  padding: 10px 2px;
+  color: var(--status-ok);
+  font-size: 14px;
+}
+
+/* ===========================================================================
+   五、中间：2.5D 平面图。**没有面板边框** —— 与 hunan-overview-v2 一致：地图直接
+   浮在底色上，从「一张图表卡」变成「舞台」。
+
+   styles/05-map3d.css 给 .station-map-panel 定的是「padding 14 + 两行网格
+   （head + map）」，这里整体覆盖：本场景不渲染 .station-map-head（那一行是
+   kicker「站点平面图 / 区域态势」+ h3 + 一条 7 项的图例），位置标签和图例都浮进
+   .station-map 内部。本文件在 index.html 里排在 05-map3d.css 之后。
+
+   .map-submit-banner（「巡检区域提交情况 12 / 12」那个横幅）同样不渲染：12/12 是
+   恒成立的（这份数据集是一份已完成巡检的静态结果），横幅等于一句废话，而
+   「12 个区域」这个事实已经在底部区域带上。
+   =========================================================================== */
+
+.st-map-panel {
+  grid-area: map;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+/* 上下各留 8px，让平面图不贴着指标带和区域带 —— 「不上下置顶」能做到的部分。
+   再多留就是白挤白：平面图本身已经受高度约束，留白直接换成图变小。 */
+.st-map-panel .station-map {
+  margin: 8px 0;
+  border-radius: var(--r-m);
+}
+
+/* 位置指示：浮在平面图左上角，取代 .station-map-head 里的 kicker + h3。
+   z-index 4 与 .map-zoom 同层，都在 .map3d-labels（5）之下、canvas（1）之上 ——
+   区域热点必须能盖住它。 */
+.st-map-place {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  z-index: 4;
+  display: grid;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.st-map-place h3 {
+  color: #f4fbff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+.st-map-place small {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 图例浮到左下角。不能放右下 —— 05-map3d.css 的 .map-zoom 已经占了右下角那一格。
+   图例项从原来的 7 条（三色状态 + 轨迹 + 起点 + 终点 + 巡检人 + 消防通道）砍到 4 条：
+   三色状态 + 巡检轨迹。起点/终点/巡检人/消防通道那四个图形在缩小后的图上本来就分辨
+   不出来，四行图例换不回任何可读性。 */
+.st-map-panel .map-legend {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  z-index: 4;
+  gap: 14px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--control-bg);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* ===========================================================================
+   六、下边：12 个区域卡。回字形的底边必须有资格占一整条横边 —— 12 个并列项天然适合
+   宽幅（塞进 560px 竖栏里就是原目录那个要滚动的竖列表），而且它同时是平面图热点之外
+   的第二个下钻入口。
+
+   ⚠️ 卡片**不能**用 [data-map3d-area] 做下钻属性：scripts/map3d/contract.js 的
+   assertPinNamespace() 会遍历全文档的 [data-map3d-area]/[data-map3d-item]，任何一个
+   落在 .map3d-labels 之外就直接抛错（那两个属性归 3D 热点独占）。所以这里用
+   data-action="select-area" + data-area-id，由 boot.js 的事件委托分发。
+   =========================================================================== */
+
+.st-area-band {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px 14px;
+  overflow: hidden;
+}
+
+.st-area-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  gap: 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  color: inherit;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.st-area-card:hover {
+  border-color: var(--line-strong);
+  background: rgba(120, 170, 255, 0.09);
+}
+
+.st-area-card.is-active {
+  border-color: var(--cyan);
+  background: rgba(56, 198, 236, 0.14);
+}
+
+.st-area-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.st-area-card-name {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-area-card-head .dot {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+}
+
+/* 行为异常条数是这张卡的主数字（这一带回答的是「哪个区在走过场」），巡检项数与
+   AI 提醒条数进副行。状态色只染数字，与 .card-metric 同一条规则。 */
+.st-area-card-alert {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.st-area-card-alert strong {
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.st-area-card.warn .st-area-card-alert strong {
+  color: var(--status-warn);
+}
+
+.st-area-card.danger .st-area-card-alert strong {
+  color: var(--status-danger);
+}
+
+.st-area-card-items {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 入场淡入：四个内容区各自播一次。下钻/返回时右栏内容整块换掉，一次 0.34s 的淡入
+   正好交代「这块变了」，比瞬变更容易跟上。 */
+.st-stat-band > *,
+.st-left-col > *,
+.st-right-col > *,
+.st-area-band > * {
+  animation: fadeUp 0.34s ease both;
+}

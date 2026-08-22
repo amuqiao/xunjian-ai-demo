@@ -1,0 +1,238 @@
+/* 03-cards.css: 卡片与列表基元 —— 只承载本 POC 实际会渲染的三类 DOM：
+     1) .card-metric 一族   ← scripts/ui/cards.js 的 Cards.metric()（复用原目录原文件）
+     2) .card-chart  一族   ← 同上的 Cards.chart()
+     3) .st-table    一族   ← 本场景自己渲染的只读「本轮异常明细」表
+
+   与 poc/inspection-demo/hunan-overview-v2/styles/03-cards.css 是同一套基元、同一套
+   取值（两屏刻意共用一套卡片语言）。差别只有表格类名前缀：那边叫 .ov-table，这边叫
+   .st-table —— 两份 CSS 各自独立，前缀不同避免将来有人把两个目录的样式混着 link。
+
+   【相对原目录 03-cards.css 删掉了什么】原文件 536 行，这几族在本 POC 里没有渲染路径，
+   整族删除、不留占位：
+     - .card-detail / .detail-* ：原右栏那张「区域详情卡」。它的 metrics 三格
+       （巡检项/已提交/发现问题）和 tags 三条（区域类型/专业覆盖 N 类/数值型 N 项）
+       现在分别落到右栏卡头的 meta 与底部区域带上；conclusion 整句删除。
+     - .card-evidence 一族：原「全站态势」与「现场记录」用它。全站态势的信息改由
+       上边 AI 指标带 + 左栏三张图承载，现场记录整段删除（那是每区一段散文）。
+     - .sl / .sl-item 一族：本 POC 不加载 scripts/ui/selectlist.js —— 12 区列表改成了
+       底部横排卡（见 06-station-scene.css 第六节），不再是竖列表。
+     - .badge / .tag：.badge 移到 02-shell.css（顶栏在用），.tag 无渲染路径。
+
+   【借自 dfaft/智能巡检数智员工-演示.html 的三条】
+   1) .stat 的两级排版：label 14px + value 大号 700，且**状态色只染数字**。原目录是给
+      整张卡加状态描边 + 状态色背景 + 发光，一屏几张卡同时告警时整栏都在发红，反而看不
+      出哪个数字要紧。现在卡片恒为中性表面，只有 <strong> 里的数字跟状态变色，旁边
+      7px 的 .dot 做色盲冗余。
+   2) table 的形态：表头一层浅色底、**只有横向分隔线没有竖线**、最后一行去下边框。
+      原目录的表格带竖向网格线，行数一多就成井字格。
+   3) 三档圆角/阴影：卡片用 --r-s + --sh-s（比 .panel 的 --r-m + --sh-m 浅一档，
+      形成「面板 > 卡片」的深度层级）。 */
+
+/* ===========================================================================
+   一、.card-metric —— 大数字指标块。
+   DOM（由 Cards.metric 产出，本文件不能改其结构）：
+     article.card-metric.ok|.warn|.danger
+       div.card-metric-head > span.card-metric-label + span.dot.<status>
+       div.card-metric-value > strong + span.card-metric-unit?
+       small.card-metric-note?        ← 本场景一律不传 note
+   =========================================================================== */
+
+.card-metric {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+}
+
+.card-metric-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-metric-label {
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .dot 靠 margin-left:auto 推到行尾 —— 和 draft 的 .card-head .sub 同一个手法，
+   不给它单独一行。 */
+.card-metric-head .dot {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+}
+
+.card-metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+
+.card-metric-value strong {
+  color: var(--ink);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.card-metric-unit {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.card-metric.ok .card-metric-value strong {
+  color: var(--status-ok);
+}
+
+.card-metric.warn .card-metric-value strong {
+  color: var(--status-warn);
+}
+
+.card-metric.danger .card-metric-value strong {
+  color: var(--status-danger);
+}
+
+/* Cards.metric 支持 note，本场景不传。这里仍然给它一条规则：cards.js 是复用的公共
+   组件，将来别处传了 note 也不该渲染成无样式裸文本。 */
+.card-metric-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ===========================================================================
+   二、.card-chart —— 标题 + 图表宿主。
+   DOM（由 Cards.chart 产出）：
+     section.card-chart[.tall]
+       div.card-chart-head > span.card-chart-title + small.card-chart-meta?
+       div.card-chart-body[data-chart-slot=<id>]   ← 场景层再塞入 Charts.slot(id)
+   =========================================================================== */
+
+.card-chart {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+  box-shadow: var(--sh-s);
+  overflow: hidden;
+}
+
+.card-chart-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card-chart-title {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-chart-meta {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.card-chart-body {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ===========================================================================
+   三、.st-table —— 只读「本轮异常明细」表（右栏全景态，18 行）。
+
+   不接 scripts/ui/selectlist.js：点选一条明细在这屏没有可见后果 —— engine.js 的
+   setActiveItem 注释写明「256 个巡检点位是 InstancedMesh，没有为选中单条项设计 3D
+   高亮，这是刻意的范围收窄」，点了只会让一行变色。留一个点了没反应的可选列表，
+   比一个诚实的只读列表更差。所以这里没有选中态、没有 roving tabindex、行不可聚焦。
+
+   DOM（与 scripts/scenes/station.js 的 renderDetailTable() 一一对应）：
+     table.st-table
+       colgroup > col ×4
+       thead > tr > th.st-table-th ×4
+       tbody > tr > td.st-table-td（区域）
+                  + td.st-table-td > span.st-kind.<behavior|ai>（判定）
+                  + td.st-table-td（巡检项）+ td.st-table-td（实测）
+   =========================================================================== */
+
+.st-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.st-table-th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--table-head-bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* 只有横线，没有竖线。 */
+.st-table-td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-table tbody tr:last-child .st-table-td {
+  border-bottom: none;
+}
+
+/* 判定类别：时长/间隔/时段异常（行为，warn 色）与 AI 提醒（cyan）。
+   用带色的文字而不是纯色块 —— 「时长异常」这四个字本身就是信息，不依赖颜色也能读。
+   两档色与 scripts/data/quality.js 的 KINDS.tone 同源（那里是唯一真源），也与左②那张
+   堆叠柱「只堆行为异常、不含 AI 提醒」的划分一致。 */
+.st-kind {
+  font-weight: 700;
+}
+
+.st-kind.behavior {
+  color: var(--status-warn);
+}
+
+.st-kind.ai {
+  color: var(--cyan);
+}
