@@ -2,6 +2,7 @@
 #
 #   A. 加载健康    pageerror / console.error 白名单外为空 / 固定画布真的生效
 #   B. 三页骨架    各页栏数、三页都有常驻 Agent 按钮、旧结构类名不存在
+#   B2. 两条故事线 五条记录按 audience 分两组、行为核查那条的四行三规则、概况四个数
 #   C. 素材对齐    ★ 本 POC 最核心的一组：依据链长度逐条对、六种证据形态全渲染、
 #                  bbox 落在 [0,1]、真实图片真的加载了、时序末点等于现场读数
 #   D. 主线三步    分歧态 → 归档闸门 → 意见原文进报告 → PDF 按分歧态切换 → 归档 → 知识库
@@ -146,9 +147,11 @@ def main():
                          "REC-2": ["compare", "rule"],
                          "REC-3": ["timeline", "vision", "rule"],
                          "REC-4": ["gaps", "vision", "rule"],
-                         "REC-5": ["series", "rule"]}
+                         # REC-5 是管理者视角那条（行为核查），依据形态与前四条都不同。
+                         "REC-5": ["track", "rule", "vision"],
+                         "REC-6": ["series", "rule"]}
         check(align["chains"] == expect_chains,
-              "依据链逐条按检查项分型，长度 4/2/3/3/2 各不相同（旧版是 5 条清一色 4 枚固定芯片）")
+              "依据链逐条按检查项分型，长度 4/2/3/3/3/2 各不相同（旧版是 5 条清一色 4 枚固定芯片）")
         check(align["pointCount"] == 1,
               "测点只保留出口管线压力 1 个（旧版有 3 个，其中 2 个量纲没有对应的检查项）")
         check(not align["sharedFrames"], "没有被 3 条以上记录共用的关键帧（旧版三条共用 FRM-1-CUR）：%s" % align["sharedFrames"])
@@ -183,9 +186,61 @@ def main():
                 img_bad += page.evaluate("""() => Array.from(document.querySelectorAll('.ev img'))
                     .filter(im => !im.complete || im.naturalWidth === 0)
                     .map(im => im.getAttribute('src'))""")
-        check(kinds_seen == {"series", "compare", "timeline", "gaps", "vision", "rule"},
-              "六种证据形态全部渲染无错（实际 %s）" % sorted(kinds_seen))
+        check(kinds_seen == {"series", "compare", "timeline", "gaps", "vision", "rule", "track"},
+              "★ 七种证据形态全部渲染无错 —— track 是管理者视角新增的那种"
+              "（行为核查：提交时刻/间隔/停留 三个数各对一条规则）（实际 %s）" % sorted(kinds_seen))
         check(not img_bad, "证据台里的真实关键帧全部加载成功（失败的：%s）" % sorted(set(img_bad)))
+
+        # ---- ★ 两条故事线：巡检人员视角 / 管理者视角 ----
+        # 这一屏要同时讲"我填的对不对"（执行者）和"这一轮可不可信"（管理者）。
+        # 五条记录按 audience 分成两组，概况带上四个数也按这条线拆开。
+        story = page.evaluate("""() => {
+          const R = window.DOMAIN_RECORDS;
+          const rows = R.rowsOf('OBJ-A');
+          const byAud = {};
+          R.records.filter(r => r.objectId === 'OBJ-A').forEach(r => {
+            byAud[r.audience] = (byAud[r.audience] || 0) + 1;
+          });
+          const flags = {};
+          rows.forEach(r => { flags[r.aiFlag] = (flags[r.aiFlag] || 0) + 1; });
+          return { byAud: byAud, flags: flags,
+                   stats: Array.from(document.querySelectorAll('.stat')).map(s => s.innerText.replace('\\n', ' ')),
+                   audLabels: R.records.filter(r => r.objectId === 'OBJ-A')
+                     .map(r => r.id + ':' + R.audienceOf(r).label) };
+        }""")
+        check(story["byAud"] == {"executor": 2, "supervisor": 3},
+              "★ 五条记录分成两条故事线：巡检员复核 2 条 / 班长核查 3 条（实际 %s）" % story["byAud"])
+        check(story["flags"].get("behavior") == 1,
+              "★ aiFlag 有独立的 behavior 档 —— 行为异常不能塞进 conflict："
+              "前者是「这一项有没有真做」、后者是「AI 与人工判得不一样」，管理动作完全不同")
+        check(len(story["stats"]) == 4 and any("行为异常" in x for x in story["stats"]),
+              "★ 概况带四个数，行为异常单独一个 —— 两条故事线在概况上就分开了（实际 %s）"
+              % story["stats"])
+
+        # 行为核查那条记录：三个数各对一条规则，命中 2 条；且必须写明视觉为什么帮不上忙
+        page.eval_on_selector('[data-select-id="REC-5"]', "el => el.click()")
+        page.wait_for_timeout(400)
+        page.eval_on_selector('.wb-chain .chip:nth-of-type(1)', "el => el.click()")
+        page.wait_for_timeout(500)
+        trk = page.evaluate("""() => {
+          const box = document.querySelector('.ev-track');
+          const t = box ? box.innerText : '';
+          return { rows: document.querySelectorAll('.ev-track-row').length,
+                   hits: document.querySelectorAll('.ev-track-row.hit').length,
+                   hasWindow: t.indexOf('20:13:39') >= 0 && t.indexOf('20:18:35') >= 0,
+                   hasVisionLimit: t.indexOf('不在该机位视野内') >= 0,
+                   aud: document.querySelector('.wb-audience strong').textContent };
+        }""")
+        check(trk["rows"] == 4 and trk["hits"] == 2,
+              "★ 行为核查四行（提交时刻/间隔/停留/时段偏移），命中 2 条规则（实际 %s 行 / %s 命中）"
+              % (trk["rows"], trk["hits"]))
+        check(trk["hasWindow"],
+              "★ 核查窗口两端来自真实关键帧的 OSD 时间（20:13:39 / 20:18:35）—— 时间基准不是编的")
+        check(trk["hasVisionLimit"],
+              "★ 写明该机位看不到电缆沟 —— 这类项只能靠人到位，行为核查是它唯一可核的维度。"
+              "不写这一段，读者会问「怎么不看画面」")
+        check(trk["aud"] == "班长核查", "行为核查那条标着「班长核查」（实际 %s）" % trk["aud"])
+        page.screenshot(path=str(SHOT_DIR / "01b-behavior.png"))
 
         page.eval_on_selector('[data-select-id="REC-1"]', "el => el.click()")
         page.wait_for_timeout(200)
@@ -212,7 +267,8 @@ def main():
           photoLoaded: (() => { const im = document.querySelector('.rv-photo-frame img'); return !!im && im.complete && im.naturalWidth > 0; })()
         })""")
         check(rv["cols"] == 2, "复核页两栏（实际 %s）" % rv["cols"])
-        check(rv["outcomes"] == 4, "四个人工结论选项（实际 %s）" % rv["outcomes"])
+        check(rv["outcomes"] == 5, "★ 五个人工结论选项 —— 第五个「退回重巡该项」是**管理动作**，"
+              "前四个都是对数据的处置，管理者视角缺了它就不完整（实际 %s）" % rv["outcomes"])
         check(rv["draftEmpty"], "未选结论时报告草稿区是一句提示，不是空框")
         check(rv["photoLoaded"], "现场佐证照（业务方素材）加载成功")
 
