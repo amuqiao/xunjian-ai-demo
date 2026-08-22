@@ -84,7 +84,7 @@ window.DemoGraphSpec = {
 
   // ticket -> case：处置票卡归档进哪个案例文档。
   ticketCaseLinks: [
-    { ticketId: "WO-CL-P1-001", caseDocId: "doc-p1-report" }
+    { ticketId: "WO-HN-PUMP-FAULT-001", caseDocId: "doc-p1-report" }
   ],
 
   // case -> asset：案例沉淀后被哪个机组二次命中复用（对应旧版 graph.nodes 里的
@@ -116,7 +116,7 @@ window.DemoGraphSpec = {
     { id: "doc-misalign-rule", x: 49, y: 40 },
     { id: "doc-align-card", x: 61, y: 60 },
     { id: "agent", x: 73, y: 40 },
-    { id: "WO-CL-P1-001", x: 84, y: 40 },
+    { id: "WO-HN-PUMP-FAULT-001", x: 84, y: 40 },
     { id: "doc-p1-report", x: 94, y: 55 },
     { id: "P-2", x: 8, y: 88 }
   ]

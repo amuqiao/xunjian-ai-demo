@@ -10,25 +10,24 @@
 | `node --check`（无脚本，见下） | 语法错误 / 括号漏配 | 每个 `.js` 逐个过 |
 | `verify_domain.js` | 10 份领域契约：字段缺失、id 悬空、bbox 越界、插槽闭合、检索恒等于 citations、时序生成器的确定性 | Node，无浏览器 |
 | `verify_state.js` | 状态机：派生量真值表（`canExecute` / `isDivergent` / `canOpen` / `reuseUnlocked`）、**脏持久状态的清洗**、运行期入口的抛错 | Node，无浏览器 |
-| `verify_flow.py` | 端到端主线走查：四页 + 两子屏 + 三浮层真的能渲染出来、能点、能联动；两条支线产出不同的报告；**动画期间的整屏渲染次数** | Python Playwright |
+| `verify_flow.py` | 端到端主线走查：三主场景 + 两子屏 + 报告/Agent/知识库浮层真的能渲染出来、能点、能联动；两条支线产出不同的报告；**动画期间的整屏渲染次数** | Python Playwright |
 
 ## 运行
 
 ```sh
 cd /Users/admin/Code/xunjian-ai-demo
-find poc/diagnosis-flow -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 -n1 node --check
-node poc/diagnosis-flow/verify/verify_domain.js                 # 默认校验 domain-skeleton
-node poc/diagnosis-flow/verify/verify_domain.js domain-pump     # 换一包校验
-node poc/diagnosis-flow/verify/verify_state.js
-uv run python poc/diagnosis-flow/verify/verify_flow.py
+find poc/inspection-demo/diagnosis-flow -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 -n1 node --check
+node poc/inspection-demo/diagnosis-flow/verify/verify_domain.js
+node poc/inspection-demo/diagnosis-flow/verify/verify_state.js
+uv run python poc/inspection-demo/diagnosis-flow/verify/verify_flow.py
 ```
 
 预期输出：
 
 - `node --check`：无任何输出即通过。
-- `verify_domain.js`：`ALL CHECKS PASSED（130 项断言）`＝正向 60 + 反例 70。
-- `verify_state.js`：`ALL CHECKS PASSED（78 项断言）`。
-- `verify_flow.py`：`ALL CHECKS PASSED（86 项断言）` + 截图落到
+- `verify_domain.js`：`ALL CHECKS PASSED（139 项断言）`。
+- `verify_state.js`：`ALL CHECKS PASSED（88 项断言）`。
+- `verify_flow.py`：`ALL CHECKS PASSED（127 项断言）` + 截图落到
   `/private/tmp/diagnosis-flow-shots/`。
 
 **断言数是棘轮：只允许涨，不允许跌。** 跌了说明有人删了断言或让某段脚本悄悄跑不到，
@@ -138,10 +137,13 @@ ECharts 没有报错，而是把轴上界撑到一个极大值——曲线被压
 每阶段结束**实际打开** `/private/tmp/diagnosis-flow-shots/` 下这几张看一眼：
 
 ```
-01-workbench.png        依据链四枚芯片是否齐、曲线是否真的在上升
+01-workbench.png        首屏是否只保留巡检记录表和 AI 浮动图标
+02-ai-list.png          点击记录后的 AI 判断浮窗是否清晰、证据入口是否可用
 07-review-divergent.png 分歧条是否够醒目（投影上偏暗就等于没有）
-09-archive-divergent.png 人工原文那两段是否一眼能认出来
+09-report-overlay-divergent.png 人工原文那两段是否一眼能认出来
 11-ingest.png           入库动画的命中段是否真的高亮
+executed-390x844.png    手机宽度下执行屏是否改单列
+report-overlay-390x844.png 手机宽度下报告浮窗是否仍可读
 ```
 
 打磨单页时用 `dev/index.html` 里的 preset 入口，不用从工作台一路点过来。

@@ -254,10 +254,27 @@ AGENTQA.contexts.forEach(function (context) {
   check("Agent 上下文 " + context.id + " 的 fallbackAnswer 非空",
     typeof context.fallbackAnswer === "string" && context.fallbackAnswer.length > 0);
 });
-check("诊断工作台 Agent 预设问答为 8 条",
-  AGENTQA.contexts.filter(function (context) { return context.id === "workbench"; })[0].questions.length === 8);
-check("知识库 Agent 预设问答为 8 条",
-  AGENTQA.contexts.filter(function (context) { return context.id === "knowledge"; })[0].questions.length === 8);
+var visibleWorkbenchQuestions = AGENTQA.contexts.filter(function (context) { return context.id === "workbench"; })[0]
+  .questions.filter(function (q) { return q.unlockedBy !== "archived"; });
+var visibleReviewQuestions = AGENTQA.contexts.filter(function (context) { return context.id === "review"; })[0]
+  .questions.filter(function (q) { return q.unlockedBy !== "archived"; });
+var visibleKnowledgeQuestions = AGENTQA.contexts.filter(function (context) { return context.id === "knowledge"; })[0]
+  .questions.filter(function (q) { return q.unlockedBy !== "archived"; });
+check("诊断工作台 Agent 首屏可见预设问答为 5 条",
+  visibleWorkbenchQuestions.length === 5);
+check("诊断工作台 Agent 首屏题目顺序为 1/2/8/9/11",
+  visibleWorkbenchQuestions.map(function (q) { return q.id; }).join(",") === "wb-q1,wb-q2,wb-q8,wb-q9,wb-q11");
+check("人工复核 Agent 首屏可见预设问答为 5 条",
+  visibleReviewQuestions.length === 5);
+check("人工复核 Agent 首屏题目顺序为 3/4/5/6/7",
+  visibleReviewQuestions.map(function (q) { return q.id; }).join(",") === "rv-q3,rv-q4,rv-q5,rv-q6,rv-q7");
+check("知识库 Agent 首屏可见预设问答为 5 条",
+  visibleKnowledgeQuestions.length === 5);
+check("知识库 Agent 首屏题目顺序为 10/12/13/14/15",
+  visibleKnowledgeQuestions.map(function (q) { return q.id; }).join(",") === "kb-q10,kb-q12,kb-q13,kb-q14,kb-q15");
+check("知识库 qaPresets 与知识库 Agent 首屏问句一致",
+  KB.qaPresets().map(function (q) { return q.question; }).join("|")
+    === visibleKnowledgeQuestions.map(function (q) { return q.label; }).join("|"));
 check("存在 unlockedBy:archived 的问题（二次命中包袱）",
   AGENTQA.contexts.some(function (c) {
     return c.questions.some(function (q) { return q.unlockedBy === "archived"; });
@@ -279,9 +296,9 @@ check("仅摘要文档的 chunksOf() 返回空数组",
 check("归档落点分类可解析",
   KB.categories().some(function (c) { return c.id === KB.archiveTarget().categoryId; }));
 check("入库演示文档有正文", !!KB.document(KB.ingestDemoDocId()).body);
-check("知识库包含 2023 年轴承内圈剥落案例",
-  KB.document("DOC-BEARING-SPALL-CASE").title.indexOf("内圈剥落") >= 0);
-check("知识库包含 2号轴承振动异常复核票卡",
+check("知识库包含叶轮磨损、腐蚀或破损案例",
+  KB.document("DOC-BEARING-SPALL-CASE").title.indexOf("叶轮") >= 0);
+check("知识库包含电机过载与流量不足复核票卡",
   KB.document("DOC-BEARING-IMS-CARD").title.indexOf("复核票卡") >= 0);
 check("DOMAIN_KB 的出口全部是函数（不能混用函数与快照值）",
   ["categories", "documents", "document", "chunksOf", "qaPresets", "qaPreset",

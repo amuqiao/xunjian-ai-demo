@@ -3,7 +3,7 @@
 window.DemoDataCatalog = {
   meta: {
     title: "输油泵智能运维助手",
-    subtitle: "长岭站 P-1 疑似不对中诊断处置闭环",
+    subtitle: "长岭站 P-1 输油泵典型故障诊断闭环",
     batch: "PUMP-DEMO-202607",
     clock: "2026-07-22 16:31",
     boundary: "结构化演示数据驱动；不接真实系统、不训练真实模型、不替代专家。",
@@ -18,10 +18,10 @@ window.DemoDataCatalog = {
   ],
   flowSteps: [
     { key: "task", label: "任务总览", desc: "大屏 / 风险" },
-    { key: "station", label: "部位态势", desc: "泵体 / 联轴器" },
+    { key: "station", label: "部位态势", desc: "密封 / 轴承" },
     { key: "inspection", label: "巡检质检", desc: "人工记录 / AI 冲突" },
-    { key: "trend", label: "时序模型", desc: "振动 / 相位" },
-    { key: "vision", label: "视觉数据", desc: "点位 / 对中图" },
+    { key: "trend", label: "时序模型", desc: "振动 / 压力" },
+    { key: "vision", label: "视觉数据", desc: "点位 / 现场图" },
     { key: "agent", label: "Agent 问答", desc: "证据 / 规则 / 案例" },
     { key: "confirm", label: "复核确认", desc: "专家 / 票卡" },
     { key: "archive", label: "报告归档", desc: "案例 / 复用" },
@@ -36,19 +36,19 @@ window.DemoDataCatalog = {
   },
   task: {
     batch: "PUMP-DEMO-202607",
-    title: "长岭站 P-1 输油泵机组关注级诊断任务",
-    note: "沿用 v3 的演示骨架：总览大屏锁定泵机组对象，部位诊断并联查看时序模型、视觉/数据模型、知识规范和 Agent 建议，专家确认后归档并支持二次命中。",
+    title: "长岭站 P-1 输油泵机组典型故障诊断任务",
+    note: "总览大屏锁定泵机组对象，部位诊断并联查看时序模型、视觉/数据模型、知识规范和 Agent 建议，专家确认后归档为输油泵故障案例。",
     rows: [
       ["站点", "长岭站"],
       ["对象", "P-1 输油泵机组"],
-      ["事件", "疑似不对中"],
+      ["事件", "典型故障复核"],
       ["等级", "关注级"],
     ],
     metrics: [
       { label: "异常部位", value: "3", unit: "个" },
       { label: "关注部位", value: "1", unit: "个" },
-      { label: "知识命中", value: "4", unit: "项" },
-      { label: "复用样例", value: "P-2", unit: "" },
+      { label: "知识命中", value: "15", unit: "项" },
+      { label: "复用样例", value: "案例", unit: "" },
     ],
   },
   dashboard: {
@@ -58,11 +58,11 @@ window.DemoDataCatalog = {
       { label: "相位偏差", value: "81", unit: "°", status: "danger", note: "联轴器两侧" },
       { label: "轴承温度", value: "68.4", unit: "°C", status: "warn", note: "驱动端" },
       { label: "出口压力", value: "6.42", unit: "MPa", status: "ok", note: "工况稳定" },
-      { label: "知识命中", value: "4", unit: "项", status: "ok", note: "规则/作业卡/案例" },
+      { label: "知识命中", value: "15", unit: "项", status: "ok", note: "7+8 故障问答" },
     ],
     charts: [
       { title: "振动风险趋势", value: "5.82", unit: "mm/s", note: "P-DE-V 连续 5 日抬升" },
-      { title: "异常类型占比", value: "41%", unit: "", note: "不对中特征占本轮风险最高" },
+      { title: "异常类型占比", value: "41%", unit: "", note: "密封/振动类风险占比较高" },
       { title: "处置闭环进度", value: "0/4", unit: "", note: "待专家确认后生成票卡" },
     ],
     trend: {
@@ -74,10 +74,10 @@ window.DemoDataCatalog = {
       threshold: 5.68,
     },
     anomalyTypes: [
-      { name: "不对中特征", value: 41 },
-      { name: "轴承振动", value: 26 },
-      { name: "基础振动", value: 18 },
-      { name: "温升关注", value: 9 },
+      { name: "密封泄漏", value: 31 },
+      { name: "异常振动", value: 26 },
+      { name: "轴承损伤", value: 18 },
+      { name: "压力波动", value: 15 },
       { name: "其他", value: 6 },
     ],
     unitCompare: [
@@ -87,27 +87,27 @@ window.DemoDataCatalog = {
       { unit: "P-4", health: 89, vibration: 2.18 },
     ],
     alerts: [
-      ["P1", "联轴器相位差异常", "81° / 2X 频谱突出"],
+      ["P1", "机械密封泄漏风险", "安装面 / 杂质 / 气阻需复核"],
       ["P1", "泵驱动端轴承振动", "5.82 mm/s，进入关注区"],
-      ["P2", "底座基础振动偏大", "建议与对中状态联判"],
+      ["P1", "出口压力波动", "建议联查入口滤网和调节阀"],
     ],
   },
   inspection: {
     title: "P-1 输油泵运行巡检记录",
-    item: "第 18 项 · 联轴器与泵驱动端轴承状态",
+    item: "第 18 项 · 输油泵密封、振动与压力状态",
     result: "人工记录：未确认异常",
     conflictTitle: "人工记录未异常 vs 模型证据会聚",
-    conflictText: "现场记录只写“运行声音正常、未见泄漏”，但时序模型提示振动和相位持续抬升，视觉/数据证据要求补充联轴器对中复核。",
+    conflictText: "现场记录只写“运行声音正常、未见泄漏”，但时序模型提示振动、压力和密封相关指标需复核，视觉/数据证据要求补充密封、轴承和管路检查。",
     facts: [
       ["巡检对象", "P-1 主输泵机组"],
       ["人工记录", "运行声音正常，未见泄漏"],
-      ["核心部位", "联轴器 / 泵驱动端轴承 / 底座"],
-      ["AI 质检", "记录未覆盖相位差、2X 频谱和基础振动"],
+      ["核心部位", "机械密封 / 泵驱动端轴承 / 进出口管路"],
+      ["AI 质检", "记录未覆盖密封腔温度、入口压力和流量变化"],
     ],
     qualityFacts: [
-      ["表单完整性", "基础项完整，但缺少对中复核读数"],
-      ["时序冲突", "P-DE-V 与相位差连续抬升"],
-      ["视觉补证", "需补拍联轴器和底座地脚近景"],
+      ["表单完整性", "基础项完整，但缺少密封和压力复核读数"],
+      ["时序冲突", "振动、压力和流量趋势需联判"],
+      ["视觉补证", "需补拍密封、轴承和管路关键位置"],
       ["业务边界", "AI 只升级为待复核，不直接改写人工结论"],
     ],
   },
@@ -388,9 +388,9 @@ window.DemoDataCatalog = {
     },
   ],
   workOrder: {
-    id: "WO-CL-P1-001",
-    title: "P-1 疑似不对中处置票卡草稿",
-    steps: ["记录处置前振动值和轴承温度", "执行能量隔离和现场安全确认", "使用激光对中仪复核轴线", "调整电机地脚垫片并复测", "检查地脚螺栓和管道约束", "恢复备用并提交反馈"],
+    id: "WO-HN-PUMP-FAULT-001",
+    title: "输油泵典型故障复核票卡草稿",
+    steps: ["确认当前工单对应的故障问答类别", "核对运行工况、压力、流量、电流和振动趋势", "按部位检查密封、轴承、叶轮、联轴器和底座连接", "复核冲洗冷却、润滑油温、润滑油压和入口过滤器状态", "记录现场照片、复测数据和专家复核意见", "归档为输油泵故障诊断案例并回填知识库"],
     roles: ["诊断专家", "运行监视中心", "作业区检修人员", "运行监护人"],
   },
   // 维修路径的归档报告（六段式）。
@@ -401,14 +401,14 @@ window.DemoDataCatalog = {
   // status 的含义：ok = 已完成并验证过的动作（处置复测、经验沉淀），
   // warn = 叙述或边界说明。业务加段落时自己指定，不依赖顺序。
   report: {
-    title: "长岭站 P-1 输油泵疑似不对中诊断与处置报告",
+    title: "国家管网集团湖南公司输油泵机组运行状态监测报告",
     sections: [
-      { title: "事件概况", text: "P-1 泵驱动端轴承振动趋势进入关注区，形成关注级诊断事件。", status: "warn" },
-      { title: "模型证据", text: "时序模型提示振动和相位趋势异常，视觉模型要求补充联轴器和底座关键帧。", status: "warn" },
-      { title: "专家确认", text: "专家确认按疑似不对中进入处置，知识库命中对中作业卡和专家规则。", status: "warn" },
-      { title: "处置复测", text: "对中调整后振动由 5.82 mm/s 回落至 1.80 mm/s，演示口径下满足验收。", status: "ok" },
-      { title: "经验沉淀", text: "沉淀为 P-1 不对中处置案例，用于 P-2 相似异常复用。", status: "ok" },
-      { title: "案例复用", text: "P-2 仅复用证据标签、处置清单和报告结构，不能直接沿用 P-1 维修结论。", status: "warn" },
+      { title: "事件概况", text: "P-1 输油泵形成典型故障复核工单，本轮按 15 类故障问答拆分诊断和知识命中。", status: "warn" },
+      { title: "模型证据", text: "时序、工况和现场记录共同指向密封、振动、轴承、压力、润滑和流量等多类复核入口。", status: "warn" },
+      { title: "知识命中", text: "知识库命中叶轮损伤、联轴器、冲洗冷却、管道振动、填料函、润滑油温、润滑油压和连接螺栓八类条目。", status: "warn" },
+      { title: "工单处置", text: "处置票卡按故障类型组织现场复核、趋势核对、部位检查、数据复测和专家确认。", status: "ok" },
+      { title: "报告归档", text: "生成国家管网集团湖南公司输油泵机组运行状态监测报告，作为演示 PDF 和案例材料。", status: "ok" },
+      { title: "案例复用", text: "后续相似工单仅复用原因标签、复核路径、处置清单和报告结构，不能直接沿用本轮结论。", status: "warn" },
     ],
   },
 
@@ -427,28 +427,28 @@ window.DemoDataCatalog = {
   verdicts: [
     {
       id: "maintenance",
-      label: "确认不对中",
+      label: "确认故障复核",
       isMaintenance: true,
-      hint: "生成处置票卡并进入复测闭环",
-      impact: "确认后进入维修处置闭环：生成处置票卡并执行复测，归档后解锁 P-2 相似案例复用。",
-      archiveTitle: "长岭站 P-1 输油泵不对中处置案例归档",
+      hint: "生成输油泵故障复核票卡并进入闭环",
+      impact: "确认后进入处置闭环：生成复核票卡并执行现场复测，归档后解锁相似故障案例复用。",
+      archiveTitle: "输油泵典型故障复核案例归档",
       // 维修路径的步骤来自 workOrder.steps（处置票卡本身），不在这里重复一份。
       steps: null,
       // 维修路径的归档案例号来自 reuse().matchedCase（那份复用数据本身就带案例号），
       // 同理不重复存。
       archiveCaseId: null,
-      archiveStatusText: "已沉淀为相似异常检索案例。",
+      archiveStatusText: "已沉淀为相似故障检索案例。",
       // 维修路径的报告段落取 report.sections（那份六段式报告本身），不在这里重复存。
       reportSections: null,
-      agentClosureText: "选择“确认不对中”后生成处置票卡，完成激光对中复测并归档为维修案例，后续 P-2 可命中该案例。",
+      agentClosureText: "选择“确认故障复核”后生成输油泵故障复核票卡，完成现场复测并归档为案例，后续相似工单可命中该案例。",
     },
     {
       id: "observe",
       label: "继续观察",
       isMaintenance: false,
       hint: "生成观察记录，不触发维修案例命中",
-      impact: "继续观察不进入维修处置闭环：不生成处置票卡，不解锁案例复用，仅设置 48h 复评窗口。",
-      archiveTitle: "长岭站 P-1 输油泵观察记录归档",
+      impact: "继续观察不进入维修处置闭环：不生成复核票卡，不解锁案例复用，仅设置 48h 复评窗口。",
+      archiveTitle: "输油泵故障观察记录归档",
       steps: ["生成观察记录", "设置 48h 趋势复评窗口", "归档观察记录", "不触发维修案例命中"],
       archiveCaseId: "OBS-CL-P1-0722",
       archiveStatusText: "已归档为观察记录，不解锁维修案例复用。",
@@ -457,11 +457,11 @@ window.DemoDataCatalog = {
       // 属于数据。这两条路径都还没有"处置后复测通过"这类可验证结果，
       // 三段统一 warn，不臆造区分。
       reportSections: [
-        { title: "专家结论", text: "本轮不生成处置票卡，进入 48h 趋势观察和复评窗口。", status: "warn" },
-        { title: "保留证据", text: "保留相位差、2X 成分和基础振动证据，作为后续复评上下文。", status: "warn" },
-        { title: "Agent 动作", text: "Agent 在观察窗口内提醒复评，不触发 P-2 维修案例命中。", status: "warn" },
+        { title: "专家结论", text: "本轮不生成复核票卡，进入 48h 趋势观察和复评窗口。", status: "warn" },
+        { title: "保留证据", text: "保留故障现象、监测指标和现场记录，作为后续复评上下文。", status: "warn" },
+        { title: "Agent 动作", text: "Agent 在观察窗口内提醒复评，不触发维修案例命中。", status: "warn" },
       ],
-      agentClosureText: "选择“继续观察”后生成观察记录，归档为复评样本，不触发 P-2 维修案例命中。",
+      agentClosureText: "选择“继续观察”后生成观察记录，归档为复评样本，不触发维修案例命中。",
     },
     {
       id: "falsePositive",
@@ -469,7 +469,7 @@ window.DemoDataCatalog = {
       isMaintenance: false,
       hint: "记录排除依据并反馈模型",
       impact: "排除误报不进入维修处置闭环：记录排除依据并生成模型反馈标签，不生成处置票卡。",
-      archiveTitle: "长岭站 P-1 输油泵误报反馈归档",
+      archiveTitle: "输油泵故障误报反馈归档",
       steps: ["记录排除依据", "生成模型反馈标签", "归档误报样本", "不生成处置票卡"],
       archiveCaseId: "FP-CL-P1-0722",
       archiveStatusText: "已归档为误报反馈样本，不解锁维修处置复用。",
@@ -478,7 +478,7 @@ window.DemoDataCatalog = {
         { title: "排除依据", text: "专家确认当前证据不足以生成处置票卡，保留为阈值解释样本。", status: "warn" },
         { title: "模型反馈", text: "样本进入规则和模型反馈池，不触发二次维修案例命中。", status: "warn" },
       ],
-      agentClosureText: "选择“排除误报”后生成误报反馈，归档为模型反馈样本，不触发维修处置票卡。",
+      agentClosureText: "选择“排除误报”后生成误报反馈，归档为模型反馈样本，不触发输油泵故障复核票卡。",
     },
   ],
 

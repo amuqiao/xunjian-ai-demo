@@ -44,7 +44,7 @@
     // v9 -> v10：知识库不再是顶级场景，统一收进知识图谱模块内的 view 切换。
     var STORAGE_KEY = "beng-demo-pump-station-v1-state";
   var sceneOrder = DATA.scenes().map(function (scene) { return scene.key; });
-  var allowedVerdicts = ["确认不对中", "继续观察", "排除误报"];
+  var allowedVerdicts = DATA.verdicts().map(function (verdict) { return verdict.label; });
   // 机组选择的场景锁分组：见 normalizeState 末尾那段大注释。
   var freeUnitScenes = ["overview", "station"];
 

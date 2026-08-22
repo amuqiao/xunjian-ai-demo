@@ -1,6 +1,6 @@
 // 场景：人工复核。这是主语从"AI 在组织证据"换成"人在做决定"的那一页。
 //
-// 三段式：① 证据摘要（只读）② 人工介入（ReviewForm 四层）③ 处置路径。
+// 主结构：① AI 匹配票卡（只读）② 人工介入（ReviewForm 四层）③ 处置路径。
 // 执行之后（state.review.executed）整页切成执行屏——处置票卡 / 闭环卡 + 复测验收。
 //
 // ---- 这一页的三个机关 ----
@@ -13,12 +13,9 @@
   "use strict";
 
   var AppState = window.AppState;
-  var Charts = window.Charts;
-  var ChartOptions = window.ChartOptions;
-  var Cards = window.Cards;
   var META = window.DOMAIN_META;
-
-  var sparkIds = [];
+  var KB = window.DOMAIN_KB;
+  var ReportModel = window.ReportModel;
 
   // ---------------------------------------------------------------- 身份芯片
 
@@ -42,57 +39,80 @@
     ]);
   }
 
-  // ---------------------------------------------------------------- ① 证据摘要
+  // ---------------------------------------------------------------- ① AI 匹配票卡
 
-  // 证据指纹取"当前部位的全部测点"，而不是跟着用户最后点的那个测点走——这一页要
-  // 回答的是"这个案子成不成立"，不是"当前随便看着哪个测点"。
-  function renderEvidenceMetric(point) {
-    var s = AppState.seriesOf(point.id);
-    var sparkId = "rv-spark-" + point.id;
-    sparkIds.push({ id: sparkId, series: s });
-    var card = Cards.metric({
-      label: s.label,
-      value: String(s.latest),
-      unit: s.unit,
-      status: s.status,
-      note: s.alert,
-      sparkId: sparkId
-    });
-    var host = card.querySelector("[data-chart-slot='" + sparkId + "']");
-    if (!host) throw new Error("[review] 缺少图表占位容器：" + sparkId);
-    host.appendChild(Charts.slot(sparkId));
-    return card;
+  function evidenceOf(item, kind) {
+    if (!item) return null;
+    var matches = item.evidenceChain.filter(function (evidence) { return evidence.kind === kind; });
+    if (matches.length > 1) throw new Error("[review] " + kind + " 依据不唯一");
+    return matches[0] || null;
   }
 
-  // 知识命中取 AI 判断依据链里的 rule / case 两类——它们就是"这个结论有什么外部
-  // 依据"。series / vision 两类是数据本身，已经由上面的 metric 卡表达了。
-  function renderKnowledgeHits() {
-    var item = AppState.currentCase();
-    if (!item) return null;
-    var hits = item.evidenceChain.filter(function (evidence) {
-      return evidence.kind === "rule" || evidence.kind === "case";
-    });
-    if (!hits.length) return null;
-    return h("div", { class: "rv-hits" }, [
-      h("p", { class: "rv-subhead", text: "知识命中" }),
-      h("div", { class: "rv-hit-list" }, hits.map(function (evidence) {
-        return Cards.evidence({
-          status: evidence.locked === true ? "ok" : "warn",
-          conclusion: evidence.label + "：" + evidence.detail,
-          tags: [evidence.kind === "rule" ? "专家规则" : "历史案例"]
-        });
-      }))
+  function ticketNo(outcome) {
+    return outcome ? outcome.archive.caseIdTpl.replace("{{date}}", AppState.currentRecord().date) : "未匹配";
+  }
+
+  function renderEvidenceActions(item) {
+    var series = evidenceOf(item, "series");
+    var vision = evidenceOf(item, "vision");
+    return h("div", { class: "rv-ticket-actions" }, [
+      series ? h("button", {
+        type: "button",
+        class: "plain-button",
+        dataset: {
+          action: "open-evidence",
+          evidenceKind: "series",
+          pointId: series.pointId,
+          focusKey: "review-evidence:series"
+        },
+        text: "时序证据"
+      }) : null,
+      vision ? h("button", {
+        type: "button",
+        class: "plain-button",
+        dataset: {
+          action: "open-evidence",
+          evidenceKind: "vision",
+          frameId: vision.frameId,
+          focusKey: "review-evidence:vision"
+        },
+        text: "视觉证据"
+      }) : null
     ]);
   }
 
-  function renderEvidenceSummary() {
-    var part = AppState.currentPart();
+  function renderTicketCard() {
+    var record = AppState.currentRecord();
+    var part = AppState.partById(record.partId);
     var item = AppState.currentCase();
-    return h("section", { class: "panel rv-evidence" }, [
-      window.ReviewForm.sectionHead("①", "核心证据", AppState.currentObject().label + " · " + part.label),
-      item ? h("p", { class: "rv-lead", text: item.summary }) : null,
-      h("div", { class: "rv-metrics" }, AppState.pointsOf(part.id).map(renderEvidenceMetric)),
-      renderKnowledgeHits()
+    var outcome = AppState.suggestedOutcome();
+    return h("section", { class: "panel rv-ticket-match" }, [
+      AppState.panelTitle("AI 匹配票卡", record.no ? "第 " + record.no + " 项 · " + part.short : part.short),
+      h("article", { class: "rv-match-card" }, [
+        h("div", { class: "rv-match-card-head" }, [
+          h("span", { text: "匹配票卡" }),
+          h("strong", { text: outcome ? outcome.label : "未匹配票卡" })
+        ]),
+        h("div", { class: "rv-match-score" }, [
+          h("span", { text: "置信度" }),
+          h("strong", { text: item ? String(item.confidence) + "%" : "--" })
+        ]),
+        h("dl", { class: "rv-match-meta" }, [
+          h("dt", { text: "票卡编号" }), h("dd", { text: ticketNo(outcome) }),
+          h("dt", { text: "适用对象" }), h("dd", { text: AppState.currentObject().label + " · " + part.label }),
+          h("dt", { text: "生成动作" }), h("dd", { text: outcome ? outcome.executeText : "待人工确认" })
+        ]),
+        h("p", {
+          class: "rv-match-note",
+          text: outcome ? outcome.impact : "AI 未匹配到可用票卡，需人工确认。"
+        })
+      ]),
+      h("div", { class: "rv-ticket-record" }, [
+        h("span", { text: "巡检项" }),
+        h("strong", { text: record.item + " · " + (record.result || "未填写") })
+      ]),
+      item ? h("p", { class: "rv-ticket-summary", text: item.summary }) : null,
+      renderEvidenceActions(item)
     ]);
   }
 
@@ -169,21 +189,33 @@
     ]);
   }
 
+  function renderReviewAgentFab() {
+    return h("button", {
+      type: "button",
+      class: "wb-agent-fab rv-agent-fab",
+      title: "Agent 助手",
+      "aria-label": "打开复核 Agent 助手",
+      dataset: { action: "open-agent", agentContext: "review", focusKey: "review-agent" },
+      text: "AI"
+    });
+  }
+
   // ---------------------------------------------------------------- 执行屏
 
   function renderExecuted() {
     var outcome = AppState.currentOutcome();
     var state = AppState.value;
     var retest = outcome.retest;
+    var reportBlocked = retest.enable && state.review.retestPassed !== true;
     return AppState.pageShell(
       "处置闭环 / 执行",
       outcome.label,
       h("button", {
         type: "button",
         class: "primary-action",
-        disabled: (retest.enable && state.review.retestPassed !== true) ? "disabled" : null,
+        disabled: (reportBlocked || state.archived) ? "disabled" : null,
         dataset: { action: "go-archive" },
-        text: "进入报告归档"
+        text: state.archived ? "已归档到知识库" : "预览报告"
       }),
       h("div", { class: "rv-exec-grid" }, [
         h("section", { class: "panel rv-ticket" }, [
@@ -206,7 +238,8 @@
             ? h("p", { class: "rv-exec-diverge", text: "本条意见将进入报告的分歧段，并作为模型反馈样本回流知识库。" })
             : null
         ]),
-        renderRetestPanel(retest)
+        renderRetestPanel(retest),
+        renderReviewAgentFab()
       ])
     );
   }
@@ -234,52 +267,121 @@
       ]);
     }
     var decided = state.review.retestPassed === true;
+    var archived = state.archived === true;
     return h("aside", { class: "panel rv-retest" }, [
-      AppState.panelTitle("复测验收", decided ? "已通过" : "待确认"),
-      h("p", { class: "muted", text: "处置完成后由现场回填复测结果。" }),
+      AppState.panelTitle("复测验收", archived ? "已归档" : (decided ? "已通过" : "待确认")),
+      h("p", { class: "muted", text: archived ? "报告已归档，复测结果已锁定。" : "处置完成后由现场回填复测结果。" }),
       h("div", { class: "rv-retest-actions" }, [
         h("button", {
           type: "button",
           class: "primary-action",
-          disabled: decided ? "disabled" : null,
+          disabled: (decided || archived) ? "disabled" : null,
           dataset: { action: "retest-pass" },
           text: decided ? "复测已通过" : retest.passLabel
         }),
         h("button", {
           type: "button",
           class: "plain-button rv-retest-fail",
+          disabled: archived ? "disabled" : null,
           dataset: { action: "retest-fail" },
-          text: retest.failLabel
+          text: archived ? "归档后不可退回" : retest.failLabel
         })
       ])
     ]);
   }
 
+  // ---------------------------------------------------------------- 报告归档浮层
+
+  function categoryById(categoryId) {
+    var found = KB.categories().filter(function (category) { return category.id === categoryId; })[0];
+    if (!found) throw new Error("[review] 归档分类不存在：" + categoryId);
+    return found;
+  }
+
+  function reportArchiveBlocked(outcome) {
+    return outcome.retest.enable && AppState.value.review.retestPassed !== true;
+  }
+
+  function renderReportSummary(outcome) {
+    var reviewer = AppState.currentReviewer();
+    var category = categoryById(outcome.archive.categoryId);
+    return h("dl", { class: "rv-report-summary" }, [
+      h("dt", { text: "报告标题" }), h("dd", { text: ReportModel.title() }),
+      h("dt", { text: "人工结论" }), h("dd", { text: outcome.label }),
+      h("dt", { text: "复核人" }), h("dd", { text: reviewer.name + "（" + reviewer.role + "）" }),
+      h("dt", { text: "归档去向" }), h("dd", { text: category.title + " · " + ReportModel.caseId() })
+    ]);
+  }
+
+  function renderReportPreview() {
+    return h("div", { class: "rv-report-document" }, ReportModel.sections().map(function (section) {
+      return h("article", { class: "ar-section" + (section.human ? " human" : "") }, [
+        h("div", { class: "ar-section-head" }, [
+          h("i", { class: "dot " + section.status, "aria-hidden": "true" }),
+          h("strong", { text: section.title })
+        ]),
+        h("p", { text: section.text }),
+        section.human ? h("small", { class: "ar-human-tag", text: "人工填写" }) : null
+      ]);
+    }));
+  }
+
+  function renderReportArchiveOverlay() {
+    var state = AppState.value;
+    if (!state.pick.reviewArchiveOpen || !state.review.executed) return null;
+    var outcome = AppState.currentOutcome();
+    if (!outcome) throw new Error("[review] 打开报告归档浮层时必须已选定结论");
+
+    var blocked = reportArchiveBlocked(outcome);
+    return window.Overlay.render({
+      open: true,
+      title: "报告预览",
+      kicker: "由人工复核结果自动生成",
+      body: [
+        renderReportSummary(outcome),
+        h("p", {
+          class: "rv-report-tip",
+          text: blocked
+            ? "复测通过后才能归档。当前报告可先预览，确认复测结果后再写入知识库。"
+            : "确认后写入知识库，本页不跳转。"
+        }),
+        renderReportPreview()
+      ],
+      actions: [
+        { text: "返回修改", action: "close-report-archive" },
+        { text: state.archived ? "已归档" : "归档到知识库", action: "archive-report", primary: true, disabled: blocked || state.archived }
+      ],
+      onCloseAction: "close-report-archive",
+      key: "review-report-archive",
+      panelClass: "rv-report-overlay"
+    });
+  }
+
   // ---------------------------------------------------------------- 顶层
 
   function renderReview() {
-    sparkIds = [];
     if (AppState.value.review.executed) return renderExecuted();
 
     return AppState.pageShell(
-      "人工复核 / 专家决策",
+      "人工复核 / AI 匹配票卡",
       AppState.currentObject().label + " " + AppState.currentPart().label,
       renderReviewerChip(),
-      h("div", { class: "rv-stack" }, [
+      h("div", { class: "rv-stack rv-review-stack" }, [
         renderRetestBanner(),
-        h("div", { class: "rv-grid" }, [
-          renderEvidenceSummary(),
-          window.ReviewForm.render()
+        h("div", { class: "rv-grid rv-review-page" }, [
+          renderTicketCard(),
+          h("div", { class: "rv-review-column" }, [
+            window.ReviewForm.render(),
+            renderPath()
+          ])
         ]),
-        renderPath()
+        renderReviewAgentFab()
       ])
     );
   }
 
   function renderReviewCharts() {
-    sparkIds.forEach(function (entry) {
-      Charts.draw(entry.id, ChartOptions.spark(entry.series));
-    });
+    // 复核主页面不画图。时序/视觉证据通过左侧票卡按钮进入详情。
   }
 
   // 定点刷新：文本框输入不走 render()（每敲一个字整屏重建会丢光标），只更新受影响的
@@ -307,5 +409,6 @@
   window.Scenes = window.Scenes || {};
   window.Scenes.renderReview = renderReview;
   window.Scenes.renderReviewCharts = renderReviewCharts;
+  window.Scenes.renderReviewOverlays = function () { return [renderReportArchiveOverlay()]; };
   window.Scenes.refreshReviewGates = refreshReviewGates;
 })();

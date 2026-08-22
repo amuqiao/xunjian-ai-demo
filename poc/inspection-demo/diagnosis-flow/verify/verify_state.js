@@ -1,7 +1,7 @@
 // 状态机契约验证脚本。纯 Node，无浏览器：core/state.js 是一个往 window 上挂
 // AppState 的普通脚本，这里搭一个假 window（含假 localStorage）之后 require 即可。
 //
-// 用法：node poc/diagnosis-flow/verify/verify_state.js
+// 用法：node poc/inspection-demo/diagnosis-flow/verify/verify_state.js
 //
 // ---- 这个脚本要防的两类问题 ----
 //
@@ -26,7 +26,7 @@ var DOMAIN_FILES = [
 
 function makeLocalStorage(initial) {
   var store = {};
-  if (initial !== undefined) store["diagnosis-flow-v1-state"] = JSON.stringify(initial);
+  if (initial !== undefined) store["diagnosis-flow-v2-state"] = JSON.stringify(initial);
   return {
     getItem: function (key) {
       return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null;
@@ -89,6 +89,8 @@ check("默认未表决", S.review.vote === "");
 check("默认未选结论", S.review.outcomeId === "");
 check("默认未执行", S.review.executed === false);
 check("默认未归档", S.archived === false);
+check("默认未打开工作台 AI 判断浮窗", S.pick.workbenchAiListOpen === false);
+check("默认未打开报告归档确认浮层", S.pick.reviewArchiveOpen === false);
 check("默认复测状态为 null", S.review.retestPassed === null);
 check("流程条起点是质检", S.flowVisited.length === 1 && S.flowVisited[0] === "inspection");
 check("默认时间范围是第一个区间", S.range === win.DOMAIN_SERIES.ranges()[0].key);
@@ -105,9 +107,9 @@ check("入口记录能取到 AI 建议结论", !!suggestion);
 check("canOpen(workbench) 恒真", AppState.canOpen("workbench") === true);
 check("canOpen(review) 恒真", AppState.canOpen("review") === true);
 check("canOpen(knowledge) 恒真", AppState.canOpen("knowledge") === true);
-check("canOpen(archive) 未执行时为假", AppState.canOpen("archive") === false);
+check("archive 不再是可打开主场景", AppState.canOpen("archive") === false);
 S.review.executed = true;
-check("canOpen(archive) 执行后为真", AppState.canOpen("archive") === true);
+check("执行后 archive 仍只作为流程步骤，不作为主场景", AppState.canOpen("archive") === false);
 S.review.executed = false;
 
 // ---- isDivergent ----
@@ -188,6 +190,8 @@ function loadWith(patch) {
     focus: { objectId: "OBJ-A", partId: "PART-1" },
     pick: {
       workbench: "REC-001",
+      workbenchAiListOpen: false,
+      reviewArchiveOpen: false,
       trend: { pointId: null },
       vision: { frameId: null, zoomOpen: false },
       knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
@@ -215,6 +219,23 @@ check("悬空部位退回 entry 部位", cleaned.focus.partId === META.entry.par
 // 状态，不清掉的话知识库页会被时序子屏整屏盖住。
 check("非工作台场景强制清空子屏",
   loadWith({ scene: "knowledge", detail: "trend" }).detail === "");
+check("archive 场景被清洗回工作台",
+  loadWith({ scene: "archive" }).scene === "workbench");
+check("工作台主屏的 AI 判断浮窗状态可恢复",
+  loadWith({ pick: { workbenchAiListOpen: true } }).pick.workbenchAiListOpen === true);
+check("工作台详情子屏强制关闭 AI 判断浮窗",
+  loadWith({ scene: "workbench", detail: "trend", pick: { workbenchAiListOpen: true } }).pick.workbenchAiListOpen === false);
+check("非工作台场景强制关闭 AI 判断浮窗",
+  loadWith({ scene: "review", pick: { workbenchAiListOpen: true } }).pick.workbenchAiListOpen === false);
+check("未执行时报告归档浮层强制关闭",
+  loadWith({ scene: "review", pick: { reviewArchiveOpen: true } }).pick.reviewArchiveOpen === false);
+check("执行且留在复核页时报告归档浮层可恢复",
+  loadWith({
+    scene: "review",
+    pick: { reviewArchiveOpen: true },
+    review: { reviewerId: "reviewer-a", vote: "accept", outcomeId: "observe", fields: {},
+      note: "", executed: true, retestPassed: null }
+  }).pick.reviewArchiveOpen === true);
 
 // 记录字典必须是"当前对象的记录"，不是全部记录。用更宽的字典正是 pump-demo 那次
 // 整页空白的根因。

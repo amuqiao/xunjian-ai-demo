@@ -252,8 +252,8 @@
     return scene;
   }
 
-  // ---------- closureOpen 执行屏之一：处置票卡 + 激光对中前后对比 + 复测验收 ----------
-  // 结论为"确认不对中"时，state.closureOpen === true 打开这一屏；非维修结论
+  // ---------- closureOpen 执行屏之一：处置票卡 + 对中复核前后对比 + 复测验收 ----------
+  // 结论为维修路径时，state.closureOpen === true 打开这一屏；非维修结论
   // （继续观察/排除误报）走 renderConclusionClosure()。两者都保持原有结构，本任务
   // 不改动。
 
@@ -261,7 +261,7 @@
     if (AppState.isNonMaintenanceVerdict(state.expertVerdict)) return renderConclusionClosure();
     return AppState.pageShell(
       "处置闭环 / 票卡复测",
-      "P-1 不对中处置票卡与复测反馈",
+      "P-1 输油泵故障复核票卡与复测反馈",
       h("button", { type: "button", class: "primary-action", disabled: !state.treatmentDone, dataset: { action: "go-archive" }, text: "进入报告归档" }),
       h("div", { class: "treatment-grid" }, [
         h("section", { class: "panel ticket-panel" }, [
@@ -271,22 +271,22 @@
           h("ol", { class: "ticket-steps" }, DATA.workOrder().steps.map(function (step) { return h("li", { text: step }); })),
         ]),
         h("section", { class: "panel compare-panel" }, [
-          AppState.panelTitle("激光对中前后对比", "visual evidence"),
+          AppState.panelTitle("联轴器对中前后对比", "visual evidence"),
           h("div", { class: "compare-images" }, [
             h("figure", {}, [
-              h("img", { src: DATA.media("laserBefore"), alt: "激光对中调整前" }),
-              h("figcaption", { text: "调整前：相位差和对中偏差作为处置前证据。" }),
+              h("img", { src: DATA.media("laserBefore"), alt: "联轴器对中复核前" }),
+              h("figcaption", { text: "复核前：相位差和对中偏差作为处置前证据。" }),
             ]),
             h("figure", {}, [
-              h("img", { src: DATA.media("laserAfter"), alt: "激光对中调整后" }),
-              h("figcaption", { text: "调整后：用于报告归档和案例复用的复测证据。" }),
+              h("img", { src: DATA.media("laserAfter"), alt: "联轴器对中复核后" }),
+              h("figcaption", { text: "复核后：用于报告归档和案例复用的复测证据。" }),
             ]),
           ]),
         ]),
         h("aside", { class: "panel feedback-panel" }, [
           AppState.panelTitle("复测验收", "feedback"),
           h("div", { class: "feedback-cards" }, [
-            feedback("振动回落", "5.82 -> 1.80 mm/s"),
+            feedback("振动复测", "5.82 -> 1.80 mm/s"),
             feedback("相位复核", "-81.06° -> -12.4°"),
             feedback("验收结论", "满足演示验收口径"),
           ]),

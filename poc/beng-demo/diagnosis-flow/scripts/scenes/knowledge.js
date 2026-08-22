@@ -73,7 +73,7 @@
         type: "复核报告",
         title: archived.title,
         summary: "来源：人工复核归档。已沉淀为可检索、可引用的诊断案例。",
-        tags: ["长岭站 P-1", "联轴器不对中", "人工复核结论"],
+        tags: ["国家管网湖南", "输油泵故障", "人工复核结论"],
         status: "已入库",
         docId: archived.id,
         fresh: true
@@ -98,7 +98,7 @@
         type: "上传文档",
         title: demoDoc.title,
         summary: "来源：" + demoDoc.source + "。用于演示用户上传资料进入知识库资产。",
-        tags: ["作业票卡", "对中处置", "可检索"],
+        tags: ["复核票卡", "故障处置", "可检索"],
         status: "已索引",
         docId: demoDoc.id,
         fresh: false
@@ -107,7 +107,7 @@
         type: "上传文档",
         title: stdDoc.title,
         summary: "来源：" + stdDoc.source + "。用于约束 AI 诊断建议和人工复核边界。",
-        tags: ["复核边界", "诊断规则", "引用依据"],
+        tags: ["故障规则", "复核边界", "引用依据"],
         status: "已索引",
         docId: stdDoc.id,
         fresh: false

@@ -128,7 +128,6 @@
     var finished = state.pick.knowledge.ingestStep === steps;
     var running = state.pick.knowledge.ingestStep > 0 && !finished;
     var demoDoc = KB.document(KB.ingestDemoDocId());
-    var context = window.DOMAIN_AGENTQA.contexts.filter(function (c) { return c.id === "knowledge"; })[0];
 
     return h("section", { class: "panel kb-actions" }, [
       AppState.panelTitle("演示操作", "上传 / 问答"),
@@ -146,21 +145,19 @@
           dataset: { action: "start-ingest", focusKey: "ingest" },
           text: running ? "入库演示中…" : finished ? "重新演示" : "上传文档"
         })
-      ]),
-      h("div", { class: "kb-agent" }, [
-        h("strong", { text: context.entryTitle }),
-        h("p", { text: context.entryText }),
-        h("div", { class: "kb-agent-tags" }, context.questions.slice(0, 3).map(function (question) {
-          return h("span", { text: question.label });
-        })),
-        h("button", {
-          type: "button",
-          class: "plain-button",
-          dataset: { action: "open-agent", agentContext: "knowledge", focusKey: "open-agent" },
-          text: "打开 Agent 问答"
-        })
       ])
     ]);
+  }
+
+  function renderKnowledgeAgentFab() {
+    return h("button", {
+      type: "button",
+      class: "wb-agent-fab kb-agent-fab",
+      title: "Agent 问答",
+      "aria-label": "打开知识库 Agent 问答",
+      dataset: { action: "open-agent", agentContext: "knowledge", focusKey: "open-agent" },
+      text: "AI"
+    });
   }
 
   // ---------------------------------------------------------------- 文档阅读器
@@ -421,7 +418,8 @@
             renderDocList()
           ]),
           renderActionRail()
-        ])
+        ]),
+        renderKnowledgeAgentFab()
       ])
     );
   }

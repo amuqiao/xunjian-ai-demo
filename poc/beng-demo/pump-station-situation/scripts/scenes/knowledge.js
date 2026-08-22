@@ -274,10 +274,10 @@
 
   function renderHitOverview() {
     var kinds = [
-      { label: "规则", value: "不对中诊断专家规则" },
-      { label: "指标", value: "振动阈值 / 相位差口径" },
-      { label: "作业卡", value: "对中作业标准模板卡" },
-      { label: "案例", value: "P-1 处置报告" },
+      { label: "工作台", value: "7 类诊断问答" },
+      { label: "知识库", value: "8 类故障条目" },
+      { label: "工单", value: "故障复核票卡" },
+      { label: "报告", value: "运行状态监测报告" },
     ];
     return h("div", { class: "knowledge-hit-overview" }, [
       h("strong", { text: "命中材料概览" }),

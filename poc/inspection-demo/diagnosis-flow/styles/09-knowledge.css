@@ -1,7 +1,7 @@
 /* 知识库页 + 入库动画 + 文档阅读器。
    本页不含任何关系图 / 节点连线——文档关系可视化由独立的知识文档地图 POC 承担。 */
 
-.kb-scene { display: grid; grid-template-rows: auto 1fr; gap: var(--gap); min-height: 0; }
+.kb-scene { position: relative; display: grid; grid-template-rows: auto 1fr; gap: var(--gap); min-height: 0; }
 .kb-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
 .kb-layout { display: grid; grid-template-columns: 1fr 420px; gap: var(--gap); min-height: 0; }
 
@@ -55,8 +55,8 @@
 
 /* ---------------- 操作台 ---------------- */
 
-.kb-actions { display: grid; grid-template-rows: auto auto auto; gap: 12px; padding: 14px 16px; align-content: start; }
-.kb-upload, .kb-agent {
+.kb-actions { display: grid; grid-template-rows: auto auto; gap: 12px; padding: 14px 16px; align-content: start; }
+.kb-upload {
   display: grid;
   gap: 7px;
   padding: 12px;
@@ -64,7 +64,7 @@
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
 }
-.kb-upload p, .kb-agent p { margin: 0; font-size: 12px; color: var(--text-mute); line-height: 1.7; }
+.kb-upload p { margin: 0; font-size: 12px; color: var(--text-mute); line-height: 1.7; }
 .kb-upload-file {
   display: flex;
   align-items: center;
@@ -75,14 +75,7 @@
 }
 .kb-upload-file span { font-size: 11px; color: var(--text-mute); }
 .kb-upload-file strong { font-size: 12.5px; }
-.kb-agent-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.kb-agent-tags span {
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px dashed var(--line-strong);
-  font-size: 11px;
-  color: var(--text-mute);
-}
+.kb-agent-fab { right: 20px; bottom: 20px; }
 
 /* ---------------- 文档阅读器 ---------------- */
 

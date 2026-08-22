@@ -1,6 +1,6 @@
 # 端到端走查：用 Playwright 把整条主线点一遍，断言每一步的界面确实变成了它该有的样子。
 #
-# 用法：uv run python poc/diagnosis-flow/verify/verify_flow.py
+# 用法：uv run python poc/inspection-demo/diagnosis-flow/verify/verify_flow.py
 #
 # ---- 为什么这一套不可省 ----
 # verify_domain.js 保证数据自洽、verify_state.js 保证状态机的真值表正确，但两者都跑在
@@ -16,6 +16,7 @@
 #    一律走 Python 版 Playwright 自带的 chromium。
 
 import pathlib
+import shutil
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -98,29 +99,35 @@ def fill_required_selects(page):
             page.select_option(selector, real[0])
 
 
+def open_ai_list(page):
+    page.click(".sl-table-row.active .sl-table-td")
+    page.wait_for_selector(".wb-ai-list-overlay", timeout=3000)
+
+
 def run(page):
     # ---------------------------------------------------------------- 1. 首屏
     print("== 1. 首屏 ==")
     check("顶栏标题已填充", text_of(page, "#brandTitle") != "")
-    check("导航渲染出 4 项", page.locator(".scene-nav-btn").count() == 4)
+    check("导航渲染出 3 项", page.locator(".scene-nav-btn").count() == 3)
     check("流程条渲染出 6 步", page.locator(".flow-step").count() == 6)
     check("流程条不含大屏/站点的步骤",
           "任务总览" not in text_of(page, ".flow-track"))
-    check("归档页初始锁定", page.locator('.scene-nav-btn[data-scene-key="archive"]').is_disabled())
+    check("归档不再作为顶部主场景", page.locator('.scene-nav-btn[data-scene-key="archive"]').count() == 0)
     check("工作台记录表有行", page.locator(".sl-table-row").count() >= 3)
-    check("AI 判断卡渲染出置信度条", page.locator(".wb-ai .confidence").count() == 1)
-    check("依据链渲染出 4 枚芯片", page.locator(".ev-chip").count() == 4)
-    check("案例类依据初始为锁态", page.locator(".ev-chip.case.locked").count() == 1)
-    check("时序图表已绘制", page.locator(".wb-trend-chart canvas").count() >= 1)
-    # 高度护栏：CSS 行模板与子元素数量不匹配时，图表容器会被压成几十像素高，曲线糊
-    # 成贴着 x 轴的一条直线。CSS 不报错、ECharts 也不报错——只有量一下才知道。
-    check_chart_height(page, ".wb-trend-chart .chart-box", 160)
-    check("视觉卡的标注框已定位", page.locator(".wb-frame-box").count() == 1)
+    check("工作台只保留 AI 浮动图标入口", page.locator(".wb-agent-fab").count() == 1)
+    check("工作台不再渲染旧 Agent 卡片", page.locator(".wb-agent:not(.wb-agent-fab)").count() == 0)
     page.screenshot(path=str(SHOTS / "01-workbench.png"))
 
     # ---------------------------------------------------------------- 2. 依据链下钻
     print("\n== 2. 依据链下钻 ==")
-    page.click(".ev-chip.series")
+    open_ai_list(page)
+    check("点击记录打开 AI 判断列表浮窗", page.locator(".wb-ai-list-overlay").count() == 1)
+    check("AI 判断列表渲染三类服务判断", page.locator(".wb-ai-service").count() == 3)
+    check("AI 判断列表显示置信度", page.locator(".wb-ai-confidence").count() == 3)
+    check("未归档前案例依据入口为锁态", page.locator(".wb-ai-kb-link:disabled").count() == 1)
+    page.screenshot(path=str(SHOTS / "02-ai-list.png"))
+
+    page.click('[data-action="open-evidence"][data-evidence-kind="series"]')
     check("点时序芯片进入时序子屏", page.locator(".dt-trend-grid").count() == 1)
     check("子屏里导航仍高亮工作台",
           page.locator('.scene-nav-btn[data-scene-key="workbench"].active').count() == 1)
@@ -131,22 +138,28 @@ def run(page):
     check("主曲线已绘制", page.locator(".dt-chart canvas").count() >= 1)
     check_chart_height(page, ".dt-chart .chart-box", 300)
     check("采样表有行", page.locator(".dt-table tbody tr").count() >= 2)
-    page.screenshot(path=str(SHOTS / "02-trend.png"))
+    page.screenshot(path=str(SHOTS / "03-trend.png"))
     page.click('[data-action="close-detail"]')
 
-    page.click(".ev-chip.vision")
+    open_ai_list(page)
+    page.click('[data-action="open-evidence"][data-evidence-kind="vision"]')
     check("点视觉芯片进入视觉子屏", page.locator(".dt-vision-grid").count() == 1)
     check("帧序列渲染出 3 帧", page.locator(".dt-strip-item").count() == 3)
     page.click('[data-action="zoom-frame"]')
     check("点图片打开放大浮层", page.locator(".dt-zoom-overlay").count() == 1)
     page.keyboard.press("Escape")
     check("Esc 关闭放大浮层", page.locator(".dt-zoom-overlay").count() == 0)
-    page.screenshot(path=str(SHOTS / "03-vision.png"))
+    page.screenshot(path=str(SHOTS / "04-vision.png"))
     page.click('[data-action="close-detail"]')
 
-    page.click(".ev-chip.rule")
-    check("点规则芯片就地展开规则卡（不跳页）",
-          page.locator(".ev-rule-card.open").count() == 1 and page.locator(".wb-layout").count() == 1)
+    open_ai_list(page)
+    page.keyboard.press("Escape")
+    check("Esc 关闭 AI 判断列表浮窗", page.locator(".wb-ai-list-overlay").count() == 0)
+    open_ai_list(page)
+    page.evaluate("() => document.querySelector('.scene-nav-btn[data-scene-key=\"knowledge\"]').click()")
+    check("切到知识库会清掉 AI 判断列表浮窗", page.locator(".wb-ai-list-overlay").count() == 0)
+    check("切场景后知识库导航高亮", page.locator('.scene-nav-btn[data-scene-key="knowledge"].active').count() == 1)
+    page.click('.scene-nav-btn[data-scene-key="workbench"]')
 
     # ---------------------------------------------------------------- 3. Agent
     print("\n== 3. Agent 对话 ==")
@@ -182,7 +195,7 @@ def run(page):
     check("答案出现后卡片高度不变（%.0f → %.0f）"
           % (agent_h_empty, page.locator(".ag-overlay").bounding_box()["height"]),
           abs(page.locator(".ag-overlay").bounding_box()["height"] - agent_h_empty) < 1)
-    page.screenshot(path=str(SHOTS / "04-agent-hit.png"))
+    page.screenshot(path=str(SHOTS / "05-agent-hit.png"))
 
     # 自由输入：打的字要留在框里，并且同样不许整屏渲染
     before = render_count(page)
@@ -212,15 +225,23 @@ def run(page):
     page.wait_for_selector(".ag-answer-card.enhanced", timeout=2000)
     check("未命中态点击 Skill 后增强边界说明", "知识边界识别" in text_of(page, ".ag-answer-card"))
     check("未命中态不渲染命中卡", page.locator(".ag-hit").count() == 0)
-    page.screenshot(path=str(SHOTS / "05-agent-miss.png"))
+    page.screenshot(path=str(SHOTS / "06-agent-miss.png"))
     page.keyboard.press("Escape")
     check("Esc 关闭 Agent 浮层", page.locator(".ag-overlay").count() == 0)
     check("Agent 步骤已点亮流程条", page.locator(".flow-step.visited").count() >= 4)
 
     # ---------------------------------------------------------------- 4. 复核：分歧支线
     print("\n== 4. 人工复核（分歧支线）==")
-    page.click('[data-action="go-review"]')
+    open_ai_list(page)
+    page.click('.wb-ai-list-overlay [data-action="go-review"]')
     check("进入复核页", page.locator(".rv-grid").count() == 1)
+    check("复核页已切换为 AI 匹配票卡布局",
+          page.locator(".rv-ticket-match").count() == 1 and page.locator(".rv-match-card").count() == 1)
+    check("复核票卡提供时序和视觉证据快捷入口",
+          page.locator('.rv-ticket-actions [data-action="open-evidence"]').count() == 2)
+    check("复核页只保留 AI 浮动图标入口", page.locator(".rv-agent-fab").count() == 1)
+    check("复核页不保留旧 Agent 文本入口",
+          page.locator('.rv-grid button:has-text("问 Agent")').count() == 0)
     check("身份芯片存在", page.locator(".rv-identity-select").count() == 1)
     check("未表决时 L1 结论区是灰的", page.locator(".rv-outcome-block.pending").count() == 1)
     check("未选结论时处置路径是灰的", page.locator(".rv-path.pending").count() == 1)
@@ -268,31 +289,41 @@ def run(page):
 
     page.click('[data-action="execute-review"]')
     check("执行后进入执行屏", page.locator(".rv-exec-grid").count() == 1)
+    check("执行屏仍保留 AI 浮动图标入口", page.locator(".rv-agent-fab").count() == 1)
     check("执行屏回显了复核意见原文",
           "占位复核依据" in text_of(page, ".rv-exec-note-body"))
-    check("归档导航已解锁",
-          not page.locator('.scene-nav-btn[data-scene-key="archive"]').is_disabled())
+    check("归档步骤已点亮",
+          page.locator(".flow-step.visited").filter(has_text="归档").count() == 1)
     page.screenshot(path=str(SHOTS / "08-executed.png"))
 
-    # ---------------------------------------------------------------- 5. 归档（分歧支线）
-    print("\n== 5. 报告归档（分歧支线）==")
-    page.click('[data-action="go-archive"]')
-    check("进入归档页", page.locator(".ar-grid").count() == 1)
-    divergent_sections = page.locator(".ar-section").count()
-    check("报告含分歧段", page.locator(".ar-section.human").count() >= 2)
+    # ---------------------------------------------------------------- 5. 报告浮窗（分歧支线）
+    print("\n== 5. 报告浮窗（分歧支线）==")
+    check("执行后打开报告预览浮窗", page.locator(".rv-report-overlay").count() == 1)
+    check("报告浮窗打开时流程条 current 切到归档",
+          page.locator(".flow-step.current").filter(has_text="归档").count() == 1)
+    divergent_sections = page.locator(".rv-report-document .ar-section").count()
+    check("报告含分歧段", page.locator(".rv-report-document .ar-section.human").count() >= 2)
     check("人工原文逐字出现在报告里",
-          "占位复核依据" in text_of(page, ".ar-report"))
-    check("报告标题已解析插槽（不含未替换的花括号）", "{{" not in text_of(page, ".scene-head h2"))
-    check("报告正文不含未替换的插槽", "{{" not in text_of(page, ".ar-report"))
-    page.screenshot(path=str(SHOTS / "09-archive-divergent.png"))
+          "占位复核依据" in text_of(page, ".rv-report-document"))
+    check("报告标题已解析插槽（不含未替换的花括号）", "{{" not in text_of(page, ".rv-report-summary"))
+    check("报告正文不含未替换的插槽", "{{" not in text_of(page, ".rv-report-document"))
+    page.screenshot(path=str(SHOTS / "09-report-overlay-divergent.png"))
+    page.evaluate("() => document.querySelector('.scene-nav-btn[data-scene-key=\"knowledge\"]').click()")
+    check("切到知识库会清掉报告预览浮窗", page.locator(".rv-report-overlay").count() == 0)
+    check("报告浮窗切场景后知识库导航高亮", page.locator('.scene-nav-btn[data-scene-key="knowledge"].active').count() == 1)
+    page.click('.scene-nav-btn[data-scene-key="review"]')
+    page.click('[data-action="go-archive"]')
+    check("返回复核后可重新打开报告预览浮窗", page.locator(".rv-report-overlay").count() == 1)
 
     page.click('[data-action="archive-report"]')
-    check("归档后按钮变为已归档", page.locator('[data-action="archive-report"]').is_disabled())
+    check("归档后报告浮窗关闭", page.locator(".rv-report-overlay").count() == 0)
 
     # ---------------------------------------------------------------- 6. 知识库
     print("\n== 6. 知识库 ==")
-    page.click('[data-action="go-knowledge"]')
+    page.click('.scene-nav-btn[data-scene-key="knowledge"]')
     check("进入知识库", page.locator(".kb-layout").count() == 1)
+    check("知识库只保留 AI 浮动图标入口", page.locator(".kb-agent-fab").count() == 1)
+    check("知识库不再渲染旧 Agent 卡片", page.locator(".kb-agent").count() == 0)
     # 归档报告落在归档案例分类里，切到那个分类才看得到
     target = page.evaluate("window.DOMAIN_KB.archiveTarget().categoryId")
     page.click('[data-select="kb-category"][data-select-id="%s"]' % target)
@@ -354,30 +385,32 @@ def run(page):
 
     # ---------------------------------------------------------------- 7. 二次命中
     print("\n== 7. 二次命中（闭环收尾）==")
-    # 用顶部导航回工作台：页内的 go-workbench 按钮只在归档页的解锁态才存在，
-    # 从知识库页点它会找不到。
+    # 用顶部导航回工作台：报告归档现在是复核页浮窗，不再依赖独立归档页按钮。
     page.click('.scene-nav-btn[data-scene-key="workbench"]')
+    open_ai_list(page)
     unlocked = page.evaluate("() => window.AppState.reuseUnlocked()")
     if unlocked:
-        check("归档后案例芯片解锁", page.locator(".ev-chip.case.locked").count() == 0)
-        page.click(".ev-chip.case")
+        check("归档后案例依据入口解锁", page.locator(".wb-ai-kb-link:not(:disabled)").count() == 1)
+        page.click(".wb-ai-kb-link")
         check("点案例芯片跳到知识库并定位到具体段落",
               page.locator(".kb-doc-overlay").count() == 1 and page.locator(".kb-chunk.target").count() == 1)
         page.screenshot(path=str(SHOTS / "12-second-hit.png"))
         page.keyboard.press("Escape")
     else:
         # 分歧支线选的是不解锁复用的结论，这是契约允许的路径，如实记录而不是假装通过
-        check("非解锁型结论下案例芯片保持锁态（契约如此，不是缺陷）",
-              page.locator(".ev-chip.case.locked").count() == 1)
+        check("非解锁型结论下案例依据入口保持锁态（契约如此，不是缺陷）",
+              page.locator(".wb-ai-kb-link:disabled").count() == 1)
+        page.keyboard.press("Escape")
 
     # ---------------------------------------------------------------- 8. 采纳支线对照
     print("\n== 8. 采纳支线：报告段数必须与分歧支线不同 ==")
     page.click('[data-action="reset-demo"]')
     check("重置后回到工作台", page.locator(".wb-layout").count() == 1)
-    check("重置后归档重新锁定",
-          page.locator('.scene-nav-btn[data-scene-key="archive"]').is_disabled())
+    check("重置后仍无顶部归档场景",
+          page.locator('.scene-nav-btn[data-scene-key="archive"]').count() == 0)
 
-    page.click('[data-action="go-review"]')
+    open_ai_list(page)
+    page.click('.wb-ai-list-overlay [data-action="go-review"]')
     page.click('[data-action="review-vote"][data-vote-id="accept"]')
     check("采纳后自动预选 AI 建议的结论", page.locator(".rv-outcome.active").count() == 1)
     check("采纳后不出现分歧条", page.locator(".rv-divergence").count() == 0)
@@ -398,17 +431,26 @@ def run(page):
               not page.locator('[data-action="go-archive"]').is_disabled())
 
     page.click('[data-action="go-archive"]')
-    accept_sections = page.locator(".ar-section").count()
-    check("采纳支线不含分歧段", page.locator(".ar-section#divergence").count() == 0)
+    check("采纳支线打开报告预览浮窗", page.locator(".rv-report-overlay").count() == 1)
+    check("采纳支线报告浮窗打开时流程条 current 切到归档",
+          page.locator(".flow-step.current").filter(has_text="归档").count() == 1)
+    accept_sections = page.locator(".rv-report-document .ar-section").count()
+    check("采纳支线不含分歧段", "复核分歧" not in text_of(page, ".rv-report-document"))
     check(
         "两条支线的报告段数不同（采纳 %d 段 vs 驳回 %d 段）——相同则说明人工介入只是装饰"
         % (accept_sections, divergent_sections),
         accept_sections != divergent_sections,
     )
-    page.screenshot(path=str(SHOTS / "14-archive-accept.png"))
+    page.screenshot(path=str(SHOTS / "14-report-overlay-accept.png"))
+    page.click('[data-action="archive-report"]')
+    check("归档后复测不通过入口锁定",
+          page.locator('[data-action="retest-fail"]').is_disabled())
+    check("归档后状态仍为已归档", page.evaluate("() => window.AppState.value.archived === true"))
 
 
 def main():
+    if SHOTS.exists():
+        shutil.rmtree(SHOTS)
     SHOTS.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -443,6 +485,39 @@ def main():
                       and small.locator(".ag-answer-card.enhanced").count() == 1)
                 small.screenshot(path=str(SHOTS / ("15-agent-skill-%dx%d.png" % (width, height))))
                 small.close()
+
+            report = browser.new_page(viewport={"width": 390, "height": 844})
+            report.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
+            report.on("pageerror", lambda e: console_errors.append("pageerror: " + str(e)))
+            report.goto(INDEX.as_uri(), wait_until="domcontentloaded")
+            report.wait_for_selector(".wb-layout", timeout=8000)
+            open_ai_list(report)
+            report.click('.wb-ai-list-overlay [data-action="go-review"]')
+            report.click('[data-action="review-vote"][data-vote-id="accept"]')
+            fill_required_selects(report)
+            report.click('[data-action="execute-review"]')
+            if report.locator('[data-action="retest-pass"]').count():
+                report.click('[data-action="retest-pass"]')
+            ticket_box = report.locator(".rv-ticket").bounding_box()
+            note_box = report.locator(".rv-exec-note").bounding_box()
+            retest_box = report.locator(".rv-retest").bounding_box()
+            exec_single_col = bool(ticket_box and note_box and retest_box) \
+                and ticket_box["width"] > 320 and note_box["width"] > 320 and retest_box["width"] > 320 \
+                and ticket_box["y"] < note_box["y"] < retest_box["y"]
+            check("小屏 390x844 下执行屏改单列", exec_single_col)
+            report.screenshot(path=str(SHOTS / "executed-390x844.png"), full_page=True)
+            report.click('[data-action="go-archive"]')
+            report.wait_for_selector(".rv-report-overlay", timeout=3000)
+            report.wait_for_timeout(250)
+            box = report.locator(".rv-report-overlay").bounding_box()
+            fits = bool(box) and box["x"] >= -1 and box["y"] >= -1 \
+                and box["x"] + box["width"] <= 391 \
+                and box["y"] + box["height"] <= 845
+            check("小屏 390x844 下报告浮层留在视口内", fits)
+            check("小屏 390x844 下报告正文可读",
+                  report.locator(".rv-report-document .ar-section").count() >= 5)
+            report.screenshot(path=str(SHOTS / "report-overlay-390x844.png"))
+            report.close()
         finally:
             browser.close()
 

@@ -77,14 +77,14 @@
   // ---------- ② 归档动作：单个 primary 按钮，承载于 renderArchive() 顶部的 pageShell
   // action 位——state.archived 的判断和"已归档 / 确认归档"文案原样保留，未挪动、未改写。
 
-  // ---------- ③ 二次命中解锁卡：归档后 P-2 可引用 P-1 案例，闭环收尾 ----------
+  // ---------- ③ 二次命中解锁卡：归档后相似工单可引用当前案例，闭环收尾 ----------
 
   function renderReuseCard() {
     var canReuse = state.archived && DATA.isMaintenanceVerdict(state.expertVerdict);
-    var buttonText = canReuse ? "查看 P-2 命中建议" : state.archived ? "查看归档记录问答" : "查看当前 Agent 解释";
+    var buttonText = canReuse ? "查看相似命中建议" : state.archived ? "查看归档记录问答" : "查看当前 Agent 解释";
     var dialogId = canReuse ? "archive-case-agent" : state.archived ? "archive-record-agent" : "workbench-agent";
     return h("section", { class: "panel reuse-panel " + (canReuse ? "unlocked" : "locked") }, [
-      AppState.panelTitle("二次 Agent 命中预览", canReuse ? "P-2 reused" : "locked"),
+      AppState.panelTitle("二次 Agent 命中预览", canReuse ? "reused" : "locked"),
       h("div", { class: "reuse-grid" }, [
         h("div", {}, [
           h("h3", { text: canReuse ? "二次 Agent 命中 · " + DATA.reuse().title : DATA.reuse().title }),
@@ -104,8 +104,8 @@
 
   function reuseText(canReuse) {
     if (canReuse) return DATA.caseKnowledge().secondPass.summary;
-    if (state.archived && AppState.isNonMaintenanceVerdict(state.expertVerdict)) return "本轮为非维修闭环，仅归档观察/误报记录，不触发 P-2 维修案例命中。";
-    return "完成 P-1 维修处置案例归档后，P-2 相似异常命中才会解锁。";
+    if (state.archived && AppState.isNonMaintenanceVerdict(state.expertVerdict)) return "本轮为非维修闭环，仅归档观察/误报记录，不触发维修案例命中。";
+    return "完成输油泵故障复核案例归档后，相似工单命中才会解锁。";
   }
 
   window.Scenes = window.Scenes || {};

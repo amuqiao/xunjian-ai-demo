@@ -186,16 +186,16 @@
   function currentStatusLine() {
     if (state.scene === "graph" && state.pick.knowledge.view === "library") return "参考视图：泵知识库已加载作业卡、规则、报告和归档案例，可打开 Agent 问答查看静态命中标签。";
     if (state.scene === "graph") return "参考视图：新知识图谱模块已加载，可在知识图和知识库之间切换。";
-    if (state.archived && DATA.isMaintenanceVerdict(state.expertVerdict)) return "P-1 维修案例已归档，P-2 二次相似命中已解锁。";
+    if (state.archived && DATA.isMaintenanceVerdict(state.expertVerdict)) return "输油泵故障复核案例已归档，相似工单命中已解锁。";
     if (state.archived) return "非维修结论已归档为观察/模型反馈记录，不触发二次维修案例命中。";
     if (state.treatmentDone) return "处置票卡和复测证据已确认，可生成归档报告。";
     if (state.observationDone) return "非维修结论已形成闭环记录，可归档为观察/模型反馈样本。";
-    if (DATA.isMaintenanceVerdict(state.expertVerdict)) return "专家已确认疑似不对中，待执行处置票卡和复测确认。";
+    if (DATA.isMaintenanceVerdict(state.expertVerdict)) return "专家已确认进入输油泵故障复核，待执行处置票卡和复测确认。";
     if (state.expertVerdict) return "专家已选择非维修结论，待生成观察记录或误报反馈。";
     if (state.scene === "confirm") return "已进入复核确认，请选择专家结论和处置路径。";
     if (state.scene === "workbench") return "诊断工作台已加载巡检记录、时序模型、视觉/数据、规则和 Agent 证据。";
-    if (state.scene === "station") return "部位态势已定位到 P-1 联轴器、泵驱动端轴承和底座风险点。";
-    return "本轮 P-1 关注级异常已加载，请从泵部位态势进入部位诊断。";
+    if (state.scene === "station") return "部位态势已定位到 P-1 输油泵关键部位和风险点。";
+    return "本轮 P-1 典型故障复核任务已加载，请从泵部位态势进入部位诊断。";
   }
 
   function renderNav() {
@@ -321,7 +321,7 @@
     flowHint.textContent = state.scene === "graph"
       ? "流程步骤 · 当前为知识参考视图，不改变主闭环进度"
       : state.archived && DATA.isMaintenanceVerdict(state.expertVerdict)
-        ? "流程步骤 · P-1 已归档为泵不对中案例，可供 P-2 相似异常命中"
+        ? "流程步骤 · 输油泵故障案例已归档，可供相似工单命中"
         : "流程步骤 · 部位、时序、视觉/数据、规则和 Agent 均只辅助专家判断";
     var active = activeFlowIndex();
     flowTrack.innerHTML = "";

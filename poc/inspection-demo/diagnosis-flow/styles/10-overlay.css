@@ -2,7 +2,7 @@
    浮层挂在 #overlayRoot（app-shell 之外），所以要自己做一次等比缩放，
    否则在缩放后的窗口里会比底层界面大一圈。 */
 
-#overlayRoot { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+#overlayRoot { position: fixed; inset: 0; pointer-events: none; z-index: 400; }
 
 .overlay-mask {
   position: absolute;

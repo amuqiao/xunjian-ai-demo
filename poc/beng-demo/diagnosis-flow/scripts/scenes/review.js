@@ -66,14 +66,19 @@
           focusKey: "review-evidence:vision"
         },
         text: "视觉证据"
-      }) : null,
-      h("button", {
-        type: "button",
-        class: "plain-button",
-        dataset: { action: "open-agent", agentContext: "review", focusKey: "review-agent" },
-        text: "问 Agent"
-      })
+      }) : null
     ]);
+  }
+
+  function renderReviewAgentFab() {
+    return h("button", {
+      type: "button",
+      class: "wb-agent-fab rv-agent-fab",
+      title: "Agent 问答",
+      "aria-label": "打开人工复核 Agent 问答",
+      dataset: { action: "open-agent", agentContext: "review", focusKey: "review-agent" },
+      text: "AI"
+    });
   }
 
   function renderTicketCard() {
@@ -211,7 +216,8 @@
             text: archived ? "已归档到知识库" : "生成报告"
           })
         ])
-      ])
+      ]),
+      renderReviewAgentFab()
     ]);
   }
 

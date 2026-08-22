@@ -38,7 +38,6 @@
     var map = {
       workbench: Scenes.renderWorkbench,
       review: Scenes.renderReview,
-      archive: Scenes.renderArchive,
       knowledge: Scenes.renderKnowledge
     };
     var fn = map[state.scene];
@@ -87,8 +86,9 @@
     if (state.agent.open) return "agent";
     if (state.detail === "trend") return "trend";
     if (state.detail === "vision") return "vision";
+    if (state.pick.reviewArchiveOpen) return "archive";
     if (state.scene === "review") return "review";
-    if (state.scene === "archive" || state.scene === "knowledge") return "archive";
+    if (state.scene === "knowledge") return "archive";
     return "inspection";
   }
 
@@ -148,7 +148,6 @@
     if (state.scene === "workbench" && state.detail) hook = Scenes.renderDetailScreenCharts;
     else if (state.scene === "workbench") hook = Scenes.renderWorkbenchCharts;
     else if (state.scene === "review") hook = Scenes.renderReviewCharts;
-    else if (state.scene === "archive") hook = Scenes.renderArchiveCharts;
     if (typeof hook === "function") hook();
   }
 
@@ -156,6 +155,12 @@
     var Scenes = window.Scenes || {};
     var nodes = [];
     if (typeof Scenes.renderAgentOverlay === "function") nodes.push(Scenes.renderAgentOverlay());
+    if (state.scene === "workbench" && typeof Scenes.renderWorkbenchOverlays === "function") {
+      nodes = nodes.concat(Scenes.renderWorkbenchOverlays());
+    }
+    if (state.scene === "review" && typeof Scenes.renderReviewOverlays === "function") {
+      nodes = nodes.concat(Scenes.renderReviewOverlays());
+    }
     if (state.scene === "knowledge" && typeof Scenes.renderKnowledgeOverlays === "function") {
       nodes = nodes.concat(Scenes.renderKnowledgeOverlays());
     }
@@ -225,6 +230,8 @@
     if (state.scene !== sceneKey) window.SceneTimers.clearScene(state.scene);
     state.scene = sceneKey;
     state.detail = "";
+    state.pick.workbenchAiListOpen = false;
+    state.pick.reviewArchiveOpen = false;
     closeAgentState();
     AppState.markFlowStep(flowStepOfScene(sceneKey));
     commit();
@@ -233,7 +240,7 @@
 
   function flowStepOfScene(sceneKey) {
     if (sceneKey === "review") return "review";
-    if (sceneKey === "archive" || sceneKey === "knowledge") return "archive";
+    if (sceneKey === "knowledge") return "archive";
     return "inspection";
   }
 
@@ -246,6 +253,7 @@
       // 选中记录时把焦点部位一并对齐：右侧的时序 / 视觉 / AI 判断都按部位取数，
       // 不对齐就会出现"标题是 A 部位、曲线画的是 B 部位"这种只能靠肉眼发现的错配。
       state.focus.partId = AppState.recordById(id).partId;
+      state.pick.workbenchAiListOpen = true;
       state.pick.trend.pointId = null;
       state.pick.vision.frameId = null;
     },
@@ -398,6 +406,7 @@
     state.review.fields = AppState.defaultFields(outcomeId);
     state.review.executed = false;
     state.review.retestPassed = null;
+    state.pick.reviewArchiveOpen = false;
     AppState.markFlowStep("review");
     commit();
   }
@@ -422,6 +431,7 @@
     }
     state.review.executed = false;
     state.review.retestPassed = null;
+    state.pick.reviewArchiveOpen = false;
     AppState.markFlowStep("review");
     commit();
   }
@@ -483,8 +493,10 @@
 
   function executeReview() {
     if (!AppState.canExecute()) return;
+    var outcome = AppState.currentOutcome();
     state.review.executed = true;
     state.review.retestPassed = null;
+    state.pick.reviewArchiveOpen = outcome && !outcome.retest.enable;
     AppState.markFlowStep("archive");
     commit();
     resetScroll();
@@ -500,19 +512,45 @@
   // executed 置回 false。一条只能往前点的 demo，观众一眼就知道是假的。
   function retestFail() {
     if (!state.review.executed) return;
+    if (state.archived) return;
     state.review.retestPassed = false;
     state.review.executed = false;
     state.archived = false;
     state.scene = "review";
+    state.pick.reviewArchiveOpen = false;
     commit();
     resetScroll();
   }
 
-  function archiveReport() {
+  function openReportArchive() {
     if (!state.review.executed) return;
-    state.archived = true;
+    state.scene = "review";
+    state.detail = "";
+    state.pick.reviewArchiveOpen = true;
     AppState.markFlowStep("archive");
     commit();
+  }
+
+  function closeReportArchive() {
+    state.pick.reviewArchiveOpen = false;
+    commit();
+  }
+
+  function archiveReport() {
+    if (!state.review.executed) return;
+    var outcome = AppState.currentOutcome();
+    if (outcome && outcome.retest.enable && state.review.retestPassed !== true) return;
+    state.archived = true;
+    state.pick.reviewArchiveOpen = false;
+    state.scene = "review";
+    state.detail = "";
+    state.pick.knowledge.categoryId = window.DOMAIN_KB.archiveTarget().categoryId;
+    state.pick.knowledge.docId = null;
+    state.pick.knowledge.chunkIndex = null;
+    closeAgentState();
+    AppState.markFlowStep("archive");
+    commit();
+    resetScroll();
   }
 
   // 归档产物是一篇"运行期才存在"的文档（core/report.js 的 archivedDocument），
@@ -530,6 +568,8 @@
   function openEvidence(element) {
     var kind = element.dataset.evidenceKind;
     if (element.dataset.evidenceLocked === "true") return;
+    state.pick.workbenchAiListOpen = false;
+    state.pick.reviewArchiveOpen = false;
     if (kind === "series") {
       state.detail = "trend";
       state.pick.trend.pointId = element.dataset.pointId;
@@ -577,7 +617,7 @@
     if (action === "go-scene") return setScene(element.dataset.sceneKey);
     if (action === "go-workbench") return setScene("workbench");
     if (action === "go-review") return setScene("review");
-    if (action === "go-archive") return setScene("archive");
+    if (action === "go-archive") return openReportArchive();
     if (action === "go-knowledge") return setScene("knowledge");
 
     if (action === "set-range") {
@@ -593,6 +633,7 @@
 
     if (action === "open-trend-detail") {
       state.detail = "trend";
+      state.pick.workbenchAiListOpen = false;
       state.pick.trend.pointId = AppState.primaryPoint(state.focus.partId).id;
       AppState.markFlowStep("trend");
       commit();
@@ -600,6 +641,7 @@
     }
     if (action === "open-vision-detail") {
       state.detail = "vision";
+      state.pick.workbenchAiListOpen = false;
       state.pick.vision.frameId = AppState.currentFrameOf(state.focus.partId).id;
       AppState.markFlowStep("vision");
       commit();
@@ -629,6 +671,10 @@
       state.pick.vision.zoomOpen = false;
       return commit();
     }
+    if (action === "close-ai-list") {
+      state.pick.workbenchAiListOpen = false;
+      return commit();
+    }
 
     if (action === "open-agent") return openAgent(element);
     if (action === "select-agent-question") return selectAgentQuestion(element);
@@ -649,6 +695,7 @@
     if (action === "retest-fail") return retestFail();
 
     if (action === "archive-report") return archiveReport();
+    if (action === "close-report-archive") return closeReportArchive();
 
     if (action === "open-doc") {
       var docId = element.dataset.docId;
@@ -720,8 +767,16 @@
         state.pick.vision.zoomOpen = false;
         return commit();
       }
+      if (state.pick.workbenchAiListOpen) {
+        state.pick.workbenchAiListOpen = false;
+        return commit();
+      }
       if (state.agent.open) {
         closeAgentState();
+        return commit();
+      }
+      if (state.pick.reviewArchiveOpen) {
+        state.pick.reviewArchiveOpen = false;
         return commit();
       }
       if (state.pick.knowledge.docId) {

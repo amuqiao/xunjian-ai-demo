@@ -38,7 +38,7 @@
 
   // 结构一变就换 key、旧状态整体丢弃，不做半新半旧的字段级兼容——演示机上留一份
   // 半坏状态是最容易在现场翻车的东西。
-  var STORAGE_KEY = "diagnosis-flow-v1-state";
+  var STORAGE_KEY = "diagnosis-flow-v2-state";
 
   var SCENE_ORDER = META.scenes.map(function (scene) { return scene.key; });
   var DETAILS = ["", "trend", "vision"];
@@ -148,6 +148,8 @@
 
       pick: {
         workbench: META.entry.recordId,
+        workbenchAiListOpen: false,
+        reviewArchiveOpen: false,
         trend: { pointId: null },
         vision: { frameId: null, zoomOpen: false },
         knowledge: { categoryId: null, docId: null, chunkIndex: null, ingestStep: 0, ingestOpen: false }
@@ -246,6 +248,8 @@
 
     return {
       workbench: workbench,
+      workbenchAiListOpen: source.workbenchAiListOpen === true,
+      reviewArchiveOpen: source.reviewArchiveOpen === true,
       trend: { pointId: pointId },
       vision: { frameId: frameId, zoomOpen: visionSource.zoomOpen === true },
       knowledge: {
@@ -339,10 +343,12 @@
     clean.agent = cleanAgent(clean.agent);
     clean.review = cleanReview(clean.review);
     clean.archived = clean.archived === true && clean.review.executed;
+    if (!clean.review.executed || clean.scene !== "review") clean.pick.reviewArchiveOpen = false;
 
     // 子屏只属于工作台。持久化状态里 scene=knowledge 且 detail=trend 是一种"合法字段
     // 组合但语义矛盾"的脏状态，会让知识库页被时序子屏整屏盖住。
     if (clean.scene !== "workbench") clean.detail = "";
+    if (clean.scene !== "workbench" || clean.detail) clean.pick.workbenchAiListOpen = false;
 
     clean.flowVisited = Array.isArray(clean.flowVisited)
       ? clean.flowVisited.filter(function (key) {
@@ -434,7 +440,6 @@
   function retestFailed() { return state.review.retestPassed === false; }
 
   function canOpenForState(sceneKey, target) {
-    if (sceneKey === "archive") return target.review.executed === true;
     return SCENE_ORDER.indexOf(sceneKey) >= 0;
   }
 

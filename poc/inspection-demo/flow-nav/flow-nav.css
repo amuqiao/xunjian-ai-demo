@@ -1,11 +1,25 @@
 .inspection-flow-nav {
+  --nav-bg: rgba(6, 18, 28, 0.72);
+  --nav-border: rgba(124, 185, 218, 0.34);
+  --nav-text: #dff8ff;
+  --nav-active-text: #061019;
+  --nav-active-bg: linear-gradient(135deg, #38c6ec, #30c69d);
+  --nav-active-border: rgba(56, 198, 236, 0.78);
+  --nav-label-bg: rgba(6, 18, 28, 0.9);
+  --nav-label-border: rgba(124, 185, 218, 0.28);
+
   position: fixed;
-  left: 16px;
-  top: 50%;
+  left: 18px;
+  bottom: 18px;
   z-index: 9999;
-  display: grid;
-  gap: 10px;
-  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid var(--nav-border);
+  border-radius: 999px;
+  background: rgba(6, 18, 28, 0.52);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.30);
+  backdrop-filter: blur(14px);
   pointer-events: none;
 }
 
@@ -15,39 +29,37 @@
   height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(124, 185, 218, 0.34);
+  border: 1px solid var(--nav-border);
   border-radius: 999px;
-  color: #dff8ff;
+  color: var(--nav-text);
   text-decoration: none;
   font: 800 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: rgba(6, 18, 28, 0.72);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(12px);
+  background: var(--nav-bg);
   pointer-events: auto;
 }
 
 .inspection-flow-nav a:hover,
 .inspection-flow-nav a:focus-visible,
 .inspection-flow-nav a.is-active {
-  border-color: rgba(56, 198, 236, 0.78);
-  color: #061019;
-  background: linear-gradient(135deg, #38c6ec, #30c69d);
+  border-color: var(--nav-active-border);
+  color: var(--nav-active-text);
+  background: var(--nav-active-bg);
 }
 
 .inspection-flow-nav a::after {
   content: attr(data-label);
   position: absolute;
-  left: 44px;
-  top: 50%;
+  left: 50%;
+  bottom: 44px;
   min-width: 116px;
   padding: 7px 9px;
-  border: 1px solid rgba(124, 185, 218, 0.28);
+  border: 1px solid var(--nav-label-border);
   border-radius: 6px;
-  color: #edf8fb;
+  color: var(--nav-text);
   white-space: nowrap;
-  background: rgba(6, 18, 28, 0.9);
+  background: var(--nav-label-bg);
   opacity: 0;
-  transform: translateY(-50%) translateX(-4px);
+  transform: translateX(-50%) translateY(4px);
   transition: opacity 0.16s ease, transform 0.16s ease;
   pointer-events: none;
 }
@@ -55,13 +67,15 @@
 .inspection-flow-nav a:hover::after,
 .inspection-flow-nav a:focus-visible::after {
   opacity: 1;
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(-50%) translateY(0);
 }
 
 @media (max-width: 900px) {
   .inspection-flow-nav {
-    left: 10px;
-    gap: 7px;
+    left: 12px;
+    bottom: 12px;
+    gap: 6px;
+    padding: 6px;
   }
 
   .inspection-flow-nav a {

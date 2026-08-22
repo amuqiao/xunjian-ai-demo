@@ -28,44 +28,11 @@
   .scene-head h2 { font-size: 20px; }
 
   .wb-layout {
-    grid-template-columns: minmax(460px, 38vw) minmax(0, 1fr);
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  .wb-records,
-  .wb-card { padding: 10px 12px; }
-
-  .wb-focus { grid-template-rows: 40px minmax(0, 1fr); gap: 10px; }
-  .wb-focus-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(320px, 0.95fr);
-    grid-template-rows: minmax(0, 1fr) minmax(168px, 180px);
-    grid-template-areas:
-      "trend vision ai"
-      "agent agent ai";
-    gap: 10px;
-  }
-
-  .wb-trend { grid-area: trend; }
-  .wb-vision { grid-area: vision; }
-  .wb-ai {
-    grid-area: ai;
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  }
-  .wb-agent { grid-area: agent; }
-  .wb-ai .ev-chain-wrap { min-height: 0; overflow: auto; }
-
-  .wb-summary {
-    gap: 10px;
-    padding: 0 12px;
-    min-width: 0;
-  }
-
-  .wb-summary span:first-child {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  .wb-records { padding: 10px 12px; }
 
   .ev-chain { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ev-chip { padding: 6px 8px; }
@@ -97,21 +64,11 @@
 
   .scene-nav-btn { padding: 7px 10px; font-size: 12.5px; }
 
-  .wb-layout {
-    grid-template-columns: minmax(420px, 35vw) minmax(0, 1fr);
-  }
-
-  .wb-focus-grid {
-    grid-template-rows: minmax(0, 1fr) minmax(190px, 230px);
-  }
+  .wb-layout { grid-template-columns: 1fr; }
 
   .panel-title { margin-bottom: 8px; padding-bottom: 6px; }
   .panel-title > span { font-size: 14px; }
   .panel-title > small { font-size: 11px; }
-  .wb-ai-conclusion,
-  .wb-agent p { font-size: 12.5px; line-height: 1.55; }
-  .wb-agent-tags { gap: 5px; }
-  .wb-agent-tags span { padding: 2px 7px; font-size: 10.5px; }
 
   .dt-trend-grid { grid-template-columns: minmax(0, 1fr) 300px; }
   .dt-vision-grid { grid-template-columns: minmax(0, 1fr) 292px; }
@@ -165,28 +122,32 @@
   .flow-index { grid-row: 1; }
 
   .wb-layout {
-    grid-template-columns: minmax(340px, 28vw) minmax(0, 1fr);
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 8px;
   }
 
-  .wb-focus { grid-template-rows: 34px minmax(0, 1fr); gap: 8px; }
-  .wb-summary { font-size: 12px; }
-  .wb-focus-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: minmax(240px, 1fr) minmax(270px, 280px);
-    grid-template-areas:
-      "trend vision"
-      "ai agent";
-    min-height: 518px;
+  .rv-grid {
+    grid-template-columns: minmax(330px, 0.82fr) minmax(0, 1.18fr);
+    gap: 8px;
   }
 
-  .wb-ai {
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  .rv-ticket-match,
+  .rv-panel,
+  .rv-path {
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 
-  .wb-ai .ev-chain-wrap {
-    min-height: 0;
-    overflow: hidden;
+  .rv-match-card {
+    gap: 9px;
+    padding: 11px;
   }
+
+  .rv-match-score strong { font-size: 23px; }
+  .rv-ticket-summary { font-size: 12px; line-height: 1.5; }
+  .rv-vote-block { padding: 10px; }
+  .rv-fields-block { gap: 8px; }
 
   .ev-chain {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -205,23 +166,25 @@
     display: none;
   }
 
-  .wb-agent {
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
-  }
-
-  .wb-agent-tags {
-    max-height: 42px;
-    overflow: hidden;
-  }
-
-  .wb-records,
-  .wb-card { padding: 9px 10px; }
+  .wb-records { padding: 9px 10px; }
   .ev-rule-card { padding: 7px 9px; }
   .ev-rule-card p { line-height: 1.55; }
   .wb-alert,
   .wb-finding { margin: 4px 0; font-size: 11.5px; }
-  .wb-agent p { line-height: 1.55; }
   .wb-range-btn { padding: 5px 10px; font-size: 12px; }
+  .wb-ai-service {
+    padding: 7px 9px;
+    grid-template-columns: minmax(140px, 0.22fr) minmax(0, 1fr) 64px minmax(126px, 0.18fr);
+  }
+  .wb-ai-kb-links { margin-top: 8px; }
+  .wb-agent-fab,
+  .kb-agent-fab,
+  .rv-agent-fab {
+    right: 18px;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+  }
   .plain-button,
   .primary-action { padding-top: 7px; padding-bottom: 7px; }
 
@@ -255,22 +218,11 @@
   .flow-step { grid-template-rows: auto; align-items: center; }
   .flow-index { grid-row: 1; }
 
-  .wb-focus { grid-template-rows: 32px minmax(0, 1fr); gap: 6px; }
-  .wb-summary { font-size: 12px; }
-  .wb-focus-grid {
-    grid-template-rows: minmax(240px, 1fr) minmax(270px, 280px);
-    min-height: 518px;
-    gap: 8px;
-  }
-
-  .wb-records,
-  .wb-card { padding: 9px 10px; }
+  .wb-records { padding: 9px 10px; }
   .ev-rule-card { padding: 7px 9px; }
   .ev-rule-card p { line-height: 1.55; }
   .wb-alert,
   .wb-finding { margin: 4px 0; font-size: 11.5px; }
-  .wb-agent p { line-height: 1.55; }
-  .wb-agent-tags { max-height: 42px; overflow: hidden; }
   .wb-range-btn { padding: 5px 10px; font-size: 12px; }
   .plain-button,
   .primary-action { padding-top: 7px; padding-bottom: 7px; }
@@ -333,28 +285,34 @@
     grid-template-columns: 1fr;
   }
 
-  .wb-records {
-    min-height: 320px;
+  .rv-grid {
+    grid-template-columns: 1fr;
+    height: auto;
   }
 
-  .wb-focus {
+  .rv-exec-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rv-review-column {
     grid-template-rows: auto auto;
   }
 
-  .wb-summary {
-    min-height: 42px;
-    flex-wrap: wrap;
-    align-content: center;
+  .rv-ticket-match,
+  .rv-panel,
+  .rv-path,
+  .rv-ticket,
+  .rv-exec-note,
+  .rv-retest {
+    overflow: visible;
   }
 
-  .wb-focus-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(260px, 34vh) minmax(260px, 34vh) auto auto;
-    grid-template-areas:
-      "trend"
-      "vision"
-      "ai"
-      "agent";
+  .rv-path {
+    padding-right: 16px;
+  }
+
+  .wb-records {
+    min-height: 320px;
   }
 
   .wb-trend-chart,
@@ -392,6 +350,18 @@
 
   .overlay-panel.ag-overlay .overlay-body {
     padding: 12px;
+  }
+
+  .overlay-panel.rv-report-overlay {
+    width: min(1120px, 90vw);
+  }
+
+  .overlay-panel.rv-report-overlay .overlay-body {
+    max-height: min(70vh, 620px);
+  }
+
+  .rv-report-summary {
+    grid-template-columns: 78px minmax(0, 1fr);
   }
 
   .ag-grid {
@@ -433,6 +403,27 @@
     gap: 8px;
   }
 
+  .overlay-panel.wb-ai-list-overlay {
+    width: min(96vw, 980px);
+  }
+
+  .wb-ai-service {
+    grid-template-columns: 1fr auto;
+  }
+
+  .wb-ai-service-head,
+  .wb-ai-service p,
+  .wb-ai-service small,
+  .wb-ai-confidence,
+  .wb-ai-evidence-entry {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .wb-ai-service p {
+    white-space: normal;
+  }
+
   .inspection-flow-nav {
     left: 50% !important;
     right: auto !important;
@@ -444,6 +435,119 @@
 
   .inspection-flow-nav a::after {
     display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .rv-ticket-match,
+  .rv-panel,
+  .rv-path {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .rv-match-card-head,
+  .rv-match-score,
+  .rv-note-head,
+  .rv-retest-banner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .rv-match-meta {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .rv-match-meta dd {
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  .rv-ticket-actions .plain-button {
+    flex: 1 1 120px;
+  }
+
+  .rv-vote-options,
+  .rv-fields-block,
+  .rv-path-body {
+    grid-template-columns: 1fr;
+  }
+
+  .rv-path {
+    padding-bottom: 66px;
+  }
+
+  .rv-exec-grid {
+    padding-bottom: 66px;
+  }
+
+  .rv-path-steps {
+    display: grid;
+    gap: 5px;
+  }
+
+  .overlay-panel.rv-report-overlay {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 48px);
+    background: #080d1e;
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.72);
+  }
+
+  .overlay-panel.rv-report-overlay .overlay-head,
+  .overlay-panel.rv-report-overlay .overlay-body,
+  .overlay-panel.rv-report-overlay .overlay-foot {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .overlay-panel.rv-report-overlay .overlay-body {
+    display: block;
+    max-height: none;
+    overflow: auto;
+  }
+
+  .rv-report-summary {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 6px 9px;
+    padding: 10px;
+    background: rgba(18, 28, 52, 0.96);
+    font-size: 11.5px;
+  }
+
+  .rv-report-summary dd {
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  .rv-report-tip {
+    margin: 10px 0;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .rv-report-document {
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: #0b1224;
+    overflow: visible;
+  }
+
+  .rv-report-document .ar-section {
+    padding: 8px 9px;
+    background: rgba(18, 28, 52, 0.94);
+  }
+
+  .rv-report-document .ar-section.human {
+    background: rgba(24, 42, 76, 0.98);
+  }
+
+  .rv-report-document .ar-section p {
+    font-size: 12px;
+    line-height: 1.6;
   }
 }
 
