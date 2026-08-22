@@ -124,12 +124,17 @@
           itemStyle: { color: t.danger, borderColor: "#05060f", borderWidth: 2 },
           label: {
             show: true,
-            position: "top",
-            distance: 10,
+            // 往左标，不往上标：末点就在 x 轴最右端，position: "top" 会让标签越过
+            // grid 右边界被裁掉（实测「9.3MPa（距联锁线 0.5MPa）」只剩前半截）。
+            position: "left",
+            distance: 12,
             color: t.ink,
             fontSize: 13,
             fontWeight: 700,
+            // 末点不只报数值，还报"距联锁线还有多少" —— 这一条异常的价值就在这段余量
+            // 里：它是在还没到必须停泵的窗口里被拿出来复核的，不是事后追。
             formatter: point.fieldReading.toFixed(1) + point.unit
+              + "（距联锁线 " + (point.dangerAt - point.fieldReading).toFixed(1) + point.unit + "）"
           },
           data: [{ coord: [rows.length - 1, rows[rows.length - 1].value] }]
         },
@@ -145,11 +150,16 @@
             position: "insideEndTop",
             color: t.muted,
             fontSize: 12,
-            formatter: function (p) { return p.name + " " + p.value.toFixed(1) + point.unit; }
+            // 名字 + 数值 + 这条线做什么。note 来自 domain 的测点契约，不在这里写死。
+            formatter: function (p) {
+              return p.name + " " + p.value.toFixed(1) + point.unit + " · " + p.data.note;
+            }
           },
           data: [
-            { name: "高报警", yAxis: point.warnAt, lineStyle: { color: t.warn, type: "dashed", width: 1.4 } },
-            { name: "高高报警", yAxis: point.dangerAt, lineStyle: { color: t.danger, type: "dashed", width: 1.4 } }
+            { name: "高报警", note: point.warnNote, yAxis: point.warnAt,
+              lineStyle: { color: t.warn, type: "dashed", width: 1.4 } },
+            { name: "高高报警", note: point.dangerNote, yAxis: point.dangerAt,
+              lineStyle: { color: t.danger, type: "dashed", width: 1.4 } }
           ]
         },
         // 高报警线以上整条横带染色：表达"这一段在报警区间里"。

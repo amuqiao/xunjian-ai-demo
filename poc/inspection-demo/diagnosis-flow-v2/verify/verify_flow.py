@@ -288,6 +288,35 @@ def main():
         check(page.evaluate("() => document.querySelector('.ag-drawer').textContent.indexOf('引用 · 巡检智能复核报告') >= 0"),
               "★ 归档后 Agent 抽屉能引用刚入库的复核报告（归档前它会如实说还没入库）")
 
+        # ---- 语料体检：条数、引用有效性、以及"退役概念一个都不许出现" ----
+        # 业务方那份 17 问里有一批本 POC 没有依据的说法（RTK / 电子围栏 / 安全帽识别 /
+        # 机器人巡检 / 无人机巡检 / 远程 AR 专家 / 离线缓存 …）。它们已经在 07-kb.js
+        # 文件头列明删除理由。这条断言盯着它们别被"顺手补全"回来 —— 一旦回来，路演现场
+        # 一追问就露，而这是没法靠肉眼复查发现的。
+        corpus = page.evaluate("""() => {
+          const KB = window.DOMAIN_KB;
+          const ids = KB.assets.map(a => a.id);
+          const counts = {}; const bad = []; const dangling = [];
+          Object.keys(KB.agentContexts).forEach(k => {
+            const qs = KB.agentContexts[k].questions;
+            counts[k] = qs.length;
+            qs.forEach(q => {
+              if (!q.text || !q.answer) bad.push(q.id);
+              q.cites.forEach(c => { if (ids.indexOf(c) < 0) dangling.push(q.id + '->' + c); });
+            });
+          });
+          return { counts: counts, bad: bad, dangling: dangling,
+                   blob: JSON.stringify(KB) };
+        }""")
+        check(corpus["counts"] == {"workbench": 7, "review": 5, "knowledge": 6},
+              "三页语料条数 7 / 5 / 6（实际 %s）" % corpus["counts"])
+        check(not corpus["bad"], "每一问都有题干和答案（实际缺失 %s）" % corpus["bad"])
+        check(not corpus["dangling"], "★ 引用全部指向真实资产，无悬空引用（实际 %s）" % corpus["dangling"])
+        RETIRED_TERMS = ["RTK", "电子围栏", "无人机", "机器人", "安全帽", "工装", "吸烟",
+                         "烟火", "AR", "离线缓存", "IMS", "95%", "人机协同", "振动", "电位"]
+        hit = [w for w in RETIRED_TERMS if w in corpus["blob"]]
+        check(not hit, "★ 退役概念未回流进语料（命中 %s）" % hit)
+
         # 业务方给的三条高频问答：历史案例（工作台）、联锁口径（知识库）、检修计划（知识库）
         page.eval_on_selector('.ag-drawer [data-question-id="Q-KB-4"]', "el => el.click()")
         page.wait_for_timeout(1400)
@@ -318,6 +347,34 @@ def main():
         check(hv["case_"], "★ 配电室历史成因一问答出操作柱接线松动并引用 2026-04-24 案例")
         check(abs(hv["ratio"] - 0.5) < 0.01, "★ AI 助手抽屉占半屏（实际 %.3f）" % hv["ratio"])
         check(hv["cols"] == 2, "抽屉内部左问题栏 + 右对话栏两栏（实际 %s）" % hv["cols"])
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(400)
+        # 两条阈值线各自标出"做什么"，末点标出距联锁线的余量 —— Q-WB-6 讲分级口径、
+        # Q-WB-7 讲 0.5MPa 余量，都要能在图上指到，不能只在答案文字里。
+        page.eval_on_selector('[data-select-id="REC-1"]', "el => el.click()")
+        page.wait_for_timeout(300)
+        # REC-1 的第一枚依据就是 series，点开它证据台里才会挂上那张时序图。
+        page.eval_on_selector('[data-action="select-evidence"]', "el => el.click()")
+        page.wait_for_timeout(900)
+        # ECharts 走 canvas 渲染，标签文字不在 DOM 里，所以从实例的 option 上验：
+        # markLine 两条各带 note，markPoint 的 formatter 里带余量。
+        marks = page.evaluate("""() => {
+          // 图槽是 .ev-chart 里那个 div.chart-box（scripts/core/charts.js 的 slot()）。
+          const node = document.querySelector('.ev-chart .chart-box');
+          const inst = node && window.echarts.getInstanceByDom(node);
+          if (!inst) return null;
+          const ser = inst.getOption().series[0];
+          return {
+            lines: ser.markLine.data.map(d => d.name + '|' + d.note + '|' + d.yAxis),
+            pointLabel: ser.markPoint ? String(ser.markPoint.label.formatter) : ''
+          };
+        }""")
+        check(marks and marks["lines"] == ["高报警|提示核对|9", "高高报警|联锁停泵|9.8"],
+              "★ 两条阈值线各自标出做什么：提示核对 / 联锁停泵（实际 %s）"
+              % (marks["lines"] if marks else "取不到图实例"))
+        check(marks and "距联锁线 0.5MPa" in marks["pointLabel"],
+              "★ 末点标签印出距联锁线的余量 0.5MPa —— Q-WB-7 那句话在图上指得到（实际 %s）"
+              % (marks["pointLabel"] if marks else "取不到图实例"))
         page.screenshot(path=str(SHOT_DIR / "05-agent-halfscreen.png"))
         page.keyboard.press("Escape")
         page.wait_for_timeout(300)

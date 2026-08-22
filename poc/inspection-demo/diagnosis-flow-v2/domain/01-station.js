@@ -71,9 +71,15 @@ window.DOMAIN_STATION = (function () {
       // 高高报"这个正是本案例要讲的状态。
       warnAt: 9.0,
       dangerAt: 9.8,
+      // 【两条线各自"做什么"也在契约里】只画两条虚线、只标数值，读者看不出它们的区别，
+      // 而本案例的全部张力就在这个区别上：9.0 只是提示，9.8 才停泵，9.3 落在中间。
+      // 口径与 04-records.js 的 R-INTERLOCK、07-kb.js 的 DOC-INTERLOCK 同源，
+      // 图上读的是这里，不在 chartopts.js 里另写一份。
+      warnNote: "提示核对",
+      dangerNote: "联锁停泵",
       standardText: "高报警 9.0MPa，高高报警 9.8MPa。",
       // 现场就地表读数。它同时是 R1 记录的 result 和时序末点，两处必须相等 ——
-      // schema 启动时会比对（见 scripts/schema.js 的 assertReadingConsistency）。
+      // 由 03-series.js 把末点直接钉成 fieldReading 来保证，验收里另有一条断言复查。
       fieldReading: 9.3,
       safeSide: "低于高报警值",
       sampleNote: "站控 SCADA 采样，1 分钟一点，区间内均匀抽取展示"
@@ -92,9 +98,19 @@ window.DOMAIN_STATION = (function () {
     return found;
   }
 
+  // 必填字段在取用时校验，缺一个直接炸。图上那两条阈值线的说明文字读的就是 warnNote /
+  // dangerNote —— 少写一个不会报错，只会在屏上印出「高报警 9.0MPa · undefined」，
+  // 路演时才被看见。宁可加载就失败。
+  var POINT_FIELDS = ["unit", "label", "warnAt", "dangerAt", "warnNote", "dangerNote", "fieldReading"];
+
   function pointById(id) {
     var found = points.filter(function (p) { return p.id === id; })[0];
     if (!found) throw new Error("[DOMAIN_STATION] 未知测点：" + id);
+    POINT_FIELDS.forEach(function (key) {
+      if (found[key] === undefined || found[key] === "") {
+        throw new Error("[DOMAIN_STATION] 测点 " + id + " 缺字段 " + key);
+      }
+    });
     return found;
   }
 
