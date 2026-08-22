@@ -2,8 +2,8 @@
 // echarts、不读 getComputedStyle——只把"数据 + 主题色"拼成 option 对象返回，
 // 可以在纯 Node 环境里单测。
 //
-// 依赖顺序：本文件读取 window.DemoSeries（不重新聚合任何数字，五个函数分别
-// 直接消费 areaProgressRows()/itemTypeMix()/disciplineMix()/durationByArea()
+// 依赖顺序：本文件读取 window.DemoSeries（不重新聚合任何数字，图表函数分别
+// 直接消费 areaProgressRows()/itemTypeMix()/durationByArea()
 // 的返回值），按分层规则属于 L4 core，只能引用严格更早层（L2 数据层）暴露的
 // 全局，不引用 scripts/core/charts.js（同层）。
 //
@@ -117,45 +117,6 @@
     };
   }
 
-  // ---------- disciplineMix()：专业分布（横向柱状图，按数量从多到少排序） ----------
-  function disciplineMix() {
-    var theme = requireTheme();
-    var rows = requireDemoSeries("disciplineMix()").disciplineMix();
-    if (!rows.length) throw new Error("[ChartOptions] disciplineMix() 需要至少一项");
-    var palette = [theme.cyan, theme.ok, theme.warn, theme.danger, theme.muted];
-
-    return {
-      grid: { left: 84, right: 44, top: 8, bottom: 8 },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "shadow" },
-        formatter: function (params) {
-          var p = params[0];
-          var row = rows[p.dataIndex];
-          return row.discipline + "：" + row.count + " 项（" + Math.round(row.ratio * 100) + "%）";
-        }
-      },
-      xAxis: {
-        type: "value",
-        axisLabel: { color: theme.muted },
-        splitLine: { lineStyle: { color: theme.lineStrong } }
-      },
-      yAxis: {
-        type: "category",
-        data: rows.map(function (row) { return row.discipline; }),
-        axisLabel: { color: theme.ink },
-        axisLine: { lineStyle: { color: theme.lineStrong } }
-      },
-      series: [{
-        type: "bar",
-        barWidth: 12,
-        data: rows.map(function (row, index) {
-          return { value: row.count, itemStyle: { color: palette[index % palette.length] } };
-        })
-      }]
-    };
-  }
-
   // ---------- durationByArea()：巡检耗时曲线（12 区累计耗时折线） ----------
   //
   // rows 顺序 = Map3DContract.AREA_IDS，minutes 是该区自身耗时，cumulativeMinutes
@@ -226,7 +187,6 @@
   ChartOptions.setTheme = setTheme;
   ChartOptions.areaProgressBars = areaProgressBars;
   ChartOptions.itemTypeMix = itemTypeMix;
-  ChartOptions.disciplineMix = disciplineMix;
   ChartOptions.durationByArea = durationByArea;
   ChartOptions.spark = spark;
 

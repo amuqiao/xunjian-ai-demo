@@ -264,14 +264,13 @@
     ]);
   }
 
-  // ---------- 底部：图表行（把 core/chartopts.js 的 4 个构造器全部用上） ----------
+  // ---------- 底部：图表行 ----------
 
   function renderBottomRow() {
     var sp = DATA.stationProgress();
     var mix = DATA.itemTypeMix();
     return h("div", { class: "map-bottom-row" }, [
       window.Cards.chart({ title: "巡检项型分布", chartId: "chart-item-type-mix", meta: mix.bool + "/" + mix.number + " 项" }),
-      window.Cards.chart({ title: "专业分布", chartId: "chart-discipline-mix" }),
       window.Cards.chart({ title: "巡检耗时曲线", chartId: "chart-duration-by-area", meta: "共 " + sp.itemTotal + " 项" }),
       window.Cards.chart({ title: "12 区完成率", chartId: "chart-area-progress" }),
     ]);
@@ -281,7 +280,6 @@
 
   function renderCharts(state) {
     window.Charts.draw("chart-item-type-mix", window.ChartOptions.itemTypeMix());
-    window.Charts.draw("chart-discipline-mix", window.ChartOptions.disciplineMix());
     window.Charts.draw("chart-duration-by-area", window.ChartOptions.durationByArea());
     window.Charts.draw("chart-area-progress", window.ChartOptions.areaProgressBars());
     if (state.focus.areaId != null) {

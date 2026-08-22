@@ -163,33 +163,6 @@
       return { bool: counts.bool, number: counts.number, total: all.length };
     },
 
-    // 专业分布：按 items 的 discipline 字段聚合，字段取值从数据里实时扫出，不硬编码
-    // 专业名单。按数量从多到少排序，便于图表直接按返回顺序渲染。
-    disciplineMix: function () {
-      var all = allItems();
-      var order = [];
-      var counts = {};
-      all.forEach(function (item) {
-        if (!item.discipline) {
-          throw new Error("[DemoSeries] 巡检项缺少 discipline：" + item.id);
-        }
-        if (!Object.prototype.hasOwnProperty.call(counts, item.discipline)) {
-          counts[item.discipline] = 0;
-          order.push(item.discipline);
-        }
-        counts[item.discipline] += 1;
-      });
-      return order
-        .map(function (discipline) {
-          return {
-            discipline: discipline,
-            count: counts[discipline],
-            ratio: counts[discipline] / all.length
-          };
-        })
-        .sort(function (a, b) { return b.count - a.count; });
-    },
-
     // 巡检耗时曲线：横轴 12 区（AREA_IDS 顺序即真实巡检动线），minutes 是该区自身
     // 耗时（12 区之和恒等于 TOTAL_DURATION_MINUTES=63），cumulativeMinutes 是巡检动线
     // 走到该区末尾时的累计耗时（最后一项恒等于 63）。两个字段都给，具体图表用哪个

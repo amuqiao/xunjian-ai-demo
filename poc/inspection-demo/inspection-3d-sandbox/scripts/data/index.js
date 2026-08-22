@@ -84,7 +84,6 @@
     // ---- 图表聚合数据源（scripts/data/series.js） ----
     areaProgressRows: Series.areaProgressRows,
     itemTypeMix: Series.itemTypeMix,
-    disciplineMix: Series.disciplineMix,
     durationByArea: Series.durationByArea,
     areaSpark: Series.areaSpark,
     numericReadings: Series.numericReadings,
