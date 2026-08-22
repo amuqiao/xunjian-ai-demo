@@ -516,3 +516,100 @@
 .wb-scene.is-enter > *, .rv-scene.is-enter > *, .kb-scene.is-enter > * {
   animation: fadeUp .34s ease both;
 }
+
+/* ===========================================================================
+   十一、两条故事线（巡检员视角 / 管理者视角）新增的两块。
+   =========================================================================== */
+
+/* 「这一条给谁看」标签，在 AI 判断卡的卡头右侧。
+   executor = 巡检员自己要复核的；supervisor = 班长要核查的。
+   两色区分但都压得比状态色低一档 —— 它是分类不是告警。 */
+.wb-audience {
+  display: grid;
+  gap: 1px;
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--line);
+  text-align: right;
+  flex: none;
+}
+
+.wb-audience strong { font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.wb-audience small { font-size: 11px; color: var(--muted); }
+
+.wb-audience.executor { border-color: rgba(56, 198, 236, .38); }
+.wb-audience.executor strong { color: var(--accent); }
+.wb-audience.supervisor { border-color: rgba(238, 180, 74, .42); }
+.wb-audience.supervisor strong { color: var(--status-warn); }
+
+/* 行为核查证据（track）。三个数各对一条规则，命中的整行描边 + 左侧红条。 */
+.ev-track {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ev-track-rows { display: grid; gap: 8px; }
+
+.ev-track-row {
+  display: grid;
+  gap: 5px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: 0 var(--r-s) var(--r-s) 0;
+  background: var(--surface-bg);
+}
+
+/* 命中规则的那两行：左条变红 + 底色微染。不整行标红 —— 那会让"未命中"的行
+   看起来像被忽略，而"时段偏移 0 分钟、未命中"本身也是一条有用的信息。 */
+.ev-track-row.hit {
+  border-left-color: var(--status-danger);
+  background: rgba(255, 98, 92, .07);
+}
+
+.ev-track-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ev-track-main strong { font-size: 13.5px; font-weight: 700; }
+
+.ev-track-value {
+  margin-left: auto;
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ev-track-value.danger { color: var(--status-danger); }
+.ev-track-value.ok { color: var(--status-ok); }
+.ev-track-value.muted { color: var(--muted); }
+
+.ev-track-rule { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.ev-track-row small { color: var(--muted); font-size: 12px; line-height: 1.65; }
+
+.ev-track-segment {
+  display: grid;
+  gap: 3px;
+  padding: 10px 13px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-s);
+}
+
+.ev-track-segment strong { font-size: 13px; font-weight: 700; }
+.ev-track-segment span { color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+
+/* visionLimit 那一段：说清视觉为什么帮不上忙。虚线框，与"这是能力边界"的语义一致。 */
+.ev-track-note {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-s);
+  font-size: 12.5px;
+  line-height: 1.75;
+}

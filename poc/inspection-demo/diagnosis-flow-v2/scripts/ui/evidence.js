@@ -7,6 +7,7 @@
 //
 // 六种形态对应 domain/04-records.js 里 evidence[].kind：
 //   series   数值型 + 有标准    → 时序曲线（两条阈值线 + 越线阴影）
+//   track    巡检行为核查        → 提交时刻/间隔/停留 三个数各对一条规则
 //   compare  同点位前后变化      → 真实的同机位两帧并排
 //   timeline 开关量故障 + 处置   → 事件时间线
 //   gaps     记录缺项           → 表单缺项清单
@@ -185,6 +186,51 @@ window.EvidenceView = (function () {
     ]);
   }
 
+  // ---------------------------------------------------------------- track
+  //
+  // 巡检行为核查。它判的不是「设备怎么样」，而是「这一轮是不是真去了」——
+  // 管理者视角的核心。证据形态是**时间**：提交时刻、与前项的间隔、现场停留时长，
+  // 三个数各自对一条规则，命中的标红。
+  //
+  // ★ 最后那段 visionLimit 是这枚证据真正的价值：说清视觉为什么帮不上忙。
+  //   有些巡检项（电缆沟、地面孔洞）根本不在摄像头视野里，只能靠人到位 ——
+  //   所以行为核查是它唯一可核的维度。不写这一段，读者会以为"怎么不看画面"。
+  function renderTrack(ev, opts) {
+    var RECORDS = need("DOMAIN_RECORDS");
+    var tk = RECORDS.trackById(ev.trackId);
+    var hits = tk.rows.filter(function (r) { return r.hit; }).length;
+    return h("section", { class: "ev" }, [
+      head(tk.label, tk.window.label + " " + tk.window.from + "-" + tk.window.to,
+           opts.zoom ? null : [zoomBtn()]),
+      h("div", { class: "ev-body ev-track" }, [
+        h("div", { class: "ev-track-rows" }, tk.rows.map(function (row) {
+          return h("div", { class: "ev-track-row " + (row.hit ? "hit" : "") }, [
+            h("div", { class: "ev-track-main" }, [
+              h("strong", { text: row.label }),
+              h("span", { class: "ev-track-value " + row.tone, text: row.value })
+            ]),
+            row.rule ? h("div", { class: "ev-track-rule" }, [
+              h("span", { class: "badge " + (row.hit ? "danger" : "ok"),
+                text: row.hit ? "命中" : "未命中" }),
+              h("span", { class: "muted", text: row.rule })
+            ]) : null,
+            h("small", { text: row.note })
+          ]);
+        })),
+        // 同段节奏：说明"不是只有这一项快"，避免被当成个例。
+        h("div", { class: "ev-track-segment" }, [
+          h("strong", { text: "同段节奏" }),
+          h("span", { text: tk.segment.note })
+        ]),
+        h("div", { class: "ev-verdict-line" }, [
+          h("i", { class: "dot " + (hits >= 2 ? "danger" : "warn") }),
+          h("span", { text: tk.conclusion })
+        ]),
+        h("p", { class: "muted ev-track-note", text: tk.visionLimit })
+      ])
+    ]);
+  }
+
   function renderVision(ev, opts) {
     var VISION = need("DOMAIN_VISION");
     var frame = VISION.frameById(ev.frameId);
@@ -240,6 +286,7 @@ window.EvidenceView = (function () {
 
   var RENDERERS = {
     series: renderSeries,
+    track: renderTrack,
     compare: renderCompare,
     timeline: renderTimeline,
     gaps: renderGaps,

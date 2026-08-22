@@ -36,8 +36,14 @@ window.DOMAIN_RECORDS = (function () {
     { key: "aiFlagText", label: "AI 质检", type: "badge-icon", width: 106 }
   ];
 
+  // 【四态，不是三态】behavior 是本轮新增的一档。
+  // 不能把行为异常塞进 conflict：conflict 是「AI 与人工对同一件事判得不一样」
+  // （第 106 项：你填正常，SCADA 说越限），behavior 是「这一项到底有没有真做」
+  // （第 261 项：6 秒完成一项目视）。两者的管理动作完全不同 ——
+  // 前者复核数据，后者退回重巡。合成一个数，屏上「重点复核 3」就把两件事混在一起了。
   var aiFlagText = {
     conflict: "重点复核",
+    behavior: "行为异常",
     gap: "记录缺项",
     ok: "已闭环"
   };
@@ -102,6 +108,17 @@ window.DOMAIN_RECORDS = (function () {
         "已处置问题需在下一轮巡检复查并留痕。"
       ]
     },
+    "R-BEHAVIOR": {
+      id: "R-BEHAVIOR",
+      label: "巡检行为核查口径",
+      lines: [
+        "单项现场停留 < 10 秒 —— 目视类检查项的最短合理作业时长。",
+        "相邻两项提交间隔 < 3 秒 —— 低于此值视为连续点选，未实际到点。",
+        "提交时刻偏离计划时段 30 分钟以上 —— 时段异常，需说明原因。",
+        "命中任一条即判行为异常；命中两条以上建议退回重巡而非归档。",
+        "行为核查只判「是否真去了」，不改变该项本身的技术判定结论。"
+      ]
+    },
     "R-CABINET": {
       id: "R-CABINET",
       label: "机柜巡检项完整性要求",
@@ -112,10 +129,60 @@ window.DOMAIN_RECORDS = (function () {
     }
   };
 
+  // ---- 巡检行为核查（track 形态）----
+  //
+  // 【为什么需要这一类】原先四条记录覆盖的是「填错了」（第 106 项）、「漏填了」（第 318 项）、
+  // 「已处置待复查」（第 250 项）—— 全是对**数据**的判断。缺的是对**行为**的判断：
+  // 这一轮是不是真去了。三者性质完全不同：填错是判断问题、漏填是责任心问题，
+  // 而走过场是行为真实性问题 —— 它一旦成立，整轮数据都不可信。
+  //
+  // 管理者视角（班长/主管管巡检员）的核心正是第三种，所以补一条。
+  //
+  // 【时间基准是真的】四张关键帧的 OSD 时间是画面上烧进去的：
+  //   20:01:55 泵棚 → 20:10:26 泵棚（同机位）→ 20:13:39 低压配电室 → 20:18:35 PLC 机房
+  // 低压配电室这一段的窗口就是 20:13:39 到 20:18:35，共 4 分 56 秒。本项的提交时刻
+  // 20:14:04 落在这个窗口里，与前一项相隔 2 秒 —— 两个数都能和画面时间对上。
+  //
+  // 【三条判定规则是真业务口径】取自 poc/inspection-demo/inspection-station-v2 的
+  // scripts/data/quality.js：单项现场停留 < 10 秒 / 相邻两项提交间隔 < 3 秒 /
+  // 提交时刻偏离计划时段 30 分钟以上。那份数据是站点级的逐项明细，本文件不搬它的
+  // 区名项名（那是长沙输油站 12 区 256 项，本 POC 是湘潭站 3 部位 141 项），只用规则。
+  var tracks = {
+    "TRK-261": {
+      id: "TRK-261",
+      label: "本项行为核查",
+      note: "提交时刻与关键帧 OSD 时间对齐后现算",
+      // 该部位这一段的取证窗口，两端都来自真实关键帧的 OSD 时间。
+      window: { from: "20:13:39", to: "20:18:35", label: "低压配电室段" },
+      rows: [
+        { label: "本项提交时刻", value: "20:14:04", tone: "muted",
+          note: "落在低压配电室段窗口内（20:13:39-20:18:35）" },
+        { label: "与前一项间隔", value: "2 秒", tone: "danger",
+          rule: "相邻两项提交间隔 < 3 秒", hit: true,
+          note: "前一项「第 260 项 应急照明」提交于 20:14:02" },
+        { label: "本项现场停留", value: "6 秒", tone: "danger",
+          rule: "单项现场停留 < 10 秒", hit: true,
+          note: "从上一项提交到本项提交之间的驻留时长" },
+        { label: "时段偏移", value: "0 分钟", tone: "ok",
+          rule: "提交时刻偏离计划时段 30 分钟以上", hit: false,
+          note: "本项在计划时段内提交，这一条不构成异常" }
+      ],
+      // 同段其余项的节奏，用来说明"不是只有这一项快"。
+      segment: { itemCount: 6, spanSeconds: 47,
+                 note: "低压配电室段共 6 项，全部在 47 秒内提交完毕，均值 7.8 秒/项" },
+      conclusion: "两条规则命中（间隔 2 秒、停留 6 秒）。目视类检查项在 6 秒内完成"
+                + "并提交，与该项的实际作业量不相称，判为行为异常，建议退回重巡。",
+      // ★ 这一句是这条记录真正的价值：说清视觉为什么帮不上忙。
+      visionLimit: "低压配电室机位（20:13:39）能看到 1DP/120DP 柜面，但电缆沟与穿墙孔洞"
+                 + "在地面下方、不在该机位视野内 —— 视觉既不能证实也不能否证本项。"
+                 + "这类项只能靠人真的到位，所以行为核查是它唯一可核的维度。"
+    }
+  };
+
   // 五条记录。R5 属 OBJ-B（相似站场），只用于验证筛选不跨对象串台，屏上不出现。
   var records = [
     {
-      id: "REC-1", objectId: "OBJ-A", partId: "PART-PUMP",
+      id: "REC-1", audience: "executor", objectId: "OBJ-A", partId: "PART-PUMP",
       no: "第 106 项", date: "2026-07-22", shift: "夜班", inspector: "廖震宇",
       item: "出口管线压力",
       standard: "高报警 9.0MPa，高高报警 9.8MPa。",
@@ -135,7 +202,7 @@ window.DOMAIN_RECORDS = (function () {
       ]
     },
     {
-      id: "REC-2", objectId: "OBJ-A", partId: "PART-PUMP",
+      id: "REC-2", audience: "executor", objectId: "OBJ-A", partId: "PART-PUMP",
       no: "第 107 项", date: "2026-07-22", shift: "夜班", inspector: "廖震宇",
       item: "泵机组运行状态与渗漏",
       standard: "泵体、机封、联轴器护罩与基座应无渗漏、无异响、无异常振动。",
@@ -154,7 +221,7 @@ window.DOMAIN_RECORDS = (function () {
       ]
     },
     {
-      id: "REC-3", objectId: "OBJ-A", partId: "PART-POWER",
+      id: "REC-3", audience: "supervisor", objectId: "OBJ-A", partId: "PART-POWER",
       no: "第 250 项", date: "2026-07-22", shift: "夜班", inspector: "廖震宇",
       item: "柜面表计及指示灯",
       standard: "柜面表计、测显装置应显示正常，综保无控制回路断线报警。",
@@ -173,7 +240,7 @@ window.DOMAIN_RECORDS = (function () {
       ]
     },
     {
-      id: "REC-4", objectId: "OBJ-A", partId: "PART-PLC",
+      id: "REC-4", audience: "supervisor", objectId: "OBJ-A", partId: "PART-PLC",
       no: "第 318 项", date: "2026-07-22", shift: "夜班", inspector: "廖震宇",
       item: "机柜门禁与设备分区",
       standard: "机房内在位机柜逐柜记录柜门、标识、指示灯与温湿度。",
@@ -192,7 +259,36 @@ window.DOMAIN_RECORDS = (function () {
       ]
     },
     {
-      id: "REC-5", objectId: "OBJ-B", partId: "PART-PUMP",
+      // ★ 管理者视角的核心记录。前四条都是对数据的判断，这一条是对行为的判断。
+      id: "REC-5", objectId: "OBJ-A", partId: "PART-POWER",
+      no: "第 261 项", item: "电缆沟与穿墙孔洞封堵",
+      result: "封堵完好",
+      standard: "电缆沟盖板齐全、穿墙孔洞封堵密实，无破损与缺失。",
+      date: "2026-07-22", shift: "夜班", inspector: "廖震宇",
+      aiFlag: "behavior",
+      audience: "supervisor",
+      suggestion: {
+        outcomeId: "OUT-REINSPECT",
+        label: "建议结论：退回重巡该项",
+        confidence: 78,
+        text: "本项人工填报「封堵完好」，但行为数据命中两条规则：与前一项提交间隔 2 秒、"
+            + "现场停留 6 秒。低压配电室段共 6 项在 47 秒内全部提交完毕（均值 7.8 秒/项）。"
+            + "目视类检查项在 6 秒内完成并提交，与实际作业量不相称。\n"
+            + "该机位画面看不到电缆沟（在地面下方、不在视野内），视觉无法证实或否证，"
+            + "因此这一项只能靠人到位 —— 建议退回重巡，而不是就此归档。",
+        alternative: null
+      },
+      evidence: [
+        { kind: "track", label: "本项行为核查", detail: "间隔 2 秒 / 停留 6 秒，命中 2 条规则",
+          trackId: "TRK-261" },
+        { kind: "rule", label: "行为核查口径", detail: "停留 / 间隔 / 时段三条", ruleId: "R-BEHAVIOR" },
+        // 这一枚刻意放进来：不是为了证明什么，而是为了展示"这张帧覆盖不到本项"。
+        { kind: "vision", label: "该机位视野", detail: "看得到柜面，看不到电缆沟",
+          frameId: "FRM-POWER-2013", boxId: "BX-1DP" }
+      ]
+    },
+    {
+      id: "REC-6", audience: "executor", objectId: "OBJ-B", partId: "PART-PUMP",
       no: "第 106 项", date: "2026-07-18", shift: "白班", inspector: "相似站场巡检员",
       item: "出口管线压力",
       standard: "高报警 9.0MPa，高高报警 9.8MPa。",
@@ -240,6 +336,24 @@ window.DOMAIN_RECORDS = (function () {
     return timelines[id];
   }
 
+  // 两条故事线的读者标签。记录不上表（表已经 6 列），只在 AI 判断卡里显示一枚小标签，
+  // 讲解时按它分组讲：executor 那几条是巡检员自己要复核的，supervisor 那几条是班长要看的。
+  var audiences = {
+    executor: { id: "executor", label: "巡检员复核", note: "我填的对不对" },
+    supervisor: { id: "supervisor", label: "班长核查", note: "这一轮可不可信" }
+  };
+
+  function audienceOf(record) {
+    var a = audiences[record.audience];
+    if (!a) throw new Error("[DOMAIN_RECORDS] 记录 " + record.id + " 缺 audience 或取值非法：" + record.audience);
+    return a;
+  }
+
+  function trackById(id) {
+    if (!tracks[id]) throw new Error("[DOMAIN_RECORDS] 未知行为核查：" + id);
+    return tracks[id];
+  }
+
   function gapListById(id) {
     if (!gapLists[id]) throw new Error("[DOMAIN_RECORDS] 未知缺项清单：" + id);
     return gapLists[id];
@@ -252,6 +366,8 @@ window.DOMAIN_RECORDS = (function () {
     rules: rules,
     timelines: timelines,
     gapLists: gapLists,
+    tracks: tracks, trackById: trackById,
+    audiences: audiences, audienceOf: audienceOf,
     rowsOf: rowsOf,
     recordById: recordById,
     ruleById: ruleById,

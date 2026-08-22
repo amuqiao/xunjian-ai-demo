@@ -31,6 +31,7 @@ window.SceneWorkbench = (function () {
     var state = AppState.value;
     var rows = RECORDS.rowsOf(state.objectId);
     var conflict = rows.filter(function (r) { return r.aiFlag === "conflict"; }).length;
+    var behavior = rows.filter(function (r) { return r.aiFlag === "behavior"; }).length;
     var gap = rows.filter(function (r) { return r.aiFlag === "gap"; }).length;
     return h("div", { class: "stat-row" }, [
       h("div", { class: "stat" }, [
@@ -40,6 +41,12 @@ window.SceneWorkbench = (function () {
       h("div", { class: "stat " + (conflict ? "danger" : "ok") }, [
         h("span", { text: "重点复核" }),
         h("strong", { class: "num", text: String(conflict) })
+      ]),
+      // 行为异常单独一个数。它和「重点复核」并列而不是合并 —— 两条故事线在这条
+      // 概况带上就分开了：重点复核是巡检员要看的，行为异常是班长要看的。
+      h("div", { class: "stat " + (behavior ? "danger" : "ok") }, [
+        h("span", { text: "行为异常" }),
+        h("strong", { class: "num", text: String(behavior) })
       ]),
       h("div", { class: "stat " + (gap ? "warn" : "ok") }, [
         h("span", { text: "记录缺项" }),
@@ -105,7 +112,7 @@ window.SceneWorkbench = (function () {
   // 依据链芯片。左侧小方标注证据形态，让"这条依据是什么"在点之前就能看出来。
   // locked 的那枚（二次命中包袱）归档前 disabled + 虚线边框。
   var KIND_MARK = {
-    series: "时", compare: "比", timeline: "程", gaps: "缺", vision: "视", rule: "规", case: "案"
+    series: "时", track: "行", compare: "比", timeline: "程", gaps: "缺", vision: "视", rule: "规", case: "案"
   };
 
   function renderChain() {
@@ -141,7 +148,16 @@ window.SceneWorkbench = (function () {
     return h("section", { class: "card wb-ai" }, [
       h("div", { class: "card-head" }, [
         h("span", { class: "card-title", text: "AI 判断" }),
-        h("span", { class: "card-sub", text: record.no + " · " + part.label })
+        h("span", { class: "card-sub", text: record.no + " · " + part.label }),
+        // 【这一条给谁看】两条故事线（巡检员复核 / 班长核查）靠这枚标签分辨。
+        // 不做成表上的一列 —— 表已经 6 列，而且这是"读者"不是"数据"。
+        (function () {
+          var aud = need("DOMAIN_RECORDS").audienceOf(record);
+          return h("span", { class: "wb-audience " + aud.id, title: aud.note }, [
+            h("strong", { text: aud.label }),
+            h("small", { text: aud.note })
+          ]);
+        })()
       ]),
       h("div", { class: "wb-verdict" }, [
         h("div", { class: "wb-verdict-label", text: "AI 建议" }),
