@@ -188,6 +188,17 @@
     ]);
   }
 
+  function renderReviewAgentFab() {
+    return h("button", {
+      type: "button",
+      class: "wb-agent-fab rv-agent-fab",
+      title: "Agent 问答",
+      "aria-label": "打开复核 Agent 问答",
+      dataset: { action: "open-agent", agentContext: "review", focusKey: "open-agent" },
+      text: "AI"
+    });
+  }
+
   function categoryById(categoryId) {
     var found = KB.categories().filter(function (category) { return category.id === categoryId; })[0];
     if (!found) throw new Error("[review] 归档分类不存在：" + categoryId);
@@ -287,7 +298,10 @@
       "人工复核 / 结论确认",
       AppState.currentObject().label + " " + AppState.currentPart().label,
       renderReviewerChip(),
-      renderConfirmPanel()
+      h("div", { class: "rv-scene" }, [
+        renderConfirmPanel(),
+        renderReviewAgentFab()
+      ])
     );
   }
 

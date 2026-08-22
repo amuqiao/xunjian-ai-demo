@@ -46,6 +46,15 @@ def probe_survived(page, selector):
     return bool(node) and node.get_attribute("data-flicker-probe") == "1"
 
 
+def boxes_overlap(a, b):
+    return not (
+        a["x"] + a["width"] <= b["x"] or
+        b["x"] + b["width"] <= a["x"] or
+        a["y"] + a["height"] <= b["y"] or
+        b["y"] + b["height"] <= a["y"]
+    )
+
+
 def open_ai_list(page, row_text=None):
     if row_text:
         page.locator(".sl-table-row").filter(has_text=row_text).click()
@@ -71,6 +80,11 @@ def run(page):
     check("工作台记录表有巡检数据",
           page.locator(".sl-table-row").count() >= 1 and "P-3 泵" in text_of(page, ".wb-records"))
     check("工作台只保留 AI 浮动图标入口", page.locator(".wb-agent-fab").count() == 1)
+    page.click(".wb-agent-fab")
+    page.wait_for_selector(".ag-overlay", timeout=3000)
+    check("工作台 AI 浮动图标打开 workbench Agent",
+          page.evaluate("() => window.AppState.value.agent.contextId") == "workbench")
+    page.keyboard.press("Escape")
     page.screenshot(path=str(SHOTS / "01-workbench.png"))
 
     print("\n== 2. 时序 / 视觉 / 知识库下钻 ==")
@@ -137,6 +151,12 @@ def run(page):
     check("复核页不再常驻处置路径大卡", page.locator(".rv-path").count() == 0)
     check("左侧只保留 AI 摘要", page.locator(".rv-ai-summary .rv-summary-card").count() == 1)
     check("右侧是三类人工业务结论按钮", page.locator(".rv-decision-vote").count() == 3)
+    check("复核页也有右下角 AI 浮动图标", page.locator(".rv-agent-fab").count() == 1)
+    page.click(".rv-agent-fab")
+    page.wait_for_selector(".ag-overlay", timeout=3000)
+    check("复核页 AI 浮动图标打开 review Agent",
+          page.evaluate("() => window.AppState.value.agent.contextId") == "review")
+    page.keyboard.press("Escape")
     check("未选择前提示选择人工复核结论", "请选择人工复核结论" in text_of(page, '[data-gate="hint"]'))
     page.screenshot(path=str(SHOTS / "06-review-empty.png"))
 
@@ -195,6 +215,11 @@ def run(page):
     check("知识库不再平铺旧分类索引", page.locator(".kb-index").count() == 0)
     check("归档报告作为 NEW 资产出现", page.locator(".kb-asset.fresh .kb-doc-new").count() == 1)
     check("知识库保留 AI 浮动入口", page.locator(".kb-agent-fab").count() == 1)
+    page.click(".kb-agent-fab")
+    page.wait_for_selector(".ag-overlay", timeout=3000)
+    check("知识库 AI 浮动图标打开 knowledge Agent",
+          page.evaluate("() => window.AppState.value.agent.contextId") == "knowledge")
+    page.keyboard.press("Escape")
     check("知识库大屏布局包含右侧资产复用面板", page.locator(".kb-index-panel").count() == 1)
     check("知识库大屏布局不再挤到一边", page.locator(".kb-layout").bounding_box()["width"] >= 1200)
     page.screenshot(path=str(SHOTS / "08-knowledge-main.png"))
@@ -244,6 +269,11 @@ def run_mobile(browser):
     page.click('.scene-nav-btn[data-scene-key="review"]')
     check("小屏复核页改单列", page.locator(".rv-review-page").bounding_box()["width"] <= 390)
     check("小屏没有底部流程条遮挡", page.locator(".flow-rail").count() == 0)
+    check("小屏复核 AI 按钮不遮挡生成报告按钮",
+          not boxes_overlap(
+              page.locator(".rv-agent-fab").bounding_box(),
+              page.locator('[data-gate="execute"]').bounding_box()
+          ))
     page.screenshot(path=str(SHOTS / "10-review-mobile.png"), full_page=True)
     page.click('.scene-nav-btn[data-scene-key="knowledge"]')
     page.wait_for_selector(".kb-layout", timeout=3000)

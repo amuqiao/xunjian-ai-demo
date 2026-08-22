@@ -523,6 +523,12 @@
 
 /* ---------------- 新版轻量复核页 ---------------- */
 
+.rv-scene {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+}
+
 .rv-review-page {
   display: grid;
   grid-template-columns: minmax(360px, 0.82fr) minmax(0, 1.18fr);
