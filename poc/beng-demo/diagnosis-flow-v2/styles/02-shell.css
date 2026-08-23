@@ -205,6 +205,50 @@
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------------------------------------------------------------------------
+   诊断上下文浮窗。大屏总览 / 泵站态势不再占主流程，它们是诊断台左侧的背景视图入口。
+   --------------------------------------------------------------------------- */
+
+.context-rail {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  z-index: 42;
+  display: grid;
+  gap: 12px;
+  transform: translateY(-50%);
+}
+
+.context-fab {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 1px solid rgba(120, 170, 255, 0.44);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #f1fbff;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.20), transparent 24px),
+    linear-gradient(145deg, rgba(48, 198, 157, 0.88), rgba(16, 79, 75, 0.94));
+  box-shadow: var(--sh-l);
+}
+
+.context-fab + .context-fab {
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.18), transparent 24px),
+    linear-gradient(145deg, rgba(238, 180, 74, 0.92), rgba(111, 72, 17, 0.96));
+}
+
+.context-fab:hover { filter: brightness(1.08); }
+
+.context-fab-mark {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------------------------
    常驻 AI 助手悬浮按钮。三页都在 —— 这是刻意的设计（模拟常驻助手），不是三处重复
    入口。挂在 .app-shell 层，不进 .stage，否则会被场景的 overflow 裁掉。
    --------------------------------------------------------------------------- */

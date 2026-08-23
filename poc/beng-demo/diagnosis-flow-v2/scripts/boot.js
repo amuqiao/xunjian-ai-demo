@@ -50,6 +50,10 @@
     review: window.SceneReview,
     knowledge: window.SceneKnowledge
   };
+  var SHELL_CONTEXT_STEPS = [
+    { key: "overview", label: "大屏总览", mark: "总览", href: "../hunan-pump-overview-v2/index.html" },
+    { key: "station", label: "泵站态势", mark: "态势", href: "../pump-station-situation-v2/index.html" }
+  ];
 
   // 在 poc/inspection-demo/index.html 的 iframe 外壳里运行时，外壳广播可见性。
   // 本 POC 没有 3D，不需要停渲染循环 —— 但要在切回来时 resize 图表，否则
@@ -139,6 +143,29 @@
     ]);
   }
 
+  function renderContextRail() {
+    return h("nav", { class: "context-rail", "aria-label": "诊断上下文入口" },
+      SHELL_CONTEXT_STEPS.map(function (step) {
+        return h("button", {
+          type: "button",
+          class: "context-fab",
+          dataset: { action: "open-shell-step", shellKey: step.key, href: step.href },
+          title: step.label,
+          "aria-label": step.label
+        }, [
+          h("span", { class: "context-fab-mark", text: step.mark })
+        ]);
+      }));
+  }
+
+  function openShellStep(key, href) {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "beng-demo:switch", key: key }, "*");
+      return;
+    }
+    window.location.href = href;
+  }
+
   // ---------------------------------------------------------------- render 管线
 
   // 焦点键 + 光标位置。整屏重建之后按它把焦点和光标放回去。
@@ -225,6 +252,8 @@
     lastMount.overlayKey = overlayKey;
     lastMount.drawerOpen = !!drawer;
 
+    root.appendChild(renderContextRail());
+
     // 常驻 AI 助手按钮：三页都有（刻意的设计）。知识库页右栏已经是问答，但按钮仍在 ——
     // 它表达的是"助手随时在"，不是"这页有问答功能"。
     root.appendChild(h("button", {
@@ -262,6 +291,7 @@
     if (action === "close-ingest") { state.ingestOpen = false; stopIngest(); return render(); }
     if (action === "open-agent") { state.agentOpen = true; return render(); }
     if (action === "close-agent") { state.agentOpen = false; return render(); }
+    if (action === "open-shell-step") { return openShellStep(el.dataset.shellKey, el.dataset.href); }
     if (action === "ask-agent") {
       AppState.askAgent(el.dataset.questionId);
       scheduleAgentSettle();

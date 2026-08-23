@@ -1,5 +1,10 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   组件切换条。**顶部固定条，不是悬浮按钮** —— 这是一次刻意的改版。
+   主线切换条。顶部只承载「智能助手 / 诊断台 / 知识图谱」三项；
+   「大屏总览 / 泵站态势」降为诊断台里的上下文浮窗入口。
+
+   【为什么上下文入口不再放顶部】原先是五个组件平铺，会把总览和态势读成主流程。
+   业务口径已收敛为「先问助手 → 进诊断台 → 看知识图谱」，所以顶部只放主线。
+   总览和态势是诊断时的背景视图，适合在诊断台左侧做随手调出的圆形浮窗。
 
    【为什么从左下角悬浮改成顶部条】原先是 position:fixed 的左下角胶囊（216×48）。
    四个角其实都有主：左上是各屏的品牌区、右上是数据口径 chip / 演示进度、
@@ -15,7 +20,7 @@
      1920×1080 → 0.7770 → 0.7770       2560×1440 → 1.0360 → 1.0360
    砍掉的只是上下留白。智能助手页是自适应布局，少 44px 内容区也无感。
 
-   【布局：logo 靠左绝对定位，链接真居中】
+   【布局：logo 靠左绝对定位，主线链接真居中】
    logo 用 position:absolute 脱离流，链接组走 justify-content:center ——
    这样链接是相对**视口**居中，而不是相对"logo 右侧的剩余空间"居中。
    后者会让整排链接随 logo 宽度左右偏移，换个 logo 就得重新调。
@@ -83,8 +88,7 @@
   height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 12px 0 7px;
+  padding: 0 16px;
   border: 1px solid transparent;
   border-radius: 999px;
   color: var(--nav-text-dim);
@@ -93,25 +97,9 @@
   transition: color .16s, background .16s, border-color .16s;
 }
 
-/* 序号做成小圆点，标签跟在后面 —— 顶部条有横向空间，直接把屏名写出来，
-   比原来只有数字、要 hover 才看得到 tooltip 好读得多。 */
-.inspection-flow-nav a::before {
-  content: attr(data-no);
-  width: 19px;
-  height: 19px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--nav-border);
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.inspection-flow-nav a::after {
-  content: attr(data-label);
+.inspection-flow-nav a {
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .inspection-flow-nav a:hover,
@@ -127,21 +115,20 @@
   border-color: transparent;
 }
 
-.inspection-flow-nav a.is-active::before {
-  border-color: rgba(4, 16, 28, 0.35);
-  background: rgba(255, 255, 255, 0.22);
-}
-
 .inspection-flow-nav a:focus-visible {
   outline: 2px solid #38c6ec;
   outline-offset: 2px;
 }
 
-/* 窄屏（<1180px）只留序号，标签收起 —— 五个标签横排放不下时优先保证可点。
-   logo 保留：它比标签更该留着。 */
 @media (max-width: 1180px) {
-  .inspection-flow-nav a { padding: 0 6px; }
-  .inspection-flow-nav a::after { display: none; }
+  .inspection-flow-nav a { padding: 0 12px; }
+}
+
+/* 窄屏（<760px）压缩主线按钮，logo 保留：它比标签更该留着。 */
+@media (max-width: 760px) {
+  .inspection-flow-nav { padding: 0 10px; }
+  .inspection-flow-nav a { padding: 0 10px; }
+  .flow-nav-links { gap: 4px; }
 }
 
 /* 极窄（<560px）logo 也收起，把宽度全留给切换点。 */

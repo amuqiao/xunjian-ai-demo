@@ -99,7 +99,7 @@
         var stage = document.getElementById("frameStage");
         var bootMask = document.getElementById("bootMask");
         var frames = {};
-        var activeKey = "overview";
+        var activeKey = "agent";
         var preloadTimers = [];
 
         function stepByKey(key) {
@@ -147,9 +147,14 @@
           Object.keys(frames).forEach(postVisibility);
         }
 
+        function navKeyFor(key) {
+          return stepByKey(key).parentKey || key;
+        }
+
         function setNavActive(key) {
+          var activeNavKey = navKeyFor(key);
           document.querySelectorAll(".inspection-flow-nav a").forEach(function (link) {
-            link.classList.toggle("is-active", link.dataset.key === key);
+            link.classList.toggle("is-active", link.dataset.key === activeNavKey);
           });
         }
 
@@ -167,22 +172,15 @@
           else bootMask.classList.add("is-hidden");
         }
 
-        function idle(fn, timeout) {
-          if ("requestIdleCallback" in window) {
-            return window.requestIdleCallback(fn, { timeout: timeout || 1600 });
-          }
-          return window.setTimeout(fn, timeout || 600);
-        }
-
         function preloadRest() {
           // 预热顺序 = 除首屏之外的其余四屏，按用户最可能的浏览顺序排。
           // 【必须从 steps 派生，不能手写】手写的话新增一屏就会漏掉它，
           // 那一屏永远不预热、第一次点开要白等几秒（而且不报错，只是慢）。
           var order = steps.map(function (s) { return s.key; })
-            .filter(function (k) { return k !== "overview"; });
+            .filter(function (k) { return k !== activeKey; });
           order.forEach(function (key, index) {
             preloadTimers.push(window.setTimeout(function () {
-              idle(function () { ensureFrame(key); }, 1200);
+              ensureFrame(key);
             }, 500 + index * 700));
           });
         }
@@ -203,7 +201,7 @@
           preloadTimers.forEach(function (timer) { window.clearTimeout(timer); });
         });
 
-        ensureFrame("overview").classList.add("is-active");
+        ensureFrame("agent").classList.add("is-active");
         syncFrameVisibility();
         preloadRest();
       })();

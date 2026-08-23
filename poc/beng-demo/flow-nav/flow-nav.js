@@ -10,27 +10,24 @@
   // href 指向 v2；dirs 里同时列出旧目录 —— 旧的两个目录没删、仍可单独打开，如果不列进来，
   // 从旧目录打开时 prefixFor 会算成 ""，导航链接就指到旧目录底下去了。
   var steps = [
+    { key: "agent", label: "智能助手", href: "智能巡检数智员工-泵.html", navGroup: "primary",
+      dirs: [] },
+    { key: "diagnosis", label: "诊断台", href: "diagnosis-flow-v2/index.html", navGroup: "primary",
+      dirs: ["diagnosis-flow-v2", "diagnosis-flow"] },
+    { key: "graph", label: "知识图谱", href: "kg-template/index.html", navGroup: "primary",
+      dirs: ["kg-template"] },
     { key: "overview", label: "大屏总览", href: "hunan-pump-overview-v2/index.html",
+      navGroup: "context", parentKey: "diagnosis",
       dirs: ["hunan-pump-overview-v2", "hunan-pump-overview"] },
     { key: "station", label: "泵站态势", href: "pump-station-situation-v2/index.html",
+      navGroup: "context", parentKey: "diagnosis",
       dirs: ["pump-station-situation-v2", "pump-station-situation"] },
-    // 【第 3 位：智能助手】对话式入口，与右侧四屏是两种交互范式：那四屏是"看"，
-    // 这一屏是"问"。放在中间 —— 前面两屏交代盘子（省域 40 台 → 单机组 25 测点），
-    // 它承接"我能问它什么"，再往后才是深度诊断与知识图谱。
-    //
-    // ⚠️ href 指向的是**单文件页面**（不是目录），所以 dirs 里用文件名匹配 ——
-    // stepOfPath 用 indexOf("/" + dir + "/") 逐个试，单文件没有尾部斜杠，
-    // 因此这一项的 dirs 给空数组：它永远不会被 stepOfPath 命中，而这是对的 ——
-    // 单文件页不加载 flow-nav，也就不需要自己算"当前是哪一屏"。
-    { key: "agent", label: "智能助手", href: "智能巡检数智员工-泵.html", dirs: [] },
-    { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow-v2/index.html",
-      // dirs 里 v2 必须排在旧目录前面：stepOfPath 用 indexOf("/" + dir + "/") 逐个试，
-      // 而 "/diagnosis-flow-v2/" 里**包含** "/diagnosis-flow" 但不含 "/diagnosis-flow/"，
-      // 所以两者不会互相误命中。顺序在这里不影响正确性，但保持"新的在前"的写法一致。
-      dirs: ["diagnosis-flow-v2", "diagnosis-flow"] },
-    { key: "graph", label: "知识图谱", href: "kg-template/index.html",
-      dirs: ["kg-template"] }
   ];
+  var primarySteps = steps.filter(function (step) { return step.navGroup === "primary"; });
+
+  function stepByKey(key) {
+    return steps.filter(function (step) { return step.key === key; })[0] || null;
+  }
 
   function stepOfPath(pathname) {
     return steps.filter(function (step) {
@@ -43,7 +40,7 @@
       return window.BengDemoShell.currentKey();
     }
     var step = stepOfPath(pathname);
-    return step ? step.key : "overview";
+    return step ? step.key : "agent";
   }
 
   function prefixFor(pathname) {
@@ -86,6 +83,8 @@
     if (document.querySelector(".inspection-flow-nav")) return;
 
     var key = currentKey(window.location.pathname);
+    var activeStep = stepByKey(key);
+    var activeNavKey = (activeStep && activeStep.parentKey) || key;
     var prefix = prefixFor(window.location.pathname);
     var nav = document.createElement("nav");
     nav.className = "inspection-flow-nav";
@@ -104,17 +103,14 @@
     var links = document.createElement("div");
     links.className = "flow-nav-links";
 
-    steps.forEach(function (step, index) {
+    primarySteps.forEach(function (step) {
       var link = document.createElement("a");
       link.href = prefix + step.href;
-      // 序号与标签都走 data-* —— CSS 用 ::before/::after 渲染它们（见 flow-nav.css）。
-      // textContent 留空：顶部条版本里，圆点和文字是两个伪元素，写进 textContent 会重复一遍。
-      link.dataset.no = String(index + 1);
       link.dataset.key = step.key;
       link.dataset.label = step.label;
-      link.title = String(index + 1) + " " + step.label;
-      link.setAttribute("aria-label", String(index + 1) + " " + step.label);
-      if (step.key === key) link.className = "is-active";
+      link.title = step.label;
+      link.textContent = step.label;
+      if (step.key === activeNavKey) link.className = "is-active";
       link.addEventListener("click", function (event) {
         var current = currentKey(window.location.pathname);
         if (step.key === current) {
