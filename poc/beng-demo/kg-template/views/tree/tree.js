@@ -445,8 +445,7 @@
     cats.forEach((cat, i) => {
       const item = dom.el('div', 'topic',
         `<span class="no">${String(i + 1).padStart(2, '0')}</span>` +
-        `<span class="nm">${cat.label}</span>` +
-        `<span class="qty">${D.sampleCount(cat.id)}</span>`);
+        `<span class="nm">${cat.label}</span>`);
       /* 左栏用 data-cat：树里的类目根节点已经占了 data-id="<catId>"，
          同一个 id 出现在两处会让外部按 [data-id] 找节点时选中左栏条目 */
       item.dataset.cat = cat.id;
@@ -459,7 +458,7 @@
       topicList.appendChild(item);
     });
     dom.$('.side-head .cnt', root).textContent =
-      `${cats.length} ${UI.tree.topicUnit} · ${cats.reduce((s, c) => s + D.sampleCount(c.id), 0)} ${D.text.docUnitLong}`;
+      `${cats.length} ${UI.tree.topicUnit}`;
 
     /* ── 图例：层数不写死，按数据里实际出现的深度生成，
            名称与颜色都取自类型注册表 ── */
