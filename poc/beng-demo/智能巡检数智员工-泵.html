@@ -512,7 +512,11 @@ table.tbl tbody tr:hover{background:rgba(90,140,255,.08)}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<!-- ECharts 本地副本。**不要改回 CDN** —— 这套 demo 要能拷给业务方离线双击运行，
+     任何外链在断网环境下都会让图表整块空白（而且不报错，只是图不出来）。
+     本地这份是 5.6.0（CDN 原先引的是 5.5.0，小版本升级、API 兼容），
+     与本课题另外几个屏用的是同一个文件（全仓 7 份副本 md5 一致）。 -->
+<script src="hunan-pump-overview/vendor/echarts.min.js"></script>
 <script>
 /* =========================================================================
  *  剧本与演示数据 —— 全部演示内容集中在此文件，修改文案不需要动 app.js
