@@ -1,17 +1,19 @@
-// window.EvidenceView —— 证据台的六种证据形态。
+// window.EvidenceView —— 证据台的十种证据形态。
 //
 // 【为什么抽成一个组件】同一份证据要在两处渲染：工作台右栏的常驻证据台，以及点「放大」
 // 之后的浮层。两处只差尺寸和一个 chartId，内容完全一样 —— 各写一份必然分叉（旧目录
 // 的时序详情子屏和工作台时序卡就是各写一份，切时间范围时一个动一个不动，同一个测点
 // 两处数字对不上，那是会被现场当场看出来的穿帮）。
 //
-// 六种形态对应 domain/04-records.js 里 evidence[].kind：
+// 十种形态对应 domain/04-records.js 里 evidence[].kind：
 //   series   数值型 + 有标准    → 时序曲线（两条阈值线 + 越线阴影）
 //   track    巡检行为核查        → 提交时刻/间隔/停留 三个数各对一条规则
 //   compare  同点位前后变化      → 真实的同机位两帧并排
 //   timeline 开关量故障 + 处置   → 事件时间线
 //   gaps     记录缺项           → 表单缺项清单
 //   vision   目视 / 门禁 / 分区  → 关键帧 + bbox + 识别项
+//   pose     动作与姿态         → 帧图 + 动作阶段时间轴（到位/读表/录入）
+//   route    定位与轨迹         → 帧图（ROI/历史轨迹/定位点）+ 停留统计
 //   rule     判定口径           → 规则卡
 //   case     历史同类           → 跳知识库（locked 时说明为什么锁）
 //
@@ -23,6 +25,10 @@ window.EvidenceView = (function () {
     if (!window[name]) throw new Error("[EvidenceView] 需要先加载 " + name);
     return window[name];
   }
+
+  // dom.js 的 h() 没有 SVG 命名空间分支，document.createElement("svg") 建不出真正
+  // 的 SVG 节点 —— ROI/轨迹/定位点这层叠加只能在这里用 createElementNS 手搭。
+  var SVG_NS = "http://www.w3.org/2000/svg";
 
   // ---------------------------------------------------------------- 公共小件
 
@@ -48,21 +54,92 @@ window.EvidenceView = (function () {
     var VISION = need("DOMAIN_VISION");
     var showBoxes = !(opts && opts.noBoxes);
     var boxes = showBoxes ? frame.boxes : [];
+    // provenance 存在就渲染一行灰字。**显式判存在，不给默认值** —— 真帧没有这个字段，
+    // 而示意帧必须把「非本轮实拍」写在屏上：白昼室外照配夜班时刻是肉眼级矛盾，
+    // 靠讲解人记得说不算保障。
+    var prov = frame.provenance
+      ? h("p", { class: "ev-fig-prov", text: frame.provenance })
+      : null;
     return h("div", { class: "ev-figwrap" }, [
+      prov,
       h("figure", { class: "ev-fig" }, [
         h("img", { src: VISION.sourceOf(frame.src), alt: frame.label }),
         boxes.map(function (box) {
           return h("div", {
-            class: "ev-box " + box.tone,
+            // tagPos:"bottom" 让标签翻到框下沿，用于相邻小目标标签互压的情况。
+            class: "ev-box " + box.tone + (box.tagPos === "bottom" ? " tag-bottom" : ""),
             style: "left:" + (box.bbox.x * 100) + "%;top:" + (box.bbox.y * 100) + "%;" +
               "width:" + (box.bbox.w * 100) + "%;height:" + (box.bbox.h * 100) + "%",
             title: box.note
           }, [
             h("span", { class: "ev-box-tag", text: box.label })
           ]);
-        })
+        }),
+        overlayOf(frame)
       ])
     ]);
+  }
+
+  // 创建一个 SVG 节点。attrs 直接 setAttribute —— 不复用 h() 的属性分支，因为
+  // h() 那套 class/dataset/style 特殊键是给 HTML 节点设计的，SVG 这里用不上。
+  function svgEl(tag, attrs) {
+    var node = document.createElementNS(SVG_NS, tag);
+    attrs = attrs || {};
+    Object.keys(attrs).forEach(function (key) {
+      var value = attrs[key];
+      if (value === false || value == null) return;
+      node.setAttribute(key, value);
+    });
+    return node;
+  }
+
+  // 0~1 归一化坐标转成 viewBox="0 0 100 100" 下的点串。
+  function svgPoints(points) {
+    return points.map(function (p) { return (p.x * 100) + "," + (p.y * 100); }).join(" ");
+  }
+
+  // ROI 多边形 / 历史轨迹 / 当前定位点的叠加层，与 .ev-box 同级铺在 .ev-fig 里。
+  // viewBox 固定写死 100x100 + preserveAspectRatio="none"：图片是
+  // height:100%;width:auto，加载完成前拿不到真实像素宽度，坐标不能按像素算，
+  // 只能靠归一化坐标乘 100 直接落进这套虚拟坐标系。
+  //
+  // areas / paths / marks 三个字段各自显式判存在 —— 缺一个就不画那一层，
+  // 不许拿 `frame.areas || []` 把"没这个字段"悄悄变成"这层是空的"。
+  function overlayOf(frame) {
+    var svg = svgEl("svg", {
+      class: "ev-fig-paths",
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "none"
+    });
+    var hasOverlay = false;
+    if (frame.areas) {
+      frame.areas.forEach(function (area) {
+        svg.appendChild(svgEl("polygon", {
+          class: "ev-area " + area.tone,
+          points: svgPoints(area.points)
+        }));
+      });
+      hasOverlay = true;
+    }
+    if (frame.paths) {
+      frame.paths.forEach(function (path) {
+        svg.appendChild(svgEl("polyline", {
+          class: "ev-path " + path.tone,
+          points: svgPoints(path.points)
+        }));
+      });
+      hasOverlay = true;
+    }
+    if (frame.marks) {
+      frame.marks.forEach(function (mark) {
+        svg.appendChild(svgEl("circle", {
+          class: "ev-mark " + mark.tone,
+          cx: mark.x * 100, cy: mark.y * 100, r: 1.6
+        }));
+      });
+      hasOverlay = true;
+    }
+    return hasOverlay ? svg : null;
   }
 
   function boxList(frame) {
@@ -192,13 +269,17 @@ window.EvidenceView = (function () {
   // 管理者视角的核心。证据形态是**时间**：提交时刻、与前项的间隔、现场停留时长，
   // 三个数各自对一条规则，命中的标红。
   //
-  // ★ 最后那段 visionLimit 是这枚证据真正的价值：说清视觉为什么帮不上忙。
+  // ★ 最后那段 visionNote 是这枚证据真正的价值：说清视觉为什么帮上忙 / 帮不上忙。
   //   有些巡检项（电缆沟、地面孔洞）根本不在摄像头视野里，只能靠人到位 ——
   //   所以行为核查是它唯一可核的维度。不写这一段，读者会以为"怎么不看画面"。
+  //
+  // ★ 裁决色 verdictTone 必须**读**、不能算：命中条数不等于裁决结论 ——
+  //   命中一条也可能因为姿态/表盘/轨迹三路视觉证据一致而判正常归档（见 REC-7），
+  //   `hits >= 2 ? "danger" : "warn"` 这种算法会在只命中一条时配错颜色。
   function renderTrack(ev, opts) {
     var RECORDS = need("DOMAIN_RECORDS");
     var tk = RECORDS.trackById(ev.trackId);
-    var hits = tk.rows.filter(function (r) { return r.hit; }).length;
+    if (!tk.verdictTone) throw new Error("[EvidenceView] " + tk.id + " 缺少 verdictTone");
     return h("section", { class: "ev" }, [
       head(tk.label, tk.window.label + " " + tk.window.from + "-" + tk.window.to,
            opts.zoom ? null : [zoomBtn()]),
@@ -223,10 +304,40 @@ window.EvidenceView = (function () {
           h("span", { text: tk.segment.note })
         ]),
         h("div", { class: "ev-verdict-line" }, [
-          h("i", { class: "dot " + (hits >= 2 ? "danger" : "warn") }),
+          h("i", { class: "dot " + tk.verdictTone }),
           h("span", { text: tk.conclusion })
         ]),
-        h("p", { class: "muted ev-track-note", text: tk.visionLimit })
+        h("p", { class: "muted ev-track-note", text: tk.visionNote })
+      ])
+    ]);
+  }
+
+  // ---------------------------------------------------------------- pose
+  //
+  // 动作与姿态。track 只给出"停留 8 秒"这一个抽象数字，这里把 8 秒拆成
+  // 到位 / 读表 / 录入三段动作序列 —— 这才是这枚证据真正要说的事：
+  // 8 秒不是"太快"，而是干完这份活刚好要用的时间。
+  function renderPose(ev, opts) {
+    var VISION = need("DOMAIN_VISION");
+    var RECORDS = need("DOMAIN_RECORDS");
+    var frame = VISION.frameById(ev.frameId);
+    var pose = RECORDS.poseById(ev.poseId);
+    return h("section", { class: "ev" }, [
+      head(pose.label, pose.model + " · 置信度 " + pose.confidence + "%",
+           opts.zoom ? null : [zoomBtn()]),
+      h("div", { class: "ev-body ev-pose" }, [
+        figure(frame),
+        h("div", { class: "ev-pose-phases" }, pose.phases.map(function (phase) {
+          return h("div", { class: "ev-pose-phase" }, [
+            h("span", { class: "ev-pose-phase-at num", text: phase.at }),
+            h("div", { class: "ev-pose-phase-text" }, [
+              h("strong", { text: phase.label }),
+              h("span", { class: "ev-pose-phase-sec num", text: phase.seconds + " 秒" })
+            ]),
+            h("small", { text: phase.detail })
+          ]);
+        })),
+        h("p", { class: "muted ev-pose-note", text: pose.conclusion })
       ])
     ]);
   }
@@ -240,6 +351,32 @@ window.EvidenceView = (function () {
       h("div", { class: "ev-body ev-vision" }, [
         figure(frame),
         boxList(frame)
+      ])
+    ]);
+  }
+
+  // ---------------------------------------------------------------- route
+  //
+  // 定位与轨迹。ROI 多边形、历史轨迹、当前定位点都画在帧图里（figure() 里的
+  // overlayOf 会自动处理，这里不用重复画）—— 这个渲染器只再补四行统计：
+  // 进入/离开 ROI 的时刻、ROI 内停留时长、路径是否经过本巡检点。
+  function renderRoute(ev, opts) {
+    var VISION = need("DOMAIN_VISION");
+    var RECORDS = need("DOMAIN_RECORDS");
+    var frame = VISION.frameById(ev.frameId);
+    var route = RECORDS.routeById(ev.routeId);
+    return h("section", { class: "ev" }, [
+      head(route.label, route.model + " · 置信度 " + route.confidence + "%",
+           opts.zoom ? null : [zoomBtn()]),
+      h("div", { class: "ev-body ev-route" }, [
+        figure(frame),
+        h("div", { class: "ev-route-rows" }, route.rows.map(function (row) {
+          return h("div", { class: "ev-route-row" }, [
+            h("span", { class: "ev-route-row-label", text: row.label }),
+            h("span", { class: "ev-route-row-value num", text: row.value })
+          ]);
+        })),
+        h("p", { class: "muted ev-route-note", text: route.conclusion })
       ])
     ]);
   }
@@ -291,6 +428,8 @@ window.EvidenceView = (function () {
     timeline: renderTimeline,
     gaps: renderGaps,
     vision: renderVision,
+    pose: renderPose,
+    route: renderRoute,
     rule: renderRule,
     case: renderCase
   };

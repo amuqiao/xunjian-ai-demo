@@ -44,7 +44,7 @@ window.DOMAIN_REPORT = (function () {
     "recordNo", "recordItem", "recordStandard", "recordResult",
     "aiLabel", "aiConfidence", "aiText",
     "reviewerName", "reviewerRole", "outcomeLabel", "reviewNote",
-    "divergenceNote", "seriesSummary", "visionSummary"
+    "divergenceNote", "seriesSummary", "visionSummary", "behaviorSummary"
   ];
 
   // 【编号必须派生，不能写死在 title 里】numbered:true 的段落由 ReportModel.resolve()
@@ -78,6 +78,7 @@ window.DOMAIN_REPORT = (function () {
       items: [
         "时序：{{seriesSummary}}",
         "视觉：{{visionSummary}}",
+        "行为：{{behaviorSummary}}",
         "AI 建议：{{aiLabel}}（置信度 {{aiConfidence}}%）"
       ]
     },

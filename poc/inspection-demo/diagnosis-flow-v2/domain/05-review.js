@@ -64,10 +64,17 @@ window.DOMAIN_REVIEW = (function () {
     "接线端子已紧固并做防松标记，纳入下轮复查。",
     "SIS 机柜巡检项已补录，标识与柜门状态正常。",
     "该项行为数据异常，已通知巡检人当班内重巡并留痕。",
-    "已向班组通报本轮行为核查结果，纳入当月巡检质量考核。"
+    "已向班组通报本轮行为核查结果，纳入当月巡检质量考核。",
+    // 第七条给 cleared 用 —— 原来六条最近的两条都是「通知重巡 / 纳入考核」，
+    // 没有一条能表达「查过了、疑点排除」。
+    "经姿态与轨迹复核，该项作业过程真实，行为疑点排除。"
   ];
 
-  var defaultReviewerId = "RV-1";
+  // 【改成 RV-2】原先是 RV-1 = 廖震宇 —— 而他正是 REC-5 与 REC-7 的 inspector。
+// 现场点开 REC-7 走人工复核，屏上会是「廖震宇本人采纳 AI 洗清廖震宇」，REC-5 同理
+// （退回重巡他自己的项）。六条里四条是 supervisor 视角，默认给站场值班长本来更对。
+// verify 用的是显式 RV-2，所以脚本一直是绿的，只有演示时才会露。
+var defaultReviewerId = "RV-2";
 
   function reviewerById(id) {
     var found = reviewers.filter(function (r) { return r.id === id; })[0];

@@ -25,6 +25,13 @@ window.SceneWorkbench = (function () {
 
   // 本轮概况。三个数全部从记录现算，不手写：条数、AI 标记为"重点复核"的条数、
   // "记录缺项"的条数。它填的是第一栏上方那块空间，同时给记录表一个量级参照。
+  // 【REC-7 的 aiFlag 是 "cleared"，故意不进任何一个 stat】
+  // 概况带恒定 4 格：本轮表单项 / 重点复核 / 行为异常 / 记录缺项。verify_flow.py 对这条
+  // 概况带有 len(stats)==4 的断言，多一格就会挂。而且"行为异常"这个数字必须保持等于 1
+  // （只数 REC-5 那条 aiFlag==="behavior"）——REC-7 旁边卡片写的是"不构成行为异常，
+  // 建议归档"，如果 cleared 也被算进"行为异常"，这句话就自相矛盾了。cleared 是"曾经
+  // 命中过行为规则、但视觉证据洗清了它"，介于"异常"和"正常"之间，概况带索性不体现，
+  // 留给依据链和 AI 判断卡片去讲这个更细的故事。
   function renderOverview() {
     var AppState = need("AppState");
     var RECORDS = need("DOMAIN_RECORDS");
@@ -112,7 +119,8 @@ window.SceneWorkbench = (function () {
   // 依据链芯片。左侧小方标注证据形态，让"这条依据是什么"在点之前就能看出来。
   // locked 的那枚（二次命中包袱）归档前 disabled + 虚线边框。
   var KIND_MARK = {
-    series: "时", track: "行", compare: "比", timeline: "程", gaps: "缺", vision: "视", rule: "规", case: "案"
+    series: "时", track: "行", compare: "比", timeline: "程", gaps: "缺", vision: "视", rule: "规", case: "案",
+    pose: "姿", route: "迹"
   };
 
   function renderChain() {
@@ -120,7 +128,7 @@ window.SceneWorkbench = (function () {
     var state = AppState.value;
     var list = AppState.evidenceList();
 
-    return h("div", { class: "wb-chain" }, list.map(function (ev, index) {
+    return h("div", { class: "wb-chain", dataset: { scrollKey: "wb-chain" } }, list.map(function (ev, index) {
       var locked = !!ev.locked && !AppState.reuseUnlocked();
       var active = index === state.evidenceIndex;
       return h("button", {

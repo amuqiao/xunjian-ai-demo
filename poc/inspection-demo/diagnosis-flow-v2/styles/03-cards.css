@@ -87,6 +87,16 @@
   box-shadow: inset 0 0 0 2px var(--status-danger);
 }
 
+/* cleared（第五态：已排除，REC-7 新增）。不写这条规则不会报错 —— .dx-dot 缺省
+   fallback 是实心绿点（79 行），跟 ok（已闭环）长得一模一样，而这两者的故事完全
+   不同：ok 是从没触发过规则，cleared 是先命中行为核查、再被姿态/表盘/轨迹三路
+   证据联合洗清。同色但不能同形，照搬 behavior 挖空实心的做法——把"实心/空心"
+   这条区分维度让给"从未起疑 / 起疑后排除"，而不是另起一支颜色。 */
+.dx-dot.cleared {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--status-ok);
+}
+
 /* AI 质检那一列：文字带色，不用纯色块 —— 「重点复核」四个字本身就是信息。 */
 .dx-flag { font-weight: 700; }
 .dx-flag.conflict { color: var(--status-danger); }
@@ -101,6 +111,17 @@
 }
 .dx-flag.gap { color: var(--status-warn); }
 .dx-flag.ok { color: var(--status-ok); }
+
+/* cleared 同 .dx-dot.cleared 的道理：默认不写这条会直接继承 .dx-flag 的基础色，
+   跟 .dx-flag.ok 的纯色文字混同。这里借用 .dx-flag.behavior 已有的下划虚线手法
+   （同色但加一道线来区分"性质不同"），只是把点式虚线换成圆点虚线、颜色换成
+   status-ok —— dashed 已经被 behavior 用来标"退回重巡"，cleared 用 dotted
+   避免两种下划线语义混着看。 */
+.dx-flag.cleared {
+  color: var(--status-ok);
+  text-decoration: underline dotted rgba(48, 198, 157, .55);
+  text-underline-offset: 3px;
+}
 
 /* ===========================================================================
    .chip 一族。三种用途，共用盒子、只换色：
@@ -148,6 +169,13 @@
 .chip-kind.rule { background: rgba(135, 163, 184, 0.18); color: var(--muted); }
 .chip-kind.case { background: rgba(255, 98, 92, 0.18); color: var(--status-danger); }
 .chip-kind.track { background: rgba(255, 98, 92, 0.16); color: var(--status-danger); }
+/* pose / route（REC-7 新增）：这两枚是支持性证据 —— 作用是洗清行为核查的疑点，
+   不是像 track/case 那样指控异常，所以不能沿用 status-danger。vision 已经占了
+   status-ok（核实通过的直接证据），pose/route 是"过程可读"的辅证，借 series 的
+   青色（accent）与 compare 的蓝色（accent-2）两支中性强调色，跳出状态三色系，
+   同一条链里也不会跟 track（红）/vision（绿）/rule（灰）混色。 */
+.chip-kind.pose { background: rgba(56, 198, 236, 0.18); color: var(--accent); }
+.chip-kind.route { background: rgba(90, 140, 255, 0.18); color: var(--accent-2); }
 
 .chip-text { display: grid; gap: 1px; min-width: 0; }
 .chip-text strong { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -53,8 +53,16 @@
 .wb-verdict-text { color: var(--ink); font-size: 15px; font-weight: 700; line-height: 1.5; }
 .wb-verdict-note { color: var(--muted); font-size: 13.5px; line-height: 1.75; }
 
-.wb-chain { display: grid; gap: 9px; align-content: start; }
+/* .wb-ai 的行高是 auto auto auto auto minmax(0,1fr) ——依据链吃的是剩余高度，
+   不是无限高度。REC-7 的链有 5 枚芯片，前面还顶着一段较长的 suggestion.text，
+   原先 align-content:start 又没有滚动容器，超出的部分（通常是第 5 枚）会被
+   .wb-col 的 overflow:hidden 静默裁掉，界面上看不出任何报错。补一条纵向滚动，
+   撑不下就滚，而不是裁。滚动条样式抄 .card-body.scroll 那一份，保持三页统一。 */
+.wb-chain { display: grid; gap: 9px; align-content: start; overflow-y: auto; min-height: 0; }
 .wb-chain .chip { width: 100%; }
+.wb-chain::-webkit-scrollbar { width: 6px; }
+.wb-chain::-webkit-scrollbar-thumb { border-radius: 6px; background: var(--line-strong); }
+.wb-chain::-webkit-scrollbar-track { background: transparent; }
 
 /* ===========================================================================
    二、证据台。六种形态共用 .ev 外壳（head + body），body 里换内容。
@@ -143,18 +151,121 @@
    height:100% + width:auto + inline-block，让 figure 的盒子等于图片的渲染盒。
    若 figure 撑满外层容器，宽高比不同的图（plc 是 2172×1228，其余 1920×1080）
    会让框整体偏移 —— 这是本项目在旧目录踩过的坑，写在这里免得再犯。 */
-.ev-figwrap { display: grid; place-items: center; min-height: 0; overflow: hidden; }
+/* 【overflow 从 hidden 改成 auto】原先是 hidden，配上「.ev-fig 只卡宽度不卡高度」之后
+   在放大浮层里变成了**静默裁切**：浮层可用宽约 2079px 大于 1920/2172 的原生宽，
+   .ev-fig 就按原生尺寸渲染，高度 1081/1131 超出可视 1040，超出部分被上下平分切掉
+   —— 实测 1920x1080 各切 20.9px（3.8%）、2172x1228 各切 45.3px（8.0%），
+   PLC 那张的 OSD 时间戳几乎顶着画面边缘。裁掉的像素不可见、不报错，正是这一轮
+   一直在治的那类失败模式。
+   改成 auto：撑不下就滚，不要悄悄丢像素 —— 与本轮 .wb-chain 立的同一条原则。 */
+.ev-figwrap { display: grid; grid-template-rows: auto 1fr; place-items: center; min-height: 0; overflow: auto; }
+
+/* 示意帧的来源声明。放在图上方而不是 title 里：路演大屏没人会去悬停，
+   而这一行的作用恰恰是主动交代「这不是本轮实拍」—— 藏起来就等于没写。 */
+.ev-fig-prov {
+  margin: 0 0 8px;
+  align-self: start;
+  justify-self: center;
+  padding: 3px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .ev-fig {
   position: relative;
   display: inline-block;
-  height: 100%; width: auto;
+  /* 只卡宽度，不给 height —— .ev-fig 必须 shrink-wrap 到图片实际盒子，因为
+     .ev-box 和 .ev-fig-paths 都按它的百分比定位。原先写 height:100% 时它有 857px 高
+     而图片只有 500px，SVG 的梯形就画到照片下方的黑边里去了。
+     高度不用卡：证据台宽 1047，八张帧宽高比 1.49~1.77，宽度封顶后高 591~703，
+     都小于可用高度约 1071。竖图会溢出，但那种情况该响不该被 letterbox 悄悄兜住 ——
+     verify 里有断言钉住「元素盒高 == 内容高」。 */
   max-width: 100%;
+  /* 宽度下限 820：shrink-wrap 之后小图会缩成缩略图 —— 姿态那张原生 409px，在 1047px 的
+     证据台里只占 39%，上下大片空白，而且 0.058 宽的「手持终端」框只有 24px、标签压在一起。
+     min-width 把它抬到 820（2.0x，最轻的可接受放大），框跟着变宽一倍，标签就放得下了。
+     776/790 那两张只抬 1.05x 几乎无损；1920 那张被 max-width 截在 1047（0.55x 缩小）。
+     写成 min(100%, 820px) 而不是死 820：对比帧那种半幅容器（445px 宽）不能被撑破。 */
+  min-width: min(100%, 820px);
   line-height: 0;
   border-radius: var(--r-s);
   overflow: hidden;
   border: 1px solid var(--line-strong);
 }
-.ev-fig img { height: 100%; width: auto; max-width: 100%; object-fit: contain; display: block; }
+/* 【2026-08-23 修一个一直存在的错位】原先是
+     height:100%; width:auto; max-width:100%; object-fit:contain
+   三条打架：height:100% 想让高度撑满，max-width:100% 又把宽度截在容器内，
+   于是元素盒的宽高比不等于图片的宽高比，object-fit:contain 再在盒内做 letterbox。
+   实测 1920x1080 那张：元素盒 1047x1071，实际画面只有 1047x589，**上下各 241px 是空的**。
+   而 .ev-box 和 .ev-fig-paths 都按元素盒的百分比定位 —— 所以所有识别框竖直方向偏了
+   241px 且被拉伸 1.82 倍。压在繁杂的监控画面上不容易看出来，直到 route 那张的梯形
+   ROI 画出去、露在照片下方的黑边里才暴露。
+   （bbox 写的是图片自身坐标系，这一点是核过的：按 BX-GAUGE 的
+   {x:0.330,y:0.530,w:0.075,h:0.120} 去裁 pump-current.png 原图，裁出来正好是那只压力表。）
+
+   改成**宽度驱动**：width:100% + height:auto，元素盒就等于内容盒，没有 letterbox。
+   证据台宽 1047，八张帧的宽高比在 1.49~1.77 之间，算出来高 589~703，都放得进
+   约 1071 的可用高度。竖图会溢出 —— 但那不该靠 letterbox 悄悄兜住，
+   verify 里有一条断言钉住「每张帧的元素盒高度 == 内容高度」，将来真加了竖图会红。 */
+.ev-fig img { width: 100%; height: auto; display: block; }
+
+/* REC-7 新增：ROI 多边形 / 历史轨迹折线 / 当前定位点，画在 FRM-ROUTE-2003 上。
+   跟 .ev-box 同一个道理 —— 这些点位坐标也是相对图片本身的 0~1 归一化比例，
+   所以叠加层不能铺满 .ev-figwrap（那是外层留白容器，宽高比跟图片不一致），
+   必须铺满 .ev-fig 本身。
+   ⚠️ 这段注释原先写着「.ev-fig 的盒子大小已经等于图片实际渲染盒」—— 那句话是**错的**，
+   见上面 .ev-fig img 那条注释。改成宽度驱动之后它才真的成立。 */
+.ev-fig-paths {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+/* 三类图形共用 viewBox="0 0 100 100"（0~1 归一化坐标乘 100），描边宽度若跟着
+   viewBox 缩放会细成看不见的发丝线，所以三类都带 vector-effect:non-scaling-stroke
+   —— 描边宽度按屏幕像素算，不随坐标系缩放。类名 .ev-area / .ev-path / .ev-mark
+   对应 frame.areas / frame.paths / frame.marks 三个字段，跟 .ev-box 一样，
+   基础类本身就是 ok 配色，.warn/.danger 覆盖。
+
+   ROI 多边形（frame.areas，本巡检点的透视梯形范围）：描边 + 低透明度填充，
+   让人看得出"框住的是这一片地"而不是又一个 bbox。 */
+.ev-area {
+  fill: rgba(48, 198, 157, 0.12);
+  stroke: var(--status-ok);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.ev-area.warn { fill: rgba(238, 180, 74, 0.12); stroke: var(--status-warn); }
+.ev-area.danger { fill: rgba(255, 98, 92, 0.12); stroke: var(--status-danger); }
+
+/* 历史轨迹折线（frame.paths）：只描边、无填充，线较粗、圆头圆角连接
+   （stroke-linecap/linejoin: round），跟 ROI 的细描边、定位点的实心圆区分开，
+   一眼看出这是"走过的路径"而不是范围或者点位。 */
+.ev-path {
+  fill: none;
+  stroke: var(--status-ok);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.ev-path.warn { stroke: var(--status-warn); }
+.ev-path.danger { stroke: var(--status-danger); }
+
+/* 当前定位点（frame.marks）：实心圆 + 浅色描边，浅描边是为了在圆本身用了
+   状态色（可能与背景/ROI 填充色相近）时仍然能从画面里"抠"出来，与 .ev-box 的
+   描边思路（外加一圈 1px 深色 box-shadow 保证反差）同一个用意，只是 SVG 里换成
+   stroke 更省事。 */
+.ev-mark {
+  fill: var(--status-ok);
+  stroke: rgba(234, 246, 251, 0.85);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.ev-mark.warn { fill: var(--status-warn); }
+.ev-mark.danger { fill: var(--status-danger); }
 
 .ev-box {
   position: absolute;
@@ -173,6 +284,11 @@
   font-size: 12px; font-weight: 800; white-space: nowrap;
   line-height: 1.6;
 }
+/* 标签默认压在框上沿。两个框挨得太近时（轨迹帧里两个人相距 0.028，在 820px 图上
+   只有 23px，而标签各约 100px）标签必然互压 —— 给其中一个挂 tag-bottom 让它翻到下沿。
+   这是识别框的通用能力，不是那一帧的特例：任何两个相邻小目标都会撞。 */
+.ev-box.tag-bottom .ev-box-tag { top: auto; bottom: -25px; }
+
 .ev-box.warn .ev-box-tag { background: var(--status-warn); color: #241703; }
 .ev-box.danger .ev-box-tag { background: var(--status-danger); color: #2a0605; }
 
@@ -208,6 +324,68 @@
 .ev-case { align-content: center; justify-items: center; gap: 14px; text-align: center; }
 .ev-case p { color: var(--muted); font-size: 14.5px; line-height: 1.8; max-width: 520px; }
 
+/* ---- 形态 8：动作与姿态（pose，REC-7 新增）。renderPose 只挂三块：帧图
+   （figure()，占剩余高度）→ 三段动作时间轴 .ev-pose-phases → 一行判读结论
+   .ev-pose-note，不带 .ev-boxlist（识别项已经在图上用 .ev-box 标出来了，
+   这里不重复列一遍）。 ---- */
+.ev-pose { grid-template-rows: minmax(0, 1fr) auto auto; gap: 12px; }
+
+/* 三段动作卡，版式照抄 .ev-track-row（同一份左色条 + 主行 + 说明小字骨架），
+   色条换成 accent-2（跟 .chip-kind.pose 同一支色）—— 这三段本身不是判定，
+   不用状态三色，accent-2 只是标"这是姿态证据自己的时间轴"，数值列是秒数
+   不是规则值。时刻在左、标签居中、秒数靠右，三段横排一眼看出 8 秒怎么分。 */
+.ev-pose-phases { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ev-pose-phase {
+  display: grid; gap: 6px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-2);
+  border-radius: 0 var(--r-s) var(--r-s) 0;
+  background: var(--surface-bg);
+}
+.ev-pose-phase-at { color: var(--muted); font-size: 12px; }
+.ev-pose-phase-text { display: flex; align-items: baseline; gap: 8px; }
+.ev-pose-phase-text strong { font-size: 13.5px; font-weight: 700; }
+.ev-pose-phase-sec { margin-left: auto; font-size: 16px; font-weight: 700; color: var(--accent-2); }
+.ev-pose-phase small { color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+.ev-pose-note {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--r-s);
+  background: var(--surface-bg-2);
+  font-size: 13.5px; line-height: 1.7;
+}
+
+/* ---- 形态 9：定位与轨迹（route，REC-7 新增）。renderRoute 同样只挂三块：
+   带 ROI/历史轨迹/定位点叠加的帧图（figure() 内部 overlayOf() 已经处理，
+   这里不用重画）→ 四行键值 .ev-route-rows → 一行判读结论 .ev-route-note。 ---- */
+.ev-route { grid-template-rows: minmax(0, 1fr) auto auto; gap: 12px; }
+
+/* 四行键值，版式照抄 .ev-track-row 的左色条骨架，但色条统一给 status-ok：
+   这四行没有"命中/未命中"的分野（不像 .ev-track-row.hit 那样只标部分行），
+   全部四行都是同一件事的正面佐证（人确实到了、确实停留了 8 秒），所以统一
+   上色，而不是像 track 那样只标"异常"的那几行。 */
+.ev-route-rows { display: grid; gap: 8px; }
+.ev-route-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--status-ok);
+  border-radius: 0 var(--r-s) var(--r-s) 0;
+  background: var(--surface-bg);
+}
+.ev-route-row-label { color: var(--muted); font-size: 13.5px; }
+.ev-route-row-value { margin-left: auto; color: var(--ink); font-size: 15px; font-weight: 700; }
+
+.ev-route-note {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--r-s);
+  background: var(--surface-bg-2);
+  font-size: 13.5px; line-height: 1.7;
+}
+
 /* ===========================================================================
    三、② 人工复核
    =========================================================================== */
@@ -225,6 +403,16 @@
    放在 auto 行上时父级高度由内容决定、而内容高度又要靠父级 —— ECharts 量到 0 高度，
    静默画出一条扁线不报错。第一版就是这样。 */
 .rv-left { grid-template-rows: auto 176px minmax(0, 1fr); gap: 12px; }
+
+/* 【无 mini 证据时改成两行】.rv-left 写死了三条轨道，但 review.js 的
+   renderMiniEvidence() 在没有 series 证据时返回 null，而 dom.js 的 append() 会把 null
+   子节点整个跳过（不占位）—— 于是只有 2 个子节点，CSS Grid 按顺序把它们摆进第 1、2 条
+   轨道而不是第 1、3 条：现场佐证卡被挤进本该给 mini 用的 176px 里，第 3 条 minmax(0,1fr)
+   整块空白。实测六条记录里**五条**都这样（只有 REC-1 有 series 证据），空白占列高 53~57%。
+   这是既有 bug，与同文件另一处已记下的教训（「多出来的一个子元素会把 1fr 抢走」）
+   是同一个坑的镜像 —— 那次是多一个，这次是少一个，两种都没防住。
+   由 review.js 在无 mini 时给 .rv-left 挂 .no-mini。 */
+.rv-left.no-mini { grid-template-rows: auto minmax(0, 1fr); }
 
 .rv-photo { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; }
 .rv-photo-frame {

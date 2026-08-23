@@ -149,9 +149,13 @@ def main():
                          "REC-4": ["gaps", "vision", "rule"],
                          # REC-5 是管理者视角那条（行为核查），依据形态与前四条都不同。
                          "REC-5": ["track", "rule", "vision"],
+                         # REC-7 是 REC-5 的镜像：同一条「停留 < 10 秒」规则命中，
+                         # 但机位看得见人，姿态+表盘+轨迹三路证据把它推翻 → 归档而非退回。
+                         # 5 枚是全场最长的一条链，也是唯一同时挂了 pose 与 route 的。
+                         "REC-7": ["track", "pose", "vision", "route", "rule"],
                          "REC-6": ["series", "rule"]}
         check(align["chains"] == expect_chains,
-              "依据链逐条按检查项分型，长度 4/2/3/3/3/2 各不相同（旧版是 5 条清一色 4 枚固定芯片）")
+              "依据链逐条按检查项分型，长度 4/2/3/3/3/5/2 各不相同（旧版是 5 条清一色 4 枚固定芯片）")
         check(align["pointCount"] == 1,
               "测点只保留出口管线压力 1 个（旧版有 3 个，其中 2 个量纲没有对应的检查项）")
         check(not align["sharedFrames"], "没有被 3 条以上记录共用的关键帧（旧版三条共用 FRM-1-CUR）：%s" % align["sharedFrames"])
@@ -186,8 +190,9 @@ def main():
                 img_bad += page.evaluate("""() => Array.from(document.querySelectorAll('.ev img'))
                     .filter(im => !im.complete || im.naturalWidth === 0)
                     .map(im => im.getAttribute('src'))""")
-        check(kinds_seen == {"series", "compare", "timeline", "gaps", "vision", "rule", "track"},
-              "★ 七种证据形态全部渲染无错 —— track 是管理者视角新增的那种"
+        check(kinds_seen == {"series", "compare", "timeline", "gaps", "vision", "rule",
+                             "track", "pose", "route"},
+              "★ 九种证据形态全部渲染无错 —— track / pose / route 三种都是管理者视角的"
               "（行为核查：提交时刻/间隔/停留 三个数各对一条规则）（实际 %s）" % sorted(kinds_seen))
         check(not img_bad, "证据台里的真实关键帧全部加载成功（失败的：%s）" % sorted(set(img_bad)))
 
@@ -208,11 +213,17 @@ def main():
                    audLabels: R.records.filter(r => r.objectId === 'OBJ-A')
                      .map(r => r.id + ':' + R.audienceOf(r).label) };
         }""")
-        check(story["byAud"] == {"executor": 2, "supervisor": 3},
-              "★ 五条记录分成两条故事线：巡检员复核 2 条 / 班长核查 3 条（实际 %s）" % story["byAud"])
+        check(story["byAud"] == {"executor": 2, "supervisor": 4},
+              "★ 六条记录分成两条故事线：巡检员复核 2 条 / 班长核查 4 条（实际 %s）" % story["byAud"])
         check(story["flags"].get("behavior") == 1,
               "★ aiFlag 有独立的 behavior 档 —— 行为异常不能塞进 conflict："
               "前者是「这一项有没有真做」、后者是「AI 与人工判得不一样」，管理动作完全不同")
+        # 精确钉住四个数：观众真会做这个算术。REC-7 是 cleared，刻意不进任何 stat ——
+        # 「行为异常」那格必须保持 1，否则它旁边的卡片说「不构成行为异常」就自相矛盾了。
+        check(story["flags"] == {"conflict": 2, "ok": 1, "gap": 1, "behavior": 1, "cleared": 1},
+              "★ OBJ-A 六条的 aiFlag 五态分布 2/1/1/1/1 —— cleared 是第五态：ok 是「从没命中过"
+              "规则」，cleared 是「命中了但被三路视觉证据推翻」，管理动作不同（实际 %s）"
+              % story["flags"])
         check(len(story["stats"]) == 4 and any("行为异常" in x for x in story["stats"]),
               "★ 概况带四个数，行为异常单独一个 —— 两条故事线在概况上就分开了（实际 %s）"
               % story["stats"])
@@ -241,6 +252,178 @@ def main():
               "不写这一段，读者会问「怎么不看画面」")
         check(trk["aud"] == "班长核查", "行为核查那条标着「班长核查」（实际 %s）" % trk["aud"])
         page.screenshot(path=str(SHOT_DIR / "01b-behavior.png"))
+
+        # ---- ★ REC-7：视觉洗清一个被时间规则误判的巡检员（REC-5 的镜像） ----
+        #
+        # 这一条存在的全部意义是「同一条停留规则，两个方向的结论」。判然不同的依据**不是秒数**
+        # （6 秒 vs 8 秒只差 2 秒，谁都能问「凭什么」），而是 R-BEHAVIOR 已有的那句
+        # 「命中两条以上建议退回重巡而非归档」：REC-5 命中两条 → 退回，REC-7 命中一条 → 归档。
+        # 下面第一条断言就是钉这个不变式的，别处没有任何东西钉它。
+        page.eval_on_selector('[data-select-id="REC-7"]', "el => el.click()")
+        page.wait_for_timeout(400)
+        mirror = page.evaluate("""() => {
+          const R = window.DOMAIN_RECORDS;
+          const stay = "单项现场停留 < 10 秒";
+          const of = id => {
+            const rec = R.recordById(id);
+            const tid = rec.evidence.filter(e => e.kind === 'track')[0].trackId;
+            const tk = R.trackById(tid);
+            return { outcome: rec.suggestion.outcomeId,
+                     flag: rec.aiFlag,
+                     hits: tk.rows.filter(r => r.hit).length,
+                     stayHit: tk.rows.some(r => r.rule === stay && r.hit === true),
+                     window: tk.window.label,
+                     tone: tk.verdictTone };
+          };
+          return { five: of('REC-5'), seven: of('REC-7') };
+        }""")
+        m5, m7 = mirror["five"], mirror["seven"]
+        check(m5["stayHit"] and m7["stayHit"] and m5["outcome"] != m7["outcome"],
+              "★ 镜像不变式：REC-5 与 REC-7 都命中「单项现场停留 < 10 秒」，但结论相反"
+              "（%s vs %s）—— 这是整条记录存在的意义" % (m5["outcome"], m7["outcome"]))
+        check(m5["hits"] == 2 and m7["hits"] == 1,
+              "★ 判然不同的依据是**命中条数**不是秒数：REC-5 命中 2 条 → 退回重巡，"
+              "REC-7 命中 1 条 → 可归档（实际 %s / %s）" % (m5["hits"], m7["hits"]))
+        check(m5["window"] != m7["window"],
+              "★ REC-7 不在低压配电室段：那段「均值 7.8 秒/项」正是 REC-5 判走过场的证据，"
+              "8 > 7.8，把 8 秒的项塞进同一段会反过来推翻 REC-5（实际 %s / %s）"
+              % (m5["window"], m7["window"]))
+        check(m7["tone"] == "ok" and m5["tone"] == "danger",
+              "★ 裁决色是**读** verdictTone 而不是按命中条数算 —— 旧算法 hits>=2?danger:warn 会给"
+              "只命中一条的 REC-7 一个橙点配「判正常」的结论（实际 %s / %s）" % (m7["tone"], m5["tone"]))
+        check(m7["flag"] == "cleared", "REC-7 的 aiFlag 是 cleared（实际 %s）" % m7["flag"])
+
+        rec7 = page.evaluate("""() => {
+          const chips = Array.from(document.querySelectorAll('.wb-chain button'));
+          const out = { chipCount: chips.length,
+                        marks: chips.map(b => (b.querySelector('.chip-kind') || {}).textContent),
+                        aud: document.querySelector('.wb-audience strong').textContent,
+                        badge: (Array.from(document.querySelectorAll('.dx-row'))
+                                 .filter(r => r.dataset.selectId === 'REC-7')[0] || {})
+                                 .querySelector ? Array.from(document.querySelectorAll('.dx-row'))
+                                 .filter(r => r.dataset.selectId === 'REC-7')
+                                 .map(r => (r.querySelector('.dx-flag') || {}).textContent)[0] : null };
+          return out;
+        }""")
+        check(rec7["chipCount"] == 5,
+              "REC-7 的依据链 5 枚，是全场最长的一条（实际 %s）" % rec7["chipCount"])
+        check("姿" in (rec7["marks"] or []) and "迹" in (rec7["marks"] or []),
+              "★ 姿 / 迹 两个新单字标出现在链上 —— 它们必须和既有的 时/行/比/程/缺/视/规/案 区分得开"
+              "（实际 %s）" % rec7["marks"])
+        check(rec7["aud"] == "班长核查",
+              "REC-7 标着「班长核查」—— 做的动作是班长采纳 AI 对自己队员的洗清（实际 %s）" % rec7["aud"])
+        check(rec7["badge"] == "疑点排除",
+              "★ 表上的徽标是「疑点排除」而不是「已闭环」—— 第五态存在的全部意义就是让这一行在表上"
+              "看得出来和 REC-2 不同，否则讲解时无处可指（实际 %s）" % rec7["badge"])
+
+        # 逐枚点开三种新形态，确认它们真的画出了东西
+        def click_chip(i):
+            page.eval_on_selector_all(".wb-chain button", "(els, i) => els[i].click()", i)
+            page.wait_for_timeout(350)
+
+        click_chip(1)   # pose
+        pose = page.evaluate("""() => {
+          const box = document.querySelector('.ev-pose-phases');
+          return { phases: box ? box.children.length : 0,
+                   text: document.querySelector('.ev') ? document.querySelector('.ev').innerText : '' };
+        }""")
+        check(pose["phases"] == 3 and "8 秒" in pose["text"],
+              "★ 姿态证据把 8 秒拆成三段（到位/读表/录入）—— 单张静态图证明不了时长，"
+              "动作序列才能（实际 %s 段，含「8 秒」=%s）"
+              % (pose["phases"], "8 秒" in pose["text"]))
+
+        click_chip(3)   # route
+        route = page.evaluate("""() => {
+          const svg = document.querySelector('.ev-fig .ev-fig-paths');
+          if (!svg) return null;
+          const poly = svg.querySelectorAll('polyline');
+          const pts = Array.from(poly).map(p => p.getAttribute('points').trim().split(/\s+/).length);
+          return { polygons: svg.querySelectorAll('polygon').length,
+                   polylines: poly.length, ptCounts: pts,
+                   marks: svg.querySelectorAll('circle').length };
+        }""")
+        check(route is not None and route["polygons"] == 1 and route["polylines"] == 2
+              and route["marks"] == 2 and all(n >= 2 for n in route["ptCounts"]),
+              "★ 轨迹证据画的是 SVG：1 个透视梯形 ROI + 2 条折线 + 2 个定位点。矩形框画不出这些，"
+              "所以 route 才必须是一种新形态（实际 %s）" % route)
+        page.screenshot(path=str(SHOT_DIR / "01c-rec7-route.png"))
+
+        # ---- 三条布局不变式（都是审查阶段实测出来的真 bug，其中两条是既有的） ----
+        layout7 = page.evaluate("""() => {
+          const out = { figs: [], provs: 0, wrapOverflow: null };
+          // ① 每张帧的元素盒高必须等于内容高（无 letterbox）。原先 .ev-fig img 是
+          //    height:100% + max-width:100% + object-fit:contain 三条打架，1920x1080 那张
+          //    元素盒 1047x1071、实际画面只有 1047x589，上下各 241px 空白，而 .ev-box 与
+          //    .ev-fig-paths 都按元素盒百分比定位 —— 所有识别框竖直偏 241px 且被拉伸 1.82 倍。
+          //    这一条 CSS 注释里声称有断言在钉，之前其实没有，现在补上。
+          const rec = window.DOMAIN_RECORDS;
+          return out;
+        }""")
+        figbox = []
+        for rid in ["REC-1", "REC-2", "REC-3", "REC-4", "REC-5", "REC-7"]:
+            page.eval_on_selector('[data-select-id="%s"]' % rid, "el => el.click()")
+            page.wait_for_timeout(250)
+            n = page.evaluate("() => document.querySelectorAll('.wb-chain button').length")
+            for i in range(n):
+                page.eval_on_selector_all(".wb-chain button", "(els, i) => els[i].click()", i)
+                page.wait_for_timeout(200)
+                d = page.evaluate("""() => {
+                  const fig = document.querySelector('.ev-fig');
+                  const img = fig && fig.querySelector('img');
+                  if (!img || !img.naturalWidth) return null;
+                  const r = img.getBoundingClientRect();
+                  const s = Math.min(r.width / img.naturalWidth, r.height / img.naturalHeight);
+                  return { boxH: r.height, contentH: img.naturalHeight * s,
+                           label: (document.querySelector('.ev-head .card-title') || {}).textContent };
+                }""")
+                if d:
+                    figbox.append((d["label"], round(d["boxH"] - d["contentH"], 1)))
+        bad_fig = [x for x in figbox if abs(x[1]) > 2]
+        check(not bad_fig and len(figbox) >= 8,
+              "★ 每张帧的元素盒高 == 内容高（无 letterbox）—— 这条 CSS 注释里声称有断言在钉，"
+              "之前其实没有。原先 1920x1080 那张元素盒比画面高 241px，.ev-box 与 SVG 叠加层"
+              "都按元素盒定位，于是所有识别框竖直偏 241px 且被拉伸 1.82 倍（实测 %d 帧，超差的：%s）"
+              % (len(figbox), bad_fig))
+
+        # ② 三张能力示意帧必须把「非本轮实拍」写在屏上：白昼室外照配 20:07 夜班是肉眼级矛盾，
+        #    同部位唯一的真帧（20:01:55）是室内全黑无人。靠讲解人记得说不算保障。
+        prov = page.evaluate("""() => {
+          const V = window.DOMAIN_VISION;
+          const withProv = V.frames.filter(f => f.provenance);
+          return { n: withProv.length,
+                   ids: withProv.map(f => f.id).sort(),
+                   labelsClean: withProv.every(f => !/\d\d:\d\d:\d\d/.test(f.label)),
+                   shotAtKept: withProv.every(f => !!f.shotAt) };
+        }""")
+        check(prov["n"] == 3 and prov["labelsClean"],
+              "★ 三张能力示意帧带 provenance 且 label 里不含秒级时刻 —— 带了就是把「白昼室外照"
+              "配夜班时刻」这个矛盾钉死（实际 %s 帧 %s，label 干净=%s）"
+              % (prov["n"], prov["ids"], prov["labelsClean"]))
+        check(prov["shotAtKept"],
+              "shotAt 必须保留 —— report.js 的 visionSummary 直接拼 camera + shotAt，"
+              "删了会静默印出 undefined")
+
+        # ③ 复核页左栏：renderMiniEvidence() 无 series 时返回 null 被 append 静默丢弃，
+        #    而 .rv-left 写死三条轨道 —— 只挂 2 个子节点时现场佐证被挤进 176px 那行，
+        #    第 3 条 minmax(0,1fr) 整块空白。实测六条里五条都这样，空白占列高 53~57%。
+        page.eval_on_selector('[data-select-id="REC-7"]', "el => el.click()")
+        page.wait_for_timeout(250)
+        page.eval_on_selector('[data-action="go-scene"][data-scene-key="review"]', "el => el.click()")
+        page.wait_for_timeout(500)
+        rv = page.evaluate("""() => {
+          const L = document.querySelector('.rv-left');
+          const kids = Array.from(L.children);
+          const used = kids.reduce((a, k) => a + k.getBoundingClientRect().height, 0)
+                     + (kids.length - 1) * 12;
+          return { cls: L.className, n: kids.length,
+                   blank: Math.round(L.getBoundingClientRect().height - used) };
+        }""")
+        check("no-mini" in rv["cls"] and rv["n"] == 2 and rv["blank"] < 80,
+              "★ REC-7 无 series 证据时复核页左栏挂 .no-mini 走两行轨道，不留大块空白 —— "
+              "改前六条里五条的左栏有 632~680px（占 53~57%%）纯空白（实际 %s / %s 子节点 / 空白 %spx）"
+              % (rv["cls"], rv["n"], rv["blank"]))
+        page.eval_on_selector('[data-action="go-scene"][data-scene-key="workbench"]', "el => el.click()")
+        page.wait_for_timeout(400)
 
         page.eval_on_selector('[data-select-id="REC-1"]', "el => el.click()")
         page.wait_for_timeout(200)
@@ -364,8 +547,8 @@ def main():
           return { counts: counts, bad: bad, dangling: dangling,
                    blob: JSON.stringify(KB) };
         }""")
-        check(corpus["counts"] == {"workbench": 7, "review": 5, "knowledge": 6},
-              "三页语料条数 7 / 5 / 6（实际 %s）" % corpus["counts"])
+        check(corpus["counts"] == {"workbench": 8, "review": 5, "knowledge": 6},
+              "三页语料条数 8 / 5 / 6（实际 %s）" % corpus["counts"])
         check(not corpus["bad"], "每一问都有题干和答案（实际缺失 %s）" % corpus["bad"])
         check(not corpus["dangling"], "★ 引用全部指向真实资产，无悬空引用（实际 %s）" % corpus["dangling"])
         RETIRED_TERMS = ["RTK", "电子围栏", "无人机", "机器人", "安全帽", "工装", "吸烟",
@@ -473,6 +656,36 @@ def main():
         nums_d = [t.split("、")[0] for t in model["divergentTitles"] if "、" in t]
         check(nums_a == ["一", "二", "三", "四"], "无分歧版章节编号连续不跳号：%s" % " ".join(nums_a))
         check(nums_d == ["一", "二", "三", "四", "五"], "有分歧版章节编号连续：%s" % " ".join(nums_d))
+
+        # ★ REC-7 的报告必须能说出它存在的理由。这条关的是一个**静默**缺陷：
+        # report.js 原先按 kind === "vision" || kind === "compare" 挑视觉证据，
+        # REC-7 的视觉证据是 pose / route 两个新 kind，不改的话报告会印出
+        # 「视觉：本条不涉及视觉证据」—— 而这条记录的全部意义就是视觉洗清了它。
+        # 不抛错、不报警，只是悄悄印错。同理 behaviorSummary：七条里有两条是行为驱动的，
+        # 而报告模板原先完全表达不了行为。
+        rep7 = page.evaluate("""() => {
+          const M = window.ReportModel;
+          const v = M.resolve(M.contextFromState({
+            recordId: 'REC-7', reviewerId: 'RV-2', outcomeId: 'OUT-ARCHIVE',
+            note: 'x', range: '12h', generatedAt: '2026-07-22 20:47'
+          }));
+          // resolve() 返回 { meta, divergent, pages }，没有 values —— 直接读渲染出来的
+          // 「多源证据摘要」那一段的 items，那才是真会印到报告上的字。
+          const secs = v.pages.reduce(function (acc, p) { return acc.concat(p.sections); }, []);
+          const ev = secs.filter(function (x) { return x.id === 'SEC-EVIDENCE'; })[0];
+          return { items: ev ? ev.items : null };
+        }""")
+        items = rep7["items"] or []
+        vision_line = [x for x in items if x.startswith("视觉：")]
+        behavior_line = [x for x in items if x.startswith("行为：")]
+        check(vision_line and "不涉及视觉证据" not in vision_line[0],
+              "★ REC-7 的报告能说出视觉证据 —— pose / route 必须进 report.js 的视觉过滤器，"
+              "否则这条「视觉洗清」的记录会在报告里印出「本条不涉及视觉证据」，而且是**静默**印错、"
+              "不抛错不报警（实际：%s）" % (vision_line[0] if vision_line else "没有视觉那一行"))
+        check(behavior_line and "8 秒" in behavior_line[0],
+              "★ 报告新增「行为：」一条并点出 8 秒 —— 七条记录里两条是行为驱动的，"
+              "原模板只有「时序：」「视觉：」两条，完全表达不了行为（实际：%s）"
+              % (behavior_line[0] if behavior_line else "没有行为那一行"))
 
         for name in ["inspection-review-report-accepted.pdf", "inspection-review-report-divergent.pdf"]:
             check((ROOT / "assets" / "reports" / name).exists(), "预构建 PDF 存在：%s" % name)

@@ -208,10 +208,16 @@ window.SceneReview = (function () {
   // ---------------------------------------------------------------- 场景与浮层
 
   function render() {
+    // 先算出来再判：renderMiniEvidence() 在没有 series 证据时返回 null，而 dom.js 的
+    // append() 会把 null 子节点整个跳过（不占位）。.rv-left 写死了三条轨道，只挂 2 个
+    // 子节点时它们会落进第 1、2 条而不是第 1、3 条 —— 现场佐证被挤进 176px 那一行，
+    // 第 3 条 minmax(0,1fr) 整块空白。实测六条记录里五条都这样（只有 REC-1 有 series），
+    // 空白占列高 53~57%。挂 .no-mini 把轨道数和子节点数对上。
+    var mini = renderMiniEvidence();
     return h("div", { class: "rv-scene" }, [
-      h("div", { class: "wb-col rv-left" }, [
+      h("div", { class: "wb-col rv-left" + (mini ? "" : " no-mini") }, [
         renderSummary(),
-        renderMiniEvidence(),
+        mini,
         renderSitePhoto()
       ]),
       h("div", { class: "wb-col rv-right" }, [
