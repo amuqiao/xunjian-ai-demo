@@ -79,11 +79,20 @@
 .dx-dot { display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--status-ok); }
 .dx-dot.warn { background: var(--status-warn); }
 .dx-dot.danger { background: var(--status-danger); }
+.dx-dot.ok { background: var(--status-ok); }
 
 /* AI 质检那一列：文字带色，不用纯色块 —— 「重点复核」四个字本身就是信息。 */
 .dx-flag { font-weight: 700; }
-.dx-flag.conflict { color: var(--status-danger); }
-.dx-flag.gap { color: var(--status-warn); }
+/* 【键名必须跟 domain 的 aiFlag 一致】本 POC 的 aiFlag 三态是 danger / warn / ok
+   （见 domain/04-records.js 的 aiFlagText）。这里原先写的是 conflict / gap ——
+   那是从参照物 poc/inspection-demo/diagnosis-flow-v2 复制过来的键名，那边的三态叫
+   conflict（重点复核）/ gap（记录缺项）/ ok。键名对不上的后果是**静默失效**：
+   「重点复核」和「待确认」两个标签根本没上色，只有 ok 那条是绿的，而且不报错。
+   截图上它们看着有色，其实是 .dx-row.danger 那层行底色在起作用。
+
+   三色语义与全项目一致：重点复核 = 红（要人立刻看）、待确认 = 橙、已闭环 = 绿。 */
+.dx-flag.danger { color: var(--status-danger); }
+.dx-flag.warn { color: var(--status-warn); }
 .dx-flag.ok { color: var(--status-ok); }
 
 /* ===========================================================================

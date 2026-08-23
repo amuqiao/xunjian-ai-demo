@@ -109,6 +109,32 @@ def main():
         check(sk["steps"] == 3, "主线三步导航（实际 %s）" % sk["steps"])
         check(sk["legacy"] == 0, "已删除：6 步流程轨 / 整屏子屏（旧目录那套）")
 
+        # ★ AI 质检三色必须真的上色。这类 bug 是**静默**的：styles/03-cards.css 里的
+        # .dx-flag.* 键名要与 domain/04-records.js 的 aiFlag 三态（danger/warn/ok）一致，
+        # 从参照物复制过来的 conflict/gap 键名对不上，标签就用默认色、且不报错 ——
+        # 屏上看着"有色"其实是 .dx-row 那层行底色在起作用。
+        colors = page.evaluate("""() => {
+          const out = {};
+          document.querySelectorAll('.dx-flag').forEach(e => {
+            out[e.textContent.trim()] = getComputedStyle(e).color;
+          });
+          const root = getComputedStyle(document.documentElement);
+          const hex = n => root.getPropertyValue(n).trim();
+          return { flags: out, danger: hex('--status-danger'),
+                   warn: hex('--status-warn'), ok: hex('--status-ok') };
+        }""")
+        def rgb_of(h):
+            h = h.lstrip("#")
+            return "rgb(%d, %d, %d)" % (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        want = {"重点复核": rgb_of(colors["danger"]),
+                "待确认": rgb_of(colors["warn"]),
+                "已闭环": rgb_of(colors["ok"])}
+        bad = {k: (colors["flags"].get(k), v) for k, v in want.items()
+               if colors["flags"].get(k) != v}
+        check(not bad,
+              "★ AI 质检三色真的上色：重点复核=红 / 待确认=橙 / 已闭环=绿"
+              "（.dx-flag 的键名必须与 aiFlag 三态一致，对不上会静默失效）（不符：%s）" % bad)
+
         # ---------------- C. ★ 素材对齐 ----------------
         d = page.evaluate("""() => {
           const ST = window.DOMAIN_STATION, V = window.DOMAIN_VISION,
