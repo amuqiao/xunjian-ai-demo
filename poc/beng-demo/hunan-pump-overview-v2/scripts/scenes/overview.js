@@ -82,26 +82,139 @@
   //   在役机组   —— 盘子多大（给旁边地图一个量级参照）
   //   主输/给油  —— 机队构成，一个数说完
   //   当月故障   —— 最紧急的那个，来自 2026-06 在线监测报告，不是编的
-  //   达大修节点 —— 台账表头口径「50000 小时或 10 年」，并把"有大修记录只 4 台"写在 note 里
+  //   达大修节点 —— 台账表头口径「50000 小时或 10 年」
   //   近24月停机 —— 这一类设备在全集团的代价，右栏帕累托图的总量
+  //
+  // 【为什么不用 Cards.metric】卡片宽 487px，Cards.metric 只产「标题/数字/note」三行
+  // 纵向堆叠，每行都撑满宽度，结果数字孤零零挂在左边、右侧 350px 全空。这里换成本地的
+  // statCard()：左半仍是那三行，右半补一个**副指标**（占比 / 覆盖率 / 完成度）。
+  //
+  // 【副指标的百分比全部现算，没有一个是写死的】五个分母分母都在数据层里：
+  //   ① 40/40   在线监测接入   —— State.monitor().fleet 对台账 total
+  //   ② 29/40   主输占比       —— 堆叠条，第二段是给油
+  //   ③ 38/40   机组完好率     —— 堆叠条，第二段是当月异常的 2 台
+  //   ④ 4/27    大修执行率     —— 达节点的 27 台里只有 4 台有记录，条空着的部分就是积压
+  //   ⑤ 5/118   湖南占故障库   —— 主数 118 是全集团口径，这里补湖南自己的份额
+  //
+  // 【状态色仍然只落在数字上】副指标的数字用 --ink（中性），颜色交给下面那根条。
+  // 一张卡只允许一个带状态色的数字，否则 34px 主数和 19px 副数会互相抢。
   // =====================================================================
+
+  // 把 a/b 化成百分比字符串，同时挡住脏数据：分母 0、非数、越界一律抛，
+  // 不做静默兜底 —— 大屏上一个悄悄变成 NaN% 的指标比报错难查得多。
+  function pct(a, b) {
+    if (typeof a !== "number" || typeof b !== "number" || !isFinite(a) || !isFinite(b)) {
+      throw new Error("[OverviewScene] pct 需要两个有限数，收到 " + a + " / " + b);
+    }
+    if (b <= 0) throw new Error("[OverviewScene] pct 的分母必须为正，收到 " + b);
+    if (a < 0 || a > b) throw new Error("[OverviewScene] pct 的分子越界：" + a + " / " + b);
+    return (a / b) * 100;
+  }
+
+  function pctText(a, b) {
+    var v = pct(a, b);
+    // 100 和 0 不写小数位（"100.0%" 只是噪音）；其余保留一位，4.2% / 14.8% 这种量级需要。
+    return (v === 100 || v === 0 ? String(v) : v.toFixed(1)) + "%";
+  }
+
+  // segs: [{ v, of, tone }]，v/of 现算成宽度百分比。tone 是 ok/warn/danger/alt。
+  function statCard(opt) {
+    if (!opt || !STATUS_LABEL[opt.status]) {
+      throw new Error("[OverviewScene] statCard 的 status 必须是 ok/warn/danger");
+    }
+    if (!Array.isArray(opt.segs) || opt.segs.length === 0) {
+      throw new Error("[OverviewScene] statCard 的 segs 不能为空：" + opt.label);
+    }
+    var segTotal = 0;
+    var segs = opt.segs.map(function (seg) {
+      var w = pct(seg.v, seg.of);
+      segTotal += w;
+      return h("i", {
+        class: "ov-stat-seg " + seg.tone,
+        style: "width:" + w.toFixed(2) + "%",
+        "aria-hidden": "true"
+      });
+    });
+    if (segTotal > 100.01) {
+      throw new Error("[OverviewScene] statCard 的 segs 合计超过 100%：" + opt.label + " = " + segTotal);
+    }
+    return h("article", { class: "card-metric ov-stat " + opt.status }, [
+      h("div", { class: "ov-stat-main" }, [
+        h("div", { class: "card-metric-head" }, [
+          h("span", { class: "card-metric-label", text: opt.label }),
+          h("span", { class: "dot " + opt.status, "aria-hidden": "true" })
+        ]),
+        h("div", { class: "card-metric-value" }, [
+          h("strong", { class: "num", text: String(opt.value) }),
+          h("span", { class: "card-metric-unit", text: opt.unit })
+        ]),
+        h("small", { class: "card-metric-note", text: opt.note })
+      ]),
+      h("div", { class: "ov-stat-aux" }, [
+        h("div", { class: "ov-stat-aux-head" }, [
+          h("span", { class: "ov-stat-aux-label", text: opt.auxLabel }),
+          h("strong", { class: "ov-stat-aux-num num", text: opt.auxValue })
+        ]),
+        h("div", { class: "ov-stat-bar" }, segs),
+        h("small", { class: "ov-stat-aux-note", text: opt.auxNote })
+      ])
+    ]);
+  }
+
   function renderStatBand() {
     assertLoaded();
     var s = Ledger.summary(Sites.asOf());
     var f = Faults.summary();
     var monitor = State.monitor();
+    var faultUnits = monitor.faultUnits.length;
+    var healthy = s.total - faultUnits;
+    if (monitor.fleet !== s.total) {
+      // 在线监测报告的机组数和台账对不上就说明两份资料错位了 —— 那时「覆盖 100%」是假的。
+      throw new Error("[OverviewScene] 在线监测机组数 " + monitor.fleet + " 与台账 " + s.total + " 不一致");
+    }
     return h("section", { class: "panel ov-stat-band" }, [
-      window.Cards.metric({ label: "在役机组", value: s.total, unit: "台", status: "ok",
-        note: s.stationTotal + " 个站库 · 全部 A 级设备" }),
-      window.Cards.metric({ label: "主输 / 给油", value: s.main + " / " + s.feed, unit: "台", status: "ok",
-        note: "长郴管道 32 · 兰郑长 8" }),
-      window.Cards.metric({ label: "当月故障", value: monitor.faultUnits.length, unit: "台",
-        status: monitor.faultUnits.length > 0 ? "danger" : "ok",
-        note: monitor.dataThrough + " 在线监测判定" }),
-      window.Cards.metric({ label: "达大修节点", value: s.overhaulDue, unit: "台", status: "warn",
-        note: "有大修记录仅 " + s.overhaulLogged + " 台" }),
-      window.Cards.metric({ label: "近 24 月停机", value: f.total, unit: "次", status: "warn",
-        note: "合计 " + f.hours + " h · 全集团 " + f.companyTotal + " 家公司" })
+      statCard({
+        label: "在役机组", value: s.total, unit: "台", status: "ok",
+        note: s.stationTotal + " 个站库 · 全部 A 级设备",
+        auxLabel: "在线监测覆盖", auxValue: pctText(monitor.fleet, s.total),
+        segs: [{ v: monitor.fleet, of: s.total, tone: "ok" }],
+        auxNote: monitor.fleet + " / " + s.total + " 台已接入"
+      }),
+      statCard({
+        label: "主输 / 给油", value: s.main + " / " + s.feed, unit: "台", status: "ok",
+        note: "长郴管道 32 · 兰郑长 8",
+        auxLabel: "主输占比", auxValue: pctText(s.main, s.total),
+        segs: [
+          { v: s.main, of: s.total, tone: "ok" },
+          { v: s.feed, of: s.total, tone: "alt" }
+        ],
+        auxNote: "主输 " + s.main + " · 给油 " + s.feed + "（" + pctText(s.feed, s.total) + "）"
+      }),
+      statCard({
+        label: "当月故障", value: faultUnits, unit: "台",
+        status: faultUnits > 0 ? "danger" : "ok",
+        note: monitor.dataThrough + " 在线监测判定",
+        auxLabel: "机组完好率", auxValue: pctText(healthy, s.total),
+        segs: [
+          { v: healthy, of: s.total, tone: "ok" },
+          { v: faultUnits, of: s.total, tone: "danger" }
+        ],
+        auxNote: "正常 " + healthy + " · 异常 " + faultUnits + " 台"
+      }),
+      statCard({
+        label: "达大修节点", value: s.overhaulDue, unit: "台", status: "warn",
+        note: "占在役 " + pctText(s.overhaulDue, s.total) + " · 节点 10 年",
+        auxLabel: "大修执行率", auxValue: pctText(s.overhaulLogged, s.overhaulDue),
+        segs: [{ v: s.overhaulLogged, of: s.overhaulDue, tone: "warn" }],
+        auxNote: "有记录 " + s.overhaulLogged + " / " + s.overhaulDue + " · 缺 " + (s.overhaulDue - s.overhaulLogged) + " 台"
+      }),
+      statCard({
+        label: "近 24 月停机", value: f.total, unit: "次", status: "warn",
+        note: "合计 " + f.hours + " h · 全集团 " + f.companyTotal + " 家公司",
+        auxLabel: "湖南占比", auxValue: pctText(f.hunanCount, f.total),
+        segs: [{ v: f.hunanCount, of: f.total, tone: "warn" }],
+        auxNote: "湖南 " + f.hunanCount + " 次 · 均次 " + f.avgHours.toFixed(1) + " h"
+      })
     ]);
   }
 

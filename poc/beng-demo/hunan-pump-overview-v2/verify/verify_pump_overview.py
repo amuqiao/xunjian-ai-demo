@@ -209,6 +209,61 @@ def main():
               % lay["clipped"])
         check(lay["overlap"] == 0, "10 个作业区标签两两不重叠（实际重叠 %s 对）" % lay["overlap"])
 
+        # ---------------- F. 指标带副指标 ----------------
+        # 5 张卡右半的占比块。这里不只看"有没有渲染"，重点看三件容易悄悄错的事：
+        #   1) 五个副指标块必须左边缘对齐成一列 —— 给 1fr 就会跟着 note 长短各自漂移
+        #   2) 条的段宽必须等于现算的百分比，不能是写死的 style
+        #   3) 副数字必须是中性色（--ink），带状态色的数字一张卡只许有一个
+        aux = page.evaluate("""() => {
+          const ink = getComputedStyle(document.documentElement)
+            .getPropertyValue('--ink').trim();
+          const toRgb = hex => {
+            const n = parseInt(hex.slice(1), 16);
+            return 'rgb(' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(', ') + ')';
+          };
+          const cards = Array.from(document.querySelectorAll('.ov-stat-band .card-metric'));
+          return {
+            inkRgb: toRgb(ink),
+            n: cards.length,
+            // 卡内偏移，不是视口绝对坐标：五张卡横向排开，绝对 left 本来就不同，
+            // 要对齐的是"副指标块在各自卡里的起点"。
+            offsets: cards.map(c => Math.round(
+              c.querySelector('.ov-stat-aux').getBoundingClientRect().left
+              - c.getBoundingClientRect().left)),
+            nums: cards.map(c => c.querySelector('.ov-stat-aux-num').textContent),
+            numColors: cards.map(c => getComputedStyle(
+              c.querySelector('.ov-stat-aux-num')).color),
+            // 段宽 / 轨道宽 与 style 里的百分比是否一致（容差 0.6px）
+            segOk: cards.every(c => {
+              const track = c.querySelector('.ov-stat-bar').getBoundingClientRect().width;
+              return Array.from(c.querySelectorAll('.ov-stat-seg')).every(seg =>
+                Math.abs(seg.getBoundingClientRect().width
+                         - track * parseFloat(seg.style.width) / 100) < 0.6);
+            }),
+            // auxNote / auxLabel 单行省略号，一个都不许触发
+            ellipsis: cards.reduce((acc, c) => acc + Array.from(
+              c.querySelectorAll('.ov-stat-aux-note, .ov-stat-aux-label'))
+              .filter(e => e.scrollWidth > e.clientWidth + 1).length, 0),
+            stacked: cards.filter(c => c.querySelectorAll('.ov-stat-seg').length === 2)
+              .map(c => c.querySelector('.card-metric-label').textContent),
+          };
+        }""")
+        check(aux["n"] == 5 and len(set(aux["offsets"])) == 1,
+              "★ 5 张卡的副指标块在卡内偏移完全一致，横排扫读成一列（实际 %s 张，偏移=%s）"
+              % (aux["n"], sorted(set(aux["offsets"]))))
+        check(aux["nums"] == ["100%", "72.5%", "95.0%", "14.8%", "4.2%"],
+              "★ 五个副指标现算无误：覆盖 40/40、主输 29/40、完好 38/40、大修 4/27、湖南 5/118（实际 %s）"
+              % aux["nums"])
+        check(aux["segOk"], "占比条每一段的实测宽度都等于现算百分比 × 轨道宽")
+        check(all(c == aux["inkRgb"] for c in aux["numColors"]),
+              "★ 副数字一律中性色 --ink —— 一张卡只允许一个带状态色的数字（实际 %s）"
+              % sorted(set(aux["numColors"])))
+        check(aux["ellipsis"] == 0,
+              "副指标的标签与说明没有一条触发省略号（实际 %s 条）" % aux["ellipsis"])
+        check(sorted(aux["stacked"]) == sorted(["主输 / 给油", "当月故障"]),
+              "只有「主输/给油」和「当月故障」是双段堆叠条，其余三个是单段完成度（实际 %s）"
+              % aux["stacked"])
+
         browser.close()
 
     print("\n截图目录：%s" % SHOT_DIR)

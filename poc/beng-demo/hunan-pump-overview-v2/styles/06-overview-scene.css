@@ -76,17 +76,117 @@
 /* 指标带里的 Cards.metric 去掉自己的卡片外观，改成「一块面板 + 四段细分隔线」。
    否则是四个带边框的盒子套在一个带边框的面板里 —— 盒中盒，边框数量翻倍而层级没有
    增加。分隔线只在第 2..4 段的左侧，第一段不画。 */
+/* 一张卡分左右两栏：左半是原来的「标题 / 大数 / note」三行，右半是 statCard 补的副指标。
+   487px 的卡只放三行纵向堆叠时，数字挂在左边、右侧 350px 是空的 —— 这个两栏就是为了
+   把那块空白换成信息（占比 / 覆盖率 / 完成度），而不是靠加大字号去填。
+
+   右栏定宽 180px 而不是 1fr：五张卡的副指标必须**上下对齐成一列**，
+   给 fr 的话会跟着左半 note 的长短各自漂移，横排扫读就废了。 */
 .ov-stat-band .card-metric {
   border: 0;
   border-radius: 0;
   background: none;
   box-shadow: none;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  align-items: center;
   align-content: center;
-  padding: 6px 22px;
+  gap: 0 18px;
+  padding: 6px 20px;
 }
 
 .ov-stat-band .card-metric + .card-metric {
   border-left: 1px solid var(--line);
+}
+
+/* 状态点原本靠 margin-left:auto 顶到卡片右端。分栏后那个位置变成了左右栏的接缝，
+   小圆点飘在两块内容中间会读成"属于右栏"。这里收回到标题后面，当成标题的徽标。 */
+.ov-stat-band .card-metric-head .dot {
+  margin-left: 0;
+}
+
+.ov-stat-main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* 副指标块给一层 --surface-bg 底色，用来跟左半分开。
+   没有用竖分割线：卡片之间已经有 border-left 了，再往每张卡里加一条会变成 9 条竖线。 */
+.ov-stat-aux {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px 10px 9px;
+  border-radius: var(--r-s);
+  background: var(--surface-bg);
+}
+
+.ov-stat-aux-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ov-stat-aux-label {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 副数用 --ink（中性），**不带状态色**：一张卡只允许一个带色的数字，
+   否则 34px 主数和这个 19px 副数会互相抢。颜色的活交给下面那根条。 */
+.ov-stat-aux-num {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.ov-stat-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(120, 150, 255, 0.14);
+}
+
+.ov-stat-seg {
+  display: block;
+  height: 100%;
+  min-width: 0;
+}
+
+.ov-stat-seg.ok {
+  background: var(--status-ok);
+}
+
+.ov-stat-seg.warn {
+  background: var(--status-warn);
+}
+
+.ov-stat-seg.danger {
+  background: var(--status-danger);
+}
+
+/* alt 是堆叠条的第二段（给油泵那一段）：同色系但明度低一档，
+   表示"另一半构成"而不是"另一种状态"—— 用 --status-* 会误读成告警。 */
+.ov-stat-seg.alt {
+  background: var(--accent-2);
+}
+
+.ov-stat-aux-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===========================================================================
