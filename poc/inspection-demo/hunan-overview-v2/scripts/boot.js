@@ -134,7 +134,7 @@
 
     root.innerHTML = "";
     // 四段的 append 顺序必须与 .app-shell 的 grid-template-rows 一致：
-    // auto（顶栏）/ 96px（指标带）/ 1fr（中段三栏）/ 132px（作业区带）。
+    // auto（顶栏）/ 124px（指标带）/ 1fr（中段三栏）/ 132px（作业区带）。
     root.appendChild(window.OverviewScene.renderTopbar(state));
     root.appendChild(window.OverviewScene.renderStatBand());
     root.appendChild(renderStage());
@@ -144,7 +144,8 @@
 
     mountChartSlots();
     mountMap3D();
-    window.OverviewScene.renderCharts();
+    // 传 state：趋势图的点数由顶栏的日期区间决定。
+    window.OverviewScene.renderCharts(state);
     window.Charts.flush();
 
     Contract.assertPinNamespace();

@@ -30,7 +30,7 @@
          好处是「3D 与数据不动」是字面意义上的不动：这里和旧目录读的是同一份字节，
          不会出现两份副本各自漂移。旧目录仍可独立运行，随时对比。
 
-         本目录自己新写的只有 4 个 JS：core/chartopts.js、scenes/overview.js、
+         本目录自己新写的只有 5 个 JS：core/derive.js、core/chartopts.js、scenes/overview.js、
          boot.js（另加 verify/verify_overview.js 不在页面里）。
          =================================================================== -->
 
@@ -61,6 +61,9 @@
     <script src="../hunan-inspection-overview/scripts/core/dom.js"></script>
     <script src="../hunan-inspection-overview/scripts/core/charts.js"></script>
     <script src="../hunan-inspection-overview/scripts/core/timers.js"></script>
+    <!-- derive.js 必须早于 chartopts.js 与 scenes/overview.js：两边都从它读派生指标
+         （合规率 / 问题处置完成率 / 有效项）。它是那几个算式的唯一真源。 -->
+    <script src="scripts/core/derive.js"></script>
     <script src="scripts/core/chartopts.js"></script>
 
     <!-- L5 ui：只用 cards.js。selectlist.js / detailcard.js / overlay.js 在本 POC 里
