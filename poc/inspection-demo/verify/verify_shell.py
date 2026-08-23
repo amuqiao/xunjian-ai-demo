@@ -72,8 +72,20 @@ def main():
                 if m.type == "error" and not any(a in m.text for a in CONSOLE_ALLOW) else None)
 
         page.goto(INDEX)
-        # 外壳是懒加载的：overview 立刻建，其余三个按 500 / 1200 / 1900ms 排队预热。
-        page.wait_for_timeout(4500)
+        # 外壳是懒加载的：overview 立刻建，其余几屏按 500 + n*700ms 排队预热，
+        # 每个还套一层 requestIdleCallback（1200ms 超时）。
+        #
+        # 【必须轮询等待，不能固定 sleep】屏数从 4 变 5 之后预热链更长（最后一个约
+        # 2600ms 才开始排队，再加上 3D 场景自身的加载时间），原先固定等 4500ms
+        # 变成了偶发失败：实测同一份代码连跑两次，一次 57 passed、一次报「只建了 3 个」。
+        # 那种红是假的 —— 产品没问题，是断言比页面跑得快。
+        page.wait_for_function(
+            "n => document.querySelectorAll('iframe.demo-frame').length >= n",
+            arg=len(EXPECT), timeout=30000)
+        # 再等全部 iframe 的 load 事件落地（dataset.loaded 由 createFrame 的 onload 置位）
+        page.wait_for_function(
+            "n => document.querySelectorAll('iframe.demo-frame[data-loaded=\"1\"]').length >= n",
+            arg=len(EXPECT), timeout=45000)
 
         # ---------------- A. iframe 指向 ----------------
         srcs = page.evaluate("""() => {
