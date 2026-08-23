@@ -1,86 +1,124 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   组件切换条。**顶部固定条，不是悬浮按钮** —— 这是一次刻意的改版。
+
+   【为什么从左下角悬浮改成顶部条】原先是 position:fixed 的左下角胶囊（216×48）。
+   四个角其实都有主：左上是各屏的品牌区、右上是数据口径 chip / 演示进度、
+   右下诊断台有常驻 AI 浮窗、左下则撞上了智能助手页侧栏的 .side-foot
+   （「今日异常」告警徽标 + 「重置当前对话」，占 x 0~245 / y 904~1000，完全重叠）。
+
+   实测九个屏里有两个被挡。更根本的问题是：**只要是悬浮，就永远在跟组件抢地方**，
+   而且新增组件时不可控 —— 没法要求每个组件都给外壳留空。
+
+   【代价实测为零】固定画布 2471×1289 的宽高比 1.92，比常见屏幕（1.78 / 1.67）更宽，
+   所以那几个屏**全部是宽度受限**的，高度本来就有富余：
+     1680×1000 → scale 0.6799，砍 44px 后仍是 0.6799（损失 0.00%）
+     1920×1080 → 0.7770 → 0.7770       2560×1440 → 1.0360 → 1.0360
+   砍掉的只是上下留白。智能助手页是自适应布局，少 44px 内容区也无感。
+
+   【真正的好处】组件的坐标系整体下移，不是被叠在上面 —— 组件完全不需要知道
+   导航的存在，"各组件独立开发 + 外壳统一切换"这个设计这才算真正成立。
+   ══════════════════════════════════════════════════════════════════════════ */
+
 .inspection-flow-nav {
-  --nav-bg: rgba(6, 18, 28, 0.72);
-  --nav-border: rgba(124, 185, 218, 0.34);
-  --nav-text: #dff8ff;
-  --nav-active-text: #061019;
-  --nav-active-bg: linear-gradient(135deg, #38c6ec, #30c69d);
-  --nav-active-border: rgba(56, 198, 236, 0.78);
-  --nav-label-bg: rgba(6, 18, 28, 0.9);
-  --nav-label-border: rgba(124, 185, 218, 0.28);
+  --nav-h: 44px;
+  --nav-bg: rgba(8, 18, 34, 0.92);
+  --nav-border: rgba(118, 169, 213, 0.22);
+  --nav-text: #cfe4f5;
+  --nav-text-dim: #7e97ad;
+  --nav-active-text: #04101c;
+  --nav-active-bg: linear-gradient(135deg, #38c6ec, #2f8cff);
 
   position: fixed;
-  left: 18px;
-  bottom: 18px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-h);
+  /* 把 1px 下边框算进 --nav-h 里。否则条实际是 45px 而舞台从 44 起，差 1px 叠上去 ——
+     外壳那边的 top 与这里的 height 必须指的是同一个数。 */
+  box-sizing: border-box;
   z-index: 9999;
-  display: inline-flex;
-  gap: 8px;
-  padding: 7px;
-  border: 1px solid var(--nav-border);
-  border-radius: 999px;
-  background: rgba(6, 18, 28, 0.52);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.30);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--nav-border);
+  background: var(--nav-bg);
   backdrop-filter: blur(14px);
-  pointer-events: none;
+  font: 500 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* 左侧一枚静态标记，让这条看起来是"外壳的边"而不是网页导航栏 */
+.inspection-flow-nav::before {
+  content: "演示导航";
+  margin-right: 10px;
+  color: var(--nav-text-dim);
+  font-size: 11.5px;
+  letter-spacing: .16em;
+  white-space: nowrap;
 }
 
 .inspection-flow-nav a {
   position: relative;
-  width: 34px;
-  height: 34px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px 0 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--nav-text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .16s, background .16s, border-color .16s;
+}
+
+/* 序号做成小圆点，标签跟在后面 —— 顶部条有横向空间，直接把屏名写出来，
+   比原来只有数字、要 hover 才看得到 tooltip 好读得多。 */
+.inspection-flow-nav a::before {
+  content: attr(data-no);
+  width: 19px;
+  height: 19px;
+  flex: none;
   display: grid;
   place-items: center;
   border: 1px solid var(--nav-border);
-  border-radius: 999px;
-  color: var(--nav-text);
-  text-decoration: none;
-  font: 800 14px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: var(--nav-bg);
-  pointer-events: auto;
-}
-
-.inspection-flow-nav a:hover,
-.inspection-flow-nav a:focus-visible,
-.inspection-flow-nav a.is-active {
-  border-color: var(--nav-active-border);
-  color: var(--nav-active-text);
-  background: var(--nav-active-bg);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .inspection-flow-nav a::after {
   content: attr(data-label);
-  position: absolute;
-  left: 50%;
-  bottom: 44px;
-  min-width: 116px;
-  padding: 7px 9px;
-  border: 1px solid var(--nav-label-border);
-  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.inspection-flow-nav a:hover,
+.inspection-flow-nav a:focus-visible {
   color: var(--nav-text);
-  white-space: nowrap;
-  background: var(--nav-label-bg);
-  opacity: 0;
-  transform: translateX(-50%) translateY(4px);
-  transition: opacity 0.16s ease, transform 0.16s ease;
-  pointer-events: none;
+  background: rgba(56, 198, 236, 0.10);
+  border-color: rgba(56, 198, 236, 0.30);
 }
 
-.inspection-flow-nav a:hover::after,
-.inspection-flow-nav a:focus-visible::after {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
+.inspection-flow-nav a.is-active {
+  color: var(--nav-active-text);
+  background: var(--nav-active-bg);
+  border-color: transparent;
 }
 
-@media (max-width: 900px) {
-  .inspection-flow-nav {
-    left: 12px;
-    bottom: 12px;
-    gap: 6px;
-    padding: 6px;
-  }
+.inspection-flow-nav a.is-active::before {
+  border-color: rgba(4, 16, 28, 0.35);
+  background: rgba(255, 255, 255, 0.22);
+}
 
-  .inspection-flow-nav a {
-    width: 30px;
-    height: 30px;
-    font-size: 12px;
-  }
+.inspection-flow-nav a:focus-visible {
+  outline: 2px solid #38c6ec;
+  outline-offset: 2px;
+}
+
+/* 窄屏（<1180px）只留序号，标签收起 —— 五个标签横排放不下时优先保证可点。 */
+@media (max-width: 1180px) {
+  .inspection-flow-nav::before { display: none; }
+  .inspection-flow-nav a { padding: 0 6px; }
+  .inspection-flow-nav a::after { display: none; }
 }

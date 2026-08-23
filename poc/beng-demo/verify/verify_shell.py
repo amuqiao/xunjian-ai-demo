@@ -94,7 +94,7 @@ def main():
 
         # ---------------- B. 导航 ----------------
         nav = page.evaluate("""() => Array.from(document.querySelectorAll('.inspection-flow-nav a')).map(a => ({
-          key: a.dataset.key, label: a.dataset.label, no: a.textContent,
+          key: a.dataset.key, label: a.dataset.label, no: a.dataset.no,
           href: a.getAttribute('href'), active: a.classList.contains('is-active')
         }))""")
         check(len(nav) == len(EXPECT), "左下角 %s 个切换点（实际 %s）" % (len(EXPECT), len(nav)))

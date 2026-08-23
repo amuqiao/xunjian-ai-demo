@@ -82,7 +82,9 @@
     steps.forEach(function (step, index) {
       var link = document.createElement("a");
       link.href = prefix + step.href;
-      link.textContent = String(index + 1);
+      // 序号与标签都走 data-* —— CSS 用 ::before/::after 渲染它们（见 flow-nav.css）。
+      // textContent 留空：顶部条版本里，圆点和文字是两个伪元素，写进 textContent 会重复一遍。
+      link.dataset.no = String(index + 1);
       link.dataset.key = step.key;
       link.dataset.label = step.label;
       link.title = String(index + 1) + " " + step.label;

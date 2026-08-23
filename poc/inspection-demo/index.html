@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="flow-nav/flow-nav.css">
     <style>
       :root {
+        /* 与 flow-nav.css 的 --nav-h 必须一致：一个定条高、一个定舞台起点。 */
+        --nav-h: 44px;
         --demo-bg: #05060f;
         --demo-bg-scanline: rgba(140, 170, 255, 0.03);
         --demo-bg-vignette-mid: rgba(5, 6, 15, 0.42);
@@ -36,9 +38,17 @@
         background: var(--demo-bg);
       }
 
+      /* 【为什么是 top: var(--nav-h) 而不是 inset: 0】切换条从左下角悬浮改成了顶部固定条
+         （见 flow-nav/flow-nav.css 的说明）。舞台整体下移，组件的坐标系跟着下移 ——
+         这样组件永远不会被导航叠住，也就不需要为外壳预留安全区。
+         44px 这个高度对固定画布的那几个屏**零代价**：2471×1289 的宽高比 1.92 比常见屏幕更宽，
+         它们全是宽度受限，砍掉的只是上下留白，scale 一点没变（实测 0.6799 → 0.6799）。 */
       .demo-frame-stage {
         position: fixed;
-        inset: 0;
+        top: var(--nav-h, 44px);
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: var(--demo-screen-bg);
       }
 
@@ -62,7 +72,10 @@
 
       .demo-boot {
         position: fixed;
-        inset: 0;
+        top: var(--nav-h, 44px);
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: grid;
         place-items: center;
         color: rgba(225, 245, 255, 0.86);
