@@ -112,13 +112,33 @@
         var bootMask = document.getElementById("bootMask");
         var frames = {};
         var activeKey = "overview";
-        var preloadTimers = [];
 
         function stepByKey(key) {
           for (var i = 0; i < steps.length; i += 1) {
             if (steps[i].key === key) return steps[i];
           }
           throw new Error("[inspection-demo] 未知组件：" + key);
+        }
+
+        function hasStep(key) {
+          return steps.some(function (step) { return step.key === key; });
+        }
+
+        function frameKeyBySource(source) {
+          var keys = Object.keys(frames);
+          for (var i = 0; i < keys.length; i += 1) {
+            if (frames[keys[i]].contentWindow === source) return keys[i];
+          }
+          return "";
+        }
+
+        function validateSwitchRequest(data, source) {
+          if (!hasStep(data.key)) {
+            throw new Error("[inspection-demo] iframe 请求切到未知组件：" + data.key);
+          }
+          if (!frameKeyBySource(source)) {
+            throw new Error("[inspection-demo] 拒绝未知来源的切屏消息：" + data.key);
+          }
         }
 
         function createFrame(step) {
@@ -179,45 +199,24 @@
           else bootMask.classList.add("is-hidden");
         }
 
-        function idle(fn, timeout) {
-          if ("requestIdleCallback" in window) {
-            return window.requestIdleCallback(fn, { timeout: timeout || 1600 });
-          }
-          return window.setTimeout(fn, timeout || 600);
-        }
-
-        function preloadRest() {
-          // 预热顺序 = 除首屏之外的其余四屏，按用户最可能的浏览顺序排。
-          // 【必须从 steps 派生，不能手写】手写的话新增一屏就会漏掉它，
-          // 那一屏永远不预热、第一次点开要白等几秒（而且不报错，只是慢）。
-          var order = steps.map(function (s) { return s.key; })
-            .filter(function (k) { return k !== "overview"; });
-          order.forEach(function (key, index) {
-            preloadTimers.push(window.setTimeout(function () {
-              idle(function () { ensureFrame(key); }, 1200);
-            }, 500 + index * 700));
-          });
-        }
-
         window.InspectionDemoShell = {
           steps: steps,
           currentKey: function () { return activeKey; },
           switchTo: activate
         };
+        window.InspectionDemoShellDebug = {
+          validateSwitchRequest: validateSwitchRequest
+        };
 
         window.addEventListener("message", function (event) {
           var data = event.data;
           if (!data || data.type !== "inspection-demo:switch") return;
+          validateSwitchRequest(data, event.source);
           activate(data.key);
-        });
-
-        window.addEventListener("beforeunload", function () {
-          preloadTimers.forEach(function (timer) { window.clearTimeout(timer); });
         });
 
         ensureFrame("overview").classList.add("is-active");
         syncFrameVisibility();
-        preloadRest();
       })();
     </script>
   </body>

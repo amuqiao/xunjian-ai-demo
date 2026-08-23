@@ -6,7 +6,7 @@
 # v2、iframe 还在加载旧目录"这种一半生效的状态。现在清单收成 flow-nav.js 一份，
 # 这个脚本盯着它别再散开。
 #
-#   A. iframe 指向    四个 key 的 src 必须是 v2（旧目录名一个都不许出现）
+#   A. iframe 指向    按需创建的 iframe 必须指向 v2（旧目录名一个都不许出现）
 #   B. 导航           左下角 4 个点、序号与标签、当前项高亮、点了真的换屏
 #   C. 各屏真渲染     切过去之后 iframe 里的根节点确实在（不是白屏）
 #   D. 单独打开       四个组件目录直接双击时，左下角**没有**切换点（导航只属于外壳）
@@ -72,20 +72,14 @@ def main():
                 if m.type == "error" and not any(a in m.text for a in CONSOLE_ALLOW) else None)
 
         page.goto(INDEX)
-        # 外壳是懒加载的：overview 立刻建，其余几屏按 500 + n*700ms 排队预热，
-        # 每个还套一层 requestIdleCallback（1200ms 超时）。
-        #
-        # 【必须轮询等待，不能固定 sleep】屏数从 4 变 5 之后预热链更长（最后一个约
-        # 2600ms 才开始排队，再加上 3D 场景自身的加载时间），原先固定等 4500ms
-        # 变成了偶发失败：实测同一份代码连跑两次，一次 57 passed、一次报「只建了 3 个」。
-        # 那种红是假的 —— 产品没问题，是断言比页面跑得快。
+        # 外壳现在只加载当前 iframe：启动时只有 overview，点击某一屏时才创建那一屏。
+        # 这样演示时不会让 3D、诊断台、知识图谱在后台同时运行，减少隐藏 iframe 的
+        # 定时器 / requestAnimationFrame 抢占导致的抖动。
         page.wait_for_function(
-            "n => document.querySelectorAll('iframe.demo-frame').length >= n",
-            arg=len(EXPECT), timeout=30000)
-        # 再等全部 iframe 的 load 事件落地（dataset.loaded 由 createFrame 的 onload 置位）
+            "() => document.querySelectorAll('iframe.demo-frame').length === 1", timeout=30000)
         page.wait_for_function(
-            "n => document.querySelectorAll('iframe.demo-frame[data-loaded=\"1\"]').length >= n",
-            arg=len(EXPECT), timeout=45000)
+            "() => document.querySelector('iframe.demo-frame[data-key=\"overview\"][data-loaded=\"1\"]')",
+            timeout=45000)
 
         # ---------------- A. iframe 指向 ----------------
         srcs = page.evaluate("""() => {
@@ -93,13 +87,11 @@ def main():
           document.querySelectorAll('iframe.demo-frame').forEach(f => { out[f.dataset.key] = f.getAttribute('src'); });
           return out;
         }""")
-        check(len(srcs) == len(EXPECT), "%s 个组件的 iframe 都建起来了（实际 %s 个）" % (len(EXPECT), len(srcs)))
-        for key, _no, _label, folder, _sel in EXPECT:
-            check(srcs.get(key) == href_of(folder),
-                  "%s 指向 %s（实际 %s）" % (key, href_of(folder), srcs.get(key)))
+        check(len(srcs) == 1 and srcs.get("overview") == href_of("hunan-overview-v2"),
+              "启动时只创建 overview iframe（实际 %s）" % srcs)
         joined = " ".join(srcs.values())
         for old in RETIRED:
-            check(old not in joined, "★ 主线里不再出现退役目录 %s" % old)
+            check(old not in joined, "★ 首屏 iframe 不出现退役目录 %s" % old)
 
         # ---------------- B. 导航 ----------------
         nav = page.evaluate("""() => Array.from(document.querySelectorAll('.inspection-flow-nav a')).map(a => ({
@@ -119,7 +111,13 @@ def main():
         # ---------------- C. 逐屏切过去，看是不是真渲染 ----------------
         for key, no, label, folder, sel in EXPECT:
             page.eval_on_selector('.inspection-flow-nav a[data-key="%s"]' % key, "el => el.click()")
-            page.wait_for_timeout(1800)
+            page.wait_for_function(
+                """key => {
+                  const f = document.querySelector('iframe.demo-frame[data-key="' + key + '"]');
+                  return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+                }""",
+                arg=key, timeout=45000)
+            page.wait_for_timeout(500)
             state = page.evaluate("""(key) => {
               const f = document.querySelector('iframe.demo-frame[data-key="' + key + '"]');
               return { active: f.classList.contains('is-active'), loaded: f.dataset.loaded,
@@ -139,7 +137,183 @@ def main():
             if frame:
                 found = frame[0].evaluate("(sel) => !!document.querySelector(sel)", sel)
                 check(found, "★ %s 不是白屏：frame 内 %s 存在" % (label, sel))
+            src = page.evaluate("""key => {
+              const f = document.querySelector('iframe.demo-frame[data-key="' + key + '"]');
+              return f && f.getAttribute('src');
+            }""", key)
+            check(src == href_of(folder), "%s iframe 指向 %s（实际 %s）" % (key, href_of(folder), src))
             page.screenshot(path=str(SHOT_DIR / ("shell-%s-%s.png" % (no, key))))
+
+        # ---------------- C2. 诊断台状态稳定 ----------------
+        # 诊断台在外壳里按需创建后应一直保活：切去其它组件再切回来，不应重新加载成入口态。
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        diag_frame = [f for f in page.frames if "diagnosis-flow-v2/index.html" in unquote(f.url)][0]
+        diag_frame.eval_on_selector('[data-select-id="REC-3"]', "el => el.click()")
+        diag_frame.wait_for_timeout(350)
+        check(diag_frame.evaluate("() => window.DemoDebug.state().recordId") == "REC-3",
+              "诊断台内已切到 REC-3，作为切走前的状态标记")
+
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="graph"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        page.wait_for_timeout(800)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        diag_after = [f for f in page.frames if "diagnosis-flow-v2/index.html" in unquote(f.url)][0]
+        stable = diag_after.evaluate("""() => ({
+          recordId: window.DemoDebug.state().recordId,
+          scene: window.DemoDebug.state().scene,
+          renders: window.DemoDebug.renderCount()
+        })""")
+        page.wait_for_timeout(1600)
+        stable_after_wait = diag_after.evaluate("""r => ({
+          recordId: window.DemoDebug.state().recordId,
+          renderDelta: window.DemoDebug.renderCount() - r
+        })""", stable["renders"])
+        active_after_wait = page.evaluate("() => window.InspectionDemoShell.currentKey()")
+        check(stable["recordId"] == "REC-3" and stable["scene"] == "workbench",
+              "★ 诊断台切走再切回不会重置到入口态（recordId=%s scene=%s）"
+              % (stable["recordId"], stable["scene"]))
+        check(active_after_wait == "diagnosis" and stable_after_wait["recordId"] == "REC-3"
+              and stable_after_wait["renderDelta"] == 0,
+              "★ 切回诊断台后等待 1.6s 不自动跳屏、不后台重渲染（active=%s recordId=%s render+%s）"
+              % (active_after_wait, stable_after_wait["recordId"], stable_after_wait["renderDelta"]))
+
+        diag_after.eval_on_selector('[data-action="open-agent"]', "el => el.click()")
+        diag_after.wait_for_timeout(300)
+        diag_after.eval_on_selector('.ag-drawer [data-action="ask-agent"]', "el => el.click()")
+        diag_after.wait_for_timeout(120)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="graph"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        page.wait_for_timeout(1000)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        diag_back = [f for f in page.frames if "diagnosis-flow-v2/index.html" in unquote(f.url)][0]
+        bg_agent = diag_back.evaluate("""() => ({
+          pending: window.DemoDebug.state().agentPending,
+          typing: document.body.textContent.indexOf('正在检索知识库') >= 0
+        })""")
+        check(bg_agent["pending"] == "" and not bg_agent["typing"],
+              "★ 诊断台 Agent 检索中切到后台再切回，不停留在检索中（pending=%s typing=%s）"
+              % (bg_agent["pending"], bg_agent["typing"]))
+
+        msg_guard = page.evaluate("""() => {
+          const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+          const knownSource = f.contentWindow;
+          const before = window.InspectionDemoShell.currentKey();
+          const errors = [];
+          try {
+            window.InspectionDemoShellDebug.validateSwitchRequest(
+              { type: 'inspection-demo:switch', key: 'missing' }, knownSource);
+          } catch (err) {
+            errors.push(String(err.message || err));
+          }
+          try {
+            window.InspectionDemoShellDebug.validateSwitchRequest(
+              { type: 'inspection-demo:switch', key: 'overview' }, window);
+          } catch (err) {
+            errors.push(String(err.message || err));
+          }
+          return { before, after: window.InspectionDemoShell.currentKey(), errors };
+        }""")
+        check(msg_guard["before"] == msg_guard["after"]
+              and any("未知组件" in e for e in msg_guard["errors"])
+              and any("未知来源" in e for e in msg_guard["errors"]),
+              "★ 外壳切屏消息拒绝未知 key / 未知 source，且不改变当前屏（active=%s errors=%s）"
+              % (msg_guard["after"], msg_guard["errors"]))
+
+        diag_back.eval_on_selector('[data-action="go-scene"][data-scene-key="knowledge"]', "el => el.click()")
+        diag_back.wait_for_timeout(400)
+        diag_back.eval_on_selector('[data-action="open-ingest"]', "el => el.click()")
+        diag_back.wait_for_timeout(120)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="graph"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        page.wait_for_timeout(1000)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        diag_back = [f for f in page.frames if "diagnosis-flow-v2/index.html" in unquote(f.url)][0]
+        bg_ingest = diag_back.evaluate("""() => ({
+          ingestOpen: window.DemoDebug.state().ingestOpen,
+          hasIngestOverlay: !!document.querySelector('.ig-steps')
+        })""")
+        check(not bg_ingest["ingestOpen"] and not bg_ingest["hasIngestOverlay"],
+              "★ 诊断台入库动画进行中切到后台再切回，入库浮层已清理（ingestOpen=%s overlay=%s）"
+              % (bg_ingest["ingestOpen"], bg_ingest["hasIngestOverlay"]))
+
+        diag_back.eval_on_selector('[data-action="go-scene"][data-scene-key="workbench"]', "el => el.click()")
+        diag_back.wait_for_timeout(300)
+        diag_back.eval_on_selector('[data-select-id="REC-3"]', "el => el.click()")
+        diag_back.wait_for_timeout(200)
+        diag_back.eval_on_selector('[data-action="reset-demo"]', "el => el.click()")
+        diag_back.wait_for_timeout(120)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="graph"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        page.wait_for_timeout(600)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        page.wait_for_function(
+            """() => {
+              const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+              return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+            }""",
+            timeout=45000)
+        diag_back = [f for f in page.frames if "diagnosis-flow-v2/index.html" in unquote(f.url)][0]
+        bg_reset = diag_back.evaluate("""() => ({
+          recordId: window.DemoDebug.state().recordId,
+          resetLabel: document.querySelector('[data-action="reset-demo"]').textContent
+        })""")
+        check(bg_reset["recordId"] == "REC-3" and bg_reset["resetLabel"] == "重置演示",
+              "★ 诊断台重置确认态切到后台再切回，确认态解除且不误重置（recordId=%s label=%s）"
+              % (bg_reset["recordId"], bg_reset["resetLabel"]))
+
+        all_srcs = page.evaluate("""() => {
+          const out = {};
+          document.querySelectorAll('iframe.demo-frame').forEach(f => { out[f.dataset.key] = f.getAttribute('src'); });
+          return out;
+        }""")
+        check(len(all_srcs) == len(EXPECT), "逐屏访问后 %s 个组件的 iframe 都已按需创建（实际 %s 个）" % (len(EXPECT), len(all_srcs)))
+        joined = " ".join(all_srcs.values())
+        for old in RETIRED:
+            check(old not in joined, "★ 主线里不再出现退役目录 %s" % old)
 
         check(not errors, "外壳全程无 pageerror / console.error（实际 %s 条）%s"
               % (len(errors), ("：" + errors[0]) if errors else ""))
