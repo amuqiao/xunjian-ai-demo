@@ -79,20 +79,13 @@ def main():
                 if m.type == "error" and not any(a in m.text for a in CONSOLE_ALLOW) else None)
 
         page.goto(INDEX)
-        # 外壳是懒加载的：overview 立刻建，其余几屏按 500 + n*700ms 排队预热，
-        # 每个还套一层 requestIdleCallback（1200ms 超时）。
-        #
-        # 【必须轮询等待，不能固定 sleep】屏数从 4 变 5 之后预热链更长（最后一个约
-        # 2600ms 才开始排队，再加上 3D 场景自身的加载时间），原先固定等 4500ms
-        # 变成了偶发失败：实测同一份代码连跑两次，一次 57 passed、一次报「只建了 3 个」。
-        # 那种红是假的 —— 产品没问题，是断言比页面跑得快。
+        # 外壳只加载当前 iframe：启动时只有智能助手，点击某一屏时才创建那一屏。
+        # 这样演示时不会让诊断台、3D 态势、总览、知识图谱在后台同时运行。
         page.wait_for_function(
-            "n => document.querySelectorAll('iframe.demo-frame').length >= n",
-            arg=len(EXPECT), timeout=30000)
-        # 再等全部 iframe 的 load 事件落地（dataset.loaded 由 createFrame 的 onload 置位）
+            "() => document.querySelectorAll('iframe.demo-frame').length === 1", timeout=30000)
         page.wait_for_function(
-            "n => document.querySelectorAll('iframe.demo-frame[data-loaded=\"1\"]').length >= n",
-            arg=len(EXPECT), timeout=45000)
+            "() => document.querySelector('iframe.demo-frame[data-key=\"agent\"][data-loaded=\"1\"]')",
+            timeout=45000)
 
         # ---------------- A. iframe 指向 ----------------
         srcs = page.evaluate("""() => {
@@ -100,16 +93,57 @@ def main():
           document.querySelectorAll('iframe.demo-frame').forEach(f => { out[f.dataset.key] = f.getAttribute('src'); });
           return out;
         }""")
-        check(len(srcs) == len(EXPECT), "%s 个组件的 iframe 都建起来了（实际 %s 个）" % (len(EXPECT), len(srcs)))
-        for key, _label, folder, _sel in EXPECT:
-            check(srcs.get(key) == href_of(folder),
-                  "%s 指向 %s（实际 %s）" % (key, href_of(folder), srcs.get(key)))
+        check(len(srcs) == 1 and srcs.get("agent") == href_of("智能巡检数智员工-泵.html"),
+              "启动时只创建 agent iframe（实际 %s）" % srcs)
         joined = " ".join(srcs.values())
         for old in RETIRED:
-            check(old not in joined, "★ 主线里不再出现退役目录 %s" % old)
+            check(old not in joined, "★ 首屏 iframe 不出现退役目录 %s" % old)
+
+        fast_page = browser.new_page(viewport={"width": 1680, "height": 1050})
+        fast_page.on("pageerror", lambda e: errors.append("fast pageerror: " + str(e)))
+        fast_page.on("console", lambda m: errors.append("fast console: " + m.text)
+                     if m.type == "error" and not any(a in m.text for a in CONSOLE_ALLOW) else None)
+        fast_page.goto(INDEX)
+        fast_page.wait_for_function(
+            "() => document.querySelector('iframe.demo-frame[data-key=\"agent\"][data-loaded=\"1\"]')",
+            timeout=45000)
+        fast_page.evaluate("""() => {
+          window.BengDemoShell.switchTo('diagnosis');
+          window.BengDemoShell.switchTo('station');
+          window.BengDemoShell.switchTo('graph');
+          window.BengDemoShell.switchTo('diagnosis');
+        }""")
+        fast_page.wait_for_function("""() => {
+          const active = Array.from(document.querySelectorAll('iframe.demo-frame.is-active'));
+          const diag = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+          const nav = document.querySelector('.inspection-flow-nav a.is-active');
+          const mask = document.getElementById('bootMask');
+          return active.length === 1
+            && diag && diag.dataset.loaded === '1' && diag.classList.contains('is-active')
+            && nav && nav.dataset.key === 'diagnosis'
+            && mask && mask.classList.contains('is-hidden');
+        }""", timeout=45000)
+        fast_state = fast_page.evaluate("""() => ({
+          active: window.BengDemoShell.currentKey(),
+          activeFrames: document.querySelectorAll('iframe.demo-frame.is-active').length,
+          maskHidden: document.getElementById('bootMask').classList.contains('is-hidden'),
+          keys: Array.from(document.querySelectorAll('iframe.demo-frame')).map(f => f.dataset.key).sort()
+        })""")
+        check(fast_state["active"] == "diagnosis"
+              and fast_state["activeFrames"] == 1
+              and fast_state["maskHidden"]
+              and set(["diagnosis", "graph", "station"]).issubset(set(fast_state["keys"])),
+              "★ 冷启动后连续快切 diagnosis/station/graph/diagnosis 不乱序、不白屏（实际 %s）" % fast_state)
+        fast_page.close()
 
         def check_active_frame(key, label, folder, sel, expected_nav_key):
-            page.wait_for_timeout(1800)
+            page.wait_for_function(
+                """key => {
+                  const f = document.querySelector('iframe.demo-frame[data-key="' + key + '"]');
+                  return f && f.dataset.loaded === '1' && f.classList.contains('is-active');
+                }""",
+                arg=key, timeout=45000)
+            page.wait_for_timeout(500)
             state = page.evaluate("""(key) => {
               const f = document.querySelector('iframe.demo-frame[data-key="' + key + '"]');
               const nav = document.querySelector('.inspection-flow-nav a.is-active');
@@ -131,6 +165,11 @@ def main():
             if frame:
                 found = frame[0].evaluate("(sel) => !!document.querySelector(sel)", sel)
                 check(found, "★ %s 不是白屏：frame 内 %s 存在" % (label, sel))
+            src = page.evaluate("""key => {
+              const f = document.querySelector('iframe.demo-frame[data-key="' + key + '"]');
+              return f && f.getAttribute('src');
+            }""", key)
+            check(src == href_of(folder), "%s iframe 指向 %s（实际 %s）" % (key, href_of(folder), src))
             page.screenshot(path=str(SHOT_DIR / ("shell-%s.png" % key)))
 
         # ---------------- B. 顶部主线 ----------------
@@ -174,6 +213,173 @@ def main():
             diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
             diag_frame.eval_on_selector('.context-fab[data-shell-key="%s"]' % key, "el => el.click()")
             check_active_frame(key, label, folder, sel, "diagnosis")
+
+        # ---------------- D2. 演示稳定性 ----------------
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+        diag_frame.eval_on_selector('[data-select-id="REC-2"]', "el => el.click()")
+        diag_frame.wait_for_timeout(350)
+        check(diag_frame.evaluate("() => window.DemoDebug.state().recordId") == "REC-2",
+              "诊断台内已切到 REC-2，作为切走前的状态标记")
+
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        check_active_frame("graph", "知识图谱", "kg-template", "canvas, svg", "graph")
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+        stable = diag_frame.evaluate("""() => ({
+          recordId: window.DemoDebug.state().recordId,
+          scene: window.DemoDebug.state().scene,
+          renders: window.DemoDebug.renderCount()
+        })""")
+        page.wait_for_timeout(1600)
+        stable_after_wait = diag_frame.evaluate("""r => ({
+          recordId: window.DemoDebug.state().recordId,
+          renderDelta: window.DemoDebug.renderCount() - r
+        })""", stable["renders"])
+        active_after_wait = page.evaluate("() => window.BengDemoShell.currentKey()")
+        check(stable["recordId"] == "REC-2" and stable["scene"] == "workbench",
+              "★ 诊断台切走再切回不会重置到入口态（recordId=%s scene=%s）"
+              % (stable["recordId"], stable["scene"]))
+        check(active_after_wait == "diagnosis" and stable_after_wait["recordId"] == "REC-2"
+              and stable_after_wait["renderDelta"] == 0,
+              "★ 切回诊断台后等待 1.6s 不自动跳屏、不后台重渲染（active=%s recordId=%s render+%s）"
+              % (active_after_wait, stable_after_wait["recordId"], stable_after_wait["renderDelta"]))
+
+        diag_frame.eval_on_selector('[data-action="open-agent"]', "el => el.click()")
+        diag_frame.wait_for_timeout(300)
+        diag_frame.eval_on_selector('.ag-drawer [data-action="ask-agent"]', "el => el.click()")
+        diag_frame.wait_for_timeout(120)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        check_active_frame("graph", "知识图谱", "kg-template", "canvas, svg", "graph")
+        page.wait_for_timeout(1000)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+        bg_agent = diag_frame.evaluate("""() => ({
+          pending: window.DemoDebug.state().agentPending,
+          typing: document.body.textContent.indexOf('正在检索知识库') >= 0
+        })""")
+        check(bg_agent["pending"] == "" and not bg_agent["typing"],
+              "★ 诊断台 Agent 检索中切到后台再切回，不停留在检索中（pending=%s typing=%s）"
+              % (bg_agent["pending"], bg_agent["typing"]))
+
+        msg_guard = page.evaluate("""() => {
+          const f = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+          const knownSource = f.contentWindow;
+          const before = window.BengDemoShell.currentKey();
+          const errors = [];
+          try {
+            window.BengDemoShellDebug.validateSwitchRequest(
+              { type: 'beng-demo:switch', key: 'missing' }, knownSource);
+          } catch (err) {
+            errors.push(String(err.message || err));
+          }
+          try {
+            window.BengDemoShellDebug.validateSwitchRequest(
+              { type: 'beng-demo:switch', key: 'agent' }, window);
+          } catch (err) {
+            errors.push(String(err.message || err));
+          }
+          return { before, after: window.BengDemoShell.currentKey(), errors };
+        }""")
+        check(msg_guard["before"] == msg_guard["after"]
+              and any("未知组件" in e for e in msg_guard["errors"])
+              and any("未知来源" in e for e in msg_guard["errors"]),
+              "★ 外壳切屏消息拒绝未知 key / 未知 source，且不改变当前屏（active=%s errors=%s）"
+              % (msg_guard["after"], msg_guard["errors"]))
+
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        check_active_frame("graph", "知识图谱", "kg-template", "canvas, svg", "graph")
+        hidden_msg_guard = page.evaluate("""() => {
+          const hidden = document.querySelector('iframe.demo-frame[data-key="diagnosis"]');
+          const before = window.BengDemoShell.currentKey();
+          const errors = [];
+          try {
+            window.BengDemoShellDebug.validateSwitchRequest(
+              { type: 'beng-demo:switch', key: 'agent' }, hidden.contentWindow);
+          } catch (err) {
+            errors.push(String(err.message || err));
+          }
+          return { before, after: window.BengDemoShell.currentKey(), errors };
+        }""")
+        check(hidden_msg_guard["before"] == "graph" and hidden_msg_guard["after"] == "graph"
+              and any("后台组件" in e for e in hidden_msg_guard["errors"]),
+              "★ 外壳拒绝已创建但隐藏的 iframe 发起合法切屏，避免后台页把前台跳走（active=%s errors=%s）"
+              % (hidden_msg_guard["after"], hidden_msg_guard["errors"]))
+
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+
+        diag_frame.eval_on_selector('[data-action="go-scene"][data-scene-key="knowledge"]', "el => el.click()")
+        diag_frame.wait_for_timeout(400)
+        diag_frame.eval_on_selector('[data-action="open-ingest"]', "el => el.click()")
+        diag_frame.wait_for_timeout(120)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        check_active_frame("graph", "知识图谱", "kg-template", "canvas, svg", "graph")
+        page.wait_for_timeout(1000)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+        bg_ingest = diag_frame.evaluate("""() => ({
+          ingestOpen: window.DemoDebug.state().ingestOpen,
+          hasIngestOverlay: !!document.querySelector('.ig-steps')
+        })""")
+        check(not bg_ingest["ingestOpen"] and not bg_ingest["hasIngestOverlay"],
+              "★ 诊断台入库动画进行中切到后台再切回，入库浮层已清理（ingestOpen=%s overlay=%s）"
+              % (bg_ingest["ingestOpen"], bg_ingest["hasIngestOverlay"]))
+
+        diag_frame.eval_on_selector('[data-action="go-scene"][data-scene-key="workbench"]', "el => el.click()")
+        diag_frame.wait_for_timeout(300)
+        diag_frame.eval_on_selector('[data-select-id="REC-2"]', "el => el.click()")
+        diag_frame.wait_for_timeout(200)
+        diag_frame.eval_on_selector('[data-action="reset-demo"]', "el => el.click()")
+        diag_frame.wait_for_timeout(120)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        check_active_frame("graph", "知识图谱", "kg-template", "canvas, svg", "graph")
+        page.wait_for_timeout(600)
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+        bg_reset = diag_frame.evaluate("""() => ({
+          recordId: window.DemoDebug.state().recordId,
+          resetLabel: document.querySelector('[data-action="reset-demo"]').textContent
+        })""")
+        check(bg_reset["recordId"] == "REC-2" and bg_reset["resetLabel"] == "重置演示",
+              "★ 诊断台重置确认态切到后台再切回，确认态解除且不误重置（recordId=%s label=%s）"
+              % (bg_reset["recordId"], bg_reset["resetLabel"]))
+
+        diag_frame.eval_on_selector('.context-fab[data-shell-key="station"]', "el => el.click()")
+        check_active_frame("station", "泵站态势", "pump-station-situation-v2", ".st-map-panel, .pump3d-canvas", "diagnosis")
+        station_frame = [f for f in page.frames if href_of("pump-station-situation-v2") in unquote(f.url)][0]
+        page.wait_for_timeout(1000)
+        pump_before = station_frame.evaluate("() => window.Pump3D.debugInfo().frames")
+        page.eval_on_selector('.inspection-flow-nav a[data-key="graph"]', "el => el.click()")
+        check_active_frame("graph", "知识图谱", "kg-template", "canvas, svg", "graph")
+        page.wait_for_timeout(1200)
+        pump_hidden = station_frame.evaluate("() => window.Pump3D.debugInfo().frames")
+        page.eval_on_selector('.inspection-flow-nav a[data-key="diagnosis"]', "el => el.click()")
+        check_active_frame("diagnosis", "诊断台", "diagnosis-flow-v2", ".wb-scene, .app-shell", "diagnosis")
+        diag_frame = [f for f in page.frames if href_of("diagnosis-flow-v2") in unquote(f.url)][0]
+        diag_frame.eval_on_selector('.context-fab[data-shell-key="station"]', "el => el.click()")
+        check_active_frame("station", "泵站态势", "pump-station-situation-v2", ".st-map-panel, .pump3d-canvas", "diagnosis")
+        page.wait_for_timeout(500)
+        pump_after = station_frame.evaluate("() => window.Pump3D.debugInfo().frames")
+        check(pump_hidden == pump_before and pump_after >= pump_hidden,
+              "★ 泵站态势切到后台后 3D 帧数不增长，切回后可唤醒（before=%s hidden=%s after=%s）"
+              % (pump_before, pump_hidden, pump_after))
+
+        all_srcs = page.evaluate("""() => {
+          const out = {};
+          document.querySelectorAll('iframe.demo-frame').forEach(f => { out[f.dataset.key] = f.getAttribute('src'); });
+          return out;
+        }""")
+        check(len(all_srcs) == len(EXPECT), "逐屏访问后 %s 个组件的 iframe 都已按需创建（实际 %s 个）" % (len(EXPECT), len(all_srcs)))
+        joined = " ".join(all_srcs.values())
+        for old in RETIRED:
+            check(old not in joined, "★ 主线里不再出现退役目录 %s" % old)
 
         check(not errors, "外壳全程无 pageerror / console.error（实际 %s 条）%s"
               % (len(errors), ("：" + errors[0]) if errors else ""))

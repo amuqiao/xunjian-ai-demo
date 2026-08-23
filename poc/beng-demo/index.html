@@ -100,7 +100,6 @@
         var bootMask = document.getElementById("bootMask");
         var frames = {};
         var activeKey = "agent";
-        var preloadTimers = [];
 
         function stepByKey(key) {
           for (var i = 0; i < steps.length; i += 1) {
@@ -109,13 +108,38 @@
           throw new Error("[beng-demo] 未知组件：" + key);
         }
 
+        function hasStep(key) {
+          return steps.some(function (step) { return step.key === key; });
+        }
+
+        function frameKeyBySource(source) {
+          var keys = Object.keys(frames);
+          for (var i = 0; i < keys.length; i += 1) {
+            if (frames[keys[i]].contentWindow === source) return keys[i];
+          }
+          return "";
+        }
+
+        function validateSwitchRequest(data, source) {
+          if (!hasStep(data.key)) {
+            throw new Error("[beng-demo] iframe 请求切到未知组件：" + data.key);
+          }
+          var sourceKey = frameKeyBySource(source);
+          if (!sourceKey) {
+            throw new Error("[beng-demo] 拒绝未知来源的切屏消息：" + data.key);
+          }
+          if (sourceKey !== activeKey) {
+            throw new Error("[beng-demo] 拒绝后台组件切屏：" + sourceKey + " -> " + data.key);
+          }
+        }
+
         function createFrame(step) {
           var frame = document.createElement("iframe");
           frame.className = "demo-frame";
           frame.title = step.label;
           frame.dataset.key = step.key;
           frame.dataset.loaded = "0";
-          frame.setAttribute("loading", step.key === "overview" ? "eager" : "lazy");
+          frame.setAttribute("loading", step.key === activeKey ? "eager" : "lazy");
           frame.addEventListener("load", function () {
             frame.dataset.loaded = "1";
             postVisibility(step.key);
@@ -172,38 +196,24 @@
           else bootMask.classList.add("is-hidden");
         }
 
-        function preloadRest() {
-          // 预热顺序 = 除首屏之外的其余四屏，按用户最可能的浏览顺序排。
-          // 【必须从 steps 派生，不能手写】手写的话新增一屏就会漏掉它，
-          // 那一屏永远不预热、第一次点开要白等几秒（而且不报错，只是慢）。
-          var order = steps.map(function (s) { return s.key; })
-            .filter(function (k) { return k !== activeKey; });
-          order.forEach(function (key, index) {
-            preloadTimers.push(window.setTimeout(function () {
-              ensureFrame(key);
-            }, 500 + index * 700));
-          });
-        }
-
         window.BengDemoShell = {
           steps: steps,
           currentKey: function () { return activeKey; },
           switchTo: activate
         };
+        window.BengDemoShellDebug = {
+          validateSwitchRequest: validateSwitchRequest
+        };
 
         window.addEventListener("message", function (event) {
           var data = event.data;
           if (!data || data.type !== "beng-demo:switch") return;
+          validateSwitchRequest(data, event.source);
           activate(data.key);
-        });
-
-        window.addEventListener("beforeunload", function () {
-          preloadTimers.forEach(function (timer) { window.clearTimeout(timer); });
         });
 
         ensureFrame("agent").classList.add("is-active");
         syncFrameVisibility();
-        preloadRest();
       })();
     </script>
   </body>

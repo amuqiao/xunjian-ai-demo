@@ -94,7 +94,7 @@ def main():
           steps: document.querySelectorAll('[data-action="go-scene"]').length,
           legacy: document.querySelectorAll('.flow-rail, .flow-track, .detail-screen').length
         })""")
-        check(sk["rows"] == 3, "三段：顶栏 / 舞台 / 常驻 AI 按钮（实际 %s）" % sk["rows"])
+        check(sk["rows"] == 4, "四段：顶栏 / 舞台 / 上下文入口 / 常驻 AI 按钮（实际 %s）" % sk["rows"])
         check(sk["wbCols"] == 3, "工作台三栏：记录 / AI 判断 / 证据台（实际 %s）" % sk["wbCols"])
         check(sk["records"] == 3, "本轮 3 条诊断记录（实际 %s）" % sk["records"])
         check(sk["chain"] == 7, "★ REC-1 依据链 7 枚（实际 %s）" % sk["chain"])
@@ -380,7 +380,70 @@ def main():
         page.screenshot(path=str(SHOT_DIR / "07-agent.png"))
         page.keyboard.press("Escape")
 
-        # ---------------- G. 报告一致 ----------------
+        # ---------------- G. 演示稳定性 ----------------
+        page.eval_on_selector('[data-action="go-scene"][data-scene-key="knowledge"]', "el => el.click()")
+        page.wait_for_timeout(500)
+        page.eval_on_selector('[data-action="open-ingest"]', "el => el.click()")
+        page.wait_for_timeout(220)
+        page.eval_on_selector('[data-action="go-scene"][data-scene-key="workbench"]', "el => el.click()")
+        page.wait_for_timeout(200)
+        r_ingest = page.evaluate("() => window.DemoDebug.renderCount()")
+        page.wait_for_timeout(1800)
+        stale_ingest = page.evaluate("""r => ({
+          renders: window.DemoDebug.renderCount() - r,
+          scene: window.DemoDebug.state().scene,
+          ingestOpen: window.DemoDebug.state().ingestOpen
+        })""", r_ingest)
+        check(stale_ingest["scene"] == "workbench" and stale_ingest["renders"] == 0 and not stale_ingest["ingestOpen"],
+              "★ 离开知识库后入库 timer 不再后台推进 / 重渲染当前屏（实际 scene=%s renders+%s ingestOpen=%s）"
+              % (stale_ingest["scene"], stale_ingest["renders"], stale_ingest["ingestOpen"]))
+
+        page.eval_on_selector('[data-action="open-agent"]', "el => el.click()")
+        page.wait_for_timeout(300)
+        page.eval_on_selector('.ag-drawer [data-action="ask-agent"]', "el => el.click()")
+        page.wait_for_timeout(120)
+        page.eval_on_selector('[data-action="go-scene"][data-scene-key="review"]', "el => el.click()")
+        page.wait_for_timeout(200)
+        r_agent = page.evaluate("() => window.DemoDebug.renderCount()")
+        page.wait_for_timeout(1200)
+        stale_agent = page.evaluate("""r => ({
+          renders: window.DemoDebug.renderCount() - r,
+          scene: window.DemoDebug.state().scene,
+          pending: window.DemoDebug.state().agentPending
+        })""", r_agent)
+        check(stale_agent["scene"] == "review" and stale_agent["renders"] == 0 and stale_agent["pending"] == "",
+              "★ Agent 提问后切场景，旧 timer 不会在新场景落地重渲染（实际 scene=%s renders+%s pending=%s）"
+              % (stale_agent["scene"], stale_agent["renders"], stale_agent["pending"]))
+
+        page.eval_on_selector('[data-action="go-scene"][data-scene-key="workbench"]', "el => el.click()")
+        page.wait_for_timeout(400)
+        page.eval_on_selector('[data-select-id="REC-2"]', "el => el.click()")
+        page.wait_for_timeout(250)
+        page.eval_on_selector('[data-action="reset-demo"]', "el => el.click()")
+        page.wait_for_timeout(250)
+        armed = page.evaluate("""() => ({
+          recordId: window.DemoDebug.state().recordId,
+          label: document.querySelector('[data-action="reset-demo"]').textContent
+        })""")
+        check(armed["recordId"] == "REC-2" and "再次点击" in armed["label"],
+              "★ 重置演示第一次点击只进入确认态，不清空工作台选择（recordId=%s label=%s）"
+              % (armed["recordId"], armed["label"]))
+        page.wait_for_timeout(2400)
+        disarmed = page.evaluate("""() => ({
+          recordId: window.DemoDebug.state().recordId,
+          label: document.querySelector('[data-action="reset-demo"]').textContent
+        })""")
+        check(disarmed["recordId"] == "REC-2" and disarmed["label"] == "重置演示",
+              "★ 重置确认超时后自动解除，状态仍不变（recordId=%s label=%s）"
+              % (disarmed["recordId"], disarmed["label"]))
+        page.eval_on_selector('[data-action="reset-demo"]', "el => el.click()")
+        page.wait_for_timeout(120)
+        page.eval_on_selector('[data-action="reset-demo"]', "el => el.click()")
+        page.wait_for_timeout(300)
+        reset_done = page.evaluate("() => window.DemoDebug.state().recordId")
+        check(reset_done == "REC-1", "连续两次确认后才真正重置到入口记录（实际 %s）" % reset_done)
+
+        # ---------------- H. 报告一致 ----------------
         check(not errors, "全流程走完后 pageerror 仍为空（实际 %s 条）%s"
               % (len(errors), errors[0][:200] if errors else ""))
         for name in ["pump-diagnosis-report-accepted.pdf", "pump-diagnosis-report-divergent.pdf"]:

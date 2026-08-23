@@ -181,6 +181,11 @@
   font-size: 14px;
 }
 .tool-btn:hover { border-color: var(--accent); color: #eafcff; }
+.tool-btn.reset-armed {
+  border-color: rgba(238, 180, 74, 0.78);
+  color: var(--status-warn);
+  background: rgba(238, 180, 74, 0.10);
+}
 
 .primary-btn {
   min-height: 40px;

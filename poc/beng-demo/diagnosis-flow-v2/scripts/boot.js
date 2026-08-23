@@ -55,13 +55,27 @@
     { key: "station", label: "泵站态势", mark: "态势", href: "../pump-station-situation-v2/index.html" }
   ];
 
-  // 在 poc/inspection-demo/index.html 的 iframe 外壳里运行时，外壳广播可见性。
-  // 本 POC 没有 3D，不需要停渲染循环 —— 但要在切回来时 resize 图表，否则
-  // 在隐藏状态下 init 的实例会停在 0 宽高。
+  var needsRenderOnActive = false;
+
+  // 在 poc/beng-demo/index.html 的 iframe 外壳里运行时，外壳广播可见性。
+  // 本 POC 没有 3D，不需要停渲染循环 —— 但要在切回来时 resize 图表。若切后台时
+  // 顺手清掉了 pending 状态，还要补一轮 render，让 DOM 不停在隐藏前的"检索中"。
   window.addEventListener("message", function (event) {
     var data = event.data;
-    if (!data || data.type !== "inspection-demo:visibility") return;
-    if (data.active) window.Charts.resizeAll();
+    if (!data || data.type !== "beng-demo:visibility") return;
+    if (data.active) {
+      window.Charts.resizeAll();
+      if (needsRenderOnActive) {
+        needsRenderOnActive = false;
+        render();
+      }
+    } else {
+      if (resetArmed || state.agentPending || state.ingestOpen) needsRenderOnActive = true;
+      clearResetArm();
+      clearAgentTimer(true);
+      state.ingestOpen = false;
+      stopIngest();
+    }
   });
 
   // ---------------------------------------------------------------- 定时器
@@ -70,14 +84,34 @@
   // 设新的之前先清旧的 —— 连续点两个问题时不能有两个定时器抢着改同一个字段。
   var agentTimer = null;
   var ingestTimer = null;
+  var resetTimer = null;
+  var resetArmed = false;
 
   var AGENT_THINK_MS = 900;
   var INGEST_STEP_MS = 780;
 
+  function clearAgentTimer(settle) {
+    if (agentTimer) {
+      window.clearTimeout(agentTimer);
+      agentTimer = null;
+    }
+    if (settle && state.agentPending) AppState.settleAgent();
+  }
+
+  function clearResetArm() {
+    if (resetTimer) {
+      window.clearTimeout(resetTimer);
+      resetTimer = null;
+    }
+    resetArmed = false;
+  }
+
   function scheduleAgentSettle() {
-    if (agentTimer) window.clearTimeout(agentTimer);
+    clearAgentTimer(false);
+    var expectedQuestion = state.agentPending;
     agentTimer = window.setTimeout(function () {
       agentTimer = null;
+      if (state.agentPending !== expectedQuestion) return;
       AppState.settleAgent();
       render();
     }, AGENT_THINK_MS);
@@ -93,6 +127,10 @@
     var KB = window.DOMAIN_KB;
     state.ingestStep = 0;
     ingestTimer = window.setInterval(function () {
+      if (!state.ingestOpen || state.scene !== "knowledge") {
+        stopIngest();
+        return;
+      }
       state.ingestStep += 1;
       if (state.ingestStep >= KB.ingestSteps.length) {
         state.ingestStep = KB.ingestSteps.length;
@@ -138,7 +176,12 @@
           h("small", { text: AppState.object().model + " · " + AppState.object().vendor
             + " · " + AppState.object().shift })
         ]),
-        h("button", { type: "button", class: "tool-btn", dataset: { action: "reset-demo" } }, "重置演示")
+        h("button", {
+          type: "button",
+          class: "tool-btn" + (resetArmed ? " reset-armed" : ""),
+          dataset: { action: "reset-demo" },
+          title: resetArmed ? "再次点击确认重置" : "点击后需要二次确认"
+        }, resetArmed ? "再次点击重置" : "重置演示")
       ])
     ]);
   }
@@ -275,9 +318,19 @@
 
   // ---------------------------------------------------------------- 事件委托
 
+  function switchScene(sceneKey) {
+    if (state.scene !== sceneKey) {
+      clearResetArm();
+      clearAgentTimer(true);
+      stopIngest();
+    }
+    AppState.setScene(sceneKey);
+    render();
+  }
+
   function handleAction(action, el) {
-    if (action === "go-scene") { AppState.setScene(el.dataset.sceneKey); return render(); }
-    if (action === "go-knowledge") { AppState.setScene("knowledge"); return render(); }
+    if (action === "go-scene") return switchScene(el.dataset.sceneKey);
+    if (action === "go-knowledge") return switchScene("knowledge");
     if (action === "select-evidence") { AppState.setEvidence(Number(el.dataset.evidenceIndex)); return render(); }
     if (action === "open-zoom") { state.zoomOpen = true; return render(); }
     if (action === "close-zoom") { state.zoomOpen = false; return render(); }
@@ -290,7 +343,7 @@
     if (action === "open-ingest") { state.ingestOpen = true; startIngest(); return render(); }
     if (action === "close-ingest") { state.ingestOpen = false; stopIngest(); return render(); }
     if (action === "open-agent") { state.agentOpen = true; return render(); }
-    if (action === "close-agent") { state.agentOpen = false; return render(); }
+    if (action === "close-agent") { clearAgentTimer(true); state.agentOpen = false; return render(); }
     if (action === "open-shell-step") { return openShellStep(el.dataset.shellKey, el.dataset.href); }
     if (action === "ask-agent") {
       AppState.askAgent(el.dataset.questionId);
@@ -298,8 +351,19 @@
       return render();
     }
     if (action === "reset-demo") {
+      if (!resetArmed) {
+        resetArmed = true;
+        if (resetTimer) window.clearTimeout(resetTimer);
+        resetTimer = window.setTimeout(function () {
+          resetArmed = false;
+          resetTimer = null;
+          render();
+        }, 2200);
+        return render();
+      }
+      clearResetArm();
       stopIngest();
-      if (agentTimer) { window.clearTimeout(agentTimer); agentTimer = null; }
+      clearAgentTimer(false);
       AppState.reset();
       return render();
     }
@@ -352,7 +416,7 @@
   // Esc 逐层关闭：先 Agent 抽屉，再浮层。一次只关一层，符合"最后打开的先关"。
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") return;
-    if (state.agentOpen) { state.agentOpen = false; return render(); }
+    if (state.agentOpen) { clearAgentTimer(true); state.agentOpen = false; return render(); }
     if (state.zoomOpen) { state.zoomOpen = false; return render(); }
     if (state.archiveOpen) { state.archiveOpen = false; return render(); }
     if (state.ingestOpen) { state.ingestOpen = false; stopIngest(); return render(); }
