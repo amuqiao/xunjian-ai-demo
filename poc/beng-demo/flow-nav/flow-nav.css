@@ -15,8 +15,14 @@
      1920×1080 → 0.7770 → 0.7770       2560×1440 → 1.0360 → 1.0360
    砍掉的只是上下留白。智能助手页是自适应布局，少 44px 内容区也无感。
 
-   【真正的好处】组件的坐标系整体下移，不是被叠在上面 —— 组件完全不需要知道
-   导航的存在，"各组件独立开发 + 外壳统一切换"这个设计这才算真正成立。
+   【布局：logo 靠左绝对定位，链接真居中】
+   logo 用 position:absolute 脱离流，链接组走 justify-content:center ——
+   这样链接是相对**视口**居中，而不是相对"logo 右侧的剩余空间"居中。
+   后者会让整排链接随 logo 宽度左右偏移，换个 logo 就得重新调。
+
+   【品牌只出现在外壳这一层】组件页自己不放 logo（助手页原先侧栏有一个自制的
+   假 logo，已移除）—— 外壳是"这套演示"的容器，品牌属于容器；组件是内容，
+   内容里再放一遍品牌就成了重复，而且切屏时会看到两个 logo 一闪。
    ══════════════════════════════════════════════════════════════════════════ */
 
 .inspection-flow-nav {
@@ -39,7 +45,7 @@
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   padding: 0 16px;
   border-bottom: 1px solid var(--nav-border);
   background: var(--nav-bg);
@@ -47,14 +53,29 @@
   font: 500 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-/* 左侧一枚静态标记，让这条看起来是"外壳的边"而不是网页导航栏 */
-.inspection-flow-nav::before {
-  content: "演示导航";
-  margin-right: 10px;
-  color: var(--nav-text-dim);
-  font-size: 11.5px;
-  letter-spacing: .16em;
-  white-space: nowrap;
+/* 国家管网 logo。用 CSS background 而不是 <img src>：background 的相对路径是相对
+   **本样式表**解析的，所以无论外壳页在哪一层目录、由谁挂载，这个路径都成立；
+   写成 <img src> 就得在 JS 里算前缀，多一处会错的地方。
+
+   图片是深色主题版（红色图标保留品牌色，深色文字提亮成 #e8f4ff）——
+   原图是给白底用的黑字，直接放深色条上文字会看不见。 */
+.flow-nav-brand {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 69px;
+  height: 22px;
+  background: url("pipechina-logo.png") left center / contain no-repeat;
+  /* 纯装饰，不接收点击 —— 它不是返回首页的入口，避免误触。 */
+  pointer-events: none;
+}
+
+.flow-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .inspection-flow-nav a {
@@ -116,9 +137,14 @@
   outline-offset: 2px;
 }
 
-/* 窄屏（<1180px）只留序号，标签收起 —— 五个标签横排放不下时优先保证可点。 */
+/* 窄屏（<1180px）只留序号，标签收起 —— 五个标签横排放不下时优先保证可点。
+   logo 保留：它比标签更该留着。 */
 @media (max-width: 1180px) {
-  .inspection-flow-nav::before { display: none; }
   .inspection-flow-nav a { padding: 0 6px; }
   .inspection-flow-nav a::after { display: none; }
+}
+
+/* 极窄（<560px）logo 也收起，把宽度全留给切换点。 */
+@media (max-width: 560px) {
+  .flow-nav-brand { display: none; }
 }

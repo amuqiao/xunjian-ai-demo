@@ -91,6 +91,19 @@
     nav.className = "inspection-flow-nav";
     nav.setAttribute("aria-label", "泵站演示组件切换");
 
+    // 国家管网 logo。图片路径写在 CSS 的 background-image 里（相对样式表解析），
+    // 这里只建一个空盒子 —— 不用 <img src>，那样就得在 JS 里算目录前缀。
+    // aria-hidden：它是装饰，读屏不必念，条本身的 aria-label 已经说明了用途。
+    var brand = document.createElement("div");
+    brand.className = "flow-nav-brand";
+    brand.setAttribute("aria-hidden", "true");
+    nav.appendChild(brand);
+
+    // 链接单独装一层：logo 是绝对定位脱离流的，链接组才能相对**视口**居中。
+    // 直接把 a 挂在 nav 上、靠 justify-content:center 的话，居中基准会被 logo 挤偏。
+    var links = document.createElement("div");
+    links.className = "flow-nav-links";
+
     steps.forEach(function (step, index) {
       var link = document.createElement("a");
       link.href = prefix + step.href;
@@ -117,9 +130,10 @@
           event.preventDefault();
         }
       });
-      nav.appendChild(link);
+      links.appendChild(link);
     });
 
+    nav.appendChild(links);
     document.body.appendChild(nav);
   }
 
