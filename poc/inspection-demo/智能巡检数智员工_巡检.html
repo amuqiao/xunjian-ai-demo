@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>智能巡检数智员工 · 小巡</title>
+<title>智能巡检助手 · 小巡</title>
 <style>
 :root{
   /* ── 深色主题。与 poc/inspection-demo 另四屏（hunan-overview-v2 等）同一基调，
@@ -426,8 +426,8 @@ table.tbl tbody tr:hover{background:rgba(90,140,255,.08)}
     <div class="agent-card">
       <div class="agent-avatar" id="agentAvatarSide"></div>
       <div class="agent-meta">
-        <div class="agent-name">智能巡检数智员工 · 小巡</div>
-        <div class="agent-status"><i class="dot"></i>巡检中 · 托克托作业区</div>
+        <div class="agent-name">智能巡检助手 · 小巡</div>
+        <div class="agent-status"><i class="dot"></i>巡检中 · 长郴-湘潭站</div>
       </div>
     </div>
 
@@ -460,7 +460,7 @@ table.tbl tbody tr:hover{background:rgba(90,140,255,.08)}
   <main class="main">
     <header class="topbar">
       <div class="topbar-l">
-        <h1 id="convTitle">智能巡检数智员工</h1>
+        <h1 id="convTitle">智能巡检助手</h1>
         <span class="tag" id="convTag">巡检人员视角</span>
       </div>
       <div class="topbar-r">
@@ -477,7 +477,7 @@ table.tbl tbody tr:hover{background:rgba(90,140,255,.08)}
       <div class="chat-inner" id="chatInner">
         <section class="welcome" id="welcome">
           <div class="welcome-avatar" id="welcomeAvatar"></div>
-          <h2>智能巡检数智员工</h2>
+          <h2>智能巡检助手</h2>
           <p id="welcomeText">您好！我是小巡，有什么可以帮您的吗？</p>
         </section>
         <div id="messages"></div>
@@ -516,6 +516,24 @@ table.tbl tbody tr:hover{background:rgba(90,140,255,.08)}
 <script>
 /* =========================================================================
  *  剧本与演示数据 —— 全部演示内容集中在此文件，修改文案不需要动 app.js
+ *
+ *  【业务课题】站场巡检执行与监督（长郴-湘潭站）。
+ *  数据对齐来源（避免同一外壳内数字打架）：
+ *    - poc/inspection-demo/diagnosis-flow-v2/domain/04-records.js
+ *      —— 长郴-湘潭站 5 条真实诊断记录（第106/107/250/318/261项），
+ *         3 个部位（P-4泵棚/低压配电室/PLC机房），共 141 项。
+ *    - poc/inspection-demo/diagnosis-flow-v2/domain/05-review.js
+ *      —— 三位复核人：廖震宇（生产运维技术员）/ 唐爱纯（站场值班长）/ 王泽宇（作业区技术主管）。
+ *    - poc/inspection-demo/inspection-station-v2/scripts/data/quality.js
+ *      —— 长沙输油站 12 区 256 项、近 14 轮合规率、18 条行为异常/AI提醒明细。
+ *         该站与长郴-湘潭站是两个不同的真实站点（不做数字对齐是原 POC 的明确决定），
+ *         本文件在用到这份数据时，卡片 head/sub 会显式标注「长沙输油站」，
+ *         不冒充成长郴-湘潭站自己的 141 项，避免同一份文件内 12区/256项 与
+ *         3部位/141项 自相矛盾。
+ *    - poc/inspection-demo/hunan-overview-v2（复用 hunan-inspection-overview 的
+ *      scripts/data/quality.js）—— 全省 6 个作业区口径：岳阳/长沙/衡阳/永郴/湘娄/株洲，
+ *      completionRate 与 closure（= (issues-currentRisk)/issues）均为真实字段现算，
+ *      不是拍脑袋数。
  * ========================================================================= */
 
 /* ---------------- 头像（SVG 直出，无外部图片依赖） ---------------- */
@@ -541,38 +559,56 @@ const AVATARS = {
     <path d="M15.6 26.9 20 32l4.4-5.1" fill="none" stroke="#7fa6ff" stroke-width="1.7" stroke-linejoin="round"/></svg>`
 };
 
-/* ---------------- 阀室 25 个点位（两份巡检报告共用） ---------------- */
-const VALVE_ITEMS = [
-  ['RTU系统运行状态','RTU_SJ4_23_SystemErr','0.0','','无告警'],
-  ['线路截断阀上游远传压力显示值','SJF00E027DCC_PT_1101_MTS','8.98','MPa','低:3.0000；高:11.9000'],
-  ['外电配电柜状态监测','15012200011310000139-配电柜状态监测','—','','无告警'],
-  ['RTU机柜状态监测','15012200011310000140-RTU系统状态监测','—','','无告警'],
-  ['上下游压力表监测及比对','15012200011310000136-GOV阀上下游压力对比监测','—','','无告警'],
-  ['阀室干线天然气地温显示值','SJF00E027DCC_TT_1101_MTS','17.7','℃','低:-5.0000；高:50.0000'],
-  ['OSN8800系统监测','15012200011310000140-光端机OSN8800状态监测','—','','无告警'],
-  ['阀室可燃气浓度无异常','SJF00E027DCC_AT_1001_MTS','-0.1','%LEL','低:-3.0000；高:3.0000'],
-  ['阀室可燃气浓度无异常','SJF00E027DCC_AT_1002_MTS','0','%LEL','低:-3.0000；高:3.0000'],
-  ['RTU总线状态','RTU_SJ4_23_BusError','0.0','','无告警'],
-  ['线路截断阀下游远传压力显示值','SJF00E027DCC_PT_1102_MTS','8.97','MPa','低:3.0000；高:11.9000'],
-  ['上下游压力差值比对','SJF00E027DCC_PDT_1101_CAL','0.01','MPa','≤ 0.0200'],
-  ['阀室UPS电源运行状态','15012200011310000141-UPS状态监测','—','','无告警'],
-  ['阀室视频监控在线状态','CAM_SJ4_23_ONLINE','1.0','','1=在线'],
-  ['阀室周界入侵报警','SJF00E027DCC_SEC_1001','0.0','','无告警'],
-  ['阀室门禁状态','ACS_SJ4_23_DOOR','0.0','','0=关闭'],
-  ['放空阀阀位状态','SJF00E027DCC_ZI_1201','0.0','%','0=全关'],
-  ['线路截断阀阀位状态','SJF00E027DCC_ZI_1101','100.0','%','100=全开'],
-  ['阀室汇管压力显示值','SJF00E027DCC_PT_1103_MTS','8.96','MPa','低:3.0000；高:11.9000'],
-  ['阀室环境温度显示值','SJF00E027DCC_TT_1002_MTS','26.4','℃','低:-30.0000；高:60.0000'],
-  ['太阳能供电电压','SJF00E027DCC_EI_1001','26.8','V','低:22.0000；高:30.0000'],
-  ['蓄电池组端电压','SJF00E027DCC_EI_1002','25.1','V','低:22.0000；高:29.0000'],
-  ['避雷及接地状态监测','15012200011310000142-防雷接地监测','—','','无告警'],
-  ['通信链路误码率','RTU_SJ4_23_LinkErr','0.0','','无告警'],
-  ['阀室积水液位','SJF00E027DCC_LT_1001','0.0','m','低:0.0000；高:0.3000']
+/* ---------------- 25 条站场巡检项核查表（3 个部位：P-4泵棚 / 低压配电室 / PLC机房） ----------------
+ * 前 8 条为泵棚区，其中第 1、2 条对应第 106/107 项（04-records.js）。
+ * 中间 8 条为低压配电室，第 9 条对应第 250 项（1DP柜），第 13 条对应第 261 项（行为异常）。
+ * 后 9 条为 PLC 机房，第 19、20 条对应第 318 项的两项缺项（GAP-PLC）。
+ * 位号仿真实格式，未在源文件出现的补充项延用同一命名习惯，不冒充为源文件字面量。
+ * 结果列不全为「合格」：出口压力=异常，1DP柜=待复查，SIS柜两项=待补录，电缆沟封堵=行为异常。 */
+const STATION_ITEMS = [
+  ['出口管线压力', 'PT6903B', '9.3', 'MPa', '高报警9.0 / 高高报警9.8', { text: '异常', pill: 'red' }],
+  ['入口管线压力', 'PT6903A', '4.2', 'MPa', '低报警2.0 / 高报警6.0', { text: '合格', pill: 'green' }],
+  ['泵机组运行状态与渗漏', 'VT-P4-01', '正常，无渗漏', '', '无渗漏 / 无异响 / 无异常振动', { text: '合格', pill: 'green' }],
+  ['泵体轴承温度', 'TT-P4-02', '58', '℃', '≤ 75', { text: '合格', pill: 'green' }],
+  ['机封冷却水流量', 'FT-P4-03', '1.2', 'm³/h', '≥ 0.8', { text: '合格', pill: 'green' }],
+  ['泵棚可燃气浓度', 'AT-P4-04', '0.0', '%LEL', '≤ 3.0', { text: '合格', pill: 'green' }],
+  ['泵棚消防设施完好性', 'FIRE-P4-05', '完好', '', '灭火器在位 / 压力正常', { text: '合格', pill: 'green' }],
+  ['泵棚照明与应急照明', 'LT-P4-06', '正常', '', '应急照明可自动切换', { text: '合格', pill: 'green' }],
+  ['1DP柜面表计及指示灯', '1DP-MET-01', '无显示，已修复', '', '表计测显应正常，综保无断线报警', { text: '待复查', pill: 'amber' }],
+  ['120DP柜面表计及指示灯', '120DP-MET-01', '正常', '', '表计测显应正常，综保无断线报警', { text: '合格', pill: 'green' }],
+  ['蓄电池组端电压', 'EI-POWER-05', '25.1', 'V', '22.0～29.0', { text: '合格', pill: 'green' }],
+  ['感温感烟探测器外观', 'SD-POWER-07', '正常', '', '无损坏 / 无遮挡', { text: '合格', pill: 'green' }],
+  ['电缆沟与穿墙孔洞封堵', 'CBL-POWER-08', '封堵完好（人工填报）', '', '盖板齐全 / 孔洞封堵密实', { text: '行为异常', pill: 'red' }],
+  ['UPS电源运行状态', 'UPS-POWER-02', '正常', '', '主备切换正常', { text: '合格', pill: 'green' }],
+  ['配电室门禁状态', 'ACS-POWER-01', '关闭', '', '0=关闭', { text: '合格', pill: 'green' }],
+  ['避雷及接地状态', 'GND-POWER-03', '正常', '', '接地电阻 ≤ 4Ω', { text: '合格', pill: 'green' }],
+  ['PLC机柜7#柜门与标识', 'PLC-CAB-07', '柜门关闭，标识清晰', '', '柜门关闭，标识清晰', { text: '合格', pill: 'green' }],
+  ['PLC机柜7#温湿度记录', 'TH-PLC-07', '22℃ / 48%', '', '18～28℃ / ≤ 65%RH', { text: '合格', pill: 'green' }],
+  ['SIS机柜（一）柜门与标识', 'SIS-CAB-01', '未填', '', '在位机柜须逐柜记录', { text: '待补录', pill: 'amber' }],
+  ['SIS机柜（一）指示灯状态', 'SIS-CAB-01-IND', '未填', '', '在位机柜须逐柜记录', { text: '待补录', pill: 'amber' }],
+  ['机房门禁与进出登记', 'ACS-PLC-01', '正常，登记完整', '', '门禁正常，登记完整', { text: '合格', pill: 'green' }],
+  ['设备分区标识核对', 'LBL-PLC-02', '标识在位', '', '中石化 / 国家管网标识在位', { text: '合格', pill: 'green' }],
+  ['机房空调运行状态', 'AC-PLC-03', '正常', '', '出风温度正常', { text: '合格', pill: 'green' }],
+  ['通信链路误码率', 'COM-PLC-04', '0.0', '', '无告警', { text: '合格', pill: 'green' }],
+  ['机房积水/渗漏检查', 'LT-PLC-05', '无渗漏积水', '', '0.0m', { text: '合格', pill: 'green' }]
 ];
-const ITEM_COLS = ['序号','巡检项','位号','当前值','单位','标准','巡检结果'];
-const itemRows = () => VALVE_ITEMS.map((r, i) => [
-  String(i + 1), r[0], r[1], r[2], r[3] || '—', r[4], { text: '合格', pill: 'green' }
-]);
+const ITEM_COLS = ['序号', '巡检项', '位号', '当前值', '单位', '标准', '巡检结果'];
+const itemRows = () => STATION_ITEMS.map((r, i) => [String(i + 1), r[0], r[1], r[2], r[3] || '—', r[4], r[5]]);
+// 即时巡检（P-4泵棚）只巡了前 2 项，报告内容必须与 parse 阶段声明的范围一致。
+const instantItemRows = () => STATION_ITEMS.slice(0, 2).map((r, i) => [String(i + 1), r[0], r[1], r[2], r[3] || '—', r[4], r[5]]);
+
+/* ---------------- 业务措辞（唯一真源） ----------------
+   与 poc/beng-demo/智能巡检数智员工-泵.html 同一结构：渲染层不写死业务文案，
+   两课题各给一份。巡检课题这几句本来就贴合（它讲的就是巡检），值不变；
+   提出来是为了让两份的**渲染层逐字相同** —— 以后改渲染逻辑不必担心哪份漏改。 */
+const WORDING = {
+  agentBusy: '小巡正在处理，请稍候……',
+  taskDone: '巡检任务执行完成',
+  confirmHint: '请在上方「已解析指令」卡片中点击 “确认发起” 以下发巡检任务',
+  badFlag: '⚠ 不合格巡检项',
+  emptyText: '本次巡检未发现不合格项',
+  goodFlag: '✓ 合格巡检项'
+};
 
 /* ---------------- 报告 ---------------- */
 const REPORTS = {
@@ -580,129 +616,131 @@ const REPORTS = {
   daily: {
     drawerTitle: '巡检报告',
     title: '智能巡检任务报告',
-    subtitle: '国家管网 · 托克托作业区 · 陕京四线-22#阀室',
+    subtitle: '国家管网 · 长郴输气分公司 · 长郴-湘潭站',
     sections: [
       { no: '一', name: '基础信息', type: 'lines', lines: [
-        ['任务名称', '托克托作业区在线智能巡检-陕京四线.22#阀室'],
-        ['任务ID', 'XJ-20260821-0087'],
-        ['执行时间', '2026-08-21 20:14:41 至 2026-08-21 20:15:41'],
-        ['巡检方式', '机器视觉 + SCADA点位联动巡检']
+        ['任务名称', '长郴-湘潭站夜班例行巡检'],
+        ['任务ID', 'XJ-20260722-0091'],
+        ['执行时间', '2026-07-22 19:52:10 至 2026-07-22 20:41:07'],
+        ['巡检方式', '人工现场巡检 + AI 质检复核（视觉 / 时序 / 规则联动判定）']
       ]},
       { no: '二', name: '巡检范围', type: 'lines', lines: [
-        ['区域数量', '1个（陕京四线22#阀室综合区）'],
-        ['巡检项数量', '22项'],
-        ['点位数量', '25个']
+        ['覆盖部位', '3个（P-4泵棚 / 低压配电室 / PLC机房）'],
+        ['巡检项数量', '141项'],
+        ['巡检人', '廖震宇 · 夜班']
       ]},
-      { no: '三', name: '巡检结果', type: 'result', pass: '100.00%', extra: '较前一日持平，连续 12 天无不合格项' },
-      { no: '四', name: '巡检内容', type: 'items',
-        zone: '陕京四线22#阀室综合区', passText: '25/25',
+      { no: '三', name: '巡检结果', type: 'result', pass: '97.2%',
+        extra: '137/141项正常，4项经AI质检标记：第106项异常待处置、第250项已处置待复查、第318项记录缺项待补录、第261项行为异常待重巡' },
+      { no: '四', name: '重点巡检项核查记录（节选 25 项，覆盖 3 个部位）', type: 'table',
         columns: ITEM_COLS, rows: itemRows() }
     ],
-    sign: { left: '生成方式：数智员工「小巡」自动生成', right: '2026-08-21 20:16' }
+    sign: { left: '生成方式：智能巡检助手「小巡」自动生成', right: '2026-07-22 20:42' }
   },
 
   /* 即时巡检报告（演示中实时生成） */
   instant: {
     drawerTitle: '巡检报告',
-    title: '智能巡检任务报告',
-    subtitle: '国家管网 · 托克托作业区 · 陕京四线-22#阀室',
+    title: '智能巡检即时任务报告',
+    subtitle: '国家管网 · 长郴输气分公司 · 长郴-湘潭站 · P-4泵棚',
     sections: [
       { no: '一', name: '基础信息', type: 'lines', lines: [
-        ['任务名称', '托克托作业区在线智能巡检-陕京四线.22#阀室'],
-        ['任务ID', 'XJ-20260822-0012'],
-        ['执行时间', '2026-08-22 15:32:18 至 2026-08-22 15:33:06'],
-        ['发起方式', '数智员工对话式发起（即时巡检）'],
-        ['发起人', '张卫国 · 巡检班']
+        ['任务名称', 'P-4 泵棚即时巡检任务'],
+        ['任务ID', 'XJ-20260723-0031'],
+        ['执行时间', '2026-07-23 10:14:02 至 2026-07-23 10:15:41'],
+        ['发起方式', '智能巡检助手对话式发起（即时巡检）'],
+        ['发起人', '廖震宇 · 巡检班']
       ]},
       { no: '二', name: '巡检范围', type: 'lines', lines: [
-        ['区域数量', '1个（陕京四线22#阀室综合区）'],
-        ['巡检项数量', '22项'],
-        ['点位数量', '25个']
+        ['巡检部位', 'P-4 泵棚（PART-PUMP）'],
+        ['巡检项范围', '出口管线压力（第106项）、泵机组运行状态与渗漏（第107项），共2项'],
+        ['执行模式', '机器视觉 + SCADA 点位联动巡检']
       ]},
-      { no: '三', name: '巡检结果', type: 'result', pass: '100.00%', extra: '重点比对项：上下游压力差 0.01MPa，低于阈值 0.02MPa' },
-      { no: '四', name: '巡检内容', type: 'items',
-        zone: '陕京四线22#阀室综合区', passText: '25/25',
-        columns: ITEM_COLS, rows: itemRows() }
+      { no: '三', name: '巡检结果', type: 'result', pass: '50.0%',
+        extra: '2项中1项合格、1项异常：出口管线压力（PT6903B）现场读数9.3MPa，已越过高报警线9.0MPa，未到高高报警线9.8MPa，建议现场核对上下游工况后确认' },
+      { no: '四', name: '巡检内容', type: 'table', columns: ITEM_COLS, rows: instantItemRows() }
     ],
-    sign: { left: '生成方式：数智员工「小巡」自动生成', right: '2026-08-22 15:33' }
+    sign: { left: '生成方式：智能巡检助手「小巡」自动生成', right: '2026-07-23 10:16' }
   },
 
   /* 管理者：本周巡检管理周报 */
   weekly: {
     drawerTitle: '巡检管理周报',
     title: '智能巡检管理周报',
-    subtitle: '国家管网 · 呼和浩特输气分公司 · 2026年第34周',
+    subtitle: '国家管网 · 湖南公司 · 2026年第29周',
     sections: [
       { no: '一', name: '周期概览', type: 'lines', lines: [
-        ['统计周期', '2026-08-16 至 2026-08-22'],
-        ['覆盖作业区', '5个（托克托、呼和浩特、大同、阳高、天镇）'],
-        ['巡检任务总数', '873项'],
-        ['平均完成率', '95.4%'],
-        ['数智巡检替代人工比例', '68.2%（较上周 +4.1%）']
+        ['统计周期', '2026-07-17 至 2026-07-23'],
+        ['覆盖作业区', '6个（岳阳、长沙、衡阳、永郴、湘娄、株洲）'],
+        ['计划巡检任务', '141项，完成134项，完成率95.0%'],
+        ['异常与闭环', '本周新增13项，已闭环11项，闭环率84.6%'],
+        ['行为核查', '长沙输油站本轮256项巡检中，行为异常12次、AI提醒6条']
       ]},
-      { no: '二', name: '完成率趋势', type: 'chart', chartId: 'rptTrend' },
+      { no: '二', name: '长沙输油站近7日合规率与行为异常趋势', type: 'chart', chartId: 'rptTrend' },
       { no: '三', name: '各作业区排名', type: 'table',
-        columns: ['排名', '作业区', '任务数', '完成率', '异常数', '闭环率'],
+        columns: ['排名', '作业区', '计划任务数', '完成率', '异常数', '闭环率'],
         rows: [
-          ['1', '托克托作业区', '212', { text: '98.2%', pill: 'green' }, '9', '100%'],
-          ['2', '呼和浩特作业区', '198', { text: '96.7%', pill: 'green' }, '12', '91.7%'],
-          ['3', '大同作业区', '176', { text: '95.1%', pill: 'blue' }, '14', '85.7%'],
-          ['4', '阳高作业区', '158', { text: '93.4%', pill: 'amber' }, '11', '81.8%'],
-          ['5', '天镇作业区', '129', { text: '89.6%', pill: 'red' }, '7', '71.4%']
+          ['1', '长沙作业区', '28', { text: '96.4%', pill: 'green' }, '1', '100%'],
+          ['2', '衡阳作业区', '27', { text: '96.3%', pill: 'green' }, '2', '100%'],
+          ['3', '永郴作业区', '20', { text: '95.0%', pill: 'green' }, '2', '100%'],
+          ['4', '湘娄作业区', '18', { text: '94.4%', pill: 'amber' }, '1', '100%'],
+          ['5', '岳阳作业区', '36', { text: '94.4%', pill: 'amber' }, '5', '80.0%'],
+          ['6', '株洲作业区', '12', { text: '91.7%', pill: 'amber' }, '2', '50.0%']
         ]},
-      { no: '四', name: '异常闭环情况', type: 'table',
-        columns: ['等级', '本周新增', '已闭环', '处置中', '平均闭环时长'],
+      { no: '四', name: '行为异常与AI提醒（长沙输油站本轮，256项）', type: 'table',
+        columns: ['类型', '判定口径', '本轮合计'],
         rows: [
-          [{ text: '严重', pill: 'red' }, '4', '4', '0', '1.2 小时'],
-          [{ text: '中等', pill: 'amber' }, '19', '16', '3', '6.8 小时'],
-          [{ text: '一般', pill: 'grey' }, '30', '24', '6', '19.4 小时']
+          ['时长异常', '单项现场停留 < 10 秒', '6'],
+          ['间隔异常', '相邻两项提交间隔 < 3 秒', '4'],
+          ['时段异常', '提交时刻偏离计划时段 30 分钟以上', '2'],
+          ['AI提醒', '时序 / 轨迹模型触发的核实线索', '6']
         ]},
       { no: '五', name: '结论与建议', type: 'list', items: [
-        '天镇作业区完成率连续两周低于 90%，主因是 3 名巡检人员轮休期间任务未及时转派，建议启用任务自动转派规则。',
-        '大同作业区一般等级异常闭环时长偏高（26.5 小时），建议将一般异常的响应时限由 48 小时压缩至 24 小时。',
-        '本周严重异常 4 起全部由数智员工在 10 分钟内识别并推送，人工复核确认率 100%，建议在剩余 3 个作业区推广可燃气浓度联动巡检。',
-        '下周计划将 22#、23#阀室的即时巡检能力扩展至全线 17 座阀室，预计再减少现场巡检里程约 1,800 公里。'
+        '本周全省新增异常13项，已闭环11项，闭环率84.6%；株洲作业区闭环率仅50%（1/2），建议下周专项督办。',
+        '岳阳作业区计划任务最多（36项）且异常数最高（5项），完成率94.4%低于全省均值95.0%，建议加派人员并复核轮次安排。',
+        '长郴-湘潭站本轮巡检发现第261项（电缆沟与穿墙孔洞封堵）行为异常：与前一项提交间隔2秒、现场停留6秒，已判定退回重巡，建议纳入本月巡检质量考核。',
+        '长沙输油站本轮256项巡检中行为异常12次、AI提醒6条，均由机器视觉与时序/轨迹模型自动核验，建议将该套行为核查能力逐步推广至其余作业区。'
       ]}
     ],
-    sign: { left: '生成方式：数智员工「小巡」自动汇总', right: '2026-08-22 15:40' }
+    sign: { left: '生成方式：智能巡检助手「小巡」自动生成', right: '2026-07-23 16:20' }
   }
 };
 
-/* 周报趋势图 */
+/* 周报趋势图：长沙输油站近7日「合规率 / 行为异常数」，口径对齐 inspection-station-v2 的 14 轮数据 */
 const RPT_TREND_OPTION = {
   grid: { left: 42, right: 16, top: 30, bottom: 28 },
   tooltip: { trigger: 'axis' },
-  legend: { data: ['完成率(%)', '异常数'], right: 0, top: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#87a3b8' } },
-  xAxis: { type: 'category', data: ['08-16', '08-17', '08-18', '08-19', '08-20', '08-21', '08-22'],
+  legend: { data: ['合规率(%)', '行为异常数'], right: 0, top: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 11, color: '#87a3b8' } },
+  xAxis: { type: 'category', data: ['07-29', '07-30', '07-31', '08-01', '08-02', '08-03', '08-04'],
     axisLine: { lineStyle: { color: 'rgba(120,150,255,0.18)' } }, axisTick: { show: false }, axisLabel: { color: '#87a3b8', fontSize: 11 } },
   yAxis: [
-    { type: 'value', min: 85, max: 100, splitLine: { lineStyle: { color: 'rgba(120,150,255,0.10)' } }, axisLabel: { color: '#87a3b8', fontSize: 11 } },
+    { type: 'value', min: 90, max: 100, splitLine: { lineStyle: { color: 'rgba(120,150,255,0.10)' } }, axisLabel: { color: '#87a3b8', fontSize: 11 } },
     { type: 'value', min: 0, max: 16, splitLine: { show: false }, axisLabel: { color: '#87a3b8', fontSize: 11 } }
   ],
   series: [
-    { name: '完成率(%)', type: 'line', smooth: true, data: [94.1, 95.3, 93.8, 96.0, 95.5, 96.8, 96.1],
-      lineStyle: { width: 2.5, color: '#5a8cff' }, itemStyle: { color: '#5a8cff' }, symbolSize: 6,
-      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(26,109,224,.22)' }, { offset: 1, color: 'rgba(26,109,224,0)' }] } } },
-    { name: '异常数', type: 'bar', yAxisIndex: 1, barWidth: 14, data: [9, 6, 11, 7, 5, 8, 7], itemStyle: { color: 'rgba(238,180,74,.55)', borderRadius: [3, 3, 0, 0] } }
+    { name: '合规率(%)', type: 'line', smooth: true, data: [98.8, 96.5, 97.3, 96.1, 95.7, 94.9, 95.3],
+      lineStyle: { width: 2.5, color: '#38c6ec' }, itemStyle: { color: '#38c6ec' }, symbolSize: 6,
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(56,198,236,.22)' }, { offset: 1, color: 'rgba(56,198,236,0)' }] } } },
+    { name: '行为异常数', type: 'bar', yAxisIndex: 1, barWidth: 14, data: [3, 9, 7, 10, 11, 13, 12], itemStyle: { color: 'rgba(238,180,74,.55)', borderRadius: [3, 3, 0, 0] } }
   ]
 };
 
-/* 管理者：班组完成率对比图 */
+/* 管理者：6 个作业区巡检完成率对比图 */
 const TEAM_BAR_OPTION = {
   grid: { left: 92, right: 46, top: 10, bottom: 10 },
   tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => v + '%' },
   xAxis: { type: 'value', max: 100, splitLine: { lineStyle: { color: 'rgba(120,150,255,0.10)' } }, axisLabel: { show: false } },
   yAxis: { type: 'category', inverse: true,
-    data: ['托克托作业区', '呼和浩特作业区', '大同作业区', '阳高作业区', '天镇作业区'],
+    data: ['长沙作业区', '衡阳作业区', '永郴作业区', '湘娄作业区', '岳阳作业区', '株洲作业区'],
     axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#b8cbd9', fontSize: 12 } },
   series: [{
     type: 'bar', barWidth: 15,
     data: [
-      { value: 98.2, itemStyle: { color: '#30c69d' } },
-      { value: 96.7, itemStyle: { color: '#5a8cff' } },
-      { value: 95.1, itemStyle: { color: '#7fa6ff' } },
-      { value: 93.4, itemStyle: { color: '#eeb44a' } },
-      { value: 89.6, itemStyle: { color: '#ff625c' } }
+      { value: 96.4, itemStyle: { color: '#30c69d' } },
+      { value: 96.3, itemStyle: { color: '#5a8cff' } },
+      { value: 95.0, itemStyle: { color: '#38c6ec' } },
+      { value: 94.4, itemStyle: { color: '#eeb44a' } },
+      { value: 94.4, itemStyle: { color: '#87a3b8' } },
+      { value: 91.7, itemStyle: { color: '#ff625c' } }
     ],
     itemStyle: { borderRadius: [0, 4, 4, 0] },
     label: { show: true, position: 'right', formatter: '{c}%', fontSize: 11.5, color: '#b8cbd9' }
@@ -717,58 +755,57 @@ const SCENARIOS = {
   /* ------------------ 路线一：巡检人员 ------------------ */
   inspector: {
     key: 'inspector',
-    name: '张卫国',
-    desc: '巡检班 · 托克托作业区',
+    name: '廖震宇',
+    desc: '巡检班 · 长郴-湘潭站',
     tag: '巡检人员视角',
-    welcome: '您好，张工！我是小巡，托克托作业区 22#、23#阀室已在巡检中，有什么可以帮您？',
+    welcome: '您好，廖工！我是小巡，长郴-湘潭站夜班巡检正在进行，有什么可以帮您？',
     taskTitle: '巡检任务管理',
     alarmLabel: '今日巡检异常',
-    alarmCount: 3,
+    alarmCount: 4,
     tasks: [
-      { name: '陕京四线-22#阀室例行巡检', status: 'run', color: '#87a3b8' },
-      { name: '陕京四线-23#阀室例行巡检', status: 'run', color: '#87a3b8' },
-      { name: '3号站场阀门电动执行机构检查', status: 'run', color: '#eeb44a' },
-      { name: '乌兰4号泵入口1#过滤器巡检', status: 'done', color: '#ff625c' }
+      { name: 'P-4泵棚（PART-PUMP）例行巡检', status: 'run', color: '#87a3b8' },
+      { name: '低压配电室（PART-POWER）例行巡检', status: 'run', color: '#87a3b8' },
+      { name: 'PLC机房（PART-PLC）例行巡检', status: 'run', color: '#eeb44a' },
+      { name: '1DP柜表计复测', status: 'done', color: '#30c69d' }
     ],
-    placeholder: '可直接说：发起1#站巡检 / 查询今日任务 / 调取昨日巡检报告 / 查看巡检异常',
+    placeholder: '可直接说：查询昨日巡检报告 / 对P-4泵棚发起即时巡检 / 查看今日巡检异常 / 生成本周周报',
     steps: [
       /* 1. 自然语言查历史报告 */
       {
-        user: '查询昨日陕京四线-22#阀室巡检报告',
+        user: '查一下昨日长郴-湘潭站的巡检报告',
         keywords: ['昨日', '报告', '查询'],
         replies: [
-          { type: 'text', delay: 700, text: '已查询到 2026-08-21 陕京四线-22#阀室 的巡检报告，为您展示摘要：' },
+          { type: 'text', delay: 700, text: '已查询到 2026-07-22 长郴-湘潭站 夜班巡检报告，为您展示摘要：' },
           { type: 'stats', delay: 600,
-            head: '陕京四线-22#阀室 · 昨日巡检摘要', headIc: 'info', sub: '2026-08-21 20:14',
+            head: '长郴-湘潭站 · 昨日巡检摘要', headIc: 'info', sub: '2026-07-22 夜班 · 巡检人 廖震宇',
             items: [
-              { label: '合格率', value: '100%', tone: 'good' },
-              { label: '巡检项', value: '22', sub: '项' },
-              { label: '合格点位', value: '25/25', tone: 'base' },
-              { label: '异常项', value: '0', tone: 'good' }
+              { label: '合规率', value: '97.2%', tone: 'good' },
+              { label: '本轮表单项', value: '141', sub: '项' },
+              { label: '已完成', value: '141/141', tone: 'base' },
+              { label: '异常项', value: '4', tone: 'mid' }
             ],
-            footHint: '数据来源：机器视觉 + SCADA 点位联动',
+            footHint: '数据来源：人工现场巡检 + AI 质检复核',
             action: { label: '查看完整报告', report: 'daily' }
           }
         ]
       },
 
-      /* 2. 指令解析 */
+      /* 2. 指令解析（AI 不擅自行动，最重要的一环） */
       {
-        user: '请帮我对托克托作业区陕京四线-22#阀室发起一次即时巡检',
+        user: '对 P-4 泵棚发起一次即时巡检',
         keywords: ['发起', '即时巡检', '巡检一次'],
         replies: [
-          { type: 'text', delay: 600, text: '正在解析指令：托克托作业区 · 陕京四线-22#阀室 · 即时巡检……' },
+          { type: 'text', delay: 600, text: '正在解析指令：长郴-湘潭站 · P-4 泵棚 · 即时巡检……' },
           { type: 'parse', delay: 900,
             head: '已解析指令', headIc: 'ok',
             fields: [
-              ['巡检任务名称', '陕京四线-22#阀室即时巡检任务'],
-              ['巡检站场', '陕京四线-22#阀室'],
+              ['任务名称', 'P-4 泵棚即时巡检任务'],
+              ['巡检部位', '长郴-湘潭站 · P-4 泵棚（PART-PUMP）'],
               ['巡检模式', '即时巡检'],
-              ['任务ID', 'XJ-20260822-0012'],
-              ['巡检项', '上下游压力表监测及比对（共 22 项 / 25 个点位）'],
-              ['巡检内容', 'PI1101 与 PI1102 压力比对'],
-              ['巡检标准', '上下游压差小于阈值（20KPa）为正常，否则异常'],
-              ['执行模式', '机器视觉 + SCADA点位联动巡检']
+              ['任务ID', 'XJ-20260723-0031'],
+              ['巡检项范围', '出口管线压力（第106项）、泵机组运行状态与渗漏（第107项），共2项'],
+              ['判定标准', '出口管线压力：高报警9.0MPa / 高高报警9.8MPa；泵机组：无渗漏 / 无异响 / 无异常振动'],
+              ['执行模式', '机器视觉 + SCADA 点位联动巡检']
             ],
             footHint: '请确认巡检内容，是否发起巡检？',
             confirm: '确认发起'
@@ -782,135 +819,164 @@ const SCENARIOS = {
         via: 'confirm',
         replies: [
           { type: 'progress', delay: 400,
-            head: '巡检任务执行中', headIc: 'info', sub: 'XJ-20260822-0012',
+            head: 'P-4泵棚即时巡检执行中', headIc: 'info', sub: 'XJ-20260723-0031',
             steps: [
-              ['指令下发至站控 RTU', 900],
-              ['云台相机转至 1# 预置位', 1100],
-              ['机器视觉识别压力表读数', 1300],
+              ['指令下发至站控', 900],
+              ['云台相机转至预置位', 1000],
+              ['机器视觉识别就地表读数', 1200],
               ['同步读取 SCADA 实时点位', 1000],
-              ['25 个点位逐项比对判定', 1200],
+              ['逐项比对判定', 1100],
               ['汇总生成巡检报告', 900]
             ],
-            doneText: '已完成托克托作业区陕京四线-22#阀室即时巡检。执行时间 2026-08-22 15:32—15:33，共巡检 22 项 / 25 个点位，正常 25 项，异常 0 项，合格率 100%。',
+            doneText: '已完成 P-4 泵棚即时巡检。执行时间 2026-07-23 10:14—10:15，共巡检 2 项：出口管线压力现场读数 9.3MPa，已越过高报警线 9.0MPa，判定异常；泵机组运行状态与渗漏检查正常。合格 1 项 / 异常 1 项。',
             report: 'instant', reportLabel: '查看完整报告'
           }
         ],
-        effects: { addTask: { name: '陕京四线-22#阀室即时巡检', status: 'run', color: '#5a8cff' } },
-        onDone: { taskDone: '陕京四线-22#阀室即时巡检' }
+        effects: { addTask: { name: 'P-4泵棚即时巡检', status: 'run', color: '#5a8cff' } },
+        onDone: { taskDone: 'P-4泵棚即时巡检' }
       },
 
-      /* 4. 异常清单 */
+      /* 4. 会盘点：异常清单 */
       {
         user: '查看今日巡检异常',
         keywords: ['异常', '今日异常'],
         replies: [
-          { type: 'text', delay: 600, text: '今日共识别到 <em>3</em> 条异常，其中 <em>1</em> 条为严重等级，建议优先处置：' },
+          { type: 'text', delay: 600, text: '本轮共识别到 <em>4</em> 条AI质检标记项，其中 <em>1</em> 条为正在越限的异常，建议优先处置：' },
           { type: 'table', delay: 500,
-            head: '今日巡检异常清单', headIc: 'warn', sub: '2026-08-22',
-            columns: ['时间', '站场 / 设备', '异常描述', '实测值', '等级', '状态'],
+            head: '长郴-湘潭站 · 巡检异常清单', headIc: 'warn', sub: '2026-07-22 夜班',
+            columns: ['表单项', '部位', '巡检项', '人工结果', '判定口径', '状态'],
             rows: [
-              ['09:12', '陕京四线-23#阀室', '阀室可燃气浓度超上限', '3.6 %LEL', { text: '严重', pill: 'red' }, { text: '待处置', pill: 'red' }],
-              ['11:05', '3号站场 阀门电动执行机构', '阀位反馈信号超时', '—', { text: '中等', pill: 'amber' }, { text: '处置中', pill: 'amber' }],
-              ['14:37', '乌兰4号泵 入口1#过滤器', '进出口压差偏高', '0.09 MPa', { text: '一般', pill: 'grey' }, { text: '待确认', pill: 'grey' }]
+              ['第106项', 'P-4泵棚', '出口管线压力', '现场读数 9.3MPa', '高报警9.0MPa / 高高报警9.8MPa', { text: '待处置', pill: 'red' }],
+              ['第250项', '低压配电室', '柜面表计及指示灯', '1DP柜表计无显示，已修复', '已处置问题需下轮留痕', { text: '待复查', pill: 'amber' }],
+              ['第318项', 'PLC机房', '机柜门禁与设备分区', '柜门关闭，分区标识清晰', '在位机柜须逐柜记录（SIS柜2项未记录）', { text: '待补录', pill: 'grey' }],
+              ['第261项', '低压配电室', '电缆沟与穿墙孔洞封堵', '封堵完好', '间隔2秒 / 停留6秒，命中2条行为规则', { text: '行为异常', pill: 'red' }]
             ],
-            footHint: '严重等级异常已同步推送至值班长与调度中心'
+            footHint: '第106项已越过高报警线，建议优先处置；第261项建议退回重巡而非直接归档'
           }
         ]
       },
 
-      /* 5. 业务闭环 */
+      /* 5. 能闭环：从异常生成工单 */
       {
-        user: '把可燃气浓度超限这条生成缺陷工单并上报值班长',
+        user: '把出口压力越限这条生成缺陷工单并上报值班长',
         keywords: ['工单', '上报', '缺陷'],
         replies: [
-          { type: 'text', delay: 650, text: '已根据 09:12 的严重异常自动填充工单，并推送至当班值班长：' },
+          { type: 'text', delay: 650, text: '已根据第106项出口管线压力异常自动填充工单：' },
           { type: 'kv', delay: 600,
-            head: '缺陷工单已创建', headIc: 'ok', sub: 'GD-20260822-0037',
+            head: '缺陷工单已创建', headIc: 'ok', sub: 'GD-20260723-0018',
             fields: [
-              ['关联异常', '陕京四线-23#阀室 可燃气浓度超上限（3.6 %LEL）'],
-              ['风险研判', '疑似阀门填料密封点微漏，需现场复测确认'],
-              ['处置建议', '1）远程关断上游放空支路；2）携带便携式检测仪现场复测；3）复测超限立即启动应急预案'],
-              ['指派班组', '托克托作业区 站控班 · 王磊'],
-              ['要求完成', '2026-08-22 18:00 前'],
-              ['当前状态', '已提交 · 待值班长审批']
+              ['关联异常', '长郴-湘潭站 P-4泵棚 第106项 出口管线压力，现场读数9.3MPa'],
+              ['判定口径', '高报警9.0MPa：提示核对就地表、趋势与上下游工况；高高报警9.8MPa：触发安全联锁停泵。当前9.3MPa已越高报警、未到高高报警'],
+              ['风险研判', '就地表与SCADA趋势一致，均已越过高报警线，建议现场核对上下游工况后确认'],
+              ['处置建议', '1）现场复核就地压力表与上下游阀位；2）核对上游来液工况是否临时上涨；3）30分钟内跟踪复测，若持续上行准备启动限流'],
+              ['指派对象', '长郴-湘潭站 站场值班长 唐爱纯'],
+              ['要求完成', '2026-07-23 12:00 前'],
+              ['当前状态', '已创建 · 待值班长确认']
             ],
-            footHint: '工单已同步至生产管理系统与移动端'
+            footHint: '工单已创建，等待值班长在系统内确认处置'
           }
         ],
-        onDone: { toast: '工单 GD-20260822-0037 已推送至值班长', taskAdd: { name: '23#阀室可燃气浓度复测', status: 'wait', color: '#ff625c' } }
+        onDone: { toast: '工单 GD-20260723-0018 已创建，等待值班长确认', taskAdd: { name: '第106项出口压力复核', status: 'wait', color: '#ff625c' } }
+      },
+
+      /* 6. 能成文：周报 */
+      {
+        user: '帮我生成本周巡检管理周报',
+        keywords: ['周报', '生成报告', '报表'],
+        replies: [
+          { type: 'text', delay: 700, text: '正在汇总 2026-07-17 至 07-23 全省 6 个作业区、141 项计划巡检任务的执行与闭环数据……' },
+          { type: 'kv', delay: 1100,
+            head: '本周巡检管理周报已生成', headIc: 'ok', sub: 'ZB-2026W29',
+            fields: [
+              ['统计周期', '2026-07-17 至 2026-07-23（第29周）'],
+              ['覆盖范围', '6个作业区 · 141项计划巡检任务'],
+              ['核心结论', '平均完成率95.0%，行为异常12次、AI提醒6条（长沙输油站256项口径）'],
+              ['本站贡献', '长郴-湘潭站本轮巡检141项，AI质检标记4项（1项异常待处置 / 1项待复查 / 1项待补录 / 1项行为异常）'],
+              ['报告构成', '周期概览 / 完成率趋势 / 作业区排名 / 行为异常与AI提醒 / 结论与建议']
+            ],
+            footHint: '周报已自动归档，可导出后用于周例会',
+            action: { label: '打开周报', report: 'weekly' }
+          }
+        ],
+        onDone: { toast: '周报 ZB-2026W29 已生成并归档' }
       }
     ]
   },
 
-  /* ------------------ 路线二：管理者 ------------------ */
+  /* ------------------ 路线二：管理者（站场值班长） ------------------ */
   manager: {
     key: 'manager',
-    name: '李建民',
-    desc: '生产运行部 · 管理者',
+    name: '唐爱纯',
+    desc: '站场值班长 · 管理者',
     tag: '管理者视角',
-    welcome: '您好，李主任！我是小巡，今日 5 个作业区的巡检数据已汇总完毕，有什么可以帮您？',
+    welcome: '您好，唐班长！我是小巡，长郴-湘潭站及全省6个作业区的巡检数据已汇总完毕，有什么可以帮您？',
     taskTitle: '待办与关注',
     alarmLabel: '待闭环异常',
-    alarmCount: 7,
+    alarmCount: 4,
     tasks: [
-      { name: '天镇作业区完成率预警', status: 'run', color: '#ff625c' },
-      { name: '严重异常处置结果待审批', status: 'run', color: '#eeb44a' },
+      { name: '第106项出口压力复核', status: 'run', color: '#ff625c' },
+      { name: '第261项行为异常复核', status: 'run', color: '#eeb44a' },
       { name: '本周巡检管理周报待生成', status: 'wait', color: '#87a3b8' },
-      { name: '数智巡检推广方案已归档', status: 'done', color: '#30c69d' }
+      { name: '第250项1DP柜复测已完成', status: 'done', color: '#30c69d' }
     ],
-    placeholder: '可直接说：今日巡检情况 / 班组完成率 / 漏检人员 / 生成周报',
+    placeholder: '可直接说：今日巡检情况 / 作业区完成率对比 / 有没有走过场的巡检项 / 生成周报',
     steps: [
       /* 1. KPI 看板 */
       {
-        user: '汇总一下今日各作业区的巡检整体情况',
-        keywords: ['今日', '整体', '汇总', '情况'],
+        user: '调一下今天长沙输油站的巡检质量监督看板',
+        keywords: ['今日', '看板', '汇总', '质量监督'],
         replies: [
-          { type: 'text', delay: 700, text: '已汇总 2026-08-22 全部 5 个作业区的巡检执行数据：' },
+          { type: 'text', delay: 700, text: '已接入长沙输油站巡检质量监督系统，为您展示今日站场巡检运行看板：' },
           { type: 'stats', delay: 600,
-            head: '今日巡检运行看板', headIc: 'info', sub: '截至 15:30 · 数据每 5 分钟刷新',
+            head: '长沙输油站 · 今日巡检运行看板', headIc: 'info', sub: '12个巡检区 · 256项 · 2026-08-04 本轮',
             items: [
-              { label: '巡检任务', value: '128', sub: '较昨日 +6' },
-              { label: '已完成', value: '123', tone: 'base', sub: '完成率 96.1%' },
-              { label: '发现异常', value: '7', tone: 'mid', sub: '严重 1 / 中等 3 / 一般 3' },
-              { label: '准时率', value: '92.4%', tone: 'mid', sub: '低于目标 95%' },
-              { label: '数智替代人工', value: '68%', tone: 'good', sub: '省 260 公里' }
+              { label: '合规率', value: '95.3%', tone: 'good', sub: '较上一轮 94.9%' },
+              { label: '行为异常', value: '12', tone: 'mid', sub: '次 · 时长6/间隔4/时段2' },
+              { label: 'AI提醒', value: '6', tone: 'base', sub: '条 · 时序/轨迹模型' },
+              { label: '待处置P1', value: '2', tone: 'bad', sub: '项' }
             ],
-            footHint: '准时率与目标存在 2.6 个百分点差距，主要集中在天镇作业区'
+            footHint: '数据来源：站场巡检质量监督系统（长沙输油站）'
           }
         ]
       },
 
-      /* 2. 图表分析 */
+      /* 2. 图表分析：作业区完成率对比 */
       {
         user: '各作业区的巡检完成率对比一下',
-        keywords: ['对比', '完成率', '排名', '班组'],
+        keywords: ['对比', '完成率', '排名', '作业区'],
         replies: [
           { type: 'chart', delay: 800,
-            head: '各作业区今日巡检完成率', headIc: 'info', sub: '目标线 95%',
+            head: '全省各作业区今日巡检完成率', headIc: 'info', sub: '目标线 95% · 全省口径',
             option: 'TEAM_BAR',
-            footHint: '天镇作业区 89.6% 连续第 2 天低于目标线，已触发管理预警'
+            footHint: '株洲作业区 91.7% 低于目标线，且异常闭环率仅 50%（1/2），建议重点督办'
           }
         ]
       },
 
-      /* 3. 人员穿透 */
+      /* 3. 行为核查（管理者最重要的能力：管人，不只是看设备） */
       {
-        user: '天镇作业区有没有漏检或者超时的人员？',
-        keywords: ['漏检', '超时', '人员', '谁'],
+        user: '有没有走过场的巡检项？',
+        keywords: ['走过场', '行为', '偷懒', '漏检'],
         replies: [
-          { type: 'text', delay: 650, text: '天镇作业区今日 9 项任务中有 2 项未按时完成，责任人明细如下：' },
+          { type: 'text', delay: 650, text: '已对长沙输油站本轮（2026-08-04）逐项核查提交时间戳与现场停留时长，命中规则的巡检项如下：' },
           { type: 'table', delay: 500,
-            head: '天镇作业区 · 人员执行明细', headIc: 'warn', sub: '2026-08-22',
-            columns: ['巡检人', '应巡 / 已巡', '完成率', '异常情况', '归因'],
+            head: '本轮行为异常明细', headIc: 'warn', sub: '长沙输油站 · 2026-08-04',
+            columns: ['时间', '区域', '巡检项', '命中规则', '实测', '等级'],
             rows: [
-              ['孙涛', '9 / 7', { text: '77.8%', pill: 'red' }, { text: '漏检 2 项', pill: 'red' }, '临时请假，任务未转派'],
-              ['赵敏', '10 / 8', { text: '80.0%', pill: 'amber' }, { text: '超时 2 项', pill: 'amber' }, '同时段并行 3 座阀室'],
-              ['王磊', '10 / 9', { text: '90.0%', pill: 'amber' }, { text: '超时 1 项', pill: 'amber' }, '超时 42 分钟'],
-              ['李强', '11 / 11', { text: '100%', pill: 'green' }, { text: '正常', pill: 'green' }, '—'],
-              ['周航', '9 / 9', { text: '100%', pill: 'green' }, { text: '正常', pill: 'green' }, '—']
+              ['09:06', '混油处理区', '分离器差压', '单项现场停留 < 10 秒', '停留 6 秒', { text: '警示', pill: 'amber' }],
+              ['09:13', '消防水罐区', '放空区点火控制盘温度', '单项现场停留 < 10 秒', '停留 5 秒', { text: '警示', pill: 'amber' }],
+              ['09:19', '中间罐区', '排污罐基础', '单项现场停留 < 10 秒', '停留 4 秒', { text: '警示', pill: 'amber' }],
+              ['09:27', '35KV变电所', '感温感烟探测器外观', '单项现场停留 < 10 秒', '停留 8 秒', { text: '警示', pill: 'amber' }],
+              ['09:34', 'ESD区', '发电机运行情况检查', '单项现场停留 < 10 秒', '停留 5 秒', { text: '警示', pill: 'amber' }],
+              ['09:41', '混油罐区', '压力变送器外观检查', '单项现场停留 < 10 秒', '停留 9 秒', { text: '警示', pill: 'amber' }],
+              ['09:47', '储油罐区', '干线出站1301气液联动阀气缸压力', '相邻两项提交间隔 < 3 秒', '间隔 1 秒', { text: '警示', pill: 'amber' }],
+              ['09:50', '阀组区', '电动执行机构指示灯', '相邻两项提交间隔 < 3 秒', '间隔 2 秒', { text: '警示', pill: 'amber' }],
+              ['09:54', '综合控制室', '电加热器机柜内部检查', '相邻两项提交间隔 < 3 秒', '间隔 1 秒', { text: '警示', pill: 'amber' }],
+              ['09:56', '综合控制室', 'ESD（SIS）机柜SDIL卡件状态指示检查', '相邻两项提交间隔 < 3 秒', '间隔 2 秒', { text: '警示', pill: 'amber' }],
+              ['09:58', '中间罐区', '液位计（液位变送器）外观检查', '提交时刻偏离计划时段 30 分钟以上', '偏移 34 分钟', { text: '严重', pill: 'red' }],
+              ['10:03', 'ESD区', '发电机冷却液液位检查', '提交时刻偏离计划时段 30 分钟以上', '偏移 41 分钟', { text: '严重', pill: 'red' }]
             ],
-            footHint: '漏检 2 项均为一般等级点位，未涉及安全联锁',
-            action: { label: '一键催办责任人', toast: '催办通知已发送至孙涛、赵敏、王磊及班组长' }
+            footHint: '本轮共12条行为异常（时长6 / 间隔4 / 时段2），判定对象是巡检项而非整轮任务'
           }
         ]
       },
@@ -920,21 +986,21 @@ const SCENARIOS = {
         user: '生成本周巡检管理周报',
         keywords: ['周报', '生成报告', '报表'],
         replies: [
-          { type: 'text', delay: 700, text: '正在汇总 2026-08-16 至 08-22 共 873 项巡检任务、5 个作业区的执行与闭环数据……' },
+          { type: 'text', delay: 700, text: '正在汇总 2026-07-17 至 07-23 全省 6 个作业区、141 项计划巡检任务的执行与闭环数据……' },
           { type: 'kv', delay: 1100,
-            head: '本周巡检管理周报已生成', headIc: 'ok', sub: 'ZB-2026W34',
+            head: '本周巡检管理周报已生成', headIc: 'ok', sub: 'ZB-2026W29',
             fields: [
-              ['统计周期', '2026-08-16 至 2026-08-22（第 34 周）'],
-              ['覆盖范围', '5 个作业区 · 873 项巡检任务'],
-              ['核心结论', '平均完成率 95.4%，异常闭环率 87.0%，数智巡检替代人工 68.2%'],
-              ['重点关注', '天镇作业区完成率连续两周低于 90%'],
-              ['报告构成', '周期概览 / 完成率趋势 / 作业区排名 / 异常闭环 / 结论与建议']
+              ['统计周期', '2026-07-17 至 2026-07-23（第29周）'],
+              ['覆盖范围', '6个作业区 · 141项计划巡检任务'],
+              ['核心结论', '平均完成率95.0%，异常闭环率84.6%（11/13），行为异常12次、AI提醒6条'],
+              ['重点关注', '株洲作业区闭环率仅50%（1/2）；长郴-湘潭站第261项判定行为异常，已退回重巡'],
+              ['报告构成', '周期概览 / 完成率趋势 / 作业区排名 / 行为异常与AI提醒 / 结论与建议']
             ],
             footHint: '周报已自动归档，可导出后用于周例会',
             action: { label: '打开周报', report: 'weekly' }
           }
         ],
-        onDone: { taskDone: '本周巡检管理周报待生成', toast: '周报 ZB-2026W34 已生成并归档' }
+        onDone: { taskDone: '本周巡检管理周报待生成', toast: '周报 ZB-2026W29 已生成并归档' }
       }
     ]
   }
@@ -944,20 +1010,20 @@ const SCENARIOS = {
  *  历史对话（只读，点击可回顾，不可继续提问）
  * ========================================================================= */
 const HISTORY = [
-  { id: 'h1', title: '23#阀室可燃气浓度异常处置', date: '2026-08-21 09:24', messages: [
-      { role: 'user', text: '23#阀室昨天报的可燃气浓度异常处理完了吗？' },
-      { role: 'agent', text: '已闭环。08-20 22:41 现场复测浓度 0.4 %LEL，判定为阀门填料轻微渗漏，已更换密封填料并连续观察 12 小时无复发，工单 GD-20260820-0119 于 08-21 08:50 关闭。' },
-      { role: 'user', text: '把处置过程存档到设备档案' },
-      { role: 'agent', text: '已归档至「陕京四线-23#阀室 / 线路截断阀」设备档案，档案编号 SB-SJ4-23-0007。' }
+  { id: 'h1', title: '1DP柜表计异常处置复盘', date: '2026-07-22 20:45', messages: [
+      { role: 'user', text: '1DP柜昨晚报的表计无显示处理完了吗？' },
+      { role: 'agent', text: '已处置。20:13:39现场发现1DP柜面数显表无读数，20:21:10排查确认操作柱接线端子松动，20:34:52重新压接并做防松标记，20:41:07复测确认表计读数恢复、综保无控制回路断线报警。建议纳入下一轮复查留痕。' },
+      { role: 'user', text: '好的，帮我把这条纳入下周巡检重点关注' },
+      { role: 'agent', text: '已标记为下轮复查项，第250项将在下一次PLC机房巡检中优先复核。' }
     ]},
-  { id: 'h2', title: '乌兰4号泵入口过滤器压差查询', date: '2026-08-20 14:02', messages: [
-      { role: 'user', text: '乌兰4号泵入口1#过滤器最近一周压差什么趋势？' },
-      { role: 'agent', text: '近 7 日进出口压差由 0.052 MPa 上升至 0.081 MPa，日均增幅 0.004 MPa，按当前趋势约 6 天后达到 0.10 MPa 清洗阈值，建议本周内安排滤芯清洗。' }
+  { id: 'h2', title: '第106项出口压力越限复核记录', date: '2026-07-22 09:40', messages: [
+      { role: 'user', text: '出口管线压力那条最近读数什么情况？' },
+      { role: 'agent', text: '第106项出口管线压力（PT6903B）就地表与SCADA趋势一致，最新读数9.3MPa，已越过高报警线9.0MPa，尚未到高高报警线9.8MPa。建议现场核对上下游工况后确认。' }
     ]},
-  { id: 'h3', title: '陕京四线全线阀室巡检覆盖情况', date: '2026-08-18 10:37', messages: [
-      { role: 'user', text: '陕京四线现在有几座阀室接入了数智巡检？' },
-      { role: 'agent', text: '全线 17 座阀室中已接入 6 座（22#、23#、25#、27#、31#、34#），覆盖率 35.3%。已接入阀室的月均人工到场次数由 8.2 次降至 2.1 次。' },
-      { role: 'agent', text: '剩余 11 座阀室的视频与 SCADA 点位条件均已具备，可在三季度分两批完成接入。' }
+  { id: 'h3', title: '长沙输油站与全省巡检覆盖情况', date: '2026-07-18 10:20', messages: [
+      { role: 'user', text: '现在全省有几个作业区接入了数智巡检？' },
+      { role: 'agent', text: '全省6个作业区（岳阳/长沙/衡阳/永郴/湘娄/株洲）均已接入，本周计划巡检任务141项，完成134项，完成率95.0%，异常13项已闭环11项。' },
+      { role: 'agent', text: '长沙输油站作为标杆站已实现12区256项全量AI质检复核，本轮合规率95.3%。' }
     ]}
 ];
 
@@ -1201,7 +1267,7 @@ const HISTORY = [
       const rows = list.querySelectorAll('.step-row');
       const fill = bar.querySelector('i');
       const tail = () => {
-        c.querySelector('.card-head span:nth-child(2)').textContent = '巡检任务执行完成';
+        c.querySelector('.card-head span:nth-child(2)').textContent = WORDING.taskDone;
         c.querySelector('.card-head .ic').className = 'ic ok';
         c.querySelector('.card-head .ic').textContent = '✓';
         const t = el('div', 'bubble');
@@ -1327,7 +1393,7 @@ const HISTORY = [
     $('stepIndicator').innerHTML = `演示进度 <b>${Math.min(cv.idx, sc.steps.length)}</b> / ${sc.steps.length}`;
 
     if (state.playing) {
-      slot.appendChild(el('div', 'guide-waiting', '小巡正在处理，请稍候……'));
+      slot.appendChild(el('div', 'guide-waiting', WORDING.agentBusy));
       return;
     }
     const step = sc.steps[cv.idx];
@@ -1340,7 +1406,7 @@ const HISTORY = [
       return;
     }
     if (step.via === 'confirm') {
-      slot.appendChild(el('div', 'guide-waiting', '请在上方「已解析指令」卡片中点击 “确认发起” 以下发巡检任务'));
+      slot.appendChild(el('div', 'guide-waiting', WORDING.confirmHint));
       return;
     }
     const g = el('button', 'guide-card');
@@ -1474,9 +1540,9 @@ const HISTORY = [
 
       } else if (s.type === 'items') {
         sec.insertAdjacentHTML('beforeend',
-          `<div class="rpt-flag bad">⚠ 不合格巡检项</div>
-           <div class="rpt-empty">本次巡检未发现不合格项</div>
-           <div class="rpt-flag good">✓ 合格巡检项</div>
+          `<div class="rpt-flag bad">${WORDING.badFlag}</div>
+           <div class="rpt-empty">${WORDING.emptyText}</div>
+           <div class="rpt-flag good">${WORDING.goodFlag}</div>
            <div class="rpt-zone">${s.zone} <span>（该区域合格点位 <b>${s.passText.split('/')[0]}</b>/${s.passText.split('/')[1]}）</span></div>`);
         sec.insertAdjacentHTML('beforeend', tableHTML(s.columns, s.rows));
 

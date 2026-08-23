@@ -14,6 +14,15 @@
       dirs: ["hunan-pump-overview-v2", "hunan-pump-overview"] },
     { key: "station", label: "泵站态势", href: "pump-station-situation-v2/index.html",
       dirs: ["pump-station-situation-v2", "pump-station-situation"] },
+    // 【第 3 位：智能助手】对话式入口，与右侧四屏是两种交互范式：那四屏是"看"，
+    // 这一屏是"问"。放在中间 —— 前面两屏交代盘子（省域 40 台 → 单机组 25 测点），
+    // 它承接"我能问它什么"，再往后才是深度诊断与知识图谱。
+    //
+    // ⚠️ href 指向的是**单文件页面**（不是目录），所以 dirs 里用文件名匹配 ——
+    // stepOfPath 用 indexOf("/" + dir + "/") 逐个试，单文件没有尾部斜杠，
+    // 因此这一项的 dirs 给空数组：它永远不会被 stepOfPath 命中，而这是对的 ——
+    // 单文件页不加载 flow-nav，也就不需要自己算"当前是哪一屏"。
+    { key: "agent", label: "智能助手", href: "智能巡检数智员工-泵.html", dirs: [] },
     { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow-v2/index.html",
       // dirs 里 v2 必须排在旧目录前面：stepOfPath 用 indexOf("/" + dir + "/") 逐个试，
       // 而 "/diagnosis-flow-v2/" 里**包含** "/diagnosis-flow" 但不含 "/diagnosis-flow/"，

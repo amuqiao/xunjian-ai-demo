@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import unquote
 
 from playwright.sync_api import sync_playwright
 
@@ -28,8 +29,11 @@ SHOT_DIR = Path(os.environ.get("SHOT_DIR") or (Path(tempfile.gettempdir()) / "be
 EXPECT = [
     ("overview", "1", "大屏总览", "hunan-pump-overview-v2", ".ov-map-panel, .hunan-map"),
     ("station", "2", "泵站态势", "pump-station-situation-v2", ".st-map-panel, .pump3d-canvas"),
-    ("diagnosis", "3", "诊断台 / 知识库", "diagnosis-flow-v2", ".wb-scene, .app-shell"),
-    ("graph", "4", "知识图谱", "kg-template", "canvas, svg"),
+    # 第 3 位是**单文件页面**（不是目录），所以 folder 那一列直接给文件名；
+    # 它不加载 flow-nav，D 组「单独打开时没有导航」对它同样成立。
+    ("agent", "3", "智能助手", "智能巡检数智员工-泵.html", ".agent-card, .composer"),
+    ("diagnosis", "4", "诊断台 / 知识库", "diagnosis-flow-v2", ".wb-scene, .app-shell"),
+    ("graph", "5", "知识图谱", "kg-template", "canvas, svg"),
 ]
 # 旧目录没删（仍可单独打开），但主线里一个都不该出现。
 # 注意结尾的 "/"：没有它，"hunan-pump-overview-v2/index.html" 会把
@@ -37,6 +41,13 @@ EXPECT = [
 RETIRED = ["hunan-pump-overview/", "pump-station-situation/", "diagnosis-flow/"]
 
 CONSOLE_ALLOW = ('Scripts "build/three.js"', "SwiftShader", "build/three.js")
+
+# EXPECT 的第 4 列（folder）对目录型组件是目录名、对单文件组件是文件名。
+# 这个小函数把两者都变成 iframe 该有的 src —— 否则单文件那一屏会被拼成
+# 「智能巡检数智员工-泵.html/index.html」，五处断言全红。
+def href_of(folder):
+    return folder if folder.endswith(".html") else folder + "/index.html"
+
 
 PASS = 0
 FAIL = 0
@@ -73,10 +84,10 @@ def main():
           document.querySelectorAll('iframe.demo-frame').forEach(f => { out[f.dataset.key] = f.getAttribute('src'); });
           return out;
         }""")
-        check(len(srcs) == 4, "四个组件的 iframe 都建起来了（实际 %s 个）" % len(srcs))
+        check(len(srcs) == len(EXPECT), "%s 个组件的 iframe 都建起来了（实际 %s 个）" % (len(EXPECT), len(srcs)))
         for key, _no, _label, folder, _sel in EXPECT:
-            check(srcs.get(key) == folder + "/index.html",
-                  "%s 指向 %s（实际 %s）" % (key, folder + "/index.html", srcs.get(key)))
+            check(srcs.get(key) == href_of(folder),
+                  "%s 指向 %s（实际 %s）" % (key, href_of(folder), srcs.get(key)))
         joined = " ".join(srcs.values())
         for old in RETIRED:
             check(old not in joined, "★ 主线里不再出现退役目录 %s" % old)
@@ -86,13 +97,13 @@ def main():
           key: a.dataset.key, label: a.dataset.label, no: a.textContent,
           href: a.getAttribute('href'), active: a.classList.contains('is-active')
         }))""")
-        check(len(nav) == 4, "左下角 4 个切换点（实际 %s）" % len(nav))
+        check(len(nav) == len(EXPECT), "左下角 %s 个切换点（实际 %s）" % (len(EXPECT), len(nav)))
         for i, (key, no, label, folder, _sel) in enumerate(EXPECT):
             item = nav[i] if i < len(nav) else {}
             check(item.get("key") == key and item.get("no") == no and item.get("label") == label,
                   "第 %s 个点是 %s / %s（实际 %s / %s）" % (no, key, label, item.get("key"), item.get("label")))
             # 顶层页面里前缀是空串：index.html 和组件目录同级。
-            check(item.get("href") == folder + "/index.html",
+            check(item.get("href") == href_of(folder),
                   "第 %s 个点的链接指向 %s（实际 %s）" % (no, folder, item.get("href")))
         check(nav[0].get("active") is True, "初始高亮在大屏总览")
 
@@ -112,7 +123,9 @@ def main():
             check(state["loaded"] == "1" and state["mask"], "%s 已加载完、启动遮罩已隐藏" % label)
             check(state["navActive"] == key, "导航高亮跟着切到 %s" % label)
 
-            frame = [f for f in page.frames if folder + "/index.html" in f.url]
+            # 中文文件名在 URL 里是百分号编码的（智能巡检… → %E6%99%BA%E8%83%BD…），
+            # 直接用中文子串匹配永远找不到 —— 必须先 unquote。
+            frame = [f for f in page.frames if href_of(folder) in unquote(f.url)]
             check(len(frame) == 1, "%s 的 frame 找得到（实际 %s 个）" % (label, len(frame)))
             if frame:
                 found = frame[0].evaluate("(sel) => !!document.querySelector(sel)", sel)
@@ -129,7 +142,7 @@ def main():
         # （这条以前反着做过：给三个 v2 加过 flow-nav，口径明确之后已全部摘除。）
         for key, no, label, folder, _sel in EXPECT:
             solo = browser.new_page(viewport={"width": 1680, "height": 1050})
-            solo.goto((ROOT / folder / "index.html").as_uri())
+            solo.goto((ROOT / href_of(folder)).as_uri())
             solo.wait_for_timeout(2000)
             probe = solo.evaluate("""() => ({
               nav: document.querySelectorAll('.inspection-flow-nav').length,

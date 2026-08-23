@@ -174,7 +174,11 @@
         }
 
         function preloadRest() {
-          var order = ["station", "diagnosis", "graph"];
+          // 预热顺序 = 除首屏之外的其余四屏，按用户最可能的浏览顺序排。
+          // 【必须从 steps 派生，不能手写】手写的话新增一屏就会漏掉它，
+          // 那一屏永远不预热、第一次点开要白等几秒（而且不报错，只是慢）。
+          var order = steps.map(function (s) { return s.key; })
+            .filter(function (k) { return k !== "overview"; });
           order.forEach(function (key, index) {
             preloadTimers.push(window.setTimeout(function () {
               idle(function () { ensureFrame(key); }, 1200);

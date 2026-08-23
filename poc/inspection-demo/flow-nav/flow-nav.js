@@ -12,6 +12,8 @@
       dirs: ["hunan-overview-v2", "hunan-inspection-overview"] },
     { key: "station", label: "站点态势", href: "inspection-station-v2/index.html",
       dirs: ["inspection-station-v2", "inspection-3d-sandbox"] },
+    // 【第 3 位：智能助手】见 poc/beng-demo/flow-nav/flow-nav.js 同一位置的说明。
+    { key: "agent", label: "智能助手", href: "智能巡检数智员工_巡检.html", dirs: [] },
     { key: "diagnosis", label: "诊断台 / 知识库", href: "diagnosis-flow-v2/index.html",
       dirs: ["diagnosis-flow-v2", "diagnosis-flow"] },
     { key: "graph", label: "知识图谱", href: "kg-template/index.html",
